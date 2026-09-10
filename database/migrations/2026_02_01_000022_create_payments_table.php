@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('po_id')->constrained('purchase_orders')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('po_id')->constrained('purchase_orders')->cascadeOnDelete();
             // tempo / termin / pelunasan
             $table->string('skema', 15);
             $table->date('tanggal_bayar');

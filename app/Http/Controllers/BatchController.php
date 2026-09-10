@@ -6,6 +6,7 @@ use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\RequestTransfer;
+use App\Models\Stok;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,9 +96,97 @@ class BatchController extends Controller
     public function show(BatchProduksi $batch)
     {
         $this->authorize('batch.view');
-        $batch->load(['produk', 'gudangOperasional', 'gudangTujuan', 'alokasi.bahan:id,sku,nama,satuan', 'opname.bahan:id,nama']);
+        $batch->load([
+            'produk',
+            'gudangOperasional',
+            'gudangTujuan',
+            'creator:id,name',
+            'alokasi.bahan:id,sku,nama,satuan,tipe',
+            'opname.bahan:id,nama',
+        ]);
 
-        return view('batches.show', compact('batch'));
+        $bahanIds = $batch->alokasi->pluck('bahan_id')->unique()->filter()->values();
+
+        // 1. Stok fisik di Gudang Operasional saat ini
+        $stokOperasional = [];
+        if ($batch->gudang_operasional_id && $bahanIds->isNotEmpty()) {
+            $stokOperasional = Stok::where('gudang_id', $batch->gudang_operasional_id)
+                ->whereIn('produk_id', $bahanIds)
+                ->pluck('qty_saat_ini', 'produk_id')
+                ->map(fn ($v) => (float) $v)
+                ->toArray();
+        }
+
+        // 2. Total Alokasi Aktif (dari seluruh batch rencana/aktif) di Gudang Operasional
+        $alokasiAktifTotal = [];
+        if ($batch->gudang_operasional_id && $bahanIds->isNotEmpty()) {
+            $alokasiAktifTotal = DB::table('alokasi_bahan as ab')
+                ->join('batch_produksi as bp', 'bp.id', '=', 'ab.batch_id')
+                ->whereIn('ab.bahan_id', $bahanIds)
+                ->where('ab.status', 'aktif')
+                ->where(function ($q) use ($batch) {
+                    $q->where('bp.gudang_operasional_id', $batch->gudang_operasional_id)
+                      ->orWhereNull('bp.gudang_operasional_id');
+                })
+                ->groupBy('ab.bahan_id')
+                ->select('ab.bahan_id', DB::raw('SUM(ab.qty_dialokasikan) as total_alokasi'))
+                ->pluck('total_alokasi', 'ab.bahan_id')
+                ->map(fn ($v) => (float) $v)
+                ->toArray();
+        }
+
+        // 3. Stok fisik di Gudang Bahan Baku Pusat (sebagai referensi untuk Request Bahan jika kurang)
+        $gudangPusat = Gudang::where('tipe', 'bahan_baku')->first()
+            ?? Gudang::where('kode', 'GD-PUSAT')->first();
+        $stokPusat = [];
+        if ($gudangPusat && $bahanIds->isNotEmpty()) {
+            $stokPusat = Stok::where('gudang_id', $gudangPusat->id)
+                ->whereIn('produk_id', $bahanIds)
+                ->pluck('qty_saat_ini', 'produk_id')
+                ->map(fn ($v) => (float) $v)
+                ->toArray();
+        }
+
+        // 4. Analisa Early Warning / Peringatan Dini
+        $earlyWarnings = [];
+        $hasDeficitFisik = false;
+        $hasDeficitRencana = false;
+
+        foreach ($batch->alokasi as $a) {
+            $bahanId = $a->bahan_id;
+            $qtyAlokasi = (float) $a->qty_dialokasikan;
+            $fisikOp = (float) ($stokOperasional[$bahanId] ?? 0);
+            $totalAlok = (float) ($alokasiAktifTotal[$bahanId] ?? 0);
+            $stokRencana = $fisikOp - $totalAlok;
+            $pusat = (float) ($stokPusat[$bahanId] ?? 0);
+
+            $kurangFisik = max(0, $qtyAlokasi - $fisikOp);
+
+            if ($kurangFisik > 0) {
+                $hasDeficitFisik = true;
+            }
+            if ($stokRencana < 0) {
+                $hasDeficitRencana = true;
+            }
+
+            $earlyWarnings[$a->id] = [
+                'stok_fisik_op' => $fisikOp,
+                'total_alokasi' => $totalAlok,
+                'stok_rencana' => $stokRencana,
+                'stok_pusat' => $pusat,
+                'kurang_fisik' => $kurangFisik,
+                'is_cukup_fisik' => $kurangFisik <= 0,
+                'is_cukup_rencana' => $stokRencana >= 0,
+            ];
+        }
+
+        return view('batches.show', compact(
+            'batch',
+            'earlyWarnings',
+            'hasDeficitFisik',
+            'hasDeficitRencana',
+            'gudangPusat'
+        ));
     }
 
     /** Release & Issue: tarik bahan riil dari stok gudang operasional, alokasi dilepas. */

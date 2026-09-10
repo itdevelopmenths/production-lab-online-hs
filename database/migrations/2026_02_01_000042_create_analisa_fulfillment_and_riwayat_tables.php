@@ -25,7 +25,7 @@ return new class extends Migration
         });
 
         Schema::create('riwayat_analisa', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->date('tanggal');
             // bahan_lokal / bahan_impor / produk_jadi_fulfillment
             $table->string('tipe', 30);

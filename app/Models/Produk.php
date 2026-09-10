@@ -58,6 +58,11 @@ class Produk extends Model
         return $query->whereIn('tipe', ['bahan', 'kemas']);
     }
 
+    public function scopeKemas($query)
+    {
+        return $query->where('tipe', 'kemas');
+    }
+
     public function scopeProdukJadi($query)
     {
         return $query->where('tipe', 'produk_jadi');

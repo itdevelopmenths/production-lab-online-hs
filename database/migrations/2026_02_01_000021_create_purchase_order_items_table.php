@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('purchase_order_items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('po_id')->constrained('purchase_orders')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('po_id')->constrained('purchase_orders')->cascadeOnDelete();
             $table->foreignId('produk_id')->constrained('produk')->cascadeOnDelete();
             $table->decimal('qty', 15, 2);
             $table->decimal('harga_total', 18, 2);

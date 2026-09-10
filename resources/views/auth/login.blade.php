@@ -52,6 +52,32 @@
                     Masuk
                 </button>
             </form>
+
+            @if(app()->environment('local', 'testing'))
+            <div class="mt-6 pt-5 border-t border-gray-100">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5 text-center">⚡ Quick Login (Local Dev)</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    @php
+                        $quickRoles = [
+                            'manager' => 'Manager',
+                            'purchasing' => 'Purchasing',
+                            'gudang' => 'Gudang',
+                            'operasional' => 'Operasional',
+                            'fulfillment' => 'Fulfillment',
+                        ];
+                    @endphp
+                    @foreach($quickRoles as $rKey => $rLabel)
+                    <form method="POST" action="{{ route('switch-role') }}">
+                        @csrf
+                        <input type="hidden" name="role" value="{{ $rKey }}">
+                        <button type="submit" class="w-full py-1.5 px-2 text-xs font-medium text-gray-700 bg-gray-50 hover:bg-primary-50 hover:text-primary-700 border border-gray-200 rounded-lg transition text-center truncate">
+                            {{ $rLabel }}
+                        </button>
+                    </form>
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
 
         <p class="text-center text-xs text-gray-400 mt-6">&copy; {{ date('Y') }} Heaven Scent. All rights reserved.</p>

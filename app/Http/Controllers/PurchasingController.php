@@ -100,7 +100,7 @@ class PurchasingController extends Controller
     public function show(PurchaseOrder $purchaseOrder)
     {
         $this->authorize('purchasing.view');
-        $purchaseOrder->load(['supplier', 'items.produk:id,sku,nama,satuan', 'payments', 'barangDatang.items', 'creator:id,name']);
+        $purchaseOrder->load(['supplier', 'items.produk:id,sku,nama,satuan', 'items.bardatItems', 'payments', 'barangDatang.items', 'creator:id,name']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
 
         return view('purchasing.show', compact('purchaseOrder', 'gudang'));

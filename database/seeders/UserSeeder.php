@@ -11,6 +11,7 @@ class UserSeeder extends Seeder
     {
         // Satu user per role SC Online (PRD §2). Password default: "password".
         $users = [
+            ['Administrator', 'admin@heavenscent.id', 'manager'],
             ['Andyka (Manager)', 'manager@heavenscent.id', 'manager'],
             ['Rina (Purchasing)', 'purchasing@heavenscent.id', 'purchasing'],
             ['Budi (Gudang)', 'gudang@heavenscent.id', 'gudang'],

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('batch_produksi', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('no_batch', 30)->unique();
             $table->foreignId('produk_id')->constrained('produk')->cascadeOnDelete();
             $table->decimal('qty_rencana', 15, 2);

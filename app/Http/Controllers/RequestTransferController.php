@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\RequestTransfer;
+use App\Models\Stok;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -93,9 +94,51 @@ class RequestTransferController extends Controller
     public function show(RequestTransfer $requestTransfer)
     {
         $this->authorize('rt.view');
-        $requestTransfer->load(['items.produk:id,sku,nama,satuan', 'gudangAsal', 'gudangTujuan', 'creator:id,name']);
+        $requestTransfer->load([
+            'items.produk:id,sku,nama,satuan',
+            'gudangAsal',
+            'gudangTujuan',
+            'creator:id,name',
+        ]);
 
-        return view('request-transfer.show', compact('requestTransfer'));
+        $stokAsal = [];
+        $hasDeficit = false;
+        $itemWarnings = [];
+
+        if ($requestTransfer->gudang_asal_id) {
+            $produkIds = $requestTransfer->items->pluck('produk_id')->unique()->filter()->values();
+            if ($produkIds->isNotEmpty()) {
+                $stokAsal = Stok::where('gudang_id', $requestTransfer->gudang_asal_id)
+                    ->whereIn('produk_id', $produkIds)
+                    ->pluck('qty_saat_ini', 'produk_id')
+                    ->map(fn ($v) => (float) $v)
+                    ->toArray();
+            }
+        }
+
+        foreach ($requestTransfer->items as $item) {
+            $fisikAsal = (float) ($stokAsal[$item->produk_id] ?? 0);
+            $diminta = (float) $item->qty_diminta;
+            $kurang = max(0, $diminta - $fisikAsal);
+
+            // Sinyal kritis jika pada tahap pra-pengiriman stok fisik di gudang asal tidak mencukupi
+            if ($kurang > 0 && in_array($requestTransfer->status, ['draft', 'diajukan', 'disetujui'], true)) {
+                $hasDeficit = true;
+            }
+
+            $itemWarnings[$item->id] = [
+                'stok_fisik_asal' => $fisikAsal,
+                'kurang' => $kurang,
+                'is_cukup' => $kurang <= 0,
+            ];
+        }
+
+        return view('request-transfer.show', compact(
+            'requestTransfer',
+            'stokAsal',
+            'hasDeficit',
+            'itemWarnings'
+        ));
     }
 
     /**

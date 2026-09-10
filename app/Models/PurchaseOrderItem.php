@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseOrderItem extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'po_id',
         'produk_id',
@@ -43,6 +46,10 @@ class PurchaseOrderItem extends Model
 
     public function qtyDiterima(): float
     {
-        return (float) $this->bardatItems->sum('qty_diterima');
+        if ($this->relationLoaded('bardatItems')) {
+            return (float) $this->bardatItems->sum('qty_diterima');
+        }
+
+        return (float) $this->bardatItems()->sum('qty_diterima');
     }
 }

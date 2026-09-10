@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('kartu_stok', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->date('tanggal');
             $table->foreignId('produk_id')->constrained('produk')->cascadeOnDelete();
             $table->foreignId('gudang_id')->constrained('gudang')->cascadeOnDelete();
@@ -19,7 +19,7 @@ return new class extends Migration
             $table->decimal('saldo_setelah', 15, 2);
             // purchase_order / request_transfer / batch_produksi / mutasi_manual
             $table->string('referensi_tipe', 30);
-            $table->unsignedBigInteger('referensi_id')->nullable();
+            $table->string('referensi_id', 36)->nullable();
             $table->string('catatan', 255)->nullable();
             $table->timestamps();
 

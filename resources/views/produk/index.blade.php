@@ -1,39 +1,78 @@
 <x-app-layout title="Produk">
-    <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold text-gray-900">Master Produk</h3>
-        @can('produk.create')
-        <a href="{{ route('produk.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600 transition shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Tambah Produk
-        </a>
-        @endcan
-    </div>
+    <x-page-header
+        title="Master Produk"
+        subtitle="Daftar produk jadi, bahan baku konsentrat/alkohol, dan komponen kemasan"
+        :breadcrumbs="['Master Data' => null, 'Produk' => null]"
+    >
+        <x-slot:actions>
+            @can('produk.create')
+            <x-button href="{{ route('produk.create') }}" variant="primary" size="xs">
+                <x-slot:icon>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                </x-slot:icon>
+                Tambah Produk
+            </x-button>
+            @endcan
+        </x-slot:actions>
+    </x-page-header>
 
-    <div class="table-wrapper bg-white rounded-xl border border-gray-200 p-4">
-        <table id="tbl" class="w-full text-sm">
-            <thead class="bg-gray-50 border-b border-gray-200">
+    <x-card title="Katalog Produk & Bahan Baku" :noPadding="true">
+        <table id="tbl" class="w-full text-xs">
+            <thead>
                 <tr>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">SKU</th>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">Nama</th>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">Tipe</th>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">Satuan</th>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">MOQ</th>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">Status</th>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">Aksi</th>
+                    <th class="px-4 py-3 text-left">SKU</th>
+                    <th class="px-4 py-3 text-left">Nama</th>
+                    <th class="px-4 py-3 text-left">Tipe</th>
+                    <th class="px-4 py-3 text-left">Satuan</th>
+                    <th class="px-4 py-3 text-left">MOQ</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                    <th class="px-4 py-3 text-center">Aksi</th>
                 </tr>
             </thead>
         </table>
-    </div>
+    </x-card>
 
     @push('scripts')
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <script>
-    function hapus(url){ Swal.fire({title:'Hapus data?',icon:'warning',showCancelButton:true,confirmButtonColor:'#dc2626',confirmButtonText:'Hapus',cancelButtonText:'Batal'}).then(r=>{ if(r.isConfirmed){ fetch(url,{method:'DELETE',headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}}).then(res=>res.json()).then(d=>{ Swal.fire('Terhapus',d.message,'success'); $('#tbl').DataTable().ajax.reload(); }); } }); }
-    $(function(){ $('#tbl').DataTable({ processing:true, serverSide:true, ajax:'{{ route("produk.data") }}',
-        columns:[{data:'sku'},{data:'nama'},{data:'tipe'},{data:'satuan'},{data:'satuan_order_moq',name:'satuan_order_moq'},{data:'is_active',name:'is_active'},{data:'action',orderable:false,searchable:false}],
-        language:{processing:'Memuat...',search:'Cari:',paginate:{previous:'Sebelumnya',next:'Berikutnya'},info:'_START_-_END_ dari _TOTAL_',zeroRecords:'Data tidak ditemukan'} }); });
+    function hapus(url){
+        Swal.fire({
+            title: 'Hapus data produk ini?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            confirmButtonText: 'Ya, Hapus',
+            cancelButtonText: 'Batal'
+        }).then(r => {
+            if(r.isConfirmed){
+                fetch(url, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(d => {
+                    Swal.fire('Terhapus', d.message, 'success');
+                    $('#tbl').DataTable().ajax.reload();
+                });
+            }
+        });
+    }
+
+    $(function(){
+        $('#tbl').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: '{{ route("produk.data") }}',
+            columns: [
+                { data: 'sku' },
+                { data: 'nama' },
+                { data: 'tipe' },
+                { data: 'satuan' },
+                { data: 'satuan_order_moq', name: 'satuan_order_moq' },
+                { data: 'is_active', name: 'is_active' },
+                { data: 'action', orderable: false, searchable: false, className: 'text-center' }
+            ]
+        });
+    });
     </script>
     @endpush
 </x-app-layout>

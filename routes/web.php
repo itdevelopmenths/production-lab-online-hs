@@ -11,9 +11,15 @@ use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RequestTransferController;
 use App\Http\Controllers\StokController;
+use App\Http\Controllers\RoleSwitcherController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+
+// Local & Testing Quick Role Switcher (Bab 9 No 6)
+if (app()->environment('local', 'testing')) {
+    Route::post('switch-role', [RoleSwitcherController::class, 'switch'])->name('switch-role');
+}
 
 // Guest
 Route::middleware('guest')->group(function () {
@@ -29,32 +35,17 @@ Route::middleware('auth')->group(function () {
     // ===== Master Data =====
     Route::middleware('can:produk.view')->group(function () {
         Route::get('produk/data', [ProdukController::class, 'data'])->name('produk.data');
-        Route::resource('produk', ProdukController::class)->except(['show'])
-            ->middleware([
-                'store' => 'can:produk.create',
-                'update' => 'can:produk.edit',
-                'destroy' => 'can:produk.delete',
-            ]);
+        Route::resource('produk', ProdukController::class)->except(['show']);
     });
 
     Route::middleware('can:gudang.view')->group(function () {
         Route::get('gudang/data', [GudangController::class, 'data'])->name('gudang.data');
-        Route::resource('gudang', GudangController::class)->except(['show'])
-            ->middleware([
-                'store' => 'can:gudang.create',
-                'update' => 'can:gudang.edit',
-                'destroy' => 'can:gudang.delete',
-            ]);
+        Route::resource('gudang', GudangController::class)->except(['show']);
     });
 
     Route::middleware('can:supplier.view')->group(function () {
         Route::get('supplier/data', [SupplierController::class, 'data'])->name('supplier.data');
-        Route::resource('supplier', SupplierController::class)->except(['show'])
-            ->middleware([
-                'store' => 'can:supplier.create',
-                'update' => 'can:supplier.edit',
-                'destroy' => 'can:supplier.delete',
-            ]);
+        Route::resource('supplier', SupplierController::class)->except(['show']);
     });
 
     Route::middleware('can:bom.view')->group(function () {

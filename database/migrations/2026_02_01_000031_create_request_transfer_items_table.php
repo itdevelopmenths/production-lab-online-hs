@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('request_transfer_items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('request_transfer_id')->constrained('request_transfers')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('request_transfer_id')->constrained('request_transfers')->cascadeOnDelete();
             $table->foreignId('produk_id')->constrained('produk')->cascadeOnDelete();
             $table->decimal('qty_diminta', 15, 2);
             $table->decimal('qty_dikirim', 15, 2)->nullable();

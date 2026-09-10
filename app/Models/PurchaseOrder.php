@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseOrder extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'no_po',
         'supplier_id',
@@ -54,12 +57,20 @@ class PurchaseOrder extends Model
 
     public function totalNilai(): float
     {
-        return (float) $this->items->sum('harga_total');
+        if ($this->relationLoaded('items')) {
+            return (float) $this->items->sum('harga_total');
+        }
+
+        return (float) $this->items()->sum('harga_total');
     }
 
     public function totalDibayar(): float
     {
-        return (float) $this->payments->sum('nominal');
+        if ($this->relationLoaded('payments')) {
+            return (float) $this->payments->sum('nominal');
+        }
+
+        return (float) $this->payments()->sum('nominal');
     }
 
     public function sisaTagihan(): float

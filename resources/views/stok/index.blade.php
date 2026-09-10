@@ -1,83 +1,113 @@
 <x-app-layout title="Stok & Mutasi">
     <div x-data="{ openMutasi: false }">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h3 class="text-lg font-semibold text-gray-900">Stok &amp; Mutasi</h3>
-                <p class="text-xs text-gray-500">Kolom Stok = fisik. Kolom Rencana = fisik − alokasi bahan aktif.</p>
-            </div>
-            <div class="flex gap-2">
+        <x-page-header
+            title="Stok & Mutasi"
+            subtitle="Pemantauan saldo fisik (Kolom Stok) vs komitmen alokasi batch (Kolom Rencana) berbasis batas aman analisa"
+            :breadcrumbs="['Stok & Mutasi' => null]"
+        >
+            <x-slot:actions>
                 @can('stok.opname')
-                <a href="{{ route('stok.opname') }}" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200">Opname</a>
+                <x-button href="{{ route('stok.opname') }}" variant="secondary" size="xs">
+                    Opname Fisik
+                </x-button>
                 @endcan
                 @can('stok.mutasi')
-                <button @click="openMutasi = true" class="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600">Mutasi Manual</button>
+                <x-button @click="openMutasi = true" variant="primary" size="xs">
+                    <x-slot:icon>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </x-slot:icon>
+                    Mutasi Manual
+                </x-button>
                 @endcan
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
 
-        <div class="table-wrapper bg-white rounded-xl border border-gray-200 p-4">
-            <table id="tbl" class="w-full text-sm">
-                <thead class="bg-gray-50 border-b border-gray-200"><tr>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">SKU</th>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">Produk</th>
-                    <th class="px-4 py-3 text-left font-medium text-gray-600">Gudang</th>
-                    <th class="px-4 py-3 text-right font-medium text-gray-600">Kolom Stok</th>
-                    <th class="px-4 py-3 text-right font-medium text-gray-600">Kolom Rencana</th>
-                </tr></thead>
+        <x-card title="Buku Saldo & Alert Ketersediaan Stok" :noPadding="true">
+            <table id="tbl" class="w-full text-xs">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-3 text-left">SKU</th>
+                        <th class="px-4 py-3 text-left">Produk</th>
+                        <th class="px-4 py-3 text-left">Gudang</th>
+                        <th class="px-4 py-3 text-right">Batas Min (Analisa)</th>
+                        <th class="px-4 py-3 text-right">Kolom Stok</th>
+                        <th class="px-4 py-3 text-right">Kolom Rencana</th>
+                        <th class="px-4 py-3 text-center">Aksi</th>
+                    </tr>
+                </thead>
             </table>
-        </div>
+        </x-card>
 
-        {{-- Modal mutasi --}}
+        {{-- Modal Mutasi Manual (AdminLTE Sharp Modal) --}}
         @can('stok.mutasi')
-        <div x-show="openMutasi" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div @click.away="openMutasi = false" class="bg-white rounded-xl w-full max-w-lg p-6">
-                <h4 class="text-lg font-semibold mb-4">Mutasi Stok Manual</h4>
-                <form method="POST" action="{{ route('stok.mutasi') }}" class="space-y-4">
-                    @csrf
+        <x-modal name="openMutasi" title="Mutasi Stok Manual" maxWidth="md">
+            <form method="POST" action="{{ route('stok.mutasi') }}" id="form-mutasi-manual" class="space-y-3">
+                @csrf
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Produk</label>
+                    <select name="produk_id" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
+                        @foreach($produk as $p)
+                            <option value="{{ $p->id }}">{{ $p->sku }} — {{ $p->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Gudang</label>
+                    <select name="gudang_id" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
+                        @foreach($gudang as $g)
+                            <option value="{{ $g->id }}">{{ $g->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Produk</label>
-                        <select name="produk_id" class="w-full rounded-lg border-gray-300 text-sm" required>
-                            @foreach($produk as $p)<option value="{{ $p->id }}">{{ $p->sku }} — {{ $p->nama }}</option>@endforeach
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Tipe Mutasi</label>
+                        <select name="tipe" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <option value="in">Masuk (IN)</option>
+                            <option value="out">Keluar (OUT)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Gudang</label>
-                        <select name="gudang_id" class="w-full rounded-lg border-gray-300 text-sm" required>
-                            @foreach($gudang as $g)<option value="{{ $g->id }}">{{ $g->nama }}</option>@endforeach
-                        </select>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Qty</label>
+                        <input type="number" step="0.01" name="qty" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" placeholder="0.00" required>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipe</label>
-                            <select name="tipe" class="w-full rounded-lg border-gray-300 text-sm"><option value="in">Masuk</option><option value="out">Keluar</option></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Qty</label>
-                            <input type="number" step="0.01" name="qty" class="w-full rounded-lg border-gray-300 text-sm" required>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
-                        <input type="text" name="catatan" class="w-full rounded-lg border-gray-300 text-sm">
-                    </div>
-                    <div class="flex justify-end gap-3 pt-2">
-                        <button type="button" @click="openMutasi = false" class="px-4 py-2 text-sm text-gray-600">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600">Simpan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Catatan / Alasan Mutasi</label>
+                    <input type="text" name="catatan" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" placeholder="Penyesuaian stok / rusak / sampel">
+                </div>
+            </form>
+
+            <x-slot:footer>
+                <x-button @click="openMutasi = false" variant="secondary" size="xs">
+                    Batal
+                </x-button>
+                <x-button onclick="document.getElementById('form-mutasi-manual').submit()" variant="primary" size="xs">
+                    Simpan Mutasi
+                </x-button>
+            </x-slot:footer>
+        </x-modal>
         @endcan
     </div>
 
     @push('scripts')
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     <script>
-    $(function(){ $('#tbl').DataTable({ processing:true, serverSide:true, ajax:'{{ route("stok.data") }}',
-        columns:[{data:'sku',orderable:false},{data:'nama',orderable:false},{data:'gudang_nama',orderable:false},{data:'kolom_stok',className:'text-right',searchable:false},{data:'kolom_rencana',className:'text-right',searchable:false}],
-        language:{processing:'Memuat...',search:'Cari:',paginate:{previous:'Sebelumnya',next:'Berikutnya'},info:'_START_-_END_ dari _TOTAL_',zeroRecords:'Data tidak ditemukan'} }); });
+    $(function(){
+        $('#tbl').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: '{{ route("stok.data") }}',
+            columns: [
+                { data: 'sku', orderable: false },
+                { data: 'nama', orderable: false },
+                { data: 'gudang_nama', orderable: false },
+                { data: 'batas_minimum', className: 'text-right font-mono', orderable: false, searchable: false },
+                { data: 'kolom_stok', className: 'text-right font-mono', searchable: false },
+                { data: 'kolom_rencana', className: 'text-right font-mono', searchable: false },
+                { data: 'action', className: 'text-center', orderable: false, searchable: false }
+            ]
+        });
+    });
     </script>
     @endpush
 </x-app-layout>

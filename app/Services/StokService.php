@@ -18,7 +18,7 @@ class StokService
     /**
      * Catat mutasi masuk (in). Menambah saldo gudang + append kartu stok.
      */
-    public function masuk(int $produkId, int $gudangId, float $qty, string $referensiTipe, ?int $referensiId = null, ?string $catatan = null, ?Carbon $tanggal = null): KartuStok
+    public function masuk(int $produkId, int $gudangId, float $qty, string $referensiTipe, string|int|null $referensiId = null, ?string $catatan = null, ?Carbon $tanggal = null): KartuStok
     {
         return $this->post('in', $produkId, $gudangId, $qty, $referensiTipe, $referensiId, $catatan, $tanggal);
     }
@@ -26,7 +26,7 @@ class StokService
     /**
      * Catat mutasi keluar (out). Mengurangi saldo gudang + append kartu stok.
      */
-    public function keluar(int $produkId, int $gudangId, float $qty, string $referensiTipe, ?int $referensiId = null, ?string $catatan = null, ?Carbon $tanggal = null): KartuStok
+    public function keluar(int $produkId, int $gudangId, float $qty, string $referensiTipe, string|int|null $referensiId = null, ?string $catatan = null, ?Carbon $tanggal = null): KartuStok
     {
         return $this->post('out', $produkId, $gudangId, $qty, $referensiTipe, $referensiId, $catatan, $tanggal);
     }
@@ -36,7 +36,7 @@ class StokService
      *
      * @return array{keluar: KartuStok, masuk: KartuStok}
      */
-    public function pindah(int $produkId, int $gudangAsalId, int $gudangTujuanId, float $qtyKeluar, float $qtyMasuk, string $referensiTipe, ?int $referensiId = null, ?string $catatan = null, ?Carbon $tanggal = null): array
+    public function pindah(int $produkId, int $gudangAsalId, int $gudangTujuanId, float $qtyKeluar, float $qtyMasuk, string $referensiTipe, string|int|null $referensiId = null, ?string $catatan = null, ?Carbon $tanggal = null): array
     {
         return DB::transaction(function () use ($produkId, $gudangAsalId, $gudangTujuanId, $qtyKeluar, $qtyMasuk, $referensiTipe, $referensiId, $catatan, $tanggal) {
             $out = $this->post('out', $produkId, $gudangAsalId, $qtyKeluar, $referensiTipe, $referensiId, $catatan, $tanggal);
@@ -70,7 +70,7 @@ class StokService
         return $stok ? (float) $stok->qty_saat_ini : 0.0;
     }
 
-    private function post(string $tipe, int $produkId, int $gudangId, float $qty, string $referensiTipe, ?int $referensiId, ?string $catatan, ?Carbon $tanggal): KartuStok
+    private function post(string $tipe, int $produkId, int $gudangId, float $qty, string $referensiTipe, string|int|null $referensiId, ?string $catatan, ?Carbon $tanggal): KartuStok
     {
         if ($qty <= 0) {
             throw new RuntimeException('Qty mutasi stok harus lebih dari 0.');

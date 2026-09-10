@@ -2,7 +2,7 @@
     <div class="max-w-4xl" x-data="rtForm()">
         <a href="{{ route('rt.index') }}" class="text-sm text-gray-500 hover:text-gray-700">&larr; Kembali</a>
         <div class="mt-4 bg-white rounded-xl border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Buat Request &amp; Transfer</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Buat Request & Transfer</h3>
             <form method="POST" action="{{ route('rt.store') }}">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">

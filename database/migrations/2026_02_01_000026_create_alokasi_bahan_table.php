@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('alokasi_bahan', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('batch_id')->constrained('batch_produksi')->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('batch_id')->constrained('batch_produksi')->cascadeOnDelete();
             $table->foreignId('bahan_id')->constrained('produk')->cascadeOnDelete();
             $table->decimal('qty_dialokasikan', 15, 2);
             // aktif / dilepas / dibatalkan

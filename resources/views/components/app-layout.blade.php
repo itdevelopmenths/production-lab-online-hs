@@ -1,156 +1,233 @@
-@props(['title' => 'Heaven Scent'])
+@props(['title' => 'Heaven Scent', 'breadcrumbs' => []])
 <!DOCTYPE html>
-<html lang="id" class="h-full bg-gray-50">
+<html lang="id" class="h-full bg-[#f4f6f9]">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title }} — Produksi</title>
+    <title>{{ $title }} — Heaven Scent Enterprise</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak]{display:none!important}</style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="h-full font-sans antialiased" x-data="{ sidebarOpen: window.innerWidth >= 1024 }">
+<body class="h-full font-sans antialiased text-gray-800 bg-[#f4f6f9]" x-data="{ sidebarOpen: window.innerWidth >= 1024 }">
     <div class="min-h-full flex">
         {{-- Sidebar Overlay (mobile) --}}
         <div x-show="sidebarOpen" x-cloak
-             x-transition:enter="transition-opacity ease-linear duration-300"
+             x-transition:enter="transition-opacity ease-linear duration-200"
              x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-             x-transition:leave="transition-opacity ease-linear duration-300"
+             x-transition:leave="transition-opacity ease-linear duration-200"
              x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
              @click="sidebarOpen = false"
-             class="fixed inset-0 z-40 bg-black/40 lg:hidden"></div>
+             class="fixed inset-0 z-40 bg-black/50 lg:hidden"></div>
 
         {{-- Desktop Spacer --}}
-        <div class="hidden lg:block shrink-0 transition-all duration-300 ease-in-out" :class="sidebarOpen ? 'w-64' : 'w-0'"></div>
+        <div class="hidden lg:block shrink-0 transition-all duration-200 ease-in-out" :class="sidebarOpen ? 'w-60' : 'w-0'"></div>
 
-        {{-- Sidebar --}}
+        {{-- Dark Sidebar (AdminLTE 4 Style) --}}
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-               class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out flex flex-col h-screen">
-            <div class="flex items-center gap-3 h-16 px-6 border-b border-gray-100 shrink-0">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-gold-500 flex items-center justify-center">
-                    <span class="text-white font-bold text-sm">HS</span>
+               class="fixed inset-y-0 left-0 z-50 w-60 bg-[#1f2937] border-r border-gray-800 transform transition-transform duration-200 ease-in-out flex flex-col h-screen select-none">
+            
+            {{-- Brand Header --}}
+            <div class="flex items-center gap-2.5 h-14 px-4 bg-[#111827] border-b border-gray-800 shrink-0">
+                <div class="w-7 h-7 rounded-sm bg-primary-600 border border-primary-500 flex items-center justify-center shadow-xs">
+                    <span class="text-white font-black text-xs tracking-wider">HS</span>
                 </div>
-                <div>
-                    <h1 class="text-sm font-bold text-gray-900">Heaven Scent</h1>
-                    <p class="text-[10px] text-gray-400 uppercase tracking-wider">Production System</p>
+                <div class="min-w-0">
+                    <h1 class="text-xs font-bold text-white tracking-wide truncate">HEAVEN SCENT</h1>
+                    <p class="text-[9px] text-gray-400 font-semibold tracking-widest uppercase">Production Lab</p>
                 </div>
             </div>
 
-            <nav class="p-4 space-y-1 overflow-y-auto flex-1">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('dashboard') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            {{-- Navigation Items --}}
+            <nav class="p-2 space-y-0.5 overflow-y-auto flex-1 text-xs">
+                <x-nav-item href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    </x-slot:icon>
                     Dashboard
-                </a>
+                </x-nav-item>
+
+                <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Operasional</p>
 
                 @can('purchasing.view')
-                <a href="{{ route('purchasing.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('purchasing.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <x-nav-item href="{{ route('purchasing.index') }}" :active="request()->routeIs('purchasing.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    </x-slot:icon>
                     Purchasing
-                </a>
+                </x-nav-item>
                 @endcan
+
                 @can('batch.view')
-                <a href="{{ route('batches.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('batches.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                <x-nav-item href="{{ route('batches.index') }}" :active="request()->routeIs('batches.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    </x-slot:icon>
                     Produksi
-                </a>
+                </x-nav-item>
                 @endcan
+
                 @can('rt.view')
-                <a href="{{ route('rt.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('rt.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                    Request &amp; Transfer
-                </a>
+                <x-nav-item href="{{ route('rt.index') }}" :active="request()->routeIs('rt.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                    </x-slot:icon>
+                    Request & Transfer
+                </x-nav-item>
                 @endcan
+
                 @can('analisa.view')
-                <a href="{{ route('analisa.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('analisa.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                <x-nav-item href="{{ route('analisa.index') }}" :active="request()->routeIs('analisa.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    </x-slot:icon>
                     Analisa Stok
-                </a>
+                </x-nav-item>
                 @endcan
 
-                <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Stok &amp; Mutasi</p>
+                <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Stok & Mutasi</p>
+
                 @can('stok.view')
-                <a href="{{ route('stok.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('stok.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
-                    Stok &amp; Mutasi
-                </a>
+                <x-nav-item href="{{ route('stok.index') }}" :active="request()->routeIs('stok.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+                    </x-slot:icon>
+                    Stok & Mutasi
+                </x-nav-item>
                 @endcan
 
-                <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Master Data</p>
+                <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Master Data</p>
+
                 @can('produk.view')
-                <a href="{{ route('produk.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('produk.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <x-nav-item href="{{ route('produk.index') }}" :active="request()->routeIs('produk.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    </x-slot:icon>
                     Produk
-                </a>
-                @endcan
-                @can('gudang.view')
-                <a href="{{ route('gudang.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('gudang.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                    Gudang
-                </a>
-                @endcan
-                @can('supplier.view')
-                <a href="{{ route('supplier.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('supplier.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z"/></svg>
-                    Supplier
-                </a>
-                @endcan
-                @can('bom.view')
-                <a href="{{ route('bom.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('bom.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    BOM
-                </a>
+                </x-nav-item>
                 @endcan
 
-                <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Laporan</p>
+                @can('gudang.view')
+                <x-nav-item href="{{ route('gudang.index') }}" :active="request()->routeIs('gudang.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    </x-slot:icon>
+                    Gudang
+                </x-nav-item>
+                @endcan
+
+                @can('supplier.view')
+                <x-nav-item href="{{ route('supplier.index') }}" :active="request()->routeIs('supplier.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z"/></svg>
+                    </x-slot:icon>
+                    Supplier
+                </x-nav-item>
+                @endcan
+
+                @can('bom.view')
+                <x-nav-item href="{{ route('bom.index') }}" :active="request()->routeIs('bom.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </x-slot:icon>
+                    BOM (Resep)
+                </x-nav-item>
+                @endcan
+
                 @can('report.view')
-                <a href="{{ route('reports.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('reports.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Laporan</p>
+                <x-nav-item href="{{ route('reports.index') }}" :active="request()->routeIs('reports.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </x-slot:icon>
                     Laporan
-                </a>
+                </x-nav-item>
                 @endcan
 
                 @can('user.manage')
-                <p class="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Admin</p>
-                <a href="{{ route('users.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('users.*') ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
+                <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sistem</p>
+                <x-nav-item href="{{ route('users.index') }}" :active="request()->routeIs('users.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
+                    </x-slot:icon>
                     Pengguna
-                </a>
+                </x-nav-item>
                 @endcan
             </nav>
         </aside>
 
-        {{-- Main Content --}}
+        {{-- Main Canvas --}}
         <div class="flex-1 flex flex-col min-w-0">
-            {{-- Top Navbar --}}
-            <header class="sticky top-0 z-30 h-16 bg-white/80 backdrop-blur-sm border-b border-gray-200 flex items-center justify-between px-4 lg:px-8">
-                <div class="flex items-center gap-4">
-                    <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition">
+            {{-- Top Navbar (AdminLTE 4 White Header) --}}
+            <header class="sticky top-0 z-30 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-2xs">
+                <div class="flex items-center gap-3">
+                    <button @click="sidebarOpen = !sidebarOpen" class="p-1.5 rounded-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition cursor-pointer" title="Toggle Sidebar">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
-                    <h2 class="text-lg font-semibold text-gray-800">{{ $title }}</h2>
+                    <span class="hidden sm:inline-block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        {{ $title }}
+                    </span>
                 </div>
-                <div class="flex items-center gap-4" x-data="{ open: false }">
+
+                <div class="flex items-center gap-2 sm:gap-3" x-data="{ open: false }">
+                    {{-- Quick Role Switcher --}}
+                    @if(app()->environment('local', 'testing'))
+                    <form method="POST" action="{{ route('switch-role') }}" id="role-switcher-form" class="flex items-center">
+                        @csrf
+                        <div class="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-200 rounded-sm text-xs text-amber-800 shadow-2xs">
+                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            <label for="switch-role-select" class="hidden sm:inline font-bold text-amber-900 text-[11px] uppercase">Peran:</label>
+                            <select id="switch-role-select" name="role" onchange="this.form.submit()" class="bg-transparent border-0 py-0 pl-1 pr-6 text-xs font-semibold text-amber-900 focus:ring-0 focus:outline-none cursor-pointer">
+                                @php
+                                    $currentRole = auth()->user()?->roleName() ?? 'manager';
+                                    $availableRoles = [
+                                        'manager' => 'Manager (Andyka)',
+                                        'purchasing' => 'Purchasing (Rina)',
+                                        'gudang' => 'Gudang (Budi)',
+                                        'operasional' => 'Operasional (Dedi)',
+                                        'fulfillment' => 'Fulfillment (Sari)',
+                                    ];
+                                @endphp
+                                @foreach($availableRoles as $rKey => $rLabel)
+                                    <option value="{{ $rKey }}" {{ $currentRole === $rKey ? 'selected' : '' }}>
+                                        {{ $rLabel }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </form>
+                    @endif
+
+                    {{-- User Profile Dropdown --}}
                     <div class="relative">
-                        <button @click="open = !open" class="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
-                            <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white font-semibold text-xs">
+                        <button @click="open = !open" class="flex items-center gap-2 px-2 py-1 rounded-sm text-xs text-gray-700 hover:bg-gray-100 transition cursor-pointer">
+                            <div class="w-7 h-7 rounded-sm bg-primary-700 flex items-center justify-center text-white font-bold text-xs shadow-2xs">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                             </div>
-                            <span class="hidden sm:block">{{ auth()->user()->name }}</span>
-                            <svg class="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <div class="hidden sm:block text-left">
+                                <span class="block text-xs font-bold text-gray-900 leading-tight truncate max-w-[120px]">{{ auth()->user()->name }}</span>
+                                <span class="block text-[10px] text-gray-500 uppercase tracking-tight">{{ auth()->user()->roleName() ?? 'User' }}</span>
+                            </div>
+                            <svg class="w-3.5 h-3.5 hidden sm:block text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div x-show="open" @click.away="open = false" x-cloak
-                             class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                            <div class="px-4 py-2 border-b border-gray-100">
-                                <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
-                                <p class="text-xs text-gray-500">{{ auth()->user()->email }}</p>
+                             class="absolute right-0 mt-1 w-52 bg-white rounded-sm shadow-md border border-gray-200 py-1 z-50 text-xs">
+                            <div class="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                                <p class="font-bold text-gray-900 truncate">{{ auth()->user()->name }}</p>
+                                <p class="text-[11px] text-gray-500 truncate">{{ auth()->user()->email }}</p>
+                                <span class="inline-block mt-1 px-1.5 py-0.25 text-[10px] bg-primary-100 text-primary-800 font-bold uppercase rounded-sm">
+                                    {{ auth()->user()->roleName() ?? 'User' }}
+                                </span>
                             </div>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                                    Keluar
+                                <button type="submit" class="w-full text-left px-3 py-2 text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer font-medium">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                    Keluar Sistem
                                 </button>
                             </form>
                         </div>
@@ -158,36 +235,77 @@
                 </div>
             </header>
 
-            {{-- Page Content --}}
-            <main class="flex-1 p-4 lg:p-8">
+            {{-- Main Body --}}
+            <main class="flex-1 p-4 lg:p-6">
                 @if(session('success'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)" x-transition
-                     class="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 flex items-center gap-3">
-                    <svg class="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    {{ session('success') }}
-                </div>
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)" x-transition class="mb-4">
+                        <x-alert type="success" title="Sukses:">
+                            {{ session('success') }}
+                        </x-alert>
+                    </div>
                 @endif
                 @if(session('error'))
-                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 6000)" x-transition
-                     class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-3">
-                    <svg class="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    {{ session('error') }}
-                </div>
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 6000)" x-transition class="mb-4">
+                        <x-alert type="danger" title="Perhatian:">
+                            {{ session('error') }}
+                        </x-alert>
+                    </div>
                 @endif
                 @if($errors->any())
-                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-                    <ul class="list-disc list-inside space-y-1">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
+                    <div class="mb-4">
+                        <x-alert type="danger" title="Terdapat Kesalahan Input:">
+                            <ul class="list-disc list-inside mt-1 space-y-0.5">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </x-alert>
+                    </div>
                 @endif
 
                 {{ $slot }}
             </main>
+
+            {{-- AdminLTE Footer --}}
+            <footer class="bg-white border-t border-gray-200 py-2.5 px-4 lg:px-6 text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-2 shrink-0">
+                <div>
+                    <strong>Copyright &copy; 2026 <a href="{{ route('dashboard') }}" class="text-primary-700 hover:underline font-semibold">Heaven Scent Lab</a>.</strong> All rights reserved.
+                </div>
+                <div class="text-[11px] text-gray-400">
+                    <b>Version</b> 3.2.0 (AdminLTE 4 Enterprise)
+                </div>
+            </footer>
         </div>
     </div>
+
+    {{-- Global jQuery & DataTables Enterprise Setup --}}
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(function() {
+            if ($.fn && $.fn.dataTable) {
+                $.extend(true, $.fn.dataTable.defaults, {
+                    dom: "<'dt-layout-header'lf><'overflow-x-auto't><'dt-layout-footer'ip>",
+                    autoWidth: false,
+                    language: {
+                        processing: '<div class="py-2 text-xs text-gray-500 font-medium">Memuat data...</div>',
+                        lengthMenu: '<span class="text-xs text-gray-600 font-normal">Tampilkan</span> _MENU_ <span class="text-xs text-gray-600 font-normal">data</span>',
+                        search: '<span class="text-xs text-gray-600 font-normal">Cari:</span>',
+                        searchPlaceholder: 'Ketik kata kunci...',
+                        paginate: {
+                            previous: '‹',
+                            next: '›'
+                        },
+                        info: 'Menampilkan _START_ &ndash; _END_ dari _TOTAL_ data',
+                        infoEmpty: 'Menampilkan 0 data',
+                        infoFiltered: '(disaring dari _MAX_ data)',
+                        zeroRecords: '<div class="py-10 text-center text-gray-400 text-xs">Tidak ditemukan data yang sesuai</div>',
+                        emptyTable: '<div class="py-10 text-center text-gray-400 text-xs">Belum ada data tersedia</div>'
+                    }
+                });
+            }
+        });
+    </script>
 
     @stack('scripts')
 </body>

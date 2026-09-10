@@ -1,11 +1,13 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sistem Supply Chain Online (SC Online) — Heaven Scent
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi manajemen rantai pasok terintegrasi untuk produksi parfum, mencakup modul **Purchasing**, **Gudang**, **Produksi (Batch & BOM)**, **Request & Transfer**, **Analisa Stok (Batas Minimum & Alert 2 Kolom)**, dan **Fulfillment**.
+
+### 📚 Dokumentasi Utama:
+- **[DOKUMENTASI_FLOW_BISNIS.md](file:///c:/Users/User/HS%20Project/production-lab-online-hs/DOKUMENTASI_FLOW_BISNIS.md)** — Panduan SOP, diagram alur bisnis per peran, dan panduan penggunaan sistem.
+- **[PRD_SC_Online_v3.md](file:///c:/Users/User/HS%20Project/production-lab-online-hs/PRD_SC_Online_v3.md)** — Dokumen Product Requirement Document (PRD v2.0 Konsolidasi).
+- **[.agent/implementation.md](file:///c:/Users/User/HS%20Project/production-lab-online-hs/.agent/implementation.md)** — Status eksekusi task implementasi dan matriks pengujian fitur.
+
+---
 
 ## About Laravel
 

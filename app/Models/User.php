@@ -35,7 +35,7 @@ class User extends Authenticatable
     /** Nama role utama untuk ditampilkan (role switcher / badge). */
     public function roleName(): ?string
     {
-        return $this->roles->first()?->name;
+        return $this->getRoleNames()->first();
     }
 
     public function isManager(): bool

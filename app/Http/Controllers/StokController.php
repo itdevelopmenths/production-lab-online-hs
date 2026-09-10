@@ -6,16 +6,20 @@ use App\Models\Gudang;
 use App\Models\KartuStok;
 use App\Models\Produk;
 use App\Models\Stok;
+use App\Services\AnalisaService;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
 class StokController extends Controller
 {
-    public function __construct(private readonly StokService $stok)
-    {
+    public function __construct(
+        private readonly StokService $stok,
+        private readonly AnalisaService $analisa,
+    ) {
     }
 
     public function index()
@@ -31,20 +35,124 @@ class StokController extends Controller
     {
         $this->authorize('stok.view');
 
-        // Kolom Stok = saldo fisik. Kolom Rencana = saldo − alokasi bahan aktif.
+        // 1. Peta Batas Minimum dari modul Analisa Stok
+        $batasMinMap = $this->analisa->getBatasMinimumMap();
+
+        // 2. Inbound PO untuk Bahan/Kemas ke Gudang Pusat
+        $gudangPusatId = Gudang::where('tipe', 'bahan_baku')->value('id')
+            ?? Gudang::where('kode', 'GD-PUSAT')->value('id');
+
+        $inboundPo = DB::table('purchase_order_items as poi')
+            ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
+            ->whereIn('po.status', ['diajukan', 'dikirim_ke_gudang'])
+            ->select('poi.produk_id', DB::raw('SUM(poi.qty) as total_inbound'))
+            ->groupBy('poi.produk_id')
+            ->pluck('total_inbound', 'poi.produk_id');
+
+        // 3. Inbound Request & Transfer
+        $inboundRt = DB::table('request_transfer_items as rti')
+            ->join('request_transfers as rt', 'rt.id', '=', 'rti.request_transfer_id')
+            ->whereIn('rt.status', ['diproses', 'dikirim'])
+            ->whereNotNull('rt.gudang_tujuan_id')
+            ->select('rti.produk_id', 'rt.gudang_tujuan_id', DB::raw('SUM(COALESCE(rti.qty_dikirim, rti.qty_diminta)) as total_inbound'))
+            ->groupBy('rti.produk_id', 'rt.gudang_tujuan_id')
+            ->get()
+            ->keyBy(fn ($r) => "{$r->produk_id}_{$r->gudang_tujuan_id}");
+
+        // 4. Rencana Batch Produksi aktif (penambah ketersediaan produk jadi mendatang)
+        $rencanaBatch = DB::table('batch_produksi')
+            ->whereIn('status', ['rencana', 'release'])
+            ->select('produk_id', 'gudang_tujuan_rencana_id', 'gudang_operasional_id', DB::raw('SUM(qty_rencana) as total_rencana'))
+            ->groupBy('produk_id', 'gudang_tujuan_rencana_id', 'gudang_operasional_id')
+            ->get();
+
+        $rencanaBatchMap = [];
+        foreach ($rencanaBatch as $b) {
+            $whId = $b->gudang_tujuan_rencana_id ?? $b->gudang_operasional_id;
+            if ($whId) {
+                $key = "{$b->produk_id}_{$whId}";
+                $rencanaBatchMap[$key] = ($rencanaBatchMap[$key] ?? 0) + (float) $b->total_rencana;
+            }
+        }
+
+        // Query stok dengan alokasi bahan aktif
         $query = Stok::query()
             ->select('stok.*')
             ->join('produk', 'produk.id', '=', 'stok.produk_id')
             ->with(['produk:id,sku,nama,satuan,tipe', 'gudang:id,nama'])
-            ->selectRaw('(SELECT COALESCE(SUM(qty_dialokasikan),0) FROM alokasi_bahan ab JOIN batch_produksi bp ON bp.id = ab.batch_id WHERE ab.bahan_id = stok.produk_id AND ab.status = \'aktif\') as alokasi_aktif');
+            ->selectRaw('(SELECT COALESCE(SUM(ab.qty_dialokasikan),0) FROM alokasi_bahan ab JOIN batch_produksi bp ON bp.id = ab.batch_id WHERE ab.bahan_id = stok.produk_id AND ab.status = \'aktif\' AND (bp.gudang_operasional_id = stok.gudang_id OR bp.gudang_operasional_id IS NULL)) as alokasi_aktif');
 
         return DataTables::eloquent($query)
             ->addColumn('sku', fn ($s) => $s->produk?->sku)
             ->addColumn('nama', fn ($s) => $s->produk?->nama)
             ->addColumn('gudang_nama', fn ($s) => $s->gudang?->nama)
-            ->addColumn('kolom_stok', fn ($s) => (float) $s->qty_saat_ini)
-            ->addColumn('kolom_rencana', fn ($s) => (float) $s->qty_saat_ini - (float) $s->alokasi_aktif)
-            ->rawColumns([])
+            ->addColumn('batas_minimum', function ($s) use ($batasMinMap) {
+                $batasMin = $this->analisa->getBatasMinimumForStok($s->produk_id, $s->gudang_id, $batasMinMap);
+
+                return $batasMin > 0
+                    ? rtrim(rtrim(number_format($batasMin, 2, ',', '.'), '0'), ',') . ' ' . $s->produk?->satuan
+                    : '-';
+            })
+            ->addColumn('kolom_stok', function ($s) use ($gudangPusatId, $inboundPo, $inboundRt, $batasMinMap) {
+                $fisik = (float) $s->qty_saat_ini;
+                $inbound = 0.0;
+                if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true) && $gudangPusatId && (int) $s->gudang_id === (int) $gudangPusatId) {
+                    $inbound += (float) ($inboundPo[$s->produk_id] ?? 0);
+                }
+                $rtKey = "{$s->produk_id}_{$s->gudang_id}";
+                if (isset($inboundRt[$rtKey])) {
+                    $inbound += (float) $inboundRt[$rtKey]->total_inbound;
+                }
+
+                $kolomStok = $fisik + $inbound;
+                $batasMin = $this->analisa->getBatasMinimumForStok($s->produk_id, $s->gudang_id, $batasMinMap);
+                $isOrder = $batasMin > 0 && $kolomStok <= $batasMin;
+
+                $badge = $isOrder
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 ml-2">ORDER</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-700 ml-2">AMAN</span>';
+
+                $val = rtrim(rtrim(number_format($kolomStok, 2, ',', '.'), '0'), ',') . ' ' . $s->produk?->satuan;
+
+                return '<div class="flex items-center justify-end"><span>' . $val . '</span>' . $badge . '</div>';
+            })
+            ->addColumn('kolom_rencana', function ($s) use ($gudangPusatId, $inboundPo, $inboundRt, $rencanaBatchMap, $batasMinMap) {
+                $fisik = (float) $s->qty_saat_ini;
+                $inbound = 0.0;
+                if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true) && $gudangPusatId && (int) $s->gudang_id === (int) $gudangPusatId) {
+                    $inbound += (float) ($inboundPo[$s->produk_id] ?? 0);
+                }
+                $rtKey = "{$s->produk_id}_{$s->gudang_id}";
+                if (isset($inboundRt[$rtKey])) {
+                    $inbound += (float) $inboundRt[$rtKey]->total_inbound;
+                }
+
+                $kolomStok = $fisik + $inbound;
+
+                if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true)) {
+                    $kolomRencana = $kolomStok - (float) $s->alokasi_aktif;
+                } elseif ($s->produk?->tipe === 'produk_jadi') {
+                    $rencanaBatch = (float) ($rencanaBatchMap[$rtKey] ?? 0);
+                    $kolomRencana = $kolomStok + $rencanaBatch;
+                } else {
+                    $kolomRencana = $kolomStok;
+                }
+
+                $batasMin = $this->analisa->getBatasMinimumForStok($s->produk_id, $s->gudang_id, $batasMinMap);
+                $isOrder = $batasMin > 0 && $kolomRencana <= $batasMin;
+
+                $badge = $isOrder
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 ml-2">ORDER</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-700 ml-2">AMAN</span>';
+
+                $val = rtrim(rtrim(number_format($kolomRencana, 2, ',', '.'), '0'), ',') . ' ' . $s->produk?->satuan;
+
+                return '<div class="flex items-center justify-end"><span>' . $val . '</span>' . $badge . '</div>';
+            })
+            ->addColumn('action', function ($s) {
+                return '<a href="' . route('stok.ledger', $s->produk_id) . '" class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition">Kartu Stok</a>';
+            })
+            ->rawColumns(['kolom_stok', 'kolom_rencana', 'action'])
             ->toJson();
     }
 

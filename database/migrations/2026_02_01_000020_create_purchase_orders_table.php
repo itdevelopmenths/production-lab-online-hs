@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('purchase_orders', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('no_po', 30)->unique();
             $table->foreignId('supplier_id')->constrained('supplier')->cascadeOnDelete();
             $table->date('tanggal');

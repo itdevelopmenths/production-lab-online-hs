@@ -180,4 +180,92 @@ class AnalisaService
 
         return ceil($qty / $moq) * $moq;
     }
+
+    /**
+     * Peta Batas Minimum per produk dan per kombinasi produk_gudang
+     * yang dihitung langsung dari modul Analisa Stok (Lokal, Impor, Fulfillment).
+     *
+     * @return array{by_product: array<int, float>, by_product_gudang: array<string, float>}
+     */
+    public function getBatasMinimumMap(): array
+    {
+        $byProduct = [];
+        $byProductGudang = [];
+
+        // 1. Profil Bahan Lokal
+        $lokalInputs = AnalisaLokalInput::with('produk')->get();
+        foreach ($lokalInputs as $input) {
+            $hasil = $this->lokal($input);
+            $min = (float) ($hasil['batas_minimum'] ?? 0);
+            $byProduct[$input->produk_id] = $min;
+        }
+
+        // 2. Profil Bahan Impor
+        $imporMetas = AnalisaImporMeta::with(['produk', 'varian'])->get();
+        foreach ($imporMetas as $meta) {
+            $hasil = $this->impor($meta);
+            $minTotal = 0.0;
+            foreach ($hasil['varian'] as $v) {
+                $minTotal += (float) ($v['minimum_stock'] ?? 0);
+            }
+            $byProduct[$meta->produk_id] = $minTotal;
+        }
+
+        // 3. Profil Produk Jadi (Fulfillment)
+        $ffInputs = AnalisaFulfillmentInput::all();
+        foreach ($ffInputs as $r) {
+            $adu = (float) $r->terjual_rata_rata_4bulan / 30;
+            $batasMin = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi);
+            $key = "{$r->produk_id}_{$r->gudang_id}";
+            $byProductGudang[$key] = $batasMin;
+
+            $byProduct[$r->produk_id] = ($byProduct[$r->produk_id] ?? 0) + $batasMin;
+        }
+
+        return [
+            'by_product' => $byProduct,
+            'by_product_gudang' => $byProductGudang,
+        ];
+    }
+
+    /**
+     * Ambil Batas Minimum spesifik untuk stok suatu produk di gudang tertentu.
+     */
+    public function getBatasMinimumForStok(int $produkId, ?int $gudangId = null, ?array $map = null): float
+    {
+        $map = $map ?? $this->getBatasMinimumMap();
+        if ($gudangId !== null && isset($map['by_product_gudang']["{$produkId}_{$gudangId}"])) {
+            return (float) $map['by_product_gudang']["{$produkId}_{$gudangId}"];
+        }
+
+        return (float) ($map['by_product'][$produkId] ?? 0.0);
+    }
+
+    /**
+     * Hitung ringkasan jumlah item yang menyentuh status ORDER / PO.
+     *
+     * @return array{total: int, lokal: int, impor: int, fulfillment: int}
+     */
+    public function getItemPerluOrderSummary(): array
+    {
+        $lokalOrder = AnalisaLokalInput::with('produk')->get()
+            ->filter(fn ($i) => $this->lokal($i)['status'] === 'order')
+            ->count();
+
+        $imporOrder = AnalisaImporMeta::with(['produk', 'varian'])->get()
+            ->filter(fn ($m) => $this->impor($m)['status'] === 'po')
+            ->count();
+
+        $ffOrder = AnalisaFulfillmentInput::with(['gudang', 'produk'])->get()
+            ->groupBy('produk_id')
+            ->filter(fn ($rows) => $this->fulfillment($rows)['status'] === 'order')
+            ->count();
+
+        return [
+            'total' => $lokalOrder + $imporOrder + $ffOrder,
+            'lokal' => $lokalOrder,
+            'impor' => $imporOrder,
+            'fulfillment' => $ffOrder,
+        ];
+    }
 }

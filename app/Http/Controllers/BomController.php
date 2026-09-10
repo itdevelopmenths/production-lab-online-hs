@@ -65,7 +65,7 @@ class BomController extends Controller
         return redirect()->route('bom.index')->with('success', "BOM {$produk->nama} berhasil disimpan.");
     }
 
-    public function import(Request $request)
+    public function import(Request $request, \App\Services\StampsBomImporter $importer)
     {
         $this->authorize('bom.import');
 
@@ -73,15 +73,35 @@ class BomController extends Controller
             'file' => ['required', 'file', 'mimes:csv,txt'],
         ]);
 
-        $handle = fopen($request->file('file')->getRealPath(), 'r');
-        $header = fgetcsv($handle, 0, ';');
+        $filePath = $request->file('file')->getRealPath();
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            return redirect()->route('bom.index')->with('error', 'Gagal membaca file CSV.');
+        }
+
+        $header = fgetcsv($handle, 0, ';', '"', '\\');
+        $headerString = strtolower(implode(';', $header ?: []));
+
+        // Format ekspor Stamps POS (Cibinong City Mall)
+        if (str_contains($headerString, 'item name') || str_contains($headerString, 'ingredient name')) {
+            rewind($handle);
+            try {
+                $result = $importer->importFromHandle($handle);
+                $msg = "Impor Stamps berhasil: {$result['boms_imported']} resep BOM diproses ({$result['products_created']} produk baru, {$result['materials_created']} bahan baru).";
+                return redirect()->route('bom.index')->with('success', $msg);
+            } catch (\Throwable $e) {
+                return redirect()->route('bom.index')->with('error', 'Gagal memproses file Stamps: ' . $e->getMessage());
+            }
+        }
+
+        // Format alternatif sederhana: sku_produk_jadi;sku_bahan;qty_per_unit
         $skuIndex = array_flip(array_map('trim', $header ?: []));
         $imported = 0;
         $errors = [];
 
         DB::transaction(function () use ($handle, $skuIndex, &$imported, &$errors) {
             $line = 1;
-            while (($row = fgetcsv($handle, 0, ';')) !== false) {
+            while (($row = fgetcsv($handle, 0, ';', '"', '\\')) !== false) {
                 $line++;
                 $skuJadi = trim($row[$skuIndex['sku_produk_jadi'] ?? 0] ?? '');
                 $skuBahan = trim($row[$skuIndex['sku_bahan'] ?? 1] ?? '');
@@ -91,7 +111,6 @@ class BomController extends Controller
                 $bahan = Produk::where('sku', $skuBahan)->first();
                 if (! $jadi || ! $bahan || $qty <= 0) {
                     $errors[] = "Baris {$line}: data tidak valid ({$skuJadi} / {$skuBahan}).";
-
                     continue;
                 }
                 Bom::updateOrCreate(
