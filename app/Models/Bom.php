@@ -4,39 +4,28 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Bom extends Model
 {
+    protected $table = 'bom';
+
     protected $fillable = [
-        'product_id',
-        'version',
-        'is_active',
-        'notes',
+        'produk_jadi_id',
+        'bahan_id',
+        'qty_per_unit',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
-        'version' => 'integer',
+        'qty_per_unit' => 'decimal:4',
     ];
 
-    public function product(): BelongsTo
+    public function produkJadi(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Produk::class, 'produk_jadi_id');
     }
 
-    public function items(): HasMany
+    public function bahan(): BelongsTo
     {
-        return $this->hasMany(BomItem::class);
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    public function totalMaterials(): int
-    {
-        return $this->items()->count();
+        return $this->belongsTo(Produk::class, 'bahan_id');
     }
 }

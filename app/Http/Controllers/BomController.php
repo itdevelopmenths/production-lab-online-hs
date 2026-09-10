@@ -2,65 +2,67 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\BomRequest;
 use App\Models\Bom;
-use App\Models\BomItem;
-use App\Models\Material;
-use App\Models\Product;
-use App\Services\BomImportService;
+use App\Models\Produk;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 
 class BomController extends Controller
 {
-    public function __construct(private BomImportService $importService) {}
-
-    public function edit(Product $product)
+    public function index()
     {
         $this->authorize('bom.view');
-        $product->load('activeBom.items.material:id,code,name,unit');
-        $materials = Material::active()->orderBy('name')->get(['id', 'code', 'name', 'unit']);
-        return view('bom.edit', compact('product', 'materials'));
+
+        return view('bom.index');
     }
 
-    public function update(BomRequest $request, Product $product)
+    public function data(): JsonResponse
+    {
+        $this->authorize('bom.view');
+
+        $query = Produk::query()->produkJadi()->select('produk.*')
+            ->withCount('bom as bom_count');
+
+        return DataTables::eloquent($query)
+            ->addColumn('bom_count', fn ($p) => $p->bom_count)
+            ->addColumn('action', fn ($p) => view('bom._actions', ['p' => $p])->render())
+            ->rawColumns(['action'])
+            ->toJson();
+    }
+
+    public function edit(Produk $produk)
+    {
+        $this->authorize('bom.view');
+        $items = $produk->bom()->with('bahan:id,sku,nama,satuan')->get();
+        $bahanList = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+
+        return view('bom.edit', compact('produk', 'items', 'bahanList'));
+    }
+
+    public function update(Request $request, Produk $produk)
     {
         $this->authorize('bom.manage');
 
-        // Pre-load all materials by ID for O(1) lookup instead of N+1 findOrFail
-        $materialIds = collect($request->items)->pluck('material_id')->unique()->values()->all();
-        $materials = Material::whereIn('id', $materialIds)->get()->keyBy('id');
+        $data = $request->validate([
+            'items' => ['array'],
+            'items.*.bahan_id' => ['required', 'distinct', 'exists:produk,id'],
+            'items.*.qty_per_unit' => ['required', 'numeric', 'gt:0'],
+        ]);
 
-        DB::transaction(function () use ($request, $product, $materials) {
-            // Deactivate existing BOMs
-            Bom::where('product_id', $product->id)->update(['is_active' => false]);
-
-            // Get max version
-            $maxVersion = Bom::where('product_id', $product->id)->max('version') ?? 0;
-
-            $bom = Bom::create([
-                'product_id' => $product->id,
-                'version' => $maxVersion + 1,
-                'is_active' => true,
-                'notes' => $request->notes,
-            ]);
-
-            foreach ($request->items as $item) {
-                $material = $materials->get($item['material_id']);
-                if (!$material) {
-                    continue; // skip invalid material IDs
-                }
-
-                BomItem::create([
-                    'bom_id' => $bom->id,
-                    'material_id' => $item['material_id'],
-                    'quantity' => $item['quantity'],
-                    'unit' => $material->unit,
+        DB::transaction(function () use ($produk, $data) {
+            $produk->bom()->delete();
+            foreach ($data['items'] ?? [] as $row) {
+                Bom::create([
+                    'produk_jadi_id' => $produk->id,
+                    'bahan_id' => $row['bahan_id'],
+                    'qty_per_unit' => $row['qty_per_unit'],
                 ]);
             }
         });
 
-        return redirect()->route('bom.edit', $product)->with('success', 'BOM berhasil diperbarui.');
+        return redirect()->route('bom.index')->with('success', "BOM {$produk->nama} berhasil disimpan.");
     }
 
     public function import(Request $request)
@@ -68,54 +70,44 @@ class BomController extends Controller
         $this->authorize('bom.import');
 
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:5120',
+            'file' => ['required', 'file', 'mimes:csv,txt'],
         ]);
 
-        $file = $request->file('file');
-        $rows = array_map('str_getcsv', file($file->getPathname()));
-        array_shift($rows); // remove header
+        $handle = fopen($request->file('file')->getRealPath(), 'r');
+        $header = fgetcsv($handle, 0, ';');
+        $skuIndex = array_flip(array_map('trim', $header ?: []));
+        $imported = 0;
+        $errors = [];
 
-        $result = $this->importService->import($rows);
+        DB::transaction(function () use ($handle, $skuIndex, &$imported, &$errors) {
+            $line = 1;
+            while (($row = fgetcsv($handle, 0, ';')) !== false) {
+                $line++;
+                $skuJadi = trim($row[$skuIndex['sku_produk_jadi'] ?? 0] ?? '');
+                $skuBahan = trim($row[$skuIndex['sku_bahan'] ?? 1] ?? '');
+                $qty = (float) str_replace(',', '.', $row[$skuIndex['qty_per_unit'] ?? 2] ?? '0');
 
-        return back()
-            ->with('success', "{$result['imported']} baris BOM berhasil diimpor.")
-            ->with('errors', $result['errors']);
-    }
+                $jadi = Produk::where('sku', $skuJadi)->first();
+                $bahan = Produk::where('sku', $skuBahan)->first();
+                if (! $jadi || ! $bahan || $qty <= 0) {
+                    $errors[] = "Baris {$line}: data tidak valid ({$skuJadi} / {$skuBahan}).";
 
-    public function duplicate(Request $request, Product $product)
-    {
-        $this->authorize('bom.manage');
-
-        $sourceProductId = $request->input('source_product_id');
-
-        // Eager load product to prevent N+1
-        $sourceBom = Bom::where('product_id', $sourceProductId)
-            ->where('is_active', true)
-            ->with(['items:id,bom_id,material_id,quantity,unit', 'product:id,full_name'])
-            ->first();
-
-        if (!$sourceBom) {
-            return back()->with('error', 'BOM sumber tidak ditemukan.');
-        }
-
-        DB::transaction(function () use ($product, $sourceBom) {
-            $bom = Bom::create([
-                'product_id' => $product->id,
-                'version' => (Bom::where('product_id', $product->id)->max('version') ?? 0) + 1,
-                'is_active' => true,
-                'notes' => 'Diduplikasi dari ' . $sourceBom->product->full_name,
-            ]);
-
-            foreach ($sourceBom->items as $item) {
-                BomItem::create([
-                    'bom_id' => $bom->id,
-                    'material_id' => $item->material_id,
-                    'quantity' => $item->quantity,
-                    'unit' => $item->unit,
-                ]);
+                    continue;
+                }
+                Bom::updateOrCreate(
+                    ['produk_jadi_id' => $jadi->id, 'bahan_id' => $bahan->id],
+                    ['qty_per_unit' => $qty],
+                );
+                $imported++;
             }
         });
+        fclose($handle);
 
-        return redirect()->route('bom.edit', $product)->with('success', 'BOM berhasil diduplikasi.');
+        $msg = "{$imported} baris BOM diimpor.";
+        if ($errors) {
+            $msg .= ' ' . count($errors) . ' baris dilewati.';
+        }
+
+        return redirect()->route('bom.index')->with($errors ? 'error' : 'success', $msg);
     }
 }

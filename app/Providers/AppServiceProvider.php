@@ -19,9 +19,9 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
-        // Super admin bypass all gate checks
+        // Manager bypass all gate checks (PRD: akses & approval seluruh menu)
         Gate::before(function ($user, $ability) {
-            return $user->hasRole('super_admin') ? true : null;
+            return $user->hasRole('manager') ? true : null;
         });
 
         // N+1 prevention in non-production

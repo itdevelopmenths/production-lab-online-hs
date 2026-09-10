@@ -4,135 +4,167 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BatchController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\MaterialController;
-use App\Http\Controllers\ProductController;
+use App\Http\Controllers\GudangController;
+use App\Http\Controllers\AnalisaController;
+use App\Http\Controllers\ProdukController;
+use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\StockController;
+use App\Http\Controllers\RequestTransferController;
+use App\Http\Controllers\StokController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
-// Guest routes
+// Guest
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login']);
 });
 
-// Auth routes
 Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'logout'])->name('logout');
-});
 
-// Dashboard
-Route::get('/', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-// Production module routes
-Route::prefix('production')->middleware('auth')->group(function () {
-
-    // Master Data: Products
-    Route::middleware('can:product.view')->group(function () {
-        Route::get('products/data', [ProductController::class, 'data'])->name('products.data');
-        Route::resource('products', ProductController::class)
+    // ===== Master Data =====
+    Route::middleware('can:produk.view')->group(function () {
+        Route::get('produk/data', [ProdukController::class, 'data'])->name('produk.data');
+        Route::resource('produk', ProdukController::class)->except(['show'])
             ->middleware([
-                'store' => 'can:product.create',
-                'update' => 'can:product.edit',
-                'destroy' => 'can:product.delete',
+                'store' => 'can:produk.create',
+                'update' => 'can:produk.edit',
+                'destroy' => 'can:produk.delete',
             ]);
     });
 
-    // Master Data: Materials
-    Route::middleware('can:material.view')->group(function () {
-        Route::get('materials/data', [MaterialController::class, 'data'])->name('materials.data');
-        Route::resource('materials', MaterialController::class)
+    Route::middleware('can:gudang.view')->group(function () {
+        Route::get('gudang/data', [GudangController::class, 'data'])->name('gudang.data');
+        Route::resource('gudang', GudangController::class)->except(['show'])
             ->middleware([
-                'store' => 'can:material.create',
-                'update' => 'can:material.edit',
-                'destroy' => 'can:material.delete',
+                'store' => 'can:gudang.create',
+                'update' => 'can:gudang.edit',
+                'destroy' => 'can:gudang.delete',
             ]);
     });
 
-    // Master Data: BOM
+    Route::middleware('can:supplier.view')->group(function () {
+        Route::get('supplier/data', [SupplierController::class, 'data'])->name('supplier.data');
+        Route::resource('supplier', SupplierController::class)->except(['show'])
+            ->middleware([
+                'store' => 'can:supplier.create',
+                'update' => 'can:supplier.edit',
+                'destroy' => 'can:supplier.delete',
+            ]);
+    });
+
     Route::middleware('can:bom.view')->group(function () {
-        Route::get('products/{product}/bom', [BomController::class, 'edit'])->name('bom.edit');
-        Route::put('products/{product}/bom', [BomController::class, 'update'])
+        Route::get('bom', [BomController::class, 'index'])->name('bom.index');
+        Route::get('bom/data', [BomController::class, 'data'])->name('bom.data');
+        Route::get('bom/{produk}/edit', [BomController::class, 'edit'])->name('bom.edit');
+        Route::put('bom/{produk}', [BomController::class, 'update'])
             ->middleware('can:bom.manage')->name('bom.update');
         Route::post('bom/import', [BomController::class, 'import'])
             ->middleware('can:bom.import')->name('bom.import');
-        Route::post('products/{product}/bom/duplicate', [BomController::class, 'duplicate'])
-            ->middleware('can:bom.manage')->name('bom.duplicate');
     });
 
-    // Warehouses
-    Route::middleware('can:warehouse.view')->group(function () {
-        Route::get('warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
-        Route::get('warehouses/create', [WarehouseController::class, 'create'])
-            ->middleware('can:warehouse.create')->name('warehouses.create');
-        Route::post('warehouses', [WarehouseController::class, 'store'])
-            ->middleware('can:warehouse.create')->name('warehouses.store');
-        Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])
-            ->middleware('can:warehouse.edit')->name('warehouses.edit');
-        Route::put('warehouses/{warehouse}', [WarehouseController::class, 'update'])
-            ->middleware('can:warehouse.edit')->name('warehouses.update');
-        Route::delete('warehouses/{warehouse}', [WarehouseController::class, 'destroy'])
-            ->middleware('can:warehouse.delete')->name('warehouses.destroy');
+    // ===== Stok & Mutasi =====
+    Route::middleware('can:stok.view')->prefix('stok')->name('stok.')->group(function () {
+        Route::get('/', [StokController::class, 'index'])->name('index');
+        Route::get('data', [StokController::class, 'data'])->name('data');
+        Route::post('mutasi', [StokController::class, 'mutasi'])
+            ->middleware('can:stok.mutasi')->name('mutasi');
+        Route::get('opname', [StokController::class, 'opname'])
+            ->middleware('can:stok.opname')->name('opname');
+        Route::post('opname', [StokController::class, 'storeOpname'])
+            ->middleware('can:stok.opname')->name('opname.store');
+        Route::get('{produk}/ledger', [StokController::class, 'ledger'])
+            ->middleware('can:stok.ledger.view')->name('ledger');
+        Route::get('{produk}/ledger/data', [StokController::class, 'ledgerData'])
+            ->middleware('can:stok.ledger.view')->name('ledger.data');
     });
 
-    // Stocks
-    Route::middleware('can:stock.view')->group(function () {
-        Route::get('stocks', [StockController::class, 'index'])->name('stocks.index');
-        Route::get('stocks/data', [StockController::class, 'data'])->name('stocks.data');
-        Route::post('stocks/in', [StockController::class, 'stockIn'])
-            ->middleware('can:stock.in')->name('stocks.in');
-        Route::post('stocks/adjust', [StockController::class, 'adjust'])
-            ->middleware('can:stock.adjust')->name('stocks.adjust');
-        Route::post('stocks/alert', [StockController::class, 'setAlert'])
-            ->middleware('can:stock.set_alert')->name('stocks.alert');
-        Route::get('stocks/{material}/ledger', [StockController::class, 'ledger'])
-            ->middleware('can:stock.ledger.view')->name('stocks.ledger');
-        Route::get('stocks/{material}/ledger/data', [StockController::class, 'ledgerData'])
-            ->middleware('can:stock.ledger.view')->name('stocks.ledger.data');
+    // ===== Purchasing =====
+    Route::middleware('can:purchasing.view')->prefix('purchasing')->name('purchasing.')->group(function () {
+        Route::get('/', [PurchasingController::class, 'index'])->name('index');
+        Route::get('data', [PurchasingController::class, 'data'])->name('data');
+        Route::get('create', [PurchasingController::class, 'create'])
+            ->middleware('can:purchasing.create')->name('create');
+        Route::post('/', [PurchasingController::class, 'store'])
+            ->middleware('can:purchasing.create')->name('store');
+        Route::get('{purchaseOrder}', [PurchasingController::class, 'show'])->name('show');
+        Route::post('{purchaseOrder}/submit', [PurchasingController::class, 'submit'])
+            ->middleware('can:purchasing.submit')->name('submit');
+        Route::post('{purchaseOrder}/approve', [PurchasingController::class, 'approve'])
+            ->middleware('can:purchasing.approve')->name('approve');
+        Route::post('{purchaseOrder}/receive', [PurchasingController::class, 'receive'])
+            ->middleware('can:purchasing.receive')->name('receive');
+        Route::post('{purchaseOrder}/pay', [PurchasingController::class, 'pay'])
+            ->middleware('can:purchasing.pay')->name('pay');
+        Route::post('{purchaseOrder}/cancel', [PurchasingController::class, 'cancel'])
+            ->middleware('can:purchasing.cancel')->name('cancel');
     });
 
-    // Batch Produksi
-    Route::middleware('can:batch.view')->group(function () {
-        Route::get('batches', [BatchController::class, 'index'])->name('batches.index');
-        Route::get('batches/data', [BatchController::class, 'data'])->name('batches.data');
-        Route::get('batches/create', [BatchController::class, 'create'])
-            ->middleware('can:batch.create')->name('batches.create');
-        Route::post('batches', [BatchController::class, 'store'])
-            ->middleware('can:batch.create')->name('batches.store');
-        Route::get('batches/{batch}', [BatchController::class, 'show'])->name('batches.show');
-
-        Route::post('batches/{batch}/release', [BatchController::class, 'release'])
-            ->middleware('can:batch.release')->name('batches.release');
-        Route::post('batches/{batch}/start', [BatchController::class, 'start'])
-            ->middleware('can:batch.start')->name('batches.start');
-        Route::post('batches/{batch}/output', [BatchController::class, 'recordOutput'])
-            ->middleware('can:batch.record_output')->name('batches.output');
-        Route::post('batches/{batch}/defect', [BatchController::class, 'recordDefect'])
-            ->middleware('can:batch.record_defect')->name('batches.defect');
-        Route::post('batches/{batch}/material', [BatchController::class, 'addMaterial'])
-            ->middleware('can:batch.topup')->name('batches.material');
-        Route::post('batches/{batch}/complete', [BatchController::class, 'complete'])
-            ->middleware('can:batch.complete')->name('batches.complete');
-        Route::post('batches/{batch}/cancel', [BatchController::class, 'cancel'])
-            ->middleware('can:batch.cancel')->name('batches.cancel');
+    // ===== Request & Transfer =====
+    Route::middleware('can:rt.view')->prefix('request-transfer')->name('rt.')->group(function () {
+        Route::get('/', [RequestTransferController::class, 'index'])->name('index');
+        Route::get('data', [RequestTransferController::class, 'data'])->name('data');
+        Route::get('create', [RequestTransferController::class, 'create'])
+            ->middleware('can:rt.create')->name('create');
+        Route::post('/', [RequestTransferController::class, 'store'])
+            ->middleware('can:rt.create')->name('store');
+        Route::get('{requestTransfer}', [RequestTransferController::class, 'show'])->name('show');
+        Route::post('{requestTransfer}/transition', [RequestTransferController::class, 'transition'])
+            ->name('transition');
     });
 
-    // Reports
-    Route::middleware('can:report.view')->group(function () {
-        Route::get('reports/production', [ReportController::class, 'production'])->name('reports.production');
-        Route::get('reports/material', [ReportController::class, 'material'])->name('reports.material');
-        Route::get('reports/defect', [ReportController::class, 'defect'])->name('reports.defect');
-        Route::get('reports/low-stock', [ReportController::class, 'lowStock'])->name('reports.low-stock');
-        Route::get('reports/low-stock/data', [ReportController::class, 'lowStockData'])->name('reports.low-stock.data');
+    // ===== Analisa Stok =====
+    Route::middleware('can:analisa.view')->prefix('analisa')->name('analisa.')->group(function () {
+        Route::get('/', [AnalisaController::class, 'index'])->name('index');
+        Route::get('lokal/data', [AnalisaController::class, 'lokalData'])->name('lokal.data');
+        Route::get('impor/data', [AnalisaController::class, 'imporData'])->name('impor.data');
+        Route::get('fulfillment/data', [AnalisaController::class, 'fulfillmentData'])->name('fulfillment.data');
+        Route::get('riwayat/data', [AnalisaController::class, 'riwayatData'])->name('riwayat.data');
+        Route::post('snapshot', [AnalisaController::class, 'snapshot'])
+            ->middleware('can:analisa.snapshot')->name('snapshot');
+        Route::post('create-po', [AnalisaController::class, 'createPo'])
+            ->middleware('can:analisa.create_po')->name('create-po');
     });
 
-    // Admin: Users
+    // ===== Produksi (Batch) =====
+    Route::middleware('can:batch.view')->prefix('batch')->name('batches.')->group(function () {
+        Route::get('/', [BatchController::class, 'index'])->name('index');
+        Route::get('data', [BatchController::class, 'data'])->name('data');
+        Route::get('create', [BatchController::class, 'create'])
+            ->middleware('can:batch.create')->name('create');
+        Route::post('/', [BatchController::class, 'store'])
+            ->middleware('can:batch.create')->name('store');
+        Route::get('{batch}', [BatchController::class, 'show'])->name('show');
+        Route::post('{batch}/release', [BatchController::class, 'release'])
+            ->middleware('can:batch.release')->name('release');
+        Route::post('{batch}/complete', [BatchController::class, 'complete'])
+            ->middleware('can:batch.complete')->name('complete');
+        Route::post('{batch}/cancel', [BatchController::class, 'cancel'])
+            ->middleware('can:batch.cancel')->name('cancel');
+        Route::post('{batch}/opname', [BatchController::class, 'opname'])
+            ->middleware('can:batch.opname')->name('opname');
+        Route::post('{batch}/kirim', [BatchController::class, 'kirim'])
+            ->middleware('can:rt.create')->name('kirim');
+    });
+
+    // ===== Laporan =====
+    Route::middleware('can:report.view')->prefix('laporan')->name('reports.')->group(function () {
+        Route::get('/', [ReportController::class, 'index'])->name('index');
+        Route::get('produksi', [ReportController::class, 'production'])->name('production');
+        Route::get('pemakaian-bahan', [ReportController::class, 'material'])->name('material');
+        Route::get('defect', [ReportController::class, 'defect'])->name('defect');
+        Route::get('low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
+        Route::get('purchasing', [ReportController::class, 'purchasing'])->name('purchasing');
+        Route::get('fulfillment', [ReportController::class, 'fulfillment'])->name('fulfillment');
+    });
+
+    // ===== Admin: Users =====
     Route::middleware('can:user.manage')->group(function () {
         Route::get('users/data', [UserController::class, 'data'])->name('users.data');
-        Route::resource('users', UserController::class);
+        Route::resource('users', UserController::class)->except(['show']);
     });
 });
-
-Route::get('/test-batch-data', [\App\Http\Controllers\BatchController::class, 'data']);

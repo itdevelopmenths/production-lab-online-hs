@@ -9,13 +9,21 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::firstOrCreate(
-            ['email' => 'admin@heavenscent.id'],
-            [
-                'name' => 'Super Admin',
-                'password' => bcrypt('password'),
-            ]
-        );
-        $admin->assignRole('super_admin');
+        // Satu user per role SC Online (PRD §2). Password default: "password".
+        $users = [
+            ['Andyka (Manager)', 'manager@heavenscent.id', 'manager'],
+            ['Rina (Purchasing)', 'purchasing@heavenscent.id', 'purchasing'],
+            ['Budi (Gudang)', 'gudang@heavenscent.id', 'gudang'],
+            ['Dedi (Operasional)', 'operasional@heavenscent.id', 'operasional'],
+            ['Sari (Fulfillment)', 'fulfillment@heavenscent.id', 'fulfillment'],
+        ];
+
+        foreach ($users as [$name, $email, $role]) {
+            $user = User::firstOrCreate(
+                ['email' => $email],
+                ['name' => $name, 'password' => bcrypt('password')],
+            );
+            $user->syncRoles([$role]);
+        }
     }
 }

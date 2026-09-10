@@ -1,367 +1,62 @@
-<x-app-layout title="Detail Batch {{ $batch->batch_number }}">
-    {{-- Header --}}
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div>
-            <div class="flex items-center gap-3 mb-1">
-                <h3 class="text-lg font-semibold text-gray-900">{{ $batch->batch_number }}</h3>
-                @include('batches._status', ['s' => $batch->status])
+<x-app-layout title="Detail Batch">
+    <a href="{{ route('batches.index') }}" class="text-sm text-gray-500 hover:text-gray-700">&larr; Kembali</a>
+
+    <div class="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">{{ $batch->no_batch }}</h3>
+                        <p class="text-sm text-gray-500">{{ $batch->produk->nama }} · rencana {{ rtrim(rtrim(number_format($batch->qty_rencana,2),'0'),'.') }} · {{ $batch->tanggal->format('d/m/Y') }}</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ ucfirst($batch->status) }}</span>
+                </div>
+                <div class="grid grid-cols-3 gap-4 text-sm">
+                    <div><p class="text-gray-400">Qty Baik</p><p class="font-semibold">{{ $batch->qty_baik !== null ? rtrim(rtrim(number_format($batch->qty_baik,2),'0'),'.') : '-' }}</p></div>
+                    <div><p class="text-gray-400">Qty Rusak</p><p class="font-semibold">{{ $batch->qty_rusak !== null ? rtrim(rtrim(number_format($batch->qty_rusak,2),'0'),'.') : '-' }}</p></div>
+                    <div><p class="text-gray-400">Yield</p><p class="font-semibold">{{ $batch->yield() !== null ? number_format($batch->yield(),1).'%' : '-' }}</p></div>
+                </div>
             </div>
-            <p class="text-sm text-gray-500">{{ $batch->products->pluck('product.full_name')->implode(', ') }} &middot; {{ $batch->production_date->format('d/m/Y') }} &middot; {{ $batch->warehouse->name }}</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-            @if($batch->canBeReleased())
-            @can('batch.release')
-            <form method="POST" action="{{ route('batches.release', $batch) }}">@csrf<button class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">Release & Issue Bahan</button></form>
-            @endcan
-            @endif
-            @if($batch->canBeStarted())
-            @can('batch.start')
-            <form method="POST" action="{{ route('batches.start', $batch) }}">@csrf<button class="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition">Mulai Produksi</button></form>
-            @endcan
-            @endif
-            @if($batch->canBeCompleted())
+
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <h4 class="text-sm font-semibold text-gray-800 mb-3">Alokasi Bahan (BOM explode)</h4>
+                <table class="w-full text-sm">
+                    <thead class="border-b border-gray-200 text-gray-500"><tr><th class="text-left py-2">Bahan</th><th class="text-right py-2">Dialokasikan</th><th class="text-left py-2 pl-4">Status</th></tr></thead>
+                    <tbody>
+                        @forelse($batch->alokasi as $a)
+                        <tr class="border-b border-gray-100">
+                            <td class="py-2">{{ $a->bahan->sku }} — {{ $a->bahan->nama }}</td>
+                            <td class="text-right">{{ rtrim(rtrim(number_format($a->qty_dialokasikan,2),'0'),'.') }} {{ $a->bahan->satuan }}</td>
+                            <td class="pl-4">{{ ucfirst($a->status) }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="3" class="py-3 text-gray-400 text-center">BOM produk kosong.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
             @can('batch.complete')
-            <form method="POST" action="{{ route('batches.complete', $batch) }}" class="inline-block" x-data="{
-                confirmComplete(e) {
-                    e.preventDefault();
-                    Swal.fire({
-                        title: 'Selesaikan Batch',
-                        text: 'Apakah Anda yakin ingin menyelesaikan batch produksi ini? Hasil produksi saat ini akan dikunci.',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonColor: '#059669', // emerald-600
-                        cancelButtonColor: '#6b7280',
-                        confirmButtonText: 'Ya, Selesaikan',
-                        cancelButtonText: 'Batal'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $el.submit();
-                        }
-                    });
-                }
-            }" @submit="confirmComplete">
-                @csrf
-                <button type="submit" class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition">Selesaikan Batch</button>
-            </form>
-            @endcan
-            @endif
-            @if($batch->canBeCancelled())
-            @can('batch.cancel')
-            <form method="POST" action="{{ route('batches.cancel', $batch) }}" class="inline-block" x-data="{
-                confirmCancel(e) {
-                    e.preventDefault();
-                    Swal.fire({
-                        title: 'Konfirmasi Pembatalan',
-                        text: 'Yakin ingin membatalkan batch ini? Semua bahan yang telah dikeluarkan akan dikembalikan ke stok gudang.',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#ef4444',
-                        cancelButtonColor: '#6b7280',
-                        confirmButtonText: 'Yakin, Batalkan',
-                        cancelButtonText: 'Kembali'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $el.submit();
-                        }
-                    });
-                }
-            }" @submit="confirmCancel">
-                @csrf
-                <button type="submit" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition">Batalkan</button>
-            </form>
-            @endcan
-            @endif
-        </div>
-    </div>
-
-    {{-- Metrics --}}
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <p class="text-2xl font-bold text-gray-900">{{ $batch->products->sum('planned_qty') }}</p><p class="text-xs text-gray-500">Rencana Total</p>
-        </div>
-        <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <p class="text-2xl font-bold text-emerald-600">{{ $batch->products->sum('good_qty') }}</p><p class="text-xs text-gray-500">Unit Baik Total</p>
-        </div>
-        <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <p class="text-2xl font-bold text-red-600">{{ $batch->products->sum('defect_qty') }}</p><p class="text-xs text-gray-500">Unit Rusak Total</p>
-        </div>
-        <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <p class="text-2xl font-bold text-primary-500">{{ $batch->yield ?? '-' }}%</p><p class="text-xs text-gray-500">Yield Rata-rata</p>
-        </div>
-    </div>
-
-    {{-- Product List --}}
-    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-4">Daftar Produk</h4>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="border-b border-gray-200"><tr>
-                    <th class="py-2 text-left font-medium text-gray-600">Produk</th><th class="py-2 text-left font-medium text-gray-600">Rencana</th><th class="py-2 text-left font-medium text-gray-600">Baik</th><th class="py-2 text-left font-medium text-gray-600">Rusak</th><th class="py-2 text-left font-medium text-gray-600">Sisa</th><th class="py-2 text-left font-medium text-gray-600">Yield</th>
-                </tr></thead>
-                <tbody class="divide-y divide-gray-100">
-                    @foreach($batch->products as $bp)
-                    <tr>
-                        <td class="py-2"><span class="font-medium">{{ $bp->product->full_name }}</span></td>
-                        <td class="py-2">{{ $bp->planned_qty }}</td>
-                        <td class="py-2 text-emerald-600 font-medium">{{ $bp->good_qty }}</td>
-                        <td class="py-2 text-red-600 font-medium">{{ $bp->defect_qty }}</td>
-                        <td class="py-2">{{ $bp->planned_qty - $bp->good_qty - $bp->defect_qty }}</td>
-                        <td class="py-2">{{ $bp->yield ?? '-' }}%</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    {{-- Material Preview / Issued --}}
-    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-4">Kebutuhan Bahan</h4>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="border-b border-gray-200"><tr>
-                    <th class="py-2 text-left font-medium text-gray-600">Bahan</th>
-                    <th class="py-2 text-left font-medium text-gray-600">Rencana</th>
-                    <th class="py-2 text-left font-medium text-gray-600">Stok Terkini</th>
-                    <th class="py-2 text-left font-medium text-gray-600">Stok yang Digunakan</th>
-                    <th class="py-2 text-left font-medium text-gray-600">Status</th>
-                </tr></thead>
-                <tbody class="divide-y divide-gray-100">
-                    @foreach($preview as $item)
-                    <tr class="{{ !$item['is_sufficient'] && $batch->status === 'draft' ? 'bg-red-50' : '' }}">
-                        <td class="py-2"><span class="font-medium">{{ $item['material_name'] }}</span><br><span class="text-xs text-gray-400">{{ $item['material_code'] }}</span></td>
-                        <td class="py-2">{{ number_format($item['planned_qty'], 1, ',', '.') }} {{ $item['unit'] }}</td>
-                        <td class="py-2">{{ number_format($item['stock_qty'], 1, ',', '.') }} {{ $item['unit'] }}</td>
-                        @php
-                            $initialIssued = $batch->materials->firstWhere('material_id', $item['material_id'])?->issued_qty ?? 0;
-                            $additionalIssued = $batch->additions->where('material_id', $item['material_id'])->where('type', 'topup')->sum('quantity');
-                            $totalIssued = $initialIssued + $additionalIssued;
-                        @endphp
-                        <td class="py-2">{{ number_format($totalIssued, 1, ',', '.') }} {{ $item['unit'] }}</td>
-                        <td class="py-2">
-                            @if($batch->status === 'draft')
-                                @if($item['is_sufficient'])
-                                    <span class="text-emerald-600 text-xs font-medium">Cukup</span>
-                                @else
-                                    <span class="text-red-600 text-xs font-medium">Kurang</span>
-                                @endif
-                            @else
-                                <span class="text-emerald-600 text-xs font-medium">Sudah Dikeluarkan</span>
-                            @endif
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    {{-- Action Forms (in_progress only) --}}
-    @if($batch->status === 'in_progress')
-    <div class="space-y-6 mb-6">
-        
-        {{-- Section: Product Good & Defect --}}
-        @if($batch->canRecordOutput())
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h4 class="text-sm font-semibold text-gray-900 mb-4">Pencatatan Hasil Produksi (Unit Baik & Rusak)</h4>
-            <div class="space-y-4">
-                @foreach($batch->products as $bp)
-                @php
-                    $sisa = $bp->planned_qty - $bp->good_qty - $bp->defect_qty;
-                @endphp
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-lg bg-gray-50 border border-gray-100">
-                    <div class="flex-1 min-w-[200px]">
-                        <span class="font-medium text-sm text-gray-900 block">{{ $bp->product->full_name }}</span>
-                        <span class="text-xs text-gray-500">Rencana: {{ $bp->planned_qty }} &middot; Sisa: <strong class="{{ $sisa > 0 ? 'text-amber-600' : 'text-gray-400' }}">{{ $sisa }}</strong></span>
-                    </div>
-                    @if($sisa > 0)
-                    <div class="flex flex-wrap items-center gap-6">
-                        @can('batch.record_output')
-                        <form method="POST" action="{{ route('batches.output', $batch) }}" class="flex items-end gap-2">
-                            @csrf
-                            <input type="hidden" name="product_id" value="{{ $bp->product_id }}">
-                            <div class="flex flex-col gap-0.5">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Qty Baik</label>
-                                <input type="number" name="good_qty" min="1" max="{{ $sisa }}" required class="w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-primary-500 h-8" placeholder="0">
-                            </div>
-                            <button type="submit" class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition h-8 flex items-center justify-center">Catat Baik</button>
-                        </form>
-                        @endcan
-
-                        @can('batch.record_defect')
-                        <form method="POST" action="{{ route('batches.defect', $batch) }}" class="flex items-end gap-2 border-t lg:border-t-0 lg:border-l border-gray-200 pt-2 lg:pt-0 lg:pl-6">
-                            @csrf
-                            <input type="hidden" name="product_id" value="{{ $bp->product_id }}">
-                            <div class="flex flex-col gap-0.5">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Qty Rusak</label>
-                                <input type="number" name="defect_qty" min="1" max="{{ $sisa }}" required class="w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-primary-500 h-8" placeholder="0">
-                            </div>
-                            <div class="flex flex-col gap-0.5">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Alasan</label>
-                                <select name="reason" required class="px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 h-8">
-                                    @foreach(\App\Models\BatchDefect::REASONS as $key => $label)
-                                        <option value="{{ $key }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="flex flex-col gap-0.5">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Catatan</label>
-                                <input type="text" name="notes" class="w-28 px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 h-8" placeholder="Opsional">
-                            </div>
-                            <button type="submit" class="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition h-8 flex items-center justify-center">Catat Rusak</button>
-                        </form>
-                        @endcan
-                    </div>
-                    @else
-                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full">Selesai Produksi</span>
-                    @endif
-                </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        {{-- Section: Material Defect & Top-up --}}
-        @can('batch.topup')
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h4 class="text-sm font-semibold text-gray-900 mb-4">Pencatatan Masalah & Tambahan Bahan Baku</h4>
-            <div class="space-y-4 mb-6">
-                @foreach($preview as $item)
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-lg bg-gray-50 border border-gray-100">
-                    <div class="flex-1 min-w-[200px]">
-                        <span class="font-medium text-sm text-gray-900 block">{{ $item['material_name'] }}</span>
-                        <span class="text-xs text-gray-400">{{ $item['material_code'] }} &middot; Unit: {{ $item['unit'] }}</span>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-6">
-                        {{-- Form 1: Catat Bahan Baku Rusak (Ganti dari Gudang) --}}
-                        <form method="POST" action="{{ route('batches.material', $batch) }}" class="flex items-end gap-2">
-                            @csrf
-                            <input type="hidden" name="type" value="defect">
-                            <input type="hidden" name="material_id" value="{{ $item['material_id'] }}">
-                            
-                            @php
-                                $usingProducts = collect($batch->products)->filter(function($bp) use ($item) {
-                                    return $bp->product && $bp->product->activeBom && $bp->product->activeBom->items->contains('material_id', $item['material_id']);
-                                });
-                            @endphp
-                            
-                            @if($usingProducts->count() > 1)
-                            <div class="flex flex-col gap-0.5">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Produk</label>
-                                <select name="product_id" required class="px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 h-8">
-                                    <option value="">-- Pilih --</option>
-                                    @foreach($usingProducts as $bp)
-                                        <option value="{{ $bp->product_id }}">{{ $bp->product->variant_name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            @elseif($usingProducts->count() === 1)
-                            <input type="hidden" name="product_id" value="{{ $usingProducts->first()->product_id }}">
-                            @endif
-
-                            <div class="flex flex-col gap-0.5">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Qty Rusak</label>
-                                <input type="number" name="quantity" step="0.001" min="0.001" required class="w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-primary-500 h-8" placeholder="0.000">
-                            </div>
-
-                            <div class="flex flex-col gap-0.5">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Keterangan</label>
-                                <input type="text" name="reason" required class="w-32 px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 h-8" placeholder="Keterangan">
-                            </div>
-
-                            <button type="submit" class="px-3 py-1.5 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition h-8 flex items-center justify-center">Catat Rusak</button>
-                        </form>
-
-                        {{-- Form 2: Top-up Bahan (Manual) --}}
-                        <form method="POST" action="{{ route('batches.material', $batch) }}" class="flex items-end gap-2 border-t lg:border-t-0 lg:border-l border-gray-200 pt-2 lg:pt-0 lg:pl-6">
-                            @csrf
-                            <input type="hidden" name="type" value="topup">
-                            <input type="hidden" name="material_id" value="{{ $item['material_id'] }}">
-                            
-                            <div class="flex flex-col gap-0.5">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Qty Top-up</label>
-                                <input type="number" name="quantity" step="0.001" min="0.001" required class="w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-primary-500 h-8" placeholder="0.000">
-                            </div>
-
-                            <div class="flex flex-col gap-0.5">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Alasan</label>
-                                <input type="text" name="reason" required class="w-32 px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1 focus:ring-primary-500 h-8" placeholder="Alasan">
-                            </div>
-
-                            <button type="submit" class="px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition h-8 flex items-center justify-center">Top-up</button>
-                        </form>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-
-            {{-- Fallback: Top-up Bahan Lainnya --}}
-            @php
-                $requiredMaterialIds = collect($preview)->pluck('material_id')->toArray();
-                $otherMaterials = $materials->filter(fn($m) => !in_array($m->id, $requiredMaterialIds));
-            @endphp
-            @if($otherMaterials->isNotEmpty())
-            <div class="border-t border-gray-100 pt-4 mt-6">
-                <h5 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Top-up Bahan Lainnya (Di luar BOM)</h5>
-                <form method="POST" action="{{ route('batches.material', $batch) }}" class="flex flex-wrap items-center gap-3">
+            @if($batch->status === 'release')
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+                <h4 class="text-sm font-semibold text-gray-800 mb-4">Selesaikan Batch</h4>
+                <form method="POST" action="{{ route('batches.complete', $batch) }}" class="flex items-end gap-4">
                     @csrf
-                    <input type="hidden" name="type" value="topup">
-                    <select name="material_id" required class="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-1 focus:ring-primary-500">
-                        <option value="">-- Pilih Bahan Lain --</option>
-                        @foreach($otherMaterials as $m)
-                            <option value="{{ $m->id }}">{{ $m->name }} ({{ $m->unit }})</option>
-                        @endforeach
-                    </select>
-                    <input type="number" name="quantity" step="0.001" min="0.001" required class="w-28 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-1 focus:ring-primary-500" placeholder="Jumlah Qty">
-                    <input type="text" name="reason" required class="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-1 focus:ring-primary-500" placeholder="Alasan Top-up">
-                    <button type="submit" class="px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition">Tambah Bahan</button>
+                    <div><label class="block text-xs text-gray-600 mb-1">Qty Baik</label><input type="number" step="0.01" name="qty_baik" class="w-32 rounded-lg border-gray-300 text-sm" required></div>
+                    <div><label class="block text-xs text-gray-600 mb-1">Qty Rusak</label><input type="number" step="0.01" name="qty_rusak" value="0" class="w-32 rounded-lg border-gray-300 text-sm" required></div>
+                    <button class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-xl hover:bg-emerald-700">Selesai</button>
                 </form>
             </div>
             @endif
+            @endcan
         </div>
-        @endcan
 
-    </div>
-    @endif
-
-    {{-- Defects Log --}}
-    @if($batch->defects->isNotEmpty())
-    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-4">Log Defect</h4>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm"><thead class="border-b border-gray-200"><tr>
-                <th class="py-2 text-left font-medium text-gray-600">Waktu</th><th class="py-2 text-left font-medium text-gray-600">Produk</th><th class="py-2 text-left font-medium text-gray-600">Qty</th><th class="py-2 text-left font-medium text-gray-600">Alasan</th><th class="py-2 text-left font-medium text-gray-600">Catatan</th>
-            </tr></thead><tbody class="divide-y divide-gray-100">
-                @foreach($batch->defects as $d)<tr><td class="py-2 text-xs">{{ $d->created_at->format('d/m/Y H:i') }}</td><td class="py-2 font-medium">{{ $d->product?->full_name }}</td><td class="py-2">{{ $d->defect_qty }}</td><td class="py-2">{{ $d->reason_label }}</td><td class="py-2 text-gray-500">{{ $d->notes ?? '-' }}</td></tr>@endforeach
-            </tbody></table>
+        <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-2">
+            <h4 class="text-sm font-semibold text-gray-800 mb-3">Aksi</h4>
+            @can('batch.release')@if($batch->status==='rencana')<form method="POST" action="{{ route('batches.release',$batch) }}">@csrf<button class="w-full px-4 py-2 bg-primary-500 text-white text-sm rounded-lg hover:bg-primary-600">Release & Issue</button></form>@endif @endcan
+            @can('batch.cancel')@if($batch->status==='rencana')<form method="POST" action="{{ route('batches.cancel',$batch) }}">@csrf<button class="w-full px-4 py-2 bg-red-50 text-red-600 text-sm rounded-lg hover:bg-red-100">Batalkan</button></form>@endif @endcan
+            @can('rt.create')@if($batch->status==='selesai')<form method="POST" action="{{ route('batches.kirim',$batch) }}">@csrf<button class="w-full px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">Ajukan Kirim ke Fulfillment</button></form>@endif @endcan
+            @if(in_array($batch->status,['dibatalkan']))<p class="text-sm text-gray-400">Batch dibatalkan.</p>@endif
         </div>
     </div>
-    @endif
-
-    {{-- Additions Log --}}
-    @if($batch->additions->isNotEmpty())
-    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-        <h4 class="text-sm font-semibold text-gray-900 mb-4">Log Tambahan / Kerusakan Bahan</h4>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm"><thead class="border-b border-gray-200"><tr>
-                <th class="py-2 text-left font-medium text-gray-600">Waktu</th><th class="py-2 text-left font-medium text-gray-600">Jenis</th><th class="py-2 text-left font-medium text-gray-600">Produk</th><th class="py-2 text-left font-medium text-gray-600">Bahan</th><th class="py-2 text-left font-medium text-gray-600">Qty</th><th class="py-2 text-left font-medium text-gray-600">Keterangan</th>
-            </tr></thead><tbody class="divide-y divide-gray-100">
-                @foreach($batch->additions as $a)<tr>
-                    <td class="py-2 text-xs">{{ $a->created_at->format('d/m/Y H:i') }}</td>
-                    <td class="py-2">
-                        @if($a->type === 'defect')
-                            <span class="px-2 py-1 bg-red-50 text-red-600 text-xs font-medium rounded-md">Bahan Rusak</span>
-                        @else
-                            <span class="px-2 py-1 bg-amber-50 text-amber-600 text-xs font-medium rounded-md">Top-up</span>
-                        @endif
-                    </td>
-                    <td class="py-2 text-gray-600">{{ $a->product?->full_name ?? '-' }}</td>
-                    <td class="py-2">{{ $a->material->name }}</td>
-                    <td class="py-2">{{ number_format($a->quantity, 1, ',', '.') }} {{ $a->material->unit }}</td>
-                    <td class="py-2 text-gray-500">{{ $a->reason }}</td>
-                </tr>@endforeach
-            </tbody></table>
-        </div>
-    </div>
-    @endif
 </x-app-layout>

@@ -2,25 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\BatchDefectRequest;
-use App\Http\Requests\BatchOutputRequest;
-use App\Http\Requests\BatchStoreRequest;
-use App\Http\Requests\BatchTopupRequest;
-use App\Models\Material;
-use App\Models\ProductionBatch;
-use App\Models\Warehouse;
-use App\Services\BatchService;
+use App\Models\BatchProduksi;
+use App\Models\Gudang;
+use App\Models\Produk;
+use App\Models\RequestTransfer;
+use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class BatchController extends Controller
 {
-    public function __construct(private BatchService $batchService) {}
+    public function __construct(private readonly StokService $stok)
+    {
+    }
 
     public function index()
     {
         $this->authorize('batch.view');
+
         return view('batches.index');
     }
 
@@ -28,147 +29,202 @@ class BatchController extends Controller
     {
         $this->authorize('batch.view');
 
-        $query = ProductionBatch::query()
-            ->select('production_batches.*')
-            ->with([
-                'products.product:id,sku,full_name',
-                'warehouse:id,name',
-                'creator:id,name',
-            ]);
+        $query = BatchProduksi::query()->select('batch_produksi.*')
+            ->with(['produk:id,sku,nama', 'gudangTujuan:id,nama']);
 
         return DataTables::eloquent($query)
-            ->filterColumn('product', function ($query, $keyword) {
-                $query->whereHas('products.product', function ($q) use ($keyword) {
-                    $low = strtolower($keyword);
-                    $q->where(\Illuminate\Support\Facades\DB::raw('LOWER(full_name)'), 'like', "%{$low}%")
-                      ->orWhere(\Illuminate\Support\Facades\DB::raw('LOWER(sku)'), 'like', "%{$low}%");
-                });
-            })
-            ->filterColumn('warehouse', function ($query, $keyword) {
-                $query->whereHas('warehouse', function ($q) use ($keyword) {
-                    $low = strtolower($keyword);
-                    $q->where(\Illuminate\Support\Facades\DB::raw('LOWER(name)'), 'like', "%{$low}%");
-                });
-            })
-            ->addColumn('product', function ($b) {
-                if ($b->products->count() === 1) {
-                    return $b->products->first()->product?->full_name ?? '-';
-                }
-                return $b->products->count() . ' Produk';
-            })
-            ->addColumn('planned_qty', fn ($b) => $b->products->sum('planned_qty'))
-            ->addColumn('good_qty', fn ($b) => $b->products->sum('good_qty'))
-            ->addColumn('defect_qty', fn ($b) => $b->products->sum('defect_qty'))
-            ->addColumn('warehouse', fn ($b) => $b->warehouse?->name ?? '-')
-            ->addColumn('yield', fn ($b) => $b->yield !== null ? $b->yield . '%' : '-')
-            ->editColumn('status', fn ($b) => view('batches._status', ['s' => $b->status])->render())
-            ->editColumn('production_date', fn ($b) => $b->production_date?->format('d/m/Y') ?? '-')
+            ->addColumn('produk_nama', fn ($b) => $b->produk?->nama)
+            ->editColumn('tanggal', fn ($b) => $b->tanggal?->format('d/m/Y'))
+            ->editColumn('status', fn ($b) => ucfirst($b->status))
+            ->addColumn('yield', fn ($b) => $b->yield() !== null ? number_format($b->yield(), 1) . '%' : '-')
             ->addColumn('action', fn ($b) => view('batches._actions', ['b' => $b])->render())
-            ->rawColumns(['status', 'action'])
+            ->rawColumns(['action'])
             ->toJson();
     }
 
     public function create()
     {
         $this->authorize('batch.create');
-        $products = \App\Models\Product::active()->orderBy('full_name')->get(['id', 'sku', 'full_name']);
-        $warehouses = Warehouse::active()->pluck('name', 'id');
-        return view('batches.create', compact('products', 'warehouses'));
+        $produk = Produk::produkJadi()->active()->orderBy('nama')->get(['id', 'sku', 'nama']);
+        $gudangOp = Gudang::active()->where('tipe', 'operasional')->orderBy('nama')->get(['id', 'nama']);
+        $gudangFf = Gudang::active()->fulfillment()->orderBy('nama')->get(['id', 'nama']);
+
+        return view('batches.create', compact('produk', 'gudangOp', 'gudangFf'));
     }
 
-    /**
-     * Global exception handler catches DomainException and redirects back with error flash.
-     * No try/catch needed here.
-     */
-    public function store(BatchStoreRequest $request)
+    public function store(Request $request)
     {
         $this->authorize('batch.create');
-        $batch = $this->batchService->create($request->validated());
-        return redirect()->route('batches.show', $batch)->with('success', 'Batch berhasil dibuat.');
+
+        $data = $request->validate([
+            'produk_id' => ['required', 'exists:produk,id'],
+            'qty_rencana' => ['required', 'numeric', 'gt:0'],
+            'gudang_operasional_id' => ['nullable', 'exists:gudang,id'],
+            'gudang_tujuan_rencana_id' => ['nullable', 'exists:gudang,id'],
+            'tanggal' => ['required', 'date'],
+        ]);
+
+        $batch = DB::transaction(function () use ($data) {
+            $batch = BatchProduksi::create([
+                'no_batch' => $this->nextNo(),
+                'produk_id' => $data['produk_id'],
+                'qty_rencana' => $data['qty_rencana'],
+                'gudang_operasional_id' => $data['gudang_operasional_id'] ?? null,
+                'gudang_tujuan_rencana_id' => $data['gudang_tujuan_rencana_id'] ?? null,
+                'status' => 'rencana',
+                'tanggal' => $data['tanggal'],
+                'created_by' => auth()->id(),
+            ]);
+
+            // BOM explode → alokasi bahan (aktif), tanpa mengubah stok fisik.
+            $bom = Produk::findOrFail($data['produk_id'])->bom;
+            foreach ($bom as $item) {
+                $batch->alokasi()->create([
+                    'bahan_id' => $item->bahan_id,
+                    'qty_dialokasikan' => (float) $item->qty_per_unit * (float) $data['qty_rencana'],
+                    'status' => 'aktif',
+                ]);
+            }
+
+            return $batch;
+        });
+
+        return redirect()->route('batches.show', $batch)->with('success', "Batch {$batch->no_batch} dibuat, alokasi bahan tercipta.");
     }
 
-    public function show(ProductionBatch $batch)
+    public function show(BatchProduksi $batch)
     {
         $this->authorize('batch.view');
+        $batch->load(['produk', 'gudangOperasional', 'gudangTujuan', 'alokasi.bahan:id,sku,nama,satuan', 'opname.bahan:id,nama']);
 
-        $batch->load([
-            'products.product.activeBom.items.material',
-            'warehouse:id,name',
-            'creator:id,name',
-            'materials.material:id,code,name,unit',
-            'additions.material:id,code,name,unit',
-            'additions.product:id,full_name',
-            'defects.product:id,full_name',
-            'outputs.product:id,full_name',
-        ]);
-
-        $preview = $this->batchService->getMaterialPreview($batch);
-        $materials = Material::active()->orderBy('name')->get(['id', 'code', 'name', 'unit']);
-
-        return view('batches.show', compact('batch', 'preview', 'materials'));
+        return view('batches.show', compact('batch'));
     }
 
-    public function release(ProductionBatch $batch)
+    /** Release & Issue: tarik bahan riil dari stok gudang operasional, alokasi dilepas. */
+    public function release(BatchProduksi $batch)
     {
         $this->authorize('batch.release');
-        $this->batchService->release($batch);
-        return back()->with('success', 'Batch berhasil di-release. Bahan telah dikeluarkan dari stok.');
+        abort_unless($batch->status === 'rencana', 422, 'Hanya batch berstatus Rencana yang dapat di-release.');
+        abort_unless($batch->gudang_operasional_id, 422, 'Gudang operasional batch belum ditentukan.');
+
+        try {
+            DB::transaction(function () use ($batch) {
+                foreach ($batch->alokasi()->where('status', 'aktif')->get() as $alok) {
+                    $this->stok->keluar($alok->bahan_id, $batch->gudang_operasional_id, (float) $alok->qty_dialokasikan, 'batch_produksi', $batch->id, "Issue {$batch->no_batch}");
+                    $alok->update(['status' => 'dilepas']);
+                }
+                $batch->update(['status' => 'release']);
+            });
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Bahan di-issue dari stok operasional.');
     }
 
-    public function start(ProductionBatch $batch)
-    {
-        $this->authorize('batch.start');
-        $this->batchService->start($batch);
-        return back()->with('success', 'Produksi dimulai.');
-    }
-
-    public function recordOutput(BatchOutputRequest $request, ProductionBatch $batch)
-    {
-        $this->authorize('batch.record_output');
-        $this->batchService->recordOutput($batch, $request->product_id, $request->good_qty);
-        return back()->with('success', 'Output berhasil dicatat.');
-    }
-
-    public function recordDefect(BatchDefectRequest $request, ProductionBatch $batch)
-    {
-        $this->authorize('batch.record_defect');
-        $this->batchService->recordDefect($batch, $request->product_id, $request->defect_qty, $request->reason, $request->notes);
-        return back()->with('success', 'Defect berhasil dicatat.');
-    }
-
-    public function addMaterial(BatchTopupRequest $request, ProductionBatch $batch)
-    {
-        $this->authorize('batch.topup');
-        $this->batchService->addMaterial(
-            $batch, 
-            $request->material_id, 
-            $request->quantity, 
-            $request->reason, 
-            $request->product_id, 
-            $request->type ?? 'topup'
-        );
-        return back()->with('success', $request->type === 'defect' ? 'Kerusakan bahan baku dicatat dan bahan pengganti telah dikeluarkan.' : 'Top-up bahan berhasil.');
-    }
-
-    public function complete(Request $request, ProductionBatch $batch)
+    /** Selesai: catat qty baik/rusak, produk jadi masuk stok. */
+    public function complete(Request $request, BatchProduksi $batch)
     {
         $this->authorize('batch.complete');
-        
-        $request->validate([
-            'results' => 'nullable|array',
-            'results.*.product_id' => 'required|exists:products,id',
-            'results.*.good_qty' => 'required|integer|min:0',
-            'results.*.defect_qty' => 'required|integer|min:0',
+        abort_unless($batch->status === 'release', 422, 'Hanya batch yang sudah Release yang dapat diselesaikan.');
+
+        $data = $request->validate([
+            'qty_baik' => ['required', 'numeric', 'min:0'],
+            'qty_rusak' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $this->batchService->complete($batch, $request->results ?? []);
-        return back()->with('success', 'Batch selesai. Hasil produksi berhasil dicatat.');
+        DB::transaction(function () use ($batch, $data) {
+            $batch->update([
+                'qty_baik' => $data['qty_baik'],
+                'qty_rusak' => $data['qty_rusak'],
+                'status' => 'selesai',
+            ]);
+            $gudang = $batch->gudang_operasional_id ?? $batch->gudang_tujuan_rencana_id;
+            if ($gudang && (float) $data['qty_baik'] > 0) {
+                $this->stok->masuk($batch->produk_id, $gudang, (float) $data['qty_baik'], 'batch_produksi', $batch->id, "Hasil {$batch->no_batch}");
+            }
+        });
+
+        return back()->with('success', 'Batch selesai, produk jadi masuk stok.');
     }
 
-    public function cancel(ProductionBatch $batch)
+    public function cancel(BatchProduksi $batch)
     {
         $this->authorize('batch.cancel');
-        $this->batchService->cancel($batch);
-        return back()->with('success', 'Batch dibatalkan. Bahan telah dikembalikan ke stok.');
+        abort_unless($batch->status === 'rencana', 422, 'Hanya batch Rencana yang dapat dibatalkan (alokasi dilepas tanpa mutasi stok).');
+
+        DB::transaction(function () use ($batch) {
+            $batch->alokasi()->where('status', 'aktif')->update(['status' => 'dibatalkan']);
+            $batch->update(['status' => 'dibatalkan']);
+        });
+
+        return back()->with('success', 'Batch dibatalkan, alokasi dilepas.');
+    }
+
+    /** Stock opname: bandingkan pemakaian teoritis (BOM) vs aktual. */
+    public function opname(Request $request, BatchProduksi $batch)
+    {
+        $this->authorize('batch.opname');
+
+        $data = $request->validate([
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.bahan_id' => ['required', 'exists:produk,id'],
+            'items.*.pemakaian_aktual' => ['required', 'numeric', 'min:0'],
+            'items.*.keterangan' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        DB::transaction(function () use ($batch, $data) {
+            $batch->opname()->delete();
+            foreach ($data['items'] as $row) {
+                $teoritis = (float) ($batch->alokasi()->where('bahan_id', $row['bahan_id'])->value('qty_dialokasikan') ?? 0);
+                $batch->opname()->create([
+                    'bahan_id' => $row['bahan_id'],
+                    'pemakaian_teoritis' => $teoritis,
+                    'pemakaian_aktual' => $row['pemakaian_aktual'],
+                    'keterangan' => $row['keterangan'] ?? null,
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Stock opname batch dicatat.');
+    }
+
+    /** Ajukan Kirim Produk Jadi ke Fulfillment (buat dokumen Request & Transfer). */
+    public function kirim(BatchProduksi $batch)
+    {
+        $this->authorize('rt.create');
+        abort_unless($batch->status === 'selesai', 422, 'Batch harus Selesai untuk dikirim.');
+        abort_unless((float) $batch->qty_baik > 0, 422, 'Tidak ada qty baik untuk dikirim.');
+
+        $rt = DB::transaction(function () use ($batch) {
+            $year = now()->year;
+            $no = sprintf('TR-%d-%04d', $year, RequestTransfer::whereYear('created_at', $year)->count() + 1);
+            $rt = RequestTransfer::create([
+                'no_transaksi' => $no,
+                'jenis' => 'kirim_produk_jadi',
+                'gudang_asal_id' => $batch->gudang_operasional_id,
+                'gudang_tujuan_id' => $batch->gudang_tujuan_rencana_id,
+                'referensi_batch_id' => $batch->id,
+                'status' => 'draft',
+                'catatan' => "Kirim hasil batch {$batch->no_batch}",
+                'created_by' => auth()->id(),
+            ]);
+            $rt->items()->create([
+                'produk_id' => $batch->produk_id,
+                'qty_diminta' => $batch->qty_baik,
+            ]);
+
+            return $rt;
+        });
+
+        return redirect()->route('rt.show', $rt)->with('success', "Dokumen kirim {$rt->no_transaksi} dibuat.");
+    }
+
+    private function nextNo(): string
+    {
+        $year = now()->year;
+        $count = BatchProduksi::whereYear('tanggal', $year)->count() + 1;
+
+        return sprintf('B-%d-%04d', $year, $count);
     }
 }

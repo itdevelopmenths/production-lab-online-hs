@@ -1,0 +1,51 @@
+<x-app-layout title="Buat PO">
+    <div class="max-w-4xl" x-data="poForm()">
+        <a href="{{ route('purchasing.index') }}" class="text-sm text-gray-500 hover:text-gray-700">&larr; Kembali</a>
+        <div class="mt-4 bg-white rounded-xl border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Buat Purchase Order</h3>
+            <form method="POST" action="{{ route('purchasing.store') }}">
+                @csrf
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                        <select name="supplier_id" class="w-full rounded-lg border-gray-300 text-sm" required>
+                            @foreach($suppliers as $s)<option value="{{ $s->id }}">{{ $s->nama }} ({{ $s->kategori }})</option>@endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                        <input type="date" name="tanggal" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border-gray-300 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ETA</label>
+                        <input type="date" name="eta" class="w-full rounded-lg border-gray-300 text-sm">
+                    </div>
+                </div>
+
+                <h4 class="text-sm font-semibold text-gray-800 mb-3">Item</h4>
+                <div class="space-y-3">
+                    <template x-for="(row, i) in rows" :key="i">
+                        <div class="flex items-center gap-3">
+                            <select :name="`items[${i}][produk_id]`" x-model="row.produk_id" class="flex-1 rounded-lg border-gray-300 text-sm" required>
+                                <option value="">— pilih bahan —</option>
+                                @foreach($produk as $p)<option value="{{ $p->id }}">{{ $p->sku }} — {{ $p->nama }}</option>@endforeach
+                            </select>
+                            <input type="number" step="0.01" :name="`items[${i}][qty]`" x-model="row.qty" placeholder="qty" class="w-28 rounded-lg border-gray-300 text-sm" required>
+                            <input type="number" step="0.01" :name="`items[${i}][harga_total]`" x-model="row.harga" placeholder="harga total" class="w-40 rounded-lg border-gray-300 text-sm" required>
+                            <button type="button" @click="rows.splice(i,1)" class="text-red-500 hover:text-red-700">&times;</button>
+                        </div>
+                    </template>
+                </div>
+                <button type="button" @click="rows.push({produk_id:'',qty:'',harga:''})" class="mt-3 text-sm text-primary-600 hover:text-primary-800">+ Tambah item</button>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <a href="{{ route('purchasing.index') }}" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">Batal</a>
+                    <button type="submit" class="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600">Simpan Draft</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @push('scripts')
+    <script>function poForm(){ return { rows:[{produk_id:'',qty:'',harga:''}] }; }</script>
+    @endpush
+</x-app-layout>

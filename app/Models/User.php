@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -33,13 +32,14 @@ class User extends Authenticatable
         ];
     }
 
-    public function productionBatches(): HasMany
+    /** Nama role utama untuk ditampilkan (role switcher / badge). */
+    public function roleName(): ?string
     {
-        return $this->hasMany(ProductionBatch::class, 'created_by');
+        return $this->roles->first()?->name;
     }
 
-    public function stockMovements(): HasMany
+    public function isManager(): bool
     {
-        return $this->hasMany(StockMovement::class);
+        return $this->hasRole('manager');
     }
 }

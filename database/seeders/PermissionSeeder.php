@@ -11,21 +11,34 @@ class PermissionSeeder extends Seeder
     public function run(): void
     {
         $permissions = [
-            // Master
-            'product.view', 'product.create', 'product.edit', 'product.delete',
-            'material.view', 'material.create', 'material.edit', 'material.delete',
+            // Master Data
+            'produk.view', 'produk.create', 'produk.edit', 'produk.delete',
+            'gudang.view', 'gudang.create', 'gudang.edit', 'gudang.delete',
+            'supplier.view', 'supplier.create', 'supplier.edit', 'supplier.delete',
             'bom.view', 'bom.manage', 'bom.import',
-            // Gudang
-            'warehouse.view', 'warehouse.create', 'warehouse.edit', 'warehouse.delete',
-            // Stok
-            'stock.view', 'stock.in', 'stock.adjust', 'stock.set_alert', 'stock.ledger.view',
-            // Batch
-            'batch.view', 'batch.create', 'batch.edit',
-            'batch.release', 'batch.start',
-            'batch.record_output', 'batch.record_defect', 'batch.topup',
-            'batch.complete', 'batch.cancel',
+
+            // Stok & Mutasi
+            'stok.view', 'stok.mutasi', 'stok.opname', 'stok.ledger.view',
+
+            // Purchasing
+            'purchasing.view', 'purchasing.create', 'purchasing.edit',
+            'purchasing.submit', 'purchasing.approve', 'purchasing.receive',
+            'purchasing.pay', 'purchasing.cancel',
+
+            // Request & Transfer
+            'rt.view', 'rt.create', 'rt.submit', 'rt.approve',
+            'rt.process', 'rt.ship', 'rt.receive', 'rt.cancel',
+
+            // Analisa Stok
+            'analisa.view', 'analisa.manage', 'analisa.snapshot', 'analisa.create_po',
+
+            // Produksi (Batch)
+            'batch.view', 'batch.create', 'batch.release',
+            'batch.complete', 'batch.cancel', 'batch.opname',
+
             // Laporan
             'report.view', 'report.export',
+
             // Admin
             'user.manage', 'role.manage',
         ];
@@ -34,49 +47,48 @@ class PermissionSeeder extends Seeder
             Permission::firstOrCreate(['name' => $perm]);
         }
 
-        // Super Admin
-        $superAdmin = Role::firstOrCreate(['name' => 'super_admin']);
-        $superAdmin->syncPermissions(Permission::all());
+        // Manager — akses penuh + approval di semua tahap.
+        $manager = Role::firstOrCreate(['name' => 'manager']);
+        $manager->syncPermissions(Permission::all());
 
-        // Production Manager
-        $manager = Role::firstOrCreate(['name' => 'production_manager']);
-        $manager->syncPermissions([
-            'product.view', 'material.view', 'bom.view', 'bom.manage', 'bom.import',
-            'warehouse.view', 'warehouse.create', 'warehouse.edit', 'warehouse.delete',
-            'stock.view', 'stock.ledger.view',
-            'batch.view', 'batch.create', 'batch.edit', 'batch.release', 'batch.start',
-            'batch.record_output', 'batch.record_defect', 'batch.topup',
-            'batch.complete', 'batch.cancel',
+        // Purchasing
+        Role::firstOrCreate(['name' => 'purchasing'])->syncPermissions([
+            'produk.view', 'produk.create', 'produk.edit',
+            'gudang.view', 'supplier.view', 'supplier.create', 'supplier.edit',
+            'bom.view',
+            'stok.view', 'stok.mutasi', 'stok.ledger.view',
+            'purchasing.view', 'purchasing.create', 'purchasing.edit',
+            'purchasing.submit', 'purchasing.pay', 'purchasing.cancel',
+            'analisa.view', 'analisa.manage', 'analisa.snapshot', 'analisa.create_po',
             'report.view', 'report.export',
         ]);
 
-        // Production Operator
-        $operator = Role::firstOrCreate(['name' => 'production_operator']);
-        $operator->syncPermissions([
-            'product.view', 'material.view', 'bom.view',
-            'warehouse.view',
-            'stock.view',
-            'batch.view', 'batch.create',
-            'batch.record_output', 'batch.record_defect', 'batch.topup',
+        // Gudang
+        Role::firstOrCreate(['name' => 'gudang'])->syncPermissions([
+            'produk.view', 'gudang.view', 'supplier.view', 'bom.view',
+            'stok.view', 'stok.mutasi', 'stok.ledger.view',
+            'purchasing.view', 'purchasing.receive',
+            'rt.view', 'rt.process', 'rt.ship', 'rt.receive',
             'report.view',
         ]);
 
-        // Warehouse Staff
-        $warehouse = Role::firstOrCreate(['name' => 'warehouse_staff']);
-        $warehouse->syncPermissions([
-            'material.view', 'warehouse.view', 'stock.view', 'stock.in', 'stock.adjust',
-            'stock.set_alert', 'stock.ledger.view',
-            'batch.view', 'batch.release',
+        // Operasional
+        Role::firstOrCreate(['name' => 'operasional'])->syncPermissions([
+            'produk.view', 'gudang.view', 'bom.view', 'bom.manage',
+            'stok.view', 'stok.opname', 'stok.ledger.view',
+            'batch.view', 'batch.create', 'batch.release',
+            'batch.complete', 'batch.cancel', 'batch.opname',
+            'rt.view', 'rt.create', 'rt.submit', 'rt.ship', 'rt.receive',
             'report.view',
         ]);
 
-        // Viewer
-        $viewer = Role::firstOrCreate(['name' => 'viewer']);
-        $viewer->syncPermissions([
-            'product.view', 'material.view', 'bom.view',
-            'warehouse.view',
-            'stock.view', 'stock.ledger.view',
-            'batch.view', 'report.view',
+        // Fulfillment
+        Role::firstOrCreate(['name' => 'fulfillment'])->syncPermissions([
+            'produk.view', 'gudang.view', 'bom.view',
+            'stok.view', 'stok.mutasi', 'stok.ledger.view',
+            'analisa.view', 'analisa.manage', 'analisa.snapshot',
+            'rt.view', 'rt.create', 'rt.ship', 'rt.receive',
+            'report.view',
         ]);
     }
 }
