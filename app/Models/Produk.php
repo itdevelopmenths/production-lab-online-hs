@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Produk extends Model
@@ -25,6 +26,12 @@ class Produk extends Model
     ];
 
     public const TIPE = ['bahan', 'kemas', 'produk_jadi'];
+
+    /** Relasi master UOM berdasarkan kolom kode satuan. */
+    public function uom(): BelongsTo
+    {
+        return $this->belongsTo(Uom::class, 'satuan', 'kode');
+    }
 
     /** BOM baris di mana produk ini adalah produk jadi. */
     public function bom(): HasMany
