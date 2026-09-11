@@ -8,6 +8,7 @@ use App\Models\Produk;
 use App\Models\PurchaseOrder;
 use App\Models\RequestTransfer;
 use App\Models\Supplier;
+use App\Models\Uom;
 use App\Models\User;
 use App\Services\StokService;
 use Illuminate\Database\Eloquent\Model;
@@ -273,11 +274,70 @@ class ViewRenderingSafetyTest extends TestCase
         $this->get(route('supplier.create'))->assertOk();
         $this->get(route('supplier.edit', $supplier))->assertOk();
 
+        // UOM
+        $uom = Uom::first() ?? Uom::create(['kode' => 'pcs', 'nama' => 'Pieces']);
+        $this->get(route('uom.index'))->assertOk();
+        $this->get(route('uom.create'))->assertOk();
+        $this->get(route('uom.edit', $uom))->assertOk();
+
         // BOM
         $this->get(route('bom.index'))->assertOk();
         $this->get(route('bom.edit', $produk))->assertOk();
 
         // Users
         $this->get(route('users.index'))->assertOk();
+        $this->get(route('users.create'))->assertOk();
+        $this->get(route('users.edit', $manager))->assertOk();
+    }
+
+    public function test_roles_views_render_safely_without_lazy_loading_violation(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $this->get(route('roles.index'))->assertOk();
+        $this->get(route('roles.create'))->assertOk();
+
+        $role = \App\Models\Role::first();
+        if ($role) {
+            $this->get(route('roles.edit', $role))->assertOk();
+        }
+    }
+
+    public function test_produk_select_data_endpoint_supports_10_items_pagination_and_filtering(): void
+    {
+        $user = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($user);
+
+        // 1. Basic pagination check (default 10 items)
+        $response = $this->getJson(route('produk.select-data'));
+        $response->assertOk()
+            ->assertJsonStructure([
+                'items' => [
+                    '*' => ['id', 'sku', 'nama', 'satuan', 'tipe']
+                ],
+                'current_page',
+                'has_more',
+                'total'
+            ]);
+
+        $this->assertLessThanOrEqual(10, count($response->json('items')));
+        $this->assertEquals(1, $response->json('current_page'));
+
+        // 2. Filter tipe check
+        $resBahan = $this->getJson(route('produk.select-data', ['tipe' => ['bahan', 'kemas']]));
+        $resBahan->assertOk();
+        foreach ($resBahan->json('items') as $item) {
+            $this->assertContains($item['tipe'], ['bahan', 'kemas']);
+        }
+
+        // 3. Search query check
+        $sample = Produk::active()->first();
+        if ($sample) {
+            $resSearch = $this->getJson(route('produk.select-data', ['q' => $sample->sku]));
+            $resSearch->assertOk();
+            $this->assertTrue(collect($resSearch->json('items'))->contains('id', $sample->id));
+        }
     }
 }
+

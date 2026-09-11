@@ -38,6 +38,12 @@ class User extends Authenticatable
         return $this->getRoleNames()->first();
     }
 
+    public function roleDisplayName(): ?string
+    {
+        $role = $this->roles->first();
+        return $role?->display_name ?: $this->roleName();
+    }
+
     public function isManager(): bool
     {
         return $this->hasRole('manager');

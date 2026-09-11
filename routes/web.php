@@ -11,8 +11,10 @@ use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RequestTransferController;
 use App\Http\Controllers\StokController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RoleSwitcherController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\UomController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +34,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    // API / Search Endpoints
+    Route::get('produk/select-data', [ProdukController::class, 'selectData'])->name('produk.select-data');
+
     // ===== Master Data =====
     Route::middleware('can:produk.view')->group(function () {
         Route::get('produk/data', [ProdukController::class, 'data'])->name('produk.data');
@@ -46,6 +51,11 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:supplier.view')->group(function () {
         Route::get('supplier/data', [SupplierController::class, 'data'])->name('supplier.data');
         Route::resource('supplier', SupplierController::class)->except(['show']);
+    });
+
+    Route::middleware('can:uom.view')->group(function () {
+        Route::get('uom/data', [UomController::class, 'data'])->name('uom.data');
+        Route::resource('uom', UomController::class)->except(['show']);
     });
 
     Route::middleware('can:bom.view')->group(function () {
@@ -157,5 +167,11 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:user.manage')->group(function () {
         Route::get('users/data', [UserController::class, 'data'])->name('users.data');
         Route::resource('users', UserController::class)->except(['show']);
+    });
+
+    // ===== Admin: Roles & Permissions =====
+    Route::middleware('can:role.manage')->group(function () {
+        Route::get('roles/data', [RoleController::class, 'data'])->name('roles.data');
+        Route::resource('roles', RoleController::class)->except(['show']);
     });
 });

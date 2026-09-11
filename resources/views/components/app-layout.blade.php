@@ -13,8 +13,8 @@
     <style>[x-cloak]{display:none!important}</style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="h-full font-sans antialiased text-gray-800 bg-[#f4f6f9]" x-data="{ sidebarOpen: window.innerWidth >= 1024 }">
-    <div class="min-h-full flex">
+<body class="min-h-screen font-sans antialiased text-gray-800 bg-[#f4f6f9] flex flex-col" x-data="{ sidebarOpen: window.innerWidth >= 1024 }">
+    <div class="min-h-screen flex flex-1">
         {{-- Sidebar Overlay (mobile) --}}
         <div x-show="sidebarOpen" x-cloak
              x-transition:enter="transition-opacity ease-linear duration-200"
@@ -129,6 +129,15 @@
                 </x-nav-item>
                 @endcan
 
+                @can('uom.view')
+                <x-nav-item href="{{ route('uom.index') }}" :active="request()->routeIs('uom.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+                    </x-slot:icon>
+                    Satuan (UOM)
+                </x-nav-item>
+                @endcan
+
                 @can('bom.view')
                 <x-nav-item href="{{ route('bom.index') }}" :active="request()->routeIs('bom.*')">
                     <x-slot:icon>
@@ -148,8 +157,11 @@
                 </x-nav-item>
                 @endcan
 
-                @can('user.manage')
+                @if(auth()->user()->can('user.manage') || auth()->user()->can('role.manage'))
                 <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sistem</p>
+                @endif
+
+                @can('user.manage')
                 <x-nav-item href="{{ route('users.index') }}" :active="request()->routeIs('users.*')">
                     <x-slot:icon>
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
@@ -157,11 +169,20 @@
                     Pengguna
                 </x-nav-item>
                 @endcan
+
+                @can('role.manage')
+                <x-nav-item href="{{ route('roles.index') }}" :active="request()->routeIs('roles.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                    </x-slot:icon>
+                    Peran & Wewenang
+                </x-nav-item>
+                @endcan
             </nav>
         </aside>
 
         {{-- Main Canvas --}}
-        <div class="flex-1 flex flex-col min-w-0">
+        <div class="flex-1 flex flex-col min-w-0 min-h-screen">
             {{-- Top Navbar (AdminLTE 4 White Header) --}}
             <header class="sticky top-0 z-30 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-2xs">
                 <div class="flex items-center gap-3">
@@ -267,7 +288,7 @@
             </main>
 
             {{-- AdminLTE Footer --}}
-            <footer class="bg-white border-t border-gray-200 py-2.5 px-4 lg:px-6 text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-2 shrink-0">
+            <footer class="bg-white border-t border-gray-200 py-2.5 px-4 lg:px-6 text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-2 shrink-0 mt-auto">
                 <div>
                     <strong>Copyright &copy; 2026 <a href="{{ route('dashboard') }}" class="text-primary-700 hover:underline font-semibold">Heaven Scent Lab</a>.</strong> All rights reserved.
                 </div>

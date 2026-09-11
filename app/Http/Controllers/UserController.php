@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 use Yajra\DataTables\Facades\DataTables;
 
 class UserController extends Controller
@@ -22,11 +22,11 @@ class UserController extends Controller
     {
         $this->authorize('user.manage');
 
-        $query = User::query()->select('users.*')->with('roles:id,name');
+        $query = User::query()->select('users.*')->with('roles:id,name,display_name');
 
         return DataTables::eloquent($query)
             ->addColumn('roles_label', function ($u) {
-                return $u->roles->map(fn($r) => '<span class="px-2 py-0.5 bg-primary-50 text-primary-700 text-xs font-medium rounded-full">'.$r->name.'</span>')->implode(' ');
+                return $u->roles->map(fn($r) => '<span class="px-2 py-0.5 bg-primary-50 text-primary-700 text-xs font-medium rounded-full">'.e($r->display_name ?: $r->name).'</span>')->implode(' ');
             })
             ->addColumn('action', function ($u) {
                 return '<div class="flex items-center gap-3">
@@ -42,7 +42,7 @@ class UserController extends Controller
     public function create()
     {
         $this->authorize('user.manage');
-        $roles = Role::pluck('name', 'id');
+        $roles = Role::orderBy('is_system', 'desc')->orderBy('name')->get();
         return view('users.create', compact('roles'));
     }
 
@@ -66,8 +66,8 @@ class UserController extends Controller
     public function edit(User $user)
     {
         $this->authorize('user.manage');
-        $roles = Role::pluck('name', 'id');
-        $user->load('roles:id,name');
+        $roles = Role::orderBy('is_system', 'desc')->orderBy('name')->get();
+        $user->load('roles:id,name,display_name');
         return view('users.edit', compact('user', 'roles'));
     }
 

@@ -1,25 +1,5 @@
 <x-app-layout title="Pengguna">
-    <div x-data="{ 
-        confirmDelete(id) {
-            Swal.fire({
-                title: 'Konfirmasi Hapus',
-                text: 'Yakin ingin menghapus pengguna ini? Aksi ini tidak dapat dibatalkan.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yakin, Hapus',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch('/production/users/' + id, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content } })
-                        .then(() => { 
-                            $('#usersTable').DataTable().ajax.reload(); 
-                        });
-                }
-            });
-        }
-    }" @delete-user.window="confirmDelete($event.detail)">
+    <div>
         <x-page-header
             title="Daftar Pengguna"
             subtitle="Manajemen akun user, hak akses role, dan wewenang modul laboratorium"
@@ -71,7 +51,29 @@
     });
 
     function deleteUser(id) {
-        window.dispatchEvent(new CustomEvent('delete-user', { detail: id }));
+        Swal.fire({
+            title: 'Konfirmasi Hapus',
+            text: 'Yakin ingin menghapus pengguna ini? Aksi ini tidak dapat dibatalkan.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yakin, Hapus',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('{{ url("users") }}/' + id, { 
+                    method: 'DELETE', 
+                    headers: { 
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json'
+                    } 
+                })
+                .then(() => { 
+                    $('#usersTable').DataTable().ajax.reload(); 
+                });
+            }
+        });
     }
     </script>
     @endpush

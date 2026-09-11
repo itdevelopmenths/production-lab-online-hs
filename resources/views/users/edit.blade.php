@@ -1,41 +1,71 @@
 <x-app-layout title="Edit Pengguna">
-    <div class="max-w-2xl">
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Edit Pengguna</h3>
-            <form action="{{ route('users.update', $user) }}" method="POST" class="space-y-4">
-                @csrf @method('PUT')
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                    <input type="text" name="name" value="{{ old('name', $user->name) }}" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" value="{{ old('email', $user->email) }}" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                    <select name="role" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="">-- Pilih Role --</option>
-                        @foreach($roles as $id => $name)
-                            <option value="{{ $name }}" {{ old('role', $user->roles->first()?->name) === $name ? 'selected' : '' }}>{{ $name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Password Baru <span class="text-gray-400 text-xs">(kosongkan jika tidak diubah)</span></label>
-                        <input type="password" name="password" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Min. 8 karakter">
+    <x-page-header
+        title="Edit Pengguna"
+        subtitle="Perbarui data profil atau hak akses peran pengguna"
+        :breadcrumbs="['Pengaturan' => null, 'Manajemen Pengguna' => route('users.index'), $user->name => null, 'Edit' => null]"
+    >
+        <x-slot:actions>
+            <x-button href="{{ route('users.index') }}" variant="secondary" size="xs">
+                &larr; Kembali ke Daftar
+            </x-button>
+        </x-slot:actions>
+    </x-page-header>
+
+    <div class="max-w-3xl">
+        <form action="{{ route('users.update', $user) }}" method="POST">
+            @csrf
+            @method('PUT')
+            <x-card title="Data Akun & Hak Akses" subtitle="Mengubah akun: {{ $user->email }}" variant="primary">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="md:col-span-2">
+                        <x-form-group name="name" label="Nama Lengkap" :required="true">
+                            <x-input name="name" value="{{ old('name', $user->name) }}" :required="true" />
+                        </x-form-group>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Konfirmasi Password</label>
-                        <input type="password" name="password_confirmation" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+
+                    <div class="md:col-span-2">
+                        <x-form-group name="email" label="Alamat Email" :required="true">
+                            <x-input type="email" name="email" value="{{ old('email', $user->email) }}" :required="true" />
+                        </x-form-group>
                     </div>
+
+                    <div class="md:col-span-2">
+                        <x-form-group name="role" label="Peran / Hak Akses" :required="true">
+                            <x-select name="role" placeholder="-- Pilih Role --" :required="true">
+                                @foreach($roles as $r)
+                                    @php
+                                        $rKey = is_object($r) ? $r->name : $r;
+                                        $rLabel = is_object($r) ? ($r->display_name ? $r->display_name . ' (' . $r->name . ')' : $r->name) : $r;
+                                    @endphp
+                                    <option value="{{ $rKey }}" @selected(old('role', $user->roles->first()?->name) === $rKey)>{{ $rLabel }}</option>
+                                @endforeach
+                            </x-select>
+                        </x-form-group>
+                    </div>
+
+                    <x-form-group name="password" label="Kata Sandi Baru" help="Kosongkan jika tidak ingin mengubah kata sandi (min. 8 karakter)">
+                        <x-input type="password" name="password" placeholder="••••••••" />
+                    </x-form-group>
+
+                    <x-form-group name="password_confirmation" label="Konfirmasi Kata Sandi" help="Ulangi jika mengubah kata sandi">
+                        <x-input type="password" name="password_confirmation" placeholder="••••••••" />
+                    </x-form-group>
                 </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                    <a href="{{ route('users.index') }}" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">Batal</a>
-                    <button type="submit" class="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition">Simpan</button>
-                </div>
-            </form>
-        </div>
+
+                <x-slot:footer>
+                    <div class="flex items-center justify-end gap-2.5">
+                        <x-button href="{{ route('users.index') }}" variant="secondary" size="sm">
+                            Batal
+                        </x-button>
+                        <x-button type="submit" variant="primary" size="sm">
+                            <x-slot:icon>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            </x-slot:icon>
+                            Perbarui Pengguna
+                        </x-button>
+                    </div>
+                </x-slot:footer>
+            </x-card>
+        </form>
     </div>
 </x-app-layout>

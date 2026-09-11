@@ -15,6 +15,7 @@ class PermissionSeeder extends Seeder
             'produk.view', 'produk.create', 'produk.edit', 'produk.delete',
             'gudang.view', 'gudang.create', 'gudang.edit', 'gudang.delete',
             'supplier.view', 'supplier.create', 'supplier.edit', 'supplier.delete',
+            'uom.view', 'uom.create', 'uom.edit', 'uom.delete',
             'bom.view', 'bom.manage', 'bom.import',
 
             // Stok & Mutasi
@@ -48,13 +49,23 @@ class PermissionSeeder extends Seeder
         }
 
         // Manager — akses penuh + approval di semua tahap.
-        $manager = Role::firstOrCreate(['name' => 'manager']);
+        $manager = \App\Models\Role::firstOrCreate(
+            ['name' => 'manager'],
+            ['guard_name' => 'web', 'display_name' => 'Manager (Administrator)', 'description' => 'Akses penuh ke seluruh modul sistem dan wewenang approval transaksi', 'is_system' => true]
+        );
+        $manager->update(['display_name' => 'Manager (Administrator)', 'description' => 'Akses penuh ke seluruh modul sistem dan wewenang approval transaksi', 'is_system' => true]);
         $manager->syncPermissions(Permission::all());
 
         // Purchasing
-        Role::firstOrCreate(['name' => 'purchasing'])->syncPermissions([
+        $purchasing = \App\Models\Role::firstOrCreate(
+            ['name' => 'purchasing'],
+            ['guard_name' => 'web', 'display_name' => 'Staff Purchasing', 'description' => 'Pengadaan bahan baku, pembuatan PO, pembayaran, dan pemantauan analisa', 'is_system' => true]
+        );
+        $purchasing->update(['display_name' => 'Staff Purchasing', 'description' => 'Pengadaan bahan baku, pembuatan PO, pembayaran, dan pemantauan analisa', 'is_system' => true]);
+        $purchasing->syncPermissions([
             'produk.view', 'produk.create', 'produk.edit',
             'gudang.view', 'supplier.view', 'supplier.create', 'supplier.edit',
+            'uom.view', 'uom.create', 'uom.edit',
             'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.create', 'purchasing.edit',
@@ -64,8 +75,13 @@ class PermissionSeeder extends Seeder
         ]);
 
         // Gudang
-        Role::firstOrCreate(['name' => 'gudang'])->syncPermissions([
-            'produk.view', 'gudang.view', 'supplier.view', 'bom.view',
+        $gudang = \App\Models\Role::firstOrCreate(
+            ['name' => 'gudang'],
+            ['guard_name' => 'web', 'display_name' => 'Staff Gudang Pusat', 'description' => 'Penerimaan barang datang, mutasi stok, proses pengiriman transfer, dan kartu stok', 'is_system' => true]
+        );
+        $gudang->update(['display_name' => 'Staff Gudang Pusat', 'description' => 'Penerimaan barang datang, mutasi stok, proses pengiriman transfer, dan kartu stok', 'is_system' => true]);
+        $gudang->syncPermissions([
+            'produk.view', 'gudang.view', 'supplier.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.receive',
             'rt.view', 'rt.process', 'rt.ship', 'rt.receive',
@@ -73,8 +89,13 @@ class PermissionSeeder extends Seeder
         ]);
 
         // Operasional
-        Role::firstOrCreate(['name' => 'operasional'])->syncPermissions([
-            'produk.view', 'gudang.view', 'bom.view', 'bom.manage',
+        $operasional = \App\Models\Role::firstOrCreate(
+            ['name' => 'operasional'],
+            ['guard_name' => 'web', 'display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan (RT), dan stock opname', 'is_system' => true]
+        );
+        $operasional->update(['display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan (RT), dan stock opname', 'is_system' => true]);
+        $operasional->syncPermissions([
+            'produk.view', 'gudang.view', 'uom.view', 'bom.view', 'bom.manage',
             'stok.view', 'stok.opname', 'stok.ledger.view',
             'batch.view', 'batch.create', 'batch.release',
             'batch.complete', 'batch.cancel', 'batch.opname',
@@ -83,8 +104,13 @@ class PermissionSeeder extends Seeder
         ]);
 
         // Fulfillment
-        Role::firstOrCreate(['name' => 'fulfillment'])->syncPermissions([
-            'produk.view', 'gudang.view', 'bom.view',
+        $fulfillment = \App\Models\Role::firstOrCreate(
+            ['name' => 'fulfillment'],
+            ['guard_name' => 'web', 'display_name' => 'Staff Gudang Fulfillment', 'description' => 'Distribusi produk jadi, mutasi antar fulfillment, dan monitoring analisa', 'is_system' => true]
+        );
+        $fulfillment->update(['display_name' => 'Staff Gudang Fulfillment', 'description' => 'Distribusi produk jadi, mutasi antar fulfillment, dan monitoring analisa', 'is_system' => true]);
+        $fulfillment->syncPermissions([
+            'produk.view', 'gudang.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'analisa.view', 'analisa.manage', 'analisa.snapshot',
             'rt.view', 'rt.create', 'rt.ship', 'rt.receive',

@@ -1,41 +1,70 @@
 <x-app-layout title="Tambah Pengguna">
-    <div class="max-w-2xl">
-        <div class="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Form Pengguna Baru</h3>
-            <form action="{{ route('users.store') }}" method="POST" class="space-y-4">
-                @csrf
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                    <input type="text" name="name" value="{{ old('name') }}" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="John Doe">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" value="{{ old('email') }}" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="john@heavenscent.id">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                    <select name="role" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="">-- Pilih Role --</option>
-                        @foreach($roles as $id => $name)
-                            <option value="{{ $name }}" {{ old('role') === $name ? 'selected' : '' }}>{{ $name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input type="password" name="password" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Min. 8 karakter">
+    <x-page-header
+        title="Tambah Pengguna Baru"
+        subtitle="Daftarkan akun pengguna baru beserta peran akses sistem"
+        :breadcrumbs="['Pengaturan' => null, 'Manajemen Pengguna' => route('users.index'), 'Tambah' => null]"
+    >
+        <x-slot:actions>
+            <x-button href="{{ route('users.index') }}" variant="secondary" size="xs">
+                &larr; Kembali ke Daftar
+            </x-button>
+        </x-slot:actions>
+    </x-page-header>
+
+    <div class="max-w-3xl">
+        <form action="{{ route('users.store') }}" method="POST">
+            @csrf
+            <x-card title="Data Akun & Kredensial" subtitle="Lengkapi profil pengguna, hak otorisasi peran, dan kata sandi masuk" variant="primary">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="md:col-span-2">
+                        <x-form-group name="name" label="Nama Lengkap" :required="true" help="Nama lengkap staf operasional">
+                            <x-input name="name" value="{{ old('name') }}" placeholder="misal: Budi Santoso" :required="true" />
+                        </x-form-group>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Konfirmasi Password</label>
-                        <input type="password" name="password_confirmation" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+
+                    <div class="md:col-span-2">
+                        <x-form-group name="email" label="Alamat Email" :required="true" help="Digunakan sebagai identitas akun untuk login">
+                            <x-input type="email" name="email" value="{{ old('email') }}" placeholder="budi@heavenscent.id" :required="true" />
+                        </x-form-group>
                     </div>
+
+                    <div class="md:col-span-2">
+                        <x-form-group name="role" label="Peran / Hak Akses" :required="true" help="Menentukan menu dan wewenang fitur yang dapat diakses">
+                            <x-select name="role" placeholder="-- Pilih Role --" :required="true">
+                                @foreach($roles as $r)
+                                    @php
+                                        $rKey = is_object($r) ? $r->name : $r;
+                                        $rLabel = is_object($r) ? ($r->display_name ? $r->display_name . ' (' . $r->name . ')' : $r->name) : $r;
+                                    @endphp
+                                    <option value="{{ $rKey }}" @selected(old('role') === $rKey)>{{ $rLabel }}</option>
+                                @endforeach
+                            </x-select>
+                        </x-form-group>
+                    </div>
+
+                    <x-form-group name="password" label="Kata Sandi" :required="true" help="Minimal 8 karakter alfanumerik">
+                        <x-input type="password" name="password" placeholder="••••••••" :required="true" />
+                    </x-form-group>
+
+                    <x-form-group name="password_confirmation" label="Konfirmasi Kata Sandi" :required="true" help="Ulangi kata sandi persis seperti di samping">
+                        <x-input type="password" name="password_confirmation" placeholder="••••••••" :required="true" />
+                    </x-form-group>
                 </div>
-                <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                    <a href="{{ route('users.index') }}" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">Batal</a>
-                    <button type="submit" class="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition">Simpan</button>
-                </div>
-            </form>
-        </div>
+
+                <x-slot:footer>
+                    <div class="flex items-center justify-end gap-2.5">
+                        <x-button href="{{ route('users.index') }}" variant="secondary" size="sm">
+                            Batal
+                        </x-button>
+                        <x-button type="submit" variant="primary" size="sm">
+                            <x-slot:icon>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            </x-slot:icon>
+                            Simpan Pengguna
+                        </x-button>
+                    </div>
+                </x-slot:footer>
+            </x-card>
+        </form>
     </div>
 </x-app-layout>
