@@ -1,16 +1,36 @@
 <x-app-layout title="Tambah Produk">
-    <div class="max-w-3xl">
-        <a href="{{ route('produk.index') }}" class="text-sm text-gray-500 hover:text-gray-700">&larr; Kembali</a>
-        <div class="mt-4 bg-white rounded-xl border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-6">Tambah Produk</h3>
-            <form method="POST" action="{{ route('produk.store') }}">
-                @csrf
+    <x-page-header
+        title="Tambah Produk Baru"
+        subtitle="Daftarkan master produk jadi, bahan baku kimia, atau komponen kemasan"
+        :breadcrumbs="['Master Data' => null, 'Produk' => route('produk.index'), 'Tambah' => null]"
+    >
+        <x-slot:actions>
+            <x-button href="{{ route('produk.index') }}" variant="secondary" size="xs">
+                &larr; Kembali ke Katalog
+            </x-button>
+        </x-slot:actions>
+    </x-page-header>
+
+    <div class="max-w-4xl">
+        <form method="POST" action="{{ route('produk.store') }}">
+            @csrf
+            <x-card title="Informasi Master Produk" subtitle="Spesifikasi SKU, klasifikasi tipe, dan parameter pemesanan" variant="primary">
                 @include('produk._form')
-                <div class="mt-6 flex justify-end gap-3">
-                    <a href="{{ route('produk.index') }}" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">Batal</a>
-                    <button type="submit" class="px-4 py-2 bg-primary-500 text-white text-sm font-medium rounded-xl hover:bg-primary-600">Simpan</button>
-                </div>
-            </form>
-        </div>
+
+                <x-slot:footer>
+                    <div class="flex items-center justify-end gap-2.5">
+                        <x-button href="{{ route('produk.index') }}" variant="secondary" size="sm">
+                            Batal
+                        </x-button>
+                        <x-button type="submit" variant="primary" size="sm">
+                            <x-slot:icon>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            </x-slot:icon>
+                            Simpan Produk
+                        </x-button>
+                    </div>
+                </x-slot:footer>
+            </x-card>
+        </form>
     </div>
 </x-app-layout>

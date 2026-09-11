@@ -1,36 +1,35 @@
 @php($s = $supplier ?? null)
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-    <div class="md:col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
-        <input type="text" name="nama" value="{{ old('nama', $s?->nama) }}" class="w-full rounded-lg border-gray-300 text-sm focus:ring-primary-500 focus:border-primary-500" required>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-        <select name="kategori" class="w-full rounded-lg border-gray-300 text-sm focus:ring-primary-500 focus:border-primary-500" required>
+    <x-form-group name="nama" label="Nama Supplier" :required="true" help="Nama resmi badan usaha atau penyedia">
+        <x-input name="nama" value="{{ old('nama', $s?->nama) }}" placeholder="misal: PT Sumber Kimia Abadi" :required="true" />
+    </x-form-group>
+
+    <x-form-group name="kategori" label="Kategori Supplier" :required="true" help="Klasifikasi asal vendor">
+        <x-select name="kategori" :required="true">
             <option value="lokal" @selected(old('kategori', $s?->kategori) === 'lokal')>Lokal</option>
             <option value="impor" @selected(old('kategori', $s?->kategori) === 'impor')>Impor</option>
-        </select>
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Termin Default</label>
-        <select name="termin_default" class="w-full rounded-lg border-gray-300 text-sm focus:ring-primary-500 focus:border-primary-500">
-            <option value="">—</option>
+        </x-select>
+    </x-form-group>
+
+    <x-form-group name="termin_default" label="Termin Pembayaran Default" help="Skema standar jatuh tempo pemesanan">
+        <x-select name="termin_default" placeholder="— Pilih Termin (Opsional) —">
             @foreach(['tempo'=>'Tempo','termin'=>'Termin','pelunasan'=>'Pelunasan'] as $v=>$l)
-            <option value="{{ $v }}" @selected(old('termin_default', $s?->termin_default) === $v)>{{ $l }}</option>
+                <option value="{{ $v }}" @selected(old('termin_default', $s?->termin_default) === $v)>{{ $l }}</option>
             @endforeach
-        </select>
+        </x-select>
+    </x-form-group>
+
+    <x-form-group name="kontak" label="Kontak / PIC" help="No. telp, surel, atau nama representatif vendor">
+        <x-input name="kontak" value="{{ old('kontak', $s?->kontak) }}" placeholder="misal: 0812-3456-7890 (Bpk. Anton)" />
+    </x-form-group>
+
+    <div class="md:col-span-2">
+        <x-form-group name="alamat" label="Alamat Kantor / Gudang" help="Alamat operasional atau pengiriman barang">
+            <x-textarea name="alamat" rows="2" placeholder="Alamat lengkap supplier...">{{ old('alamat', $s?->alamat) }}</x-textarea>
+        </x-form-group>
     </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Kontak</label>
-        <input type="text" name="kontak" value="{{ old('kontak', $s?->kontak) }}" class="w-full rounded-lg border-gray-300 text-sm focus:ring-primary-500 focus:border-primary-500">
-    </div>
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-        <input type="text" name="alamat" value="{{ old('alamat', $s?->alamat) }}" class="w-full rounded-lg border-gray-300 text-sm focus:ring-primary-500 focus:border-primary-500">
-    </div>
-    <div class="flex items-center gap-2 pt-1">
-        <input type="hidden" name="is_active" value="0">
-        <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $s?->is_active ?? true)) class="rounded border-gray-300 text-primary-500 focus:ring-primary-500">
-        <label class="text-sm text-gray-700">Aktif</label>
+
+    <div class="md:col-span-2 pt-1">
+        <x-checkbox name="is_active" label="Status Aktif" :checked="old('is_active', $s?->is_active ?? true)" help="Supplier aktif dapat dipilih pada penerimaan dan purchase order" />
     </div>
 </div>

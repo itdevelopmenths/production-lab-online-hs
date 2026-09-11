@@ -37,7 +37,7 @@
          x-transition:leave="ease-in duration-150"
          x-transition:leave-start="opacity-100 scale-100"
          x-transition:leave-end="opacity-0 scale-95"
-         class="relative bg-white rounded-sm border border-gray-300 shadow-lg w-full {{ $maxWidthClass }} z-10 overflow-hidden">
+         class="relative bg-white rounded-sm border border-gray-300 shadow-lg w-full {{ $maxWidthClass }} z-10 overflow-visible">
         
         @if ($title)
             <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
