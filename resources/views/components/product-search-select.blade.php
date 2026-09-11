@@ -99,18 +99,28 @@
             <input
                 type="text"
                 x-model="search"
-                @input="onSearch()"
+                @input="onSearch($event)"
+                @keydown.enter.prevent="fetchItems(1, false)"
                 x-ref="searchInput"
                 placeholder="Ketik SKU atau nama bahan/produk..."
                 class="w-full bg-white border border-gray-200 rounded-xs px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
             />
+            <button
+                type="button"
+                x-show="search.length > 0"
+                @click="search = ''; fetchItems(1, false); $refs.searchInput.focus()"
+                class="text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                title="Hapus pencarian"
+            >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
 
         <!-- Options List (Paginated 10 items) -->
         <div class="max-h-56 overflow-y-auto divide-y divide-gray-50">
             <!-- Loading Indicator -->
             <div x-show="loading && items.length === 0" class="py-4 text-center text-gray-500">
-                <span class="text-[11px]">Memuat 10 item...</span>
+                <span class="text-[11px]">Memuat data produk...</span>
             </div>
 
             <!-- Items -->
@@ -133,6 +143,9 @@
             <!-- Empty State -->
             <div x-show="!loading && items.length === 0" class="py-4 text-center text-gray-400">
                 <p class="text-xs">Tidak ada komoditas yang cocok.</p>
+                <template x-if="search">
+                    <p class="text-[10px] text-gray-400 mt-1">Kata kunci: "<span class="font-mono text-gray-600" x-text="search"></span>"</p>
+                </template>
             </div>
         </div>
 

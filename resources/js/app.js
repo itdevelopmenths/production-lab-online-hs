@@ -52,7 +52,8 @@ window.productSearchSelect = function(config) {
             this.loading = true;
             try {
                 let baseUrl = this.url || '/produk/select-data';
-                let url = `${baseUrl}?page=${page}&q=${encodeURIComponent(this.search)}`;
+                let q = (this.search || '').trim();
+                let url = `${baseUrl}?page=${page}&q=${encodeURIComponent(q)}`;
                 if (this.filterTipe) {
                     if (Array.isArray(this.filterTipe)) {
                         this.filterTipe.forEach(t => url += `&tipe[]=${encodeURIComponent(t)}`);
@@ -80,11 +81,14 @@ window.productSearchSelect = function(config) {
             }
         },
 
-        onSearch() {
+        onSearch(event) {
+            if (event && event.target) {
+                this.search = event.target.value;
+            }
             clearTimeout(this._debounce);
             this._debounce = setTimeout(() => {
                 this.fetchItems(1, false);
-            }, 250);
+            }, 200);
         },
 
         loadMore() {

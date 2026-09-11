@@ -46,11 +46,18 @@ class ProdukController extends Controller
         }
 
         if ($request->filled('q')) {
-            $search = trim($request->get('q'));
-            $query->where(function ($q) use ($search) {
-                $q->where('sku', 'like', "%{$search}%")
-                  ->orWhere('nama', 'like', "%{$search}%");
-            });
+            $search = strtolower(trim($request->get('q')));
+            $keywords = array_filter(explode(' ', $search));
+            if (!empty($keywords)) {
+                $query->where(function ($q) use ($keywords) {
+                    foreach ($keywords as $word) {
+                        $q->where(function ($sub) use ($word) {
+                            $sub->whereRaw('LOWER(sku) LIKE ?', ["%{$word}%"])
+                                ->orWhereRaw('LOWER(nama) LIKE ?', ["%{$word}%"]);
+                        });
+                    }
+                });
+            }
         }
 
         $paginated = $query->orderBy('nama')
