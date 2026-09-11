@@ -1,18 +1,19 @@
 <x-app-layout title="Buat Purchase Order">
-    <x-page-header
-        title="Buat Purchase Order"
-        subtitle="Formulir pengadaan bahan baku, kemasan, atau botol ke supplier rekanan"
-        :breadcrumbs="['Purchasing' => route('purchasing.index'), 'Buat PO' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('purchasing.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Daftar
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+    <div class="max-w-5xl mx-auto">
+        <x-page-header
+            title="Buat Purchase Order"
+            subtitle="Formulir pengadaan bahan baku, kemasan, atau botol ke supplier rekanan"
+            :breadcrumbs="['Purchasing' => route('purchasing.index'), 'Buat PO' => null]"
+        >
+            <x-slot:actions>
+                <x-button href="{{ route('purchasing.index') }}" variant="secondary" size="xs">
+                    &larr; Kembali ke Daftar
+                </x-button>
+            </x-slot:actions>
+        </x-page-header>
 
-    <div class="max-w-5xl" x-data="poForm()">
-        <form method="POST" action="{{ route('purchasing.store') }}">
+        <div x-data="poForm()">
+            <form method="POST" action="{{ route('purchasing.store') }}">
             @csrf
             <div class="space-y-5">
                 {{-- Card 1: Informasi Header PO --}}
@@ -112,7 +113,7 @@
                                                 >
                                                     <div class="p-2 border-b border-gray-100 bg-gray-50 flex items-center gap-1.5">
                                                         <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                        <input type="text" x-model="search" @input="onSearch()" x-ref="searchInput" placeholder="Ketik SKU atau nama bahan..." class="w-full bg-white border border-gray-200 rounded-xs px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
+                                                        <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Ketik SKU atau nama bahan..." class="w-full bg-white border border-gray-200 rounded-xs px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
                                                     </div>
 
                                                     <div class="max-h-52 overflow-y-auto divide-y divide-gray-50">
@@ -156,13 +157,18 @@
                                         </td>
                                         <td class="px-4 py-2.5">
                                             <div class="relative flex items-center">
-                                                <span class="absolute left-2.5 text-gray-400 font-mono text-xs">Rp</span>
+                                                <span class="absolute left-2.5 text-gray-400 font-mono text-xs pointer-events-none">Rp</span>
                                                 <input
-                                                    type="number"
-                                                    step="1"
-                                                    min="0"
+                                                    type="hidden"
                                                     :name="`items[${i}][harga_total]`"
-                                                    x-model="row.harga"
+                                                    :value="row.harga"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    inputmode="numeric"
+                                                    :value="formatThousand(row.harga)"
+                                                    @input="updateHarga(row, $event)"
+                                                    @keydown="handleKeyDown($event)"
                                                     placeholder="0"
                                                     required
                                                     class="w-full rounded-sm border-gray-300 text-xs py-1.5 pl-8 pr-3 font-mono text-right focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-xs"
@@ -211,6 +217,7 @@
                 </x-card>
             </div>
         </form>
+        </div>
     </div>
 
     @push('scripts')
@@ -218,7 +225,83 @@
         function poForm() {
             return {
                 rows: [{ produk_id: '', qty: '', harga: '', satuan: '', selectedItem: null }],
-                activeRow: null
+                activeRow: null,
+
+                formatThousand(val) {
+                    if (val === '' || val === null || val === undefined) return '';
+                    const clean = val.toString().replace(/\D/g, '');
+                    if (!clean) return '';
+                    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                },
+
+                updateHarga(row, event) {
+                    const input = event.target;
+                    const oldVal = input.value;
+                    const oldPos = input.selectionEnd || 0;
+                    const digitsBeforeCursor = (oldVal.slice(0, oldPos).match(/\d/g) || []).length;
+                    
+                    let rawDigits = oldVal.replace(/\D/g, '');
+                    
+                    if (rawDigits === '') {
+                        row.harga = '';
+                        input.value = '';
+                        return;
+                    }
+                    
+                    if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
+                        rawDigits = String(parseInt(rawDigits, 10) || 0);
+                    }
+                    
+                    const num = parseInt(rawDigits, 10);
+                    row.harga = isNaN(num) ? '' : num;
+                    
+                    const formatted = this.formatThousand(rawDigits);
+                    input.value = formatted;
+                    
+                    let newPos = 0;
+                    let countedDigits = 0;
+                    for (let i = 0; i < formatted.length; i++) {
+                        if (/\d/.test(formatted[i])) {
+                            countedDigits++;
+                        }
+                        if (countedDigits === digitsBeforeCursor) {
+                            newPos = i + 1;
+                            break;
+                        }
+                    }
+                    if (countedDigits < digitsBeforeCursor || newPos > formatted.length) {
+                        newPos = formatted.length;
+                    }
+                    try {
+                        input.setSelectionRange(newPos, newPos);
+                    } catch (e) {}
+                },
+
+                handleKeyDown(event) {
+                    if (event.key === 'Backspace') {
+                        const input = event.target;
+                        if (input.selectionStart === input.selectionEnd && input.selectionStart > 0) {
+                            if (input.value[input.selectionStart - 1] === '.') {
+                                event.preventDefault();
+                                const pos = input.selectionStart - 1;
+                                const val = input.value;
+                                input.value = val.slice(0, pos - 1) + val.slice(pos);
+                                input.dispatchEvent(new Event('input'));
+                            }
+                        }
+                    } else if (event.key === 'Delete') {
+                        const input = event.target;
+                        if (input.selectionStart === input.selectionEnd && input.selectionStart < input.value.length) {
+                            if (input.value[input.selectionStart] === '.') {
+                                event.preventDefault();
+                                const pos = input.selectionStart;
+                                const val = input.value;
+                                input.value = val.slice(0, pos) + val.slice(pos + 2);
+                                input.dispatchEvent(new Event('input'));
+                            }
+                        }
+                    }
+                }
             };
         }
     </script>
