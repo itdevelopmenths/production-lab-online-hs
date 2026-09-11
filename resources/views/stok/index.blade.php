@@ -41,18 +41,18 @@
         {{-- Modal Mutasi Manual (AdminLTE Sharp Modal) --}}
         @can('stok.mutasi')
         <x-modal name="openMutasi" title="Mutasi Stok Manual" maxWidth="md">
-            <form method="POST" action="{{ route('stok.mutasi') }}" id="form-mutasi-manual" class="space-y-3">
+            <form method="POST" action="{{ route('stok.mutasi') }}" id="form-mutasi-manual" class="space-y-3" x-data="{ mutasiUom: '' }" @product-selected="mutasiUom = $event.detail ? $event.detail.satuan : ''">
                 @csrf
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Produk</label>
-                    <select name="produk_id" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
-                        @foreach($produk as $p)
-                            <option value="{{ $p->id }}">{{ $p->sku }} — {{ $p->nama }}</option>
-                        @endforeach
-                    </select>
+                <div class="relative z-20">
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Produk / Bahan Baku <span class="text-rose-500">*</span></label>
+                    <x-product-search-select
+                        name="produk_id"
+                        placeholder="— Cari & Pilih Produk / Bahan —"
+                        :required="true"
+                    />
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Gudang</label>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Gudang <span class="text-rose-500">*</span></label>
                     <select name="gudang_id" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
                         @foreach($gudang as $g)
                             <option value="{{ $g->id }}">{{ $g->nama }}</option>
@@ -68,8 +68,11 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Qty</label>
-                        <input type="number" step="0.01" name="qty" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" placeholder="0.00" required>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Qty <span class="text-rose-500">*</span></label>
+                        <div class="relative flex items-center">
+                            <input type="number" step="0.01" name="qty" class="w-full rounded-sm border-gray-300 text-xs py-1.5 pr-14 font-mono focus:border-primary-500 focus:ring-1 focus:ring-primary-500" placeholder="0.00" required>
+                            <span class="absolute right-2 px-1 py-0.5 text-[10px] font-mono font-bold text-primary-700 bg-primary-50 border border-primary-200 rounded-xs uppercase tracking-wider pointer-events-none" x-text="mutasiUom || 'Unit'"></span>
+                        </div>
                     </div>
                 </div>
                 <div>

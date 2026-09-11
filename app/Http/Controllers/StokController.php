@@ -184,8 +184,8 @@ class StokController extends Controller
     public function opname()
     {
         $this->authorize('stok.opname');
-        $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama']);
-        $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama']);
+        $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+        $gudang = Gudang::active()->orderBy('nama')->get(['id', 'kode', 'nama']);
 
         return view('stok.opname', compact('produk', 'gudang'));
     }
