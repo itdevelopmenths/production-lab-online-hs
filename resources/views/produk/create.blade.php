@@ -1,17 +1,17 @@
 <x-app-layout title="Tambah Produk">
-    <x-page-header
-        title="Tambah Produk Baru"
-        subtitle="Daftarkan master produk jadi, bahan baku kimia, atau komponen kemasan"
-        :breadcrumbs="['Master Data' => null, 'Produk' => route('produk.index'), 'Tambah' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('produk.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Katalog
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+    <div class="max-w-4xl mx-auto">
+        <x-page-header
+            title="Tambah Produk Baru"
+            subtitle="Daftarkan master produk jadi, bahan baku kimia, atau komponen kemasan"
+            :breadcrumbs="['Master Data' => null, 'Produk' => route('produk.index'), 'Tambah' => null]"
+        >
+            <x-slot:actions>
+                <x-button href="{{ route('produk.index') }}" variant="secondary" size="xs">
+                    &larr; Kembali ke Katalog
+                </x-button>
+            </x-slot:actions>
+        </x-page-header>
 
-    <div class="max-w-4xl">
         <form method="POST" action="{{ route('produk.store') }}">
             @csrf
             <x-card title="Informasi Master Produk" subtitle="Spesifikasi SKU, klasifikasi tipe, dan parameter pemesanan" variant="primary">

@@ -292,9 +292,6 @@
                 <div>
                     <strong>Copyright &copy; 2026 <a href="{{ route('dashboard') }}" class="text-primary-700 hover:underline font-semibold">Heaven Scent Lab</a>.</strong> All rights reserved.
                 </div>
-                <div class="text-[11px] text-gray-400">
-                    <b>Version</b> 3.2.0 (AdminLTE 4 Enterprise)
-                </div>
             </footer>
         </div>
     </div>

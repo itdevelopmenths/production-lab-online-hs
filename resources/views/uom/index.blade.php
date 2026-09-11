@@ -16,7 +16,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <x-card title="Daftar Master Satuan Unit (Unit of Measure)" :noPadding="true" variant="primary">
+    <x-card title="Daftar Master Satuan Unit (Unit of Measure)" :noPadding="true">
         <div class="overflow-x-auto">
             <table id="tbl" class="w-full text-xs">
                 <thead>

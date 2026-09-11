@@ -1,17 +1,17 @@
 <x-app-layout title="Tambah Supplier">
-    <x-page-header
-        title="Tambah Supplier Baru"
-        subtitle="Daftarkan rekanan vendor penyedia bahan baku kimia atau kemasan"
-        :breadcrumbs="['Master Data' => null, 'Supplier' => route('supplier.index'), 'Tambah' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('supplier.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Daftar
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+    <div class="max-w-4xl mx-auto">
+        <x-page-header
+            title="Tambah Supplier Baru"
+            subtitle="Daftarkan rekanan vendor penyedia bahan baku kimia atau kemasan"
+            :breadcrumbs="['Master Data' => null, 'Supplier' => route('supplier.index'), 'Tambah' => null]"
+        >
+            <x-slot:actions>
+                <x-button href="{{ route('supplier.index') }}" variant="secondary" size="xs">
+                    &larr; Kembali ke Daftar
+                </x-button>
+            </x-slot:actions>
+        </x-page-header>
 
-    <div class="max-w-4xl">
         <form method="POST" action="{{ route('supplier.store') }}">
             @csrf
             <x-card title="Data Profil Supplier" subtitle="Rincian identitas, kategori, dan kontak representatif vendor" variant="primary">

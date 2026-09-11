@@ -334,9 +334,18 @@ class ViewRenderingSafetyTest extends TestCase
         // 3. Search query check
         $sample = Produk::active()->first();
         if ($sample) {
-            $resSearch = $this->getJson(route('produk.select-data', ['q' => $sample->sku]));
+            // Lowercase search test
+            $resSearch = $this->getJson(route('produk.select-data', ['q' => strtolower($sample->sku)]));
             $resSearch->assertOk();
             $this->assertTrue(collect($resSearch->json('items'))->contains('id', $sample->id));
+
+            // Multi-keyword partial search test
+            $words = array_filter(explode(' ', strtolower($sample->nama)));
+            if (!empty($words)) {
+                $resMulti = $this->getJson(route('produk.select-data', ['q' => implode(' ', array_slice($words, 0, 2))]));
+                $resMulti->assertOk();
+                $this->assertTrue(collect($resMulti->json('items'))->contains('id', $sample->id));
+            }
         }
     }
 }

@@ -1,18 +1,19 @@
 <x-app-layout title="Buat Request/Transfer">
-    <x-page-header
-        title="Buat Request & Transfer"
-        subtitle="Formulir mutasi stok internal antar gudang atau permintaan bahan baku produksi"
-        :breadcrumbs="['Request & Transfer' => route('rt.index'), 'Buat Dokumen' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('rt.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Daftar
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+    <div class="max-w-5xl mx-auto">
+        <x-page-header
+            title="Buat Request & Transfer"
+            subtitle="Formulir mutasi stok internal antar gudang atau permintaan bahan baku produksi"
+            :breadcrumbs="['Request & Transfer' => route('rt.index'), 'Buat Dokumen' => null]"
+        >
+            <x-slot:actions>
+                <x-button href="{{ route('rt.index') }}" variant="secondary" size="xs">
+                    &larr; Kembali ke Daftar
+                </x-button>
+            </x-slot:actions>
+        </x-page-header>
 
-    <div class="max-w-5xl" x-data="rtForm()">
-        <form method="POST" action="{{ route('rt.store') }}">
+        <div x-data="rtForm()">
+            <form method="POST" action="{{ route('rt.store') }}">
             @csrf
             <div class="space-y-5">
                 {{-- Card 1: Parameter Transfer & Lokasi --}}
@@ -128,7 +129,7 @@
                                                 >
                                                     <div class="p-2 border-b border-gray-100 bg-gray-50 flex items-center gap-1.5">
                                                         <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                        <input type="text" x-model="search" @input="onSearch()" x-ref="searchInput" placeholder="Ketik SKU atau nama..." class="w-full bg-white border border-gray-200 rounded-xs px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
+                                                        <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Ketik SKU atau nama..." class="w-full bg-white border border-gray-200 rounded-xs px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
                                                     </div>
 
                                                     <div class="max-h-52 overflow-y-auto divide-y divide-gray-50">
@@ -212,6 +213,7 @@
                 </x-card>
             </div>
         </form>
+        </div>
     </div>
 
     @push('scripts')

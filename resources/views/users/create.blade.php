@@ -1,17 +1,17 @@
 <x-app-layout title="Tambah Pengguna">
-    <x-page-header
-        title="Tambah Pengguna Baru"
-        subtitle="Daftarkan akun pengguna baru beserta peran akses sistem"
-        :breadcrumbs="['Pengaturan' => null, 'Manajemen Pengguna' => route('users.index'), 'Tambah' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('users.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Daftar
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+    <div class="max-w-4xl mx-auto">
+        <x-page-header
+            title="Tambah Pengguna Baru"
+            subtitle="Daftarkan akun pengguna baru beserta peran akses sistem"
+            :breadcrumbs="['Pengaturan' => null, 'Manajemen Pengguna' => route('users.index'), 'Tambah' => null]"
+        >
+            <x-slot:actions>
+                <x-button href="{{ route('users.index') }}" variant="secondary" size="xs">
+                    &larr; Kembali ke Daftar
+                </x-button>
+            </x-slot:actions>
+        </x-page-header>
 
-    <div class="max-w-3xl">
         <form action="{{ route('users.store') }}" method="POST">
             @csrf
             <x-card title="Data Akun & Kredensial" subtitle="Lengkapi profil pengguna, hak otorisasi peran, dan kata sandi masuk" variant="primary">

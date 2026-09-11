@@ -1,17 +1,17 @@
 <x-app-layout title="Rencana Batch Baru">
-    <x-page-header
-        title="Rencana Batch Baru"
-        subtitle="Alokasi bahan baku otomatis dihitung dari resep (BOM) &times; kuantitas rencana"
-        :breadcrumbs="['Produksi' => route('batches.index'), 'Rencana Baru' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('batches.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Daftar
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+    <div class="max-w-4xl mx-auto">
+        <x-page-header
+            title="Rencana Batch Baru"
+            subtitle="Alokasi bahan baku otomatis dihitung dari resep (BOM) &times; kuantitas rencana"
+            :breadcrumbs="['Produksi' => route('batches.index'), 'Rencana Baru' => null]"
+        >
+            <x-slot:actions>
+                <x-button href="{{ route('batches.index') }}" variant="secondary" size="xs">
+                    &larr; Kembali ke Daftar
+                </x-button>
+            </x-slot:actions>
+        </x-page-header>
 
-    <div class="max-w-4xl">
         <form method="POST" action="{{ route('batches.store') }}" x-data="{ uom: '' }" @product-selected="uom = $event.detail ? $event.detail.satuan : ''">
             @csrf
             <x-card title="Parameter Rencana Produksi" subtitle="Stok fisik belum dipotong pada tahap ini, ketersediaan dipantau pada Kolom Rencana Stok" variant="primary">

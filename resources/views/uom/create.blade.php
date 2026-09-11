@@ -1,17 +1,17 @@
 <x-app-layout title="Tambah Satuan (UOM)">
-    <x-page-header
-        title="Tambah Satuan Unit Baru"
-        subtitle="Daftarkan standar unit pengukuran baru untuk katalog produk dan bahan kimia"
-        :breadcrumbs="['Master Data' => null, 'Satuan (UOM)' => route('uom.index'), 'Tambah' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('uom.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Daftar
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+    <div class="max-w-4xl mx-auto">
+        <x-page-header
+            title="Tambah Satuan Unit Baru"
+            subtitle="Daftarkan standar unit pengukuran baru untuk katalog produk dan bahan kimia"
+            :breadcrumbs="['Master Data' => null, 'Satuan (UOM)' => route('uom.index'), 'Tambah' => null]"
+        >
+            <x-slot:actions>
+                <x-button href="{{ route('uom.index') }}" variant="secondary" size="xs">
+                    &larr; Kembali ke Daftar
+                </x-button>
+            </x-slot:actions>
+        </x-page-header>
 
-    <div class="max-w-4xl">
         <form method="POST" action="{{ route('uom.store') }}">
             @csrf
             <x-card title="Data Satuan Unit" subtitle="Spesifikasi kode simbol, nama lengkap, dan kategori dimensi" variant="primary">
