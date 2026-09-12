@@ -16,10 +16,13 @@ class BarangDatangItem extends Model
         'bardat_id',
         'po_item_id',
         'qty_diterima',
+        'selisih',
+        'keterangan_selisih',
     ];
 
     protected $casts = [
         'qty_diterima' => 'decimal:2',
+        'selisih' => 'decimal:2',
     ];
 
     public function barangDatang(): BelongsTo

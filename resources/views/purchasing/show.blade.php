@@ -9,12 +9,13 @@
             'dibatalkan' => 'danger',
             default => 'gray',
         };
+        $canSeePrice = $canSeePrice ?? auth()->user()->can('purchasing.price.view');
     @endphp
 
     <!-- Page Header & Action Tools -->
     <x-page-header
-        :title="$po->no_po"
-        :subtitle="$po->supplier->nama . ' · Tanggal ' . $po->tanggal->format('d/m/Y') . ($po->dari_analisa ? ' · Dibuat otomatis dari Analisa Stok' : '')"
+        :title="$po->no_po . ($po->no_invoice ? ' · ' . $po->no_invoice : '')"
+        :subtitle="$po->supplier->nama . ' · Tanggal PO: ' . $po->tanggal->format('d/m/Y') . ($po->gudang ? ' · Lokasi: ' . $po->gudang->nama : '')"
         :breadcrumbs="[
             'Purchasing' => route('purchasing.index'),
             $po->no_po => null,
@@ -25,6 +26,20 @@
                 {{ ucwords(str_replace('_',' ',$po->status)) }}
             </x-badge>
 
+            @if($canSeePrice && $po->status_pembayaran)
+                @php
+                    $payBadge = match($po->status_pembayaran) {
+                        'lunas' => 'success',
+                        'parsial' => 'info',
+                        'overdue' => 'danger',
+                        default => 'gray',
+                    };
+                @endphp
+                <x-badge :variant="$payBadge" size="sm">
+                    AP: {{ ucwords(str_replace('_',' ',$po->status_pembayaran)) }}
+                </x-badge>
+            @endif
+
             @if($po->dari_analisa)
                 <x-badge variant="gold" size="sm">Dari Analisa</x-badge>
             @endif
@@ -34,6 +49,33 @@
             </x-button>
         </x-slot:actions>
     </x-page-header>
+
+    <!-- Progress Status Stepper (Requirement 6) -->
+    <div class="mb-5">
+        <x-purchasing-progress-stepper :po="$po" />
+    </div>
+
+    <!-- Metadata Singkat PO -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs">
+            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">No. Invoice Vendor</span>
+            <p class="font-mono font-semibold text-xs text-gray-900 mt-0.5">{{ $po->no_invoice ?? '—' }}</p>
+        </div>
+        <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs">
+            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Lokasi PO (Gudang)</span>
+            <p class="font-semibold text-xs text-gray-900 mt-0.5">{{ $po->gudang?->nama ?? 'Semua Gudang' }}</p>
+        </div>
+        <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs">
+            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Estimasi Tiba (ETA)</span>
+            <p class="font-mono text-xs {{ $po->eta && $po->eta->isPast() && $po->status !== 'selesai' ? 'text-rose-600 font-bold' : 'text-gray-900' }} mt-0.5">
+                {{ $po->eta ? $po->eta->format('d/m/Y') : '—' }}
+            </p>
+        </div>
+        <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs">
+            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Skema Bayar</span>
+            <p class="font-semibold text-xs text-gray-900 mt-0.5 capitalize">{{ $po->skema_bayar ?? 'cash' }}</p>
+        </div>
+    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <!-- Kolom Kiri: Tabel Rincian Item PO & Penerimaan Barang -->
@@ -46,74 +88,167 @@
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
+                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold text-[11px] uppercase">
                             <tr>
-                                <th class="py-2.5 px-3.5">Produk</th>
-                                <th class="py-2.5 px-3 text-right">Qty</th>
-                                <th class="py-2.5 px-3 text-right">Harga Total</th>
-                                <th class="py-2.5 px-3 text-right">HPP / Unit</th>
-                                <th class="py-2.5 px-3.5 text-right">Diterima</th>
+                                <th class="py-2.5 px-3">Bahan Baku</th>
+                                <th class="py-2.5 px-3 text-right">Qty PO</th>
+                                @if($canSeePrice)
+                                    <th class="py-2.5 px-3 text-right">Total Kotor</th>
+                                    <th class="py-2.5 px-2 text-right">Diskon</th>
+                                    <th class="py-2.5 px-2 text-right">PPN</th>
+                                    <th class="py-2.5 px-2 text-right">Ongkir</th>
+                                    <th class="py-2.5 px-3 text-right">Net Total</th>
+                                    <th class="py-2.5 px-3 text-right bg-primary-50/50 text-primary-900">HPP / Unit</th>
+                                @endif
+                                <th class="py-2.5 px-3.5 text-right">Diterima Fisik</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
                             @foreach($po->items as $it)
                             <tr class="hover:bg-gray-50/70 transition">
-                                <td class="py-2.5 px-3.5">
+                                <td class="py-2.5 px-3">
                                     <div class="font-bold text-gray-900">{{ $it->produk->nama }}</div>
                                     <div class="font-mono text-[11px] text-gray-400">{{ $it->produk->sku }}</div>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium text-gray-900">
+                                <td class="py-2.5 px-3 text-right font-mono font-medium text-gray-900">
                                     {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }}
-                                    <span class="text-gray-400 font-normal">{{ $it->produk->satuan }}</span>
+                                    <span class="text-gray-400 font-normal text-[10px]">{{ $it->produk->satuan }}</span>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-gray-900">
-                                    Rp {{ number_format($it->harga_total, 0, ',', '.') }}
-                                </td>
-                                <td class="py-2.5 px-3 text-right font-mono text-gray-600">
-                                    Rp {{ number_format($it->hargaPerSatuan(), 2, ',', '.') }}
-                                </td>
-                                <td class="py-2.5 px-3.5 text-right font-medium {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-emerald-700' : 'text-gray-700' }}">
+                                @if($canSeePrice)
+                                    <td class="py-2.5 px-3 text-right font-mono text-gray-700">
+                                        Rp {{ number_format($it->harga_total, 0, ',', '.') }}
+                                    </td>
+                                    <td class="py-2.5 px-2 text-right font-mono text-rose-600">
+                                        {{ (float)$it->diskon > 0 ? '-Rp ' . number_format($it->diskon, 0, ',', '.') : '—' }}
+                                    </td>
+                                    <td class="py-2.5 px-2 text-right font-mono text-gray-600">
+                                        {{ (float)$it->ppn > 0 ? '+Rp ' . number_format($it->ppn, 0, ',', '.') : '—' }}
+                                    </td>
+                                    <td class="py-2.5 px-2 text-right font-mono text-gray-600">
+                                        {{ (float)$it->ongkir > 0 ? '+Rp ' . number_format($it->ongkir, 0, ',', '.') : '—' }}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right font-mono font-semibold text-gray-900">
+                                        Rp {{ number_format($it->netTotal(), 0, ',', '.') }}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-primary-800 bg-primary-50/30">
+                                        Rp {{ number_format($it->hargaPerSatuan(), 2, ',', '.') }}
+                                    </td>
+                                @endif
+                                <td class="py-2.5 px-3.5 text-right font-mono font-medium {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-emerald-700 font-bold' : 'text-gray-700' }}">
                                     {{ rtrim(rtrim(number_format($it->qtyDiterima(), 2, ',', '.'), '0'), ',') }}
-                                    <span class="text-gray-400 font-normal">{{ $it->produk->satuan }}</span>
+                                    <span class="text-gray-400 font-normal text-[10px]">{{ $it->produk->satuan }}</span>
                                 </td>
                             </tr>
                             @endforeach
                         </tbody>
-                        <tfoot class="bg-gray-50/75 border-t border-gray-200 font-bold text-gray-900">
+                        @if($canSeePrice)
+                        <tfoot class="bg-gray-50/80 border-t border-gray-200 font-bold text-gray-900 text-xs">
                             <tr>
-                                <td class="py-2.5 px-3.5">Total Nilai Pesanan</td>
+                                <td class="py-2.5 px-3">Grand Total Nilai Pesanan</td>
                                 <td></td>
-                                <td class="py-2.5 px-3 text-right font-mono text-primary-700 text-sm">
+                                <td class="py-2.5 px-3 text-right font-mono text-gray-700">
+                                    Rp {{ number_format($po->subtotal_produk ?: $po->items->sum('harga_total'), 0, ',', '.') }}
+                                </td>
+                                <td class="py-2.5 px-2 text-right font-mono text-rose-600">
+                                    {{ (float)$po->diskon_total > 0 ? '-Rp ' . number_format($po->diskon_total, 0, ',', '.') : '—' }}
+                                </td>
+                                <td class="py-2.5 px-2 text-right font-mono text-gray-700">
+                                    {{ (float)$po->ppn_nominal > 0 ? '+Rp ' . number_format($po->ppn_nominal, 0, ',', '.') : '—' }}
+                                </td>
+                                <td class="py-2.5 px-2 text-right font-mono text-gray-700">
+                                    {{ (float)$po->ongkos_kirim > 0 ? '+Rp ' . number_format($po->ongkos_kirim, 0, ',', '.') : '—' }}
+                                </td>
+                                <td colspan="2" class="py-2.5 px-3 text-right font-mono text-primary-700 text-sm">
                                     Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}
                                 </td>
-                                <td colspan="2"></td>
+                                <td></td>
                             </tr>
                         </tfoot>
+                        @endif
                     </table>
                 </div>
             </x-card>
 
+            <!-- Riwayat Penerimaan Barang Datang & Selisih (Requirement 13) -->
+            @if($po->barangDatang->count())
+            <x-card title="Riwayat Penerimaan Barang di Gudang" :noPadding="true">
+                <div class="divide-y divide-gray-200">
+                    @foreach($po->barangDatang as $bardat)
+                    <div class="p-3.5 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-gray-900">Terima: {{ $bardat->tanggal_terima->format('d/m/Y') }}</span>
+                                <x-badge :variant="$bardat->kondisi === 'baik' ? 'success' : 'warning'" size="xs">
+                                    Kondisi {{ ucfirst(str_replace('_',' ', $bardat->kondisi)) }}
+                                </x-badge>
+                            </div>
+                            <span class="text-gray-400 text-[11px]">Dicatat oleh: {{ $bardat->creator->name ?? 'Gudang' }}</span>
+                        </div>
+                        <div class="bg-gray-50 rounded-xs p-2 border border-gray-100">
+                            <table class="w-full text-xs text-left">
+                                <thead class="text-gray-500 text-[10px] uppercase">
+                                    <tr>
+                                        <th class="py-1">Bahan</th>
+                                        <th class="py-1 text-right">Diterima</th>
+                                        <th class="py-1 text-right">Selisih</th>
+                                        <th class="py-1 pl-3">Keterangan Selisih</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach($bardat->items as $bItem)
+                                    @php
+                                        $poItem = $bItem->relationLoaded('poItem')
+                                            ? $bItem->poItem
+                                            : $po->items->firstWhere('id', $bItem->po_item_id);
+                                        $namaProduk = $poItem?->produk?->nama ?? '—';
+                                    @endphp
+                                    <tr>
+                                        <td class="py-1 font-medium text-gray-800">{{ $namaProduk }}</td>
+                                        <td class="py-1 text-right font-mono font-semibold text-gray-900">
+                                            {{ rtrim(rtrim(number_format($bItem->qty_diterima, 2, ',', '.'), '0'), ',') }}
+                                        </td>
+                                        <td class="py-1 text-right font-mono">
+                                            @if((float)$bItem->selisih < 0)
+                                                <span class="text-rose-600 font-bold">{{ number_format($bItem->selisih, 2, ',', '.') }} (Kurang)</span>
+                                            @elseif((float)$bItem->selisih > 0)
+                                                <span class="text-blue-600 font-bold">+{{ number_format($bItem->selisih, 2, ',', '.') }} (Lebih)</span>
+                                            @else
+                                                <span class="text-emerald-600">Sesuai</span>
+                                            @endif
+                                        </td>
+                                        <td class="py-1 pl-3 text-gray-600 italic">{{ $bItem->keterangan_selisih ?? '—' }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </x-card>
+            @endif
+
             <!-- Konfirmasi Barang Datang (Status dikirim_ke_gudang) -->
             @can('purchasing.receive')
             @if($po->status === 'dikirim_ke_gudang')
-            <x-card title="Konfirmasi Barang Datang di Gudang" subtitle="Input kuantitas fisik aktual yang diterima untuk penambahan saldo stok." variant="primary">
-                <form method="POST" action="{{ route('purchasing.receive', $po) }}" class="space-y-4">
+            <x-card title="Konfirmasi Barang Datang di Gudang" subtitle="Input kuantitas fisik aktual yang diterima. Jika ada selisih, wajib isi kolom keterangan." variant="primary">
+                <form method="POST" action="{{ route('purchasing.receive', $po) }}" class="space-y-4" x-data="bardatForm()">
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Gudang Penerima</label>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Gudang Penerima <span class="text-rose-500">*</span></label>
                             <select name="gudang_id" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
                                 @foreach($gudang as $g)
-                                    <option value="{{ $g->id }}">{{ $g->nama }}</option>
+                                    <option value="{{ $g->id }}" @selected($po->gudang_id == $g->id)>{{ $g->nama }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Tanggal Terima</label>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Tanggal Terima <span class="text-rose-500">*</span></label>
                             <input type="date" name="tanggal_terima" value="{{ date('Y-m-d') }}" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Kondisi Fisik</label>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Kondisi Fisik <span class="text-rose-500">*</span></label>
                             <select name="kondisi" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                                 <option value="baik">Baik (Sesuai Standar)</option>
                                 <option value="rusak_sebagian">Rusak Sebagian</option>
@@ -121,15 +256,49 @@
                         </div>
                     </div>
 
-                    <div class="border-t border-gray-100 pt-3 space-y-2">
-                        <p class="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Kuantitas Diterima per Item:</p>
+                    <div class="border-t border-gray-100 pt-3 space-y-3">
+                        <p class="text-xs font-bold text-gray-700 uppercase tracking-wider">Kuantitas Diterima & Pengecekan Selisih:</p>
+                        
                         @foreach($po->items as $i => $it)
-                        <div class="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-sm text-xs">
-                            <span class="font-medium text-gray-800">{{ $it->produk->nama }} (PO: {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk->satuan }})</span>
-                            <div class="flex items-center gap-2">
-                                <input type="hidden" name="items[{{ $i }}][po_item_id]" value="{{ $it->id }}">
-                                <input type="number" step="0.01" name="items[{{ $i }}][qty_diterima]" value="{{ $it->qty }}" class="w-28 text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" placeholder="0">
-                                <span class="text-gray-500 font-normal">{{ $it->produk->satuan }}</span>
+                        <div class="p-3 bg-gray-50 border border-gray-200 rounded-sm text-xs space-y-2">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div>
+                                    <span class="font-bold text-gray-900">{{ $it->produk->nama }}</span>
+                                    <span class="font-mono text-gray-500 text-[11px]">({{ $it->produk->sku }}) · Order: {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk->satuan }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="hidden" name="items[{{ $i }}][po_item_id]" value="{{ $it->id }}">
+                                    <span class="text-gray-600 font-medium">Qty Terima:</span>
+                                    <input type="number" step="0.01" min="0"
+                                        name="items[{{ $i }}][qty_diterima]"
+                                        x-model.number="receiptItems[{{ $i }}].qty_terima"
+                                        class="w-24 text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-bold"
+                                        required>
+                                    <span class="text-gray-500">{{ $it->produk->satuan }}</span>
+                                    
+                                    <!-- Badge Selisih Real-Time (Requirement 13) -->
+                                    <template x-if="getDiff({{ $i }}) < 0">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-rose-100 text-rose-800" x-text="'Kurang: ' + getDiff({{ $i }})"></span>
+                                    </template>
+                                    <template x-if="getDiff({{ $i }}) > 0">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800" x-text="'Lebih: +' + getDiff({{ $i }})"></span>
+                                    </template>
+                                    <template x-if="getDiff({{ $i }}) === 0">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-100 text-emerald-800">✓ Sesuai</span>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Kolom Keterangan Selisih (Requirement 13) -->
+                            <div x-show="getDiff({{ $i }}) !== 0" x-cloak class="pt-2 border-t border-gray-200">
+                                <label class="block text-[11px] font-semibold text-rose-700 mb-1">
+                                    Keterangan Alasan Selisih <span class="text-rose-500">*</span>:
+                                </label>
+                                <input type="text"
+                                    name="items[{{ $i }}][keterangan_selisih]"
+                                    :required="getDiff({{ $i }}) !== 0"
+                                    placeholder="Contoh: Bocor saat pengiriman / Stok supplier tidak lengkap"
+                                    class="w-full rounded-sm border-rose-300 text-xs py-1 px-2 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 bg-white">
                             </div>
                         </div>
                         @endforeach
@@ -137,7 +306,7 @@
 
                     <div class="flex justify-end pt-2">
                         <x-button type="submit" variant="primary" size="md">
-                            Terima & Tambah Stok Gudang
+                            Konfirmasi Terima & Tambah Stok Gudang
                         </x-button>
                     </div>
                 </form>
@@ -194,8 +363,9 @@
                 </div>
             </x-card>
 
-            <!-- Panel Pembayaran & AP -->
-            <x-card title="Status Pembayaran (AP)" variant="default">
+            <!-- Panel Pembayaran & AP (Hanya untuk yang memiliki wewenang purchasing.price.view) -->
+            @if($canSeePrice)
+            <x-card title="Status Pembayaran (AP)" variant="default" id="form-pembayaran">
                 <div class="space-y-2.5 text-xs pb-3 border-b border-gray-100">
                     <div class="flex justify-between">
                         <span class="text-gray-500">Total Tagihan</span>
@@ -213,25 +383,79 @@
                     </div>
                 </div>
 
+                <!-- Daftar Termin Tagihan (Requirement 4) -->
+                @if($po->termins->count())
+                <div class="py-3 border-b border-gray-100">
+                    <p class="text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-2">Jadwal Termin Tagihan:</p>
+                    <div class="space-y-1.5">
+                        @foreach($po->termins as $tm)
+                        @php
+                            $tmBadge = match($tm->status) {
+                                'lunas' => 'success',
+                                'parsial' => 'info',
+                                'overdue' => 'danger',
+                                default => 'gray',
+                            };
+                        @endphp
+                        <div class="p-2 bg-gray-50 rounded-sm border border-gray-100 text-xs flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-gray-800">Termin {{ $tm->termin_ke }} ({{ $tm->keterangan ?? 'Tagihan' }})</div>
+                                <div class="text-[10px] text-gray-500">Tempo: {{ $tm->tanggal_tempo->format('d/m/Y') }}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-mono font-bold text-gray-900">Rp {{ number_format($tm->nominal_tagihan, 0, ',', '.') }}</div>
+                                <x-badge :variant="$tmBadge" size="xs">{{ ucfirst(str_replace('_',' ', $tm->status)) }}</x-badge>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
                 @can('purchasing.pay')
                 @if(!$po->isLunas() && !in_array($po->status, ['dibatalkan']))
-                <form method="POST" action="{{ route('purchasing.pay', $po) }}" class="space-y-3 pt-3">
+                <form method="POST" action="{{ route('purchasing.pay', $po) }}" class="space-y-3 pt-3" x-data="payForm({{ $po->sisaTagihan() }})">
                     @csrf
                     <div>
                         <label class="block text-[11px] font-semibold text-gray-700 mb-1">Skema Pembayaran</label>
-                        <select name="skema" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <select name="skema" x-model="skema" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                             <option value="termin">Termin</option>
                             <option value="tempo">Tempo</option>
-                            <option value="pelunasan">Pelunasan Penuh</option>
+                            <option value="pelunasan">Pelunasan Penuh (Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }})</option>
                         </select>
                     </div>
+
+                    @if($po->termins->where('status', '!=', 'lunas')->count())
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-700 mb-1">Target Termin (Opsional)</label>
+                        <select name="termin_id" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <option value="">— Alokasikan Otomatis —</option>
+                            @foreach($po->termins->where('status', '!=', 'lunas') as $tOpt)
+                                <option value="{{ $tOpt->id }}">
+                                    Termin {{ $tOpt->termin_ke }} (Sisa: Rp {{ number_format($tOpt->sisaNominal(), 0, ',', '.') }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
                     <div>
                         <label class="block text-[11px] font-semibold text-gray-700 mb-1">Tanggal Bayar</label>
                         <input type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-semibold text-gray-700 mb-1">Nominal (Rp)</label>
-                        <input type="number" step="0.01" name="nominal" placeholder="Nominal bayar" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
+                        <label class="block text-[11px] font-semibold text-gray-700 mb-1">Nominal Bayar (Rp)</label>
+                        <input type="hidden" name="nominal" :value="nominal">
+                        <input type="text"
+                            inputmode="numeric"
+                            :value="formatThousand(nominal)"
+                            @input="updateNominal($event)"
+                            placeholder="Nominal bayar"
+                            class="w-full rounded-sm border-gray-300 text-xs py-1.5 font-mono text-right font-bold focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                            required>
+                        <span x-show="nominal > sisa" class="text-[10px] text-rose-600 mt-0.5 block font-semibold">
+                            ⚠️ Nominal melebihi sisa tagihan (Maks: Rp <span x-text="formatThousand(sisa)"></span>)
+                        </span>
                     </div>
                     <x-button type="submit" variant="primary" size="sm" class="w-full">
                         Catat Pembayaran
@@ -242,11 +466,14 @@
 
                 @if($po->payments->count())
                 <div class="mt-4 pt-3 border-t border-gray-100">
-                    <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Riwayat Pembayaran:</p>
+                    <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Riwayat Transaksi Bayar:</p>
                     <ul class="space-y-1.5 text-xs text-gray-600">
                         @foreach($po->payments as $pay)
-                        <li class="flex items-center justify-between py-1 px-2 bg-gray-50 rounded-sm">
-                            <span>{{ $pay->tanggal_bayar->format('d/m/Y') }} · <span class="capitalize">{{ $pay->skema }}</span></span>
+                        <li class="flex items-center justify-between py-1.5 px-2 bg-gray-50 rounded-sm border border-gray-100">
+                            <div>
+                                <span class="font-medium text-gray-800">{{ $pay->tanggal_bayar->format('d/m/Y') }}</span>
+                                <span class="text-[10px] text-gray-400 capitalize block">{{ $pay->skema }}</span>
+                            </div>
                             <span class="font-bold font-mono text-gray-900">Rp {{ number_format($pay->nominal, 0, ',', '.') }}</span>
                         </li>
                         @endforeach
@@ -254,6 +481,52 @@
                 </div>
                 @endif
             </x-card>
+            @endif
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        function bardatForm() {
+            return {
+                receiptItems: [
+                    @foreach($po->items as $it)
+                    { qty_po: {{ (float)$it->qty }}, qty_terima: {{ (float)$it->qty }} },
+                    @endforeach
+                ],
+                getDiff(idx) {
+                    const item = this.receiptItems[idx];
+                    if (!item) return 0;
+                    const diff = (parseFloat(item.qty_terima) || 0) - (parseFloat(item.qty_po) || 0);
+                    return Math.round(diff * 100) / 100;
+                }
+            };
+        }
+
+        function payForm(sisaTagihan) {
+            return {
+                sisa: sisaTagihan,
+                skema: 'termin',
+                nominal: sisaTagihan,
+                formatThousand(val) {
+                    if (val === '' || val === null || val === undefined) return '';
+                    const clean = val.toString().replace(/\D/g, '');
+                    return clean ? clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+                },
+                updateNominal(event) {
+                    let clean = event.target.value.replace(/\D/g, '');
+                    this.nominal = clean ? parseInt(clean, 10) : 0;
+                    event.target.value = this.formatThousand(this.nominal);
+                },
+                init() {
+                    this.$watch('skema', (val) => {
+                        if (val === 'pelunasan') {
+                            this.nominal = this.sisa;
+                        }
+                    });
+                }
+            };
+        }
+    </script>
+    @endpush
 </x-app-layout>

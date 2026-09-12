@@ -88,11 +88,14 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:purchasing.view')->prefix('purchasing')->name('purchasing.')->group(function () {
         Route::get('/', [PurchasingController::class, 'index'])->name('index');
         Route::get('data', [PurchasingController::class, 'data'])->name('data');
+        Route::get('data-ap', [PurchasingController::class, 'dataAp'])->middleware('can:purchasing.price.view')->name('data-ap');
         Route::get('create', [PurchasingController::class, 'create'])
             ->middleware('can:purchasing.create')->name('create');
         Route::post('/', [PurchasingController::class, 'store'])
             ->middleware('can:purchasing.create')->name('store');
         Route::get('{purchaseOrder}', [PurchasingController::class, 'show'])->name('show');
+        Route::put('{purchaseOrder}/quick-dates', [PurchasingController::class, 'quickDates'])
+            ->middleware('can:purchasing.edit')->name('quick-dates');
         Route::post('{purchaseOrder}/submit', [PurchasingController::class, 'submit'])
             ->middleware('can:purchasing.submit')->name('submit');
         Route::post('{purchaseOrder}/approve', [PurchasingController::class, 'approve'])
