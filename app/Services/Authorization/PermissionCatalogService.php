@@ -71,6 +71,7 @@ class PermissionCatalogService
                     'icon' => 'shopping-cart',
                     'actions' => [
                         'purchasing.view' => 'Lihat Riwayat & Dokumen PO',
+                        'purchasing.price.view' => 'Lihat Harga Beli & Status Pembayaran AP',
                         'purchasing.create' => 'Buat Draft Pengajuan PO',
                         'purchasing.edit' => 'Ubah Draft Dokumen PO',
                         'purchasing.submit' => 'Ajukan PO ke Manajer',
@@ -114,6 +115,7 @@ class PermissionCatalogService
                     'icon' => 'circle-stack',
                     'actions' => [
                         'stok.view' => 'Lihat Saldo Stok & Buffer Alert',
+                        'stok.view.all' => 'Akses Seluruh Gudang (Bypass Pembatasan Lokasi)',
                         'stok.mutasi' => 'Eksekusi Mutasi Stok Manual',
                         'stok.opname' => 'Stock Opname Fisik Aktual',
                         'stok.ledger.view' => 'Lihat Kartu Stok (Audit Trail)',

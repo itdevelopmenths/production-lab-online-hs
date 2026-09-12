@@ -19,10 +19,10 @@ class PermissionSeeder extends Seeder
             'bom.view', 'bom.manage', 'bom.import',
 
             // Stok & Mutasi
-            'stok.view', 'stok.mutasi', 'stok.opname', 'stok.ledger.view',
+            'stok.view', 'stok.view.all', 'stok.mutasi', 'stok.opname', 'stok.ledger.view',
 
             // Purchasing
-            'purchasing.view', 'purchasing.create', 'purchasing.edit',
+            'purchasing.view', 'purchasing.price.view', 'purchasing.create', 'purchasing.edit',
             'purchasing.submit', 'purchasing.approve', 'purchasing.receive',
             'purchasing.pay', 'purchasing.cancel',
 
@@ -68,7 +68,7 @@ class PermissionSeeder extends Seeder
             'uom.view', 'uom.create', 'uom.edit',
             'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
-            'purchasing.view', 'purchasing.create', 'purchasing.edit',
+            'purchasing.view', 'purchasing.price.view', 'purchasing.create', 'purchasing.edit',
             'purchasing.submit', 'purchasing.pay', 'purchasing.cancel',
             'analisa.view', 'analisa.manage', 'analisa.snapshot', 'analisa.create_po',
             'report.view', 'report.export',
@@ -84,7 +84,7 @@ class PermissionSeeder extends Seeder
             'produk.view', 'gudang.view', 'supplier.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.receive',
-            'rt.view', 'rt.process', 'rt.ship', 'rt.receive',
+            'rt.view', 'rt.create', 'rt.submit', 'rt.process', 'rt.ship', 'rt.receive',
             'report.view',
         ]);
 

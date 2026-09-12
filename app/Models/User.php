@@ -16,7 +16,18 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'divisi',
         'password',
+    ];
+
+    public const DIVISI_LIST = [
+        'purchasing' => 'Purchasing & Pengadaan',
+        'produksi' => 'Produksi & Laboratorium',
+        'gudang' => 'Gudang & Logistik',
+        'fulfillment' => 'Fulfillment & Distribusi',
+        'qc' => 'Quality Control (QC)',
+        'finance' => 'Finance & Akuntansi',
+        'manajemen' => 'Manajemen & Direksi',
     ];
 
     protected $hidden = [
@@ -47,5 +58,31 @@ class User extends Authenticatable
     public function isManager(): bool
     {
         return $this->hasRole('manager');
+    }
+
+    public function divisiLabel(): string
+    {
+        if (empty($this->divisi)) {
+            return '-';
+        }
+
+        return self::DIVISI_LIST[$this->divisi] ?? ucwords(str_replace(['_', '-'], ' ', $this->divisi));
+    }
+
+    public function isGlobalWarehouseAccess(): bool
+    {
+        return $this->isManager() || $this->can('stok.view.all') || $this->gudangs()->count() === 0;
+    }
+
+    public function primaryGudang(): ?Gudang
+    {
+        return $this->gudangs()->wherePivot('is_primary', true)->first() ?: $this->gudangs()->first();
+    }
+
+    public function gudangs()
+    {
+        return $this->belongsToMany(Gudang::class, 'gudang_user', 'user_id', 'gudang_id')
+            ->withPivot('is_primary')
+            ->withTimestamps();
     }
 }

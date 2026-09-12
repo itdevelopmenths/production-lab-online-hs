@@ -49,4 +49,11 @@ class Gudang extends Model
     {
         return $query->whereIn('tipe', ['fulfillment_pusat', 'fulfillment_cabang']);
     }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'gudang_user', 'gudang_id', 'user_id')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
 }

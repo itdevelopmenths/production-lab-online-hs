@@ -11,19 +11,20 @@ class UserSeeder extends Seeder
     {
         // Satu user per role SC Online (PRD §2). Password default: "password".
         $users = [
-            ['Administrator', 'admin@heavenscent.id', 'manager'],
-            ['Andyka (Manager)', 'manager@heavenscent.id', 'manager'],
-            ['Rina (Purchasing)', 'purchasing@heavenscent.id', 'purchasing'],
-            ['Budi (Gudang)', 'gudang@heavenscent.id', 'gudang'],
-            ['Dedi (Operasional)', 'operasional@heavenscent.id', 'operasional'],
-            ['Sari (Fulfillment)', 'fulfillment@heavenscent.id', 'fulfillment'],
+            ['Administrator', 'admin@heavenscent.id', 'manager', 'manajemen'],
+            ['Andyka (Manager)', 'manager@heavenscent.id', 'manager', 'manajemen'],
+            ['Rina (Purchasing)', 'purchasing@heavenscent.id', 'purchasing', 'purchasing'],
+            ['Budi (Gudang)', 'gudang@heavenscent.id', 'gudang', 'gudang'],
+            ['Dedi (Operasional)', 'operasional@heavenscent.id', 'operasional', 'produksi'],
+            ['Sari (Fulfillment)', 'fulfillment@heavenscent.id', 'fulfillment', 'fulfillment'],
         ];
 
-        foreach ($users as [$name, $email, $role]) {
+        foreach ($users as [$name, $email, $role, $divisi]) {
             $user = User::firstOrCreate(
                 ['email' => $email],
-                ['name' => $name, 'password' => bcrypt('password')],
+                ['name' => $name, 'divisi' => $divisi, 'password' => bcrypt('password')],
             );
+            $user->update(['divisi' => $divisi]);
             $user->syncRoles([$role]);
         }
     }
