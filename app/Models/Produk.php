@@ -16,12 +16,14 @@ class Produk extends Model
         'tipe',
         'satuan',
         'satuan_order_moq',
+        'harga_hpp',
         'profil_analisa',
         'is_active',
     ];
 
     protected $casts = [
         'satuan_order_moq' => 'decimal:2',
+        'harga_hpp' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 

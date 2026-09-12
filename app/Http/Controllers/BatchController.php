@@ -31,22 +31,51 @@ class BatchController extends Controller
         $this->authorize('batch.view');
 
         $query = BatchProduksi::query()->select('batch_produksi.*')
-            ->with(['produk:id,sku,nama', 'gudangTujuan:id,nama']);
+            ->with(['produk:id,sku,nama,satuan', 'outputs.produk:id,sku,nama,satuan', 'gudangTujuan:id,nama']);
 
         return DataTables::eloquent($query)
-            ->addColumn('produk_nama', fn ($b) => $b->produk?->nama)
+            ->addColumn('produk_nama', function ($b) {
+                if ($b->outputs->isNotEmpty()) {
+                    return $b->outputs->map(function ($out) {
+                        $nama = e($out->produk?->nama ?? '-');
+                        $qty = \App\Helpers\NumberHelper::formatQty($out->qty_rencana);
+                        $satuan = e($out->produk?->satuan ?? 'pcs');
+                        return "<div class='py-0.5'><span class='font-medium text-gray-900'>{$nama}</span> <span class='text-gray-500 font-mono text-[11px]'>({$qty} {$satuan})</span></div>";
+                    })->implode('');
+                }
+                $nama = e($b->produk?->nama ?? '-');
+                $satuan = e($b->produk?->satuan ?? 'pcs');
+                $qty = \App\Helpers\NumberHelper::formatQty($b->qty_rencana);
+                return "<div><span class='font-medium text-gray-900'>{$nama}</span> <span class='text-gray-500 font-mono text-[11px]'>({$qty} {$satuan})</span></div>";
+            })
+            ->editColumn('qty_rencana', fn ($b) => \App\Helpers\NumberHelper::formatQty($b->qty_rencana))
+            ->addColumn('qty_baik', fn ($b) => $b->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($b->qty_baik) : '-')
+            ->addColumn('qty_rusak', fn ($b) => $b->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($b->qty_rusak) : '-')
             ->editColumn('tanggal', fn ($b) => $b->tanggal?->format('d/m/Y'))
-            ->editColumn('status', fn ($b) => ucfirst($b->status))
-            ->addColumn('yield', fn ($b) => $b->yield() !== null ? number_format($b->yield(), 1) . '%' : '-')
+            ->editColumn('status', function ($b) {
+                $variant = match($b->status) {
+                    'rencana' => 'bg-amber-50 text-amber-700 border-amber-200',
+                    'release' => 'bg-sky-50 text-sky-700 border-sky-200',
+                    'selesai' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                    'dibatalkan' => 'bg-rose-50 text-rose-700 border-rose-200',
+                    default => 'bg-gray-50 text-gray-700 border-gray-200',
+                };
+                $label = $b->status === 'release' ? 'Release' : ucfirst($b->status);
+                return "<span class='inline-flex items-center px-2 py-0.5 rounded-xs text-[11px] font-semibold border {$variant}'>{$label}</span>";
+            })
+            ->addColumn('yield', function ($b) {
+                $y = $b->yield();
+                return $y !== null ? number_format($y, 1) . '%' : '-';
+            })
             ->addColumn('action', fn ($b) => view('batches._actions', ['b' => $b])->render())
-            ->rawColumns(['action'])
+            ->rawColumns(['action', 'produk_nama', 'status'])
             ->toJson();
     }
 
     public function create()
     {
         $this->authorize('batch.create');
-        $produk = Produk::produkJadi()->active()->orderBy('nama')->get(['id', 'sku', 'nama']);
+        $produk = Produk::produkJadi()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
         $gudangOp = Gudang::active()->where('tipe', 'operasional')->orderBy('nama')->get(['id', 'nama']);
         $gudangFf = Gudang::active()->fulfillment()->orderBy('nama')->get(['id', 'nama']);
 
@@ -58,18 +87,48 @@ class BatchController extends Controller
         $this->authorize('batch.create');
 
         $data = $request->validate([
-            'produk_id' => ['required', 'exists:produk,id'],
-            'qty_rencana' => ['required', 'numeric', 'gt:0'],
+            'produk_id' => ['nullable', 'exists:produk,id'],
+            'qty_rencana' => ['nullable', 'numeric', 'gt:0'],
+            'outputs' => ['nullable', 'array', 'min:1'],
+            'outputs.*.produk_id' => ['required_with:outputs', 'exists:produk,id'],
+            'outputs.*.qty_rencana' => ['required_with:outputs', 'numeric', 'gt:0'],
+            'outputs.*.catatan' => ['nullable', 'string', 'max:255'],
             'gudang_operasional_id' => ['nullable', 'exists:gudang,id'],
             'gudang_tujuan_rencana_id' => ['nullable', 'exists:gudang,id'],
             'tanggal' => ['required', 'date'],
         ]);
 
-        $batch = DB::transaction(function () use ($data) {
+        // Process outputs: either array or single fallback
+        $outputsList = [];
+        if (!empty($data['outputs'])) {
+            foreach ($data['outputs'] as $row) {
+                if (!empty($row['produk_id']) && (float) ($row['qty_rencana'] ?? 0) > 0) {
+                    $outputsList[] = [
+                        'produk_id' => (int) $row['produk_id'],
+                        'qty_rencana' => (float) $row['qty_rencana'],
+                        'catatan' => $row['catatan'] ?? null,
+                    ];
+                }
+            }
+        }
+
+        if (empty($outputsList)) {
+            abort_unless(!empty($data['produk_id']) && (float) ($data['qty_rencana'] ?? 0) > 0, 422, 'Minimal satu produk jadi luaran harus ditentukan.');
+            $outputsList[] = [
+                'produk_id' => (int) $data['produk_id'],
+                'qty_rencana' => (float) $data['qty_rencana'],
+                'catatan' => null,
+            ];
+        }
+
+        $primaryProdukId = $outputsList[0]['produk_id'];
+        $totalQtyRencana = array_sum(array_column($outputsList, 'qty_rencana'));
+
+        $batch = DB::transaction(function () use ($data, $outputsList, $primaryProdukId, $totalQtyRencana) {
             $batch = BatchProduksi::create([
                 'no_batch' => $this->nextNo(),
-                'produk_id' => $data['produk_id'],
-                'qty_rencana' => $data['qty_rencana'],
+                'produk_id' => $primaryProdukId,
+                'qty_rencana' => $totalQtyRencana,
                 'gudang_operasional_id' => $data['gudang_operasional_id'] ?? null,
                 'gudang_tujuan_rencana_id' => $data['gudang_tujuan_rencana_id'] ?? null,
                 'status' => 'rencana',
@@ -77,12 +136,32 @@ class BatchController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
-            // BOM explode → alokasi bahan (aktif), tanpa mengubah stok fisik.
-            $bom = Produk::findOrFail($data['produk_id'])->bom;
-            foreach ($bom as $item) {
+            // Save individual outputs
+            foreach ($outputsList as $out) {
+                $batch->outputs()->create([
+                    'produk_id' => $out['produk_id'],
+                    'qty_rencana' => $out['qty_rencana'],
+                    'catatan' => $out['catatan'],
+                ]);
+            }
+
+            // BOM explode aggregated across all outputs -> alokasi bahan (aktif)
+            $aggregatedBom = [];
+            foreach ($outputsList as $out) {
+                $produk = Produk::with('bom')->find($out['produk_id']);
+                if ($produk && $produk->bom) {
+                    foreach ($produk->bom as $bomItem) {
+                        $bahanId = $bomItem->bahan_id;
+                        $kebutuhan = (float) $bomItem->qty_per_unit * (float) $out['qty_rencana'];
+                        $aggregatedBom[$bahanId] = ($aggregatedBom[$bahanId] ?? 0) + $kebutuhan;
+                    }
+                }
+            }
+
+            foreach ($aggregatedBom as $bahanId => $totalAlokasi) {
                 $batch->alokasi()->create([
-                    'bahan_id' => $item->bahan_id,
-                    'qty_dialokasikan' => (float) $item->qty_per_unit * (float) $data['qty_rencana'],
+                    'bahan_id' => $bahanId,
+                    'qty_dialokasikan' => $totalAlokasi,
                     'status' => 'aktif',
                 ]);
             }
@@ -98,6 +177,7 @@ class BatchController extends Controller
         $this->authorize('batch.view');
         $batch->load([
             'produk',
+            'outputs.produk:id,sku,nama,satuan',
             'gudangOperasional',
             'gudangTujuan',
             'creator:id,name',
@@ -218,19 +298,77 @@ class BatchController extends Controller
         abort_unless($batch->status === 'release', 422, 'Hanya batch yang sudah Release yang dapat diselesaikan.');
 
         $data = $request->validate([
-            'qty_baik' => ['required', 'numeric', 'min:0'],
-            'qty_rusak' => ['required', 'numeric', 'min:0'],
+            'qty_baik' => ['nullable', 'numeric', 'min:0'],
+            'qty_rusak' => ['nullable', 'numeric', 'min:0'],
+            'outputs' => ['nullable', 'array'],
+            'outputs.*.id' => ['required_with:outputs', 'exists:batch_produksi_outputs,id'],
+            'outputs.*.qty_baik' => ['required_with:outputs', 'numeric', 'min:0'],
+            'outputs.*.qty_rusak' => ['required_with:outputs', 'numeric', 'min:0'],
         ]);
 
         DB::transaction(function () use ($batch, $data) {
-            $batch->update([
-                'qty_baik' => $data['qty_baik'],
-                'qty_rusak' => $data['qty_rusak'],
-                'status' => 'selesai',
-            ]);
             $gudang = $batch->gudang_operasional_id ?? $batch->gudang_tujuan_rencana_id;
-            if ($gudang && (float) $data['qty_baik'] > 0) {
-                $this->stok->masuk($batch->produk_id, $gudang, (float) $data['qty_baik'], 'batch_produksi', $batch->id, "Hasil {$batch->no_batch}");
+
+            if (!empty($data['outputs'])) {
+                $totalBaik = 0;
+                $totalRusak = 0;
+                foreach ($data['outputs'] as $row) {
+                    $output = $batch->outputs()->where('id', $row['id'])->first();
+                    if ($output) {
+                        $baik = (float) ($row['qty_baik'] ?? 0);
+                        $rusak = (float) ($row['qty_rusak'] ?? 0);
+                        $output->update([
+                            'qty_baik' => $baik,
+                            'qty_rusak' => $rusak,
+                        ]);
+                        $totalBaik += $baik;
+                        $totalRusak += $rusak;
+
+                        if ($gudang && $baik > 0) {
+                            $this->stok->masuk(
+                                $output->produk_id,
+                                $gudang,
+                                $baik,
+                                'batch_produksi',
+                                $batch->id,
+                                "Hasil {$batch->no_batch} - {$output->produk?->nama}"
+                            );
+                        }
+                    }
+                }
+                $batch->update([
+                    'qty_baik' => $totalBaik,
+                    'qty_rusak' => $totalRusak,
+                    'status' => 'selesai',
+                ]);
+            } else {
+                $qtyBaik = (float) ($data['qty_baik'] ?? 0);
+                $qtyRusak = (float) ($data['qty_rusak'] ?? 0);
+
+                $firstOutput = $batch->outputs()->first();
+                if ($firstOutput) {
+                    $firstOutput->update([
+                        'qty_baik' => $qtyBaik,
+                        'qty_rusak' => $qtyRusak,
+                    ]);
+                }
+
+                $batch->update([
+                    'qty_baik' => $qtyBaik,
+                    'qty_rusak' => $qtyRusak,
+                    'status' => 'selesai',
+                ]);
+
+                if ($gudang && $qtyBaik > 0) {
+                    $this->stok->masuk(
+                        $batch->produk_id,
+                        $gudang,
+                        $qtyBaik,
+                        'batch_produksi',
+                        $batch->id,
+                        "Hasil {$batch->no_batch}"
+                    );
+                }
             }
         });
 
@@ -298,10 +436,21 @@ class BatchController extends Controller
                 'catatan' => "Kirim hasil batch {$batch->no_batch}",
                 'created_by' => auth()->id(),
             ]);
-            $rt->items()->create([
-                'produk_id' => $batch->produk_id,
-                'qty_diminta' => $batch->qty_baik,
-            ]);
+
+            $outputs = $batch->outputs()->where('qty_baik', '>', 0)->get();
+            if ($outputs->isNotEmpty()) {
+                foreach ($outputs as $out) {
+                    $rt->items()->create([
+                        'produk_id' => $out->produk_id,
+                        'qty_diminta' => $out->qty_baik,
+                    ]);
+                }
+            } else {
+                $rt->items()->create([
+                    'produk_id' => $batch->produk_id,
+                    'qty_diminta' => $batch->qty_baik,
+                ]);
+            }
 
             return $rt;
         });

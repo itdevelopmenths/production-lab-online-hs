@@ -7,6 +7,7 @@ use App\Models\KartuStok;
 use App\Models\Produk;
 use App\Models\Stok;
 use App\Services\AnalisaService;
+use App\Services\Authorization\LocationScopeService;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,21 +20,27 @@ class StokController extends Controller
     public function __construct(
         private readonly StokService $stok,
         private readonly AnalisaService $analisa,
+        private readonly LocationScopeService $locationScope,
     ) {
     }
 
     public function index()
     {
         $this->authorize('stok.view');
-        $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
-        $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama']);
+        $user = auth()->user();
+        $gudang = $this->locationScope->getAccessibleGudangs($user);
+        $isGlobal = $this->locationScope->isGlobal($user);
+        $canSeePrice = $user->can('purchasing.price.view');
 
-        return view('stok.index', compact('produk', 'gudang'));
+        return view('stok.index', compact('gudang', 'isGlobal', 'canSeePrice'));
     }
 
-    public function data(): JsonResponse
+    public function data(Request $request): JsonResponse
     {
         $this->authorize('stok.view');
+        $user = auth()->user();
+        $canSeePrice = $user->can('purchasing.price.view');
+        $allowedGudangIds = $this->locationScope->getAccessibleWarehouseIds($user);
 
         // 1. Peta Batas Minimum dari modul Analisa Stok
         $batasMinMap = $this->analisa->getBatasMinimumMap();
@@ -75,12 +82,48 @@ class StokController extends Controller
             }
         }
 
-        // Query stok dengan alokasi bahan aktif
+        // 5. Pre-fetch HPP Map
+        $latestPoHpp = DB::table('purchase_order_items as poi')
+            ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
+            ->whereIn('po.status', ['dikirim_ke_gudang', 'selesai'])
+            ->where('poi.hpp_per_satuan', '>', 0)
+            ->orderByDesc('po.tanggal')
+            ->select('poi.produk_id', 'poi.hpp_per_satuan')
+            ->get()
+            ->unique('produk_id')
+            ->pluck('hpp_per_satuan', 'produk_id');
+
+        $bomLines = DB::table('bom')
+            ->select('produk_jadi_id', 'bahan_id', 'qty_per_unit')
+            ->get();
+        $bomHppMap = [];
+        foreach ($bomLines as $line) {
+            $ingHpp = (float) ($latestPoHpp[$line->bahan_id] ?? 0);
+            $bomHppMap[$line->produk_jadi_id] = ($bomHppMap[$line->produk_jadi_id] ?? 0) + ((float) $line->qty_per_unit * $ingHpp);
+        }
+
+        // Query stok dengan alokasi bahan aktif dan scoping gudang/kategori
         $query = Stok::query()
             ->select('stok.*')
             ->join('produk', 'produk.id', '=', 'stok.produk_id')
-            ->with(['produk:id,sku,nama,satuan,tipe', 'gudang:id,nama'])
-            ->selectRaw('(SELECT COALESCE(SUM(ab.qty_dialokasikan),0) FROM alokasi_bahan ab JOIN batch_produksi bp ON bp.id = ab.batch_id WHERE ab.bahan_id = stok.produk_id AND ab.status = \'aktif\' AND (bp.gudang_operasional_id = stok.gudang_id OR bp.gudang_operasional_id IS NULL)) as alokasi_aktif');
+            ->with(['produk:id,sku,nama,satuan,tipe,harga_hpp', 'gudang:id,nama'])
+            ->selectRaw('(SELECT COALESCE(SUM(ab.qty_dialokasikan),0) FROM alokasi_bahan ab JOIN batch_produksi bp ON bp.id = ab.batch_id WHERE ab.bahan_id = stok.produk_id AND ab.status = \'aktif\' AND (bp.gudang_operasional_id = stok.gudang_id OR bp.gudang_operasional_id IS NULL)) as alokasi_aktif')
+            ->when($request->filled('gudang_id'), function ($q) use ($request, $allowedGudangIds) {
+                if ($allowedGudangIds === null || in_array((int) $request->gudang_id, $allowedGudangIds, true)) {
+                    $q->where('stok.gudang_id', $request->gudang_id);
+                }
+            }, function ($q) use ($allowedGudangIds) {
+                if ($allowedGudangIds !== null) {
+                    $q->whereIn('stok.gudang_id', $allowedGudangIds);
+                }
+            })
+            ->when($request->filled('kategori'), function ($q) use ($request) {
+                if ($request->kategori === 'bahan') {
+                    $q->whereIn('produk.tipe', ['bahan', 'kemas']);
+                } elseif ($request->kategori === 'produk_jadi') {
+                    $q->where('produk.tipe', 'produk_jadi');
+                }
+            });
 
         return DataTables::eloquent($query)
             ->addColumn('sku', fn ($s) => $s->produk?->sku)
@@ -90,7 +133,7 @@ class StokController extends Controller
                 $batasMin = $this->analisa->getBatasMinimumForStok($s->produk_id, $s->gudang_id, $batasMinMap);
 
                 return $batasMin > 0
-                    ? rtrim(rtrim(number_format($batasMin, 2, ',', '.'), '0'), ',') . ' ' . $s->produk?->satuan
+                    ? $this->formatQty((float) $batasMin) . ' ' . $s->produk?->satuan
                     : '-';
             })
             ->addColumn('kolom_stok', function ($s) use ($gudangPusatId, $inboundPo, $inboundRt, $batasMinMap) {
@@ -109,10 +152,10 @@ class StokController extends Controller
                 $isOrder = $batasMin > 0 && $kolomStok <= $batasMin;
 
                 $badge = $isOrder
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 ml-2">ORDER</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-700 ml-2">AMAN</span>';
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700 ml-2">ORDER</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 ml-2">AMAN</span>';
 
-                $val = rtrim(rtrim(number_format($kolomStok, 2, ',', '.'), '0'), ',') . ' ' . $s->produk?->satuan;
+                $val = $this->formatQty($kolomStok) . ' ' . $s->produk?->satuan;
 
                 return '<div class="flex items-center justify-end"><span>' . $val . '</span>' . $badge . '</div>';
             })
@@ -129,6 +172,7 @@ class StokController extends Controller
 
                 $kolomStok = $fisik + $inbound;
 
+                // Logika Rencana: Bahan berkurang komitmen alokasi; Produk jadi bertambah rencana batch
                 if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true)) {
                     $kolomRencana = $kolomStok - (float) $s->alokasi_aktif;
                 } elseif ($s->produk?->tipe === 'produk_jadi') {
@@ -142,18 +186,49 @@ class StokController extends Controller
                 $isOrder = $batasMin > 0 && $kolomRencana <= $batasMin;
 
                 $badge = $isOrder
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 ml-2">ORDER</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-700 ml-2">AMAN</span>';
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700 ml-2">ORDER</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 ml-2">AMAN</span>';
 
-                $val = rtrim(rtrim(number_format($kolomRencana, 2, ',', '.'), '0'), ',') . ' ' . $s->produk?->satuan;
+                $val = $this->formatQty($kolomRencana) . ' ' . $s->produk?->satuan;
 
                 return '<div class="flex items-center justify-end"><span>' . $val . '</span>' . $badge . '</div>';
+            })
+            ->addColumn('hpp', function ($s) use ($latestPoHpp, $bomHppMap, $canSeePrice) {
+                if (! $canSeePrice) {
+                    return '—';
+                }
+                $hpp = in_array($s->produk?->tipe, ['bahan', 'kemas'], true)
+                    ? (float) ($latestPoHpp[$s->produk_id] ?? $s->produk?->harga_hpp ?? 0)
+                    : (float) ($bomHppMap[$s->produk_id] ?? $s->produk?->harga_hpp ?? 0);
+
+                return $hpp > 0 ? 'Rp ' . number_format($hpp, 0, ',', '.') : '—';
+            })
+            ->addColumn('nilai_stok', function ($s) use ($latestPoHpp, $bomHppMap, $canSeePrice) {
+                if (! $canSeePrice) {
+                    return '—';
+                }
+                $hpp = in_array($s->produk?->tipe, ['bahan', 'kemas'], true)
+                    ? (float) ($latestPoHpp[$s->produk_id] ?? $s->produk?->harga_hpp ?? 0)
+                    : (float) ($bomHppMap[$s->produk_id] ?? $s->produk?->harga_hpp ?? 0);
+
+                $nilai = (float) $s->qty_saat_ini * $hpp;
+
+                return $nilai > 0 ? 'Rp ' . number_format($nilai, 0, ',', '.') : 'Rp 0';
             })
             ->addColumn('action', function ($s) {
                 return '<a href="' . route('stok.ledger', $s->produk_id) . '" class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition">Kartu Stok</a>';
             })
             ->rawColumns(['kolom_stok', 'kolom_rencana', 'action'])
             ->toJson();
+    }
+
+    private function formatQty(float $qty): string
+    {
+        if (floor($qty) == $qty) {
+            return number_format($qty, 0, ',', '.');
+        }
+
+        return rtrim(rtrim(number_format($qty, 2, ',', '.'), '0'), ',');
     }
 
     public function mutasi(Request $request)
@@ -229,6 +304,8 @@ class StokController extends Controller
             ->editColumn('tanggal', fn ($k) => $k->tanggal->format('d/m/Y'))
             ->addColumn('gudang_nama', fn ($k) => $k->gudang?->nama)
             ->editColumn('tipe', fn ($k) => strtoupper($k->tipe))
+            ->editColumn('qty', fn ($k) => $this->formatQty((float) $k->qty) . ' ' . $produk->satuan)
+            ->editColumn('saldo_setelah', fn ($k) => $this->formatQty((float) $k->saldo_setelah) . ' ' . $produk->satuan)
             ->editColumn('referensi_tipe', fn ($k) => ucwords(str_replace('_', ' ', $k->referensi_tipe)))
             ->toJson();
     }

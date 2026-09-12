@@ -22,17 +22,48 @@
             </x-slot:actions>
         </x-page-header>
 
+        <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-sm border border-gray-200">
+            <div class="flex flex-wrap items-center gap-3">
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Lokasi Gudang</label>
+                    <select id="filter-gudang" class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[180px]">
+                        @if($isGlobal)
+                            <option value="">— Semua Gudang —</option>
+                        @endif
+                        @foreach($gudang as $g)
+                            <option value="{{ $g->id }}">{{ $g->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Kategori Barang</label>
+                    <select id="filter-kategori" class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[160px]">
+                        <option value="">— Semua Kategori —</option>
+                        <option value="bahan">Bahan Baku & Kemas</option>
+                        <option value="produk_jadi">Produk Jadi</option>
+                    </select>
+                </div>
+            </div>
+            <div class="text-right">
+                <span class="text-xs text-gray-400 font-medium">Buku Saldo & Evaluasi Stok</span>
+            </div>
+        </div>
+
         <x-card title="Buku Saldo & Alert Ketersediaan Stok" :noPadding="true">
             <table id="tbl" class="w-full text-xs">
                 <thead>
                     <tr>
-                        <th class="px-4 py-3 text-left">SKU</th>
-                        <th class="px-4 py-3 text-left">Produk</th>
-                        <th class="px-4 py-3 text-left">Gudang</th>
-                        <th class="px-4 py-3 text-right">Batas Min (Analisa)</th>
-                        <th class="px-4 py-3 text-right">Kolom Stok</th>
-                        <th class="px-4 py-3 text-right">Kolom Rencana</th>
-                        <th class="px-4 py-3 text-center">Aksi</th>
+                        <th class="px-3.5 py-2.5 text-left">SKU</th>
+                        <th class="px-3.5 py-2.5 text-left">Produk</th>
+                        <th class="px-3.5 py-2.5 text-left">Gudang</th>
+                        <th class="px-3.5 py-2.5 text-right">Batas Min (Analisa)</th>
+                        <th class="px-3.5 py-2.5 text-right">Kolom Stok</th>
+                        <th class="px-3.5 py-2.5 text-right">Kolom Rencana</th>
+                        @if($canSeePrice)
+                            <th class="px-3.5 py-2.5 text-right">HPP</th>
+                            <th class="px-3.5 py-2.5 text-right">Nilai Stok</th>
+                        @endif
+                        <th class="px-3.5 py-2.5 text-center">Aksi</th>
                     </tr>
                 </thead>
             </table>
@@ -96,19 +127,38 @@
     @push('scripts')
     <script>
     $(function(){
-        $('#tbl').DataTable({
+        const canSeePrice = {{ $canSeePrice ? 'true' : 'false' }};
+        const cols = [
+            { data: 'sku', orderable: false },
+            { data: 'nama', orderable: false },
+            { data: 'gudang_nama', orderable: false },
+            { data: 'batas_minimum', className: 'text-right font-mono', orderable: false, searchable: false },
+            { data: 'kolom_stok', className: 'text-right font-mono', searchable: false },
+            { data: 'kolom_rencana', className: 'text-right font-mono', searchable: false }
+        ];
+
+        if (canSeePrice) {
+            cols.push({ data: 'hpp', className: 'text-right font-mono text-gray-700', orderable: false, searchable: false });
+            cols.push({ data: 'nilai_stok', className: 'text-right font-mono font-bold text-gray-900', orderable: false, searchable: false });
+        }
+
+        cols.push({ data: 'action', className: 'text-center', orderable: false, searchable: false });
+
+        const tbl = $('#tbl').DataTable({
             processing: true,
             serverSide: true,
-            ajax: '{{ route("stok.data") }}',
-            columns: [
-                { data: 'sku', orderable: false },
-                { data: 'nama', orderable: false },
-                { data: 'gudang_nama', orderable: false },
-                { data: 'batas_minimum', className: 'text-right font-mono', orderable: false, searchable: false },
-                { data: 'kolom_stok', className: 'text-right font-mono', searchable: false },
-                { data: 'kolom_rencana', className: 'text-right font-mono', searchable: false },
-                { data: 'action', className: 'text-center', orderable: false, searchable: false }
-            ]
+            ajax: {
+                url: '{{ route("stok.data") }}',
+                data: function(d) {
+                    d.gudang_id = $('#filter-gudang').val();
+                    d.kategori = $('#filter-kategori').val();
+                }
+            },
+            columns: cols
+        });
+
+        $('#filter-gudang, #filter-kategori').on('change', function(){
+            tbl.ajax.reload();
         });
     });
     </script>

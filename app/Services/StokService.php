@@ -70,7 +70,7 @@ class StokService
         return $stok ? (float) $stok->qty_saat_ini : 0.0;
     }
 
-    private function post(string $tipe, int $produkId, int $gudangId, float $qty, string $referensiTipe, string|int|null $referensiId, ?string $catatan, ?Carbon $tanggal): KartuStok
+    private function post(string $tipe, int $produkId, int $gudangId, float $qty, string $referensiTipe, string|int|null $referensiId = null, ?string $catatan = null, ?Carbon $tanggal = null): KartuStok
     {
         if ($qty <= 0) {
             throw new RuntimeException('Qty mutasi stok harus lebih dari 0.');

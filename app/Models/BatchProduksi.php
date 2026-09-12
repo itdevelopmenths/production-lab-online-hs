@@ -65,6 +65,11 @@ class BatchProduksi extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function outputs(): HasMany
+    {
+        return $this->hasMany(BatchProduksiOutput::class, 'batch_id');
+    }
+
     /** Yield (%) = qty_baik / qty_rencana * 100. */
     public function yield(): ?float
     {

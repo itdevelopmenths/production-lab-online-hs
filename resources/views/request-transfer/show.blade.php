@@ -110,6 +110,10 @@
                                 <th class="py-2.5 px-3 text-right">Stok Fisik Asal</th>
                                 <th class="py-2.5 px-3 text-right">Dikirim</th>
                                 <th class="py-2.5 px-3 text-right">Diterima</th>
+                                @if($rt->status === 'selesai')
+                                <th class="py-2.5 px-3 text-right">Baik</th>
+                                <th class="py-2.5 px-3 text-right">Rusak</th>
+                                @endif
                                 <th class="py-2.5 px-3 text-center">Status</th>
                                 <th class="py-2.5 px-3.5 text-center">Aksi</th>
                             </tr>
@@ -123,14 +127,17 @@
                                 <td class="py-2.5 px-3.5">
                                     <div class="font-bold text-gray-900">{{ $it->produk->nama }}</div>
                                     <div class="font-mono text-[11px] text-gray-400">{{ $it->produk->sku }}</div>
+                                    @if($it->keterangan_rusak)
+                                        <div class="text-[11px] text-rose-600 italic mt-0.5">Catatan rusak: {{ $it->keterangan_rusak }}</div>
+                                    @endif
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-semibold text-gray-900">
-                                    {{ rtrim(rtrim(number_format($it->qty_diminta, 2, ',', '.'), '0'), ',') }}
+                                    {{ \App\Helpers\NumberHelper::formatQty($it->qty_diminta) }}
                                     <span class="text-gray-400 font-normal">{{ $it->produk->satuan }}</span>
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-medium {{ ($w && !$w['is_cukup'] && in_array($rt->status, ['draft', 'diajukan', 'disetujui'], true)) ? 'text-rose-600 font-bold' : 'text-gray-700' }}">
                                     @if($w)
-                                        {{ rtrim(rtrim(number_format($w['stok_fisik_asal'], 2, ',', '.'), '0'), ',') }}
+                                        {{ \App\Helpers\NumberHelper::formatQty($w['stok_fisik_asal']) }}
                                         <span class="text-gray-400 font-normal">{{ $it->produk->satuan }}</span>
                                     @else
                                         -
@@ -138,7 +145,7 @@
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-medium text-gray-700">
                                     @if($it->qty_dikirim !== null)
-                                        {{ rtrim(rtrim(number_format($it->qty_dikirim, 2, ',', '.'), '0'), ',') }}
+                                        {{ \App\Helpers\NumberHelper::formatQty($it->qty_dikirim) }}
                                         <span class="text-gray-400 font-normal">{{ $it->produk->satuan }}</span>
                                     @else
                                         <span class="text-gray-400">-</span>
@@ -146,17 +153,25 @@
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-medium text-gray-700">
                                     @if($it->qty_diterima !== null)
-                                        {{ rtrim(rtrim(number_format($it->qty_diterima, 2, ',', '.'), '0'), ',') }}
+                                        {{ \App\Helpers\NumberHelper::formatQty($it->qty_diterima) }}
                                         <span class="text-gray-400 font-normal">{{ $it->produk->satuan }}</span>
                                     @else
                                         <span class="text-gray-400">-</span>
                                     @endif
                                 </td>
+                                @if($rt->status === 'selesai')
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-emerald-700">
+                                    {{ $it->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($it->qty_baik) . ' ' . $it->produk->satuan : '-' }}
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold {{ (float)($it->qty_rusak ?? 0) > 0 ? 'text-rose-700' : 'text-gray-500' }}">
+                                    {{ $it->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($it->qty_rusak) . ' ' . $it->produk->satuan : '-' }}
+                                </td>
+                                @endif
                                 <td class="py-2.5 px-3 text-center whitespace-nowrap">
                                     @if(in_array($rt->status, ['draft', 'diajukan', 'disetujui'], true))
                                         @if($w && $w['kurang'] > 0)
                                             <x-badge variant="danger">
-                                                Kurang {{ rtrim(rtrim(number_format($w['kurang'], 2, ',', '.'), '0'), ',') }} {{ $it->produk->satuan }}
+                                                Kurang {{ \App\Helpers\NumberHelper::formatQty($w['kurang']) }} {{ $it->produk->satuan }}
                                             </x-badge>
                                         @else
                                             <x-badge variant="success">
@@ -177,6 +192,10 @@
                                         @if($it->qty_diterima !== null && $it->qty_dikirim !== null && (float)$it->qty_diterima < (float)$it->qty_dikirim)
                                             <x-badge variant="warning">
                                                 Selisih Terima
+                                            </x-badge>
+                                        @elseif((float)($it->qty_rusak ?? 0) > 0)
+                                            <x-badge variant="danger">
+                                                Ada Rusak
                                             </x-badge>
                                         @else
                                             <x-badge variant="success">
@@ -284,18 +303,50 @@
                         @endcan
                     @endif
 
-                    @can('rt.receive')
                     @if(in_array($rt->status, ['diproses', 'dikirim'], true))
-                    <form method="POST" action="{{ route('rt.transition', $rt) }}">
-                        @csrf
-                        <input type="hidden" name="aksi" value="receive">
-                        <x-button type="submit" variant="success" size="md" class="w-full">
-                            Konfirmasi Terima (Stok IN)
-                        </x-button>
-                    </form>
-                    <p class="text-[11px] text-gray-400 text-center">Menambahkan stok fisik ke gudang tujuan.</p>
+                        @if($canReceive)
+                        <div class="border border-emerald-200 bg-emerald-50/50 rounded-sm p-3">
+                            <h4 class="text-xs font-bold text-emerald-900 mb-2">Konfirmasi Penerimaan Barang</h4>
+                            <form method="POST" action="{{ route('rt.transition', $rt) }}">
+                                @csrf
+                                <input type="hidden" name="aksi" value="receive">
+                                <div class="space-y-2.5 mb-3">
+                                    @foreach($rt->items as $index => $it)
+                                    @php
+                                        $qtyKirim = (float) ($it->qty_dikirim ?? $it->qty_diminta);
+                                    @endphp
+                                    <div class="bg-white p-2.5 rounded-sm border border-emerald-100 text-xs">
+                                        <input type="hidden" name="items[{{ $index }}][id]" value="{{ $it->id }}">
+                                        <div class="font-bold text-gray-900">{{ $it->produk->nama }}</div>
+                                        <div class="text-[11px] text-gray-500 mb-2">Dikirim: <span class="font-semibold font-mono text-gray-800">{{ \App\Helpers\NumberHelper::formatQty($qtyKirim) }} {{ $it->produk->satuan }}</span></div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">Qty Baik (Pcs)</label>
+                                                <input type="number" step="0.01" min="0" max="{{ $qtyKirim }}" name="items[{{ $index }}][qty_baik]" value="{{ $qtyKirim }}" class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[11px] font-semibold text-rose-800 mb-0.5">Qty Rusak (Defect)</label>
+                                                <input type="number" step="0.01" min="0" max="{{ $qtyKirim }}" name="items[{{ $index }}][qty_rusak]" value="0" class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 font-mono" required>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <input type="text" name="items[{{ $index }}][keterangan_rusak]" placeholder="Catatan kerusakan transit (jika ada)..." class="w-full rounded-sm border-gray-300 text-[11px] py-1 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                                <x-button type="submit" variant="success" size="md" class="w-full">
+                                    Konfirmasi Terima (Stok IN)
+                                </x-button>
+                            </form>
+                            <p class="text-[11px] text-gray-500 text-center mt-1.5">Hanya kuantitas baik yang masuk ke saldo stok fisik gudang.</p>
+                        </div>
+                        @else
+                        <div class="py-2.5 px-3 bg-amber-50 border border-amber-200 rounded-sm text-center text-xs text-amber-800 font-medium">
+                            Menunggu konfirmasi penerimaan oleh petugas Gudang {{ $rt->gudangTujuan?->nama ?? 'Tujuan' }}.
+                        </div>
+                        @endif
                     @endif
-                    @endcan
 
                     @can('rt.cancel')
                     @if(!in_array($rt->status, ['selesai', 'dibatalkan'], true))

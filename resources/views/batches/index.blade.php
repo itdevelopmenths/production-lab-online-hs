@@ -21,10 +21,12 @@
             <thead>
                 <tr>
                     <th class="px-4 py-3 text-left">No Batch</th>
-                    <th class="px-4 py-3 text-left">Produk</th>
+                    <th class="px-4 py-3 text-left">Produk Luaran</th>
                     <th class="px-4 py-3 text-right">Rencana</th>
-                    <th class="px-4 py-3 text-left">Status</th>
-                    <th class="px-4 py-3 text-left">Yield</th>
+                    <th class="px-4 py-3 text-right">Baik</th>
+                    <th class="px-4 py-3 text-right">Rusak</th>
+                    <th class="px-4 py-3 text-center">Yield</th>
+                    <th class="px-4 py-3 text-center">Status</th>
                     <th class="px-4 py-3 text-left">Tanggal</th>
                     <th class="px-4 py-3 text-center">Aksi</th>
                 </tr>
@@ -43,8 +45,10 @@
                 { data: 'no_batch' },
                 { data: 'produk_nama', orderable: false },
                 { data: 'qty_rencana', className: 'text-right font-mono' },
-                { data: 'status' },
-                { data: 'yield', orderable: false, searchable: false },
+                { data: 'qty_baik', className: 'text-right font-mono font-semibold text-emerald-700', orderable: false, searchable: false },
+                { data: 'qty_rusak', className: 'text-right font-mono font-semibold text-rose-700', orderable: false, searchable: false },
+                { data: 'yield', orderable: false, searchable: false, className: 'text-center font-mono font-bold' },
+                { data: 'status', className: 'text-center', orderable: false },
                 { data: 'tanggal' },
                 { data: 'action', orderable: false, searchable: false, className: 'text-center' }
             ]

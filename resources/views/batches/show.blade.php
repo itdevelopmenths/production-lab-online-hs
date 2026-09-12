@@ -61,7 +61,7 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         <x-stat-box
             title="Target Rencana"
-            :value="rtrim(rtrim(number_format($batch->qty_rencana, 2, ',', '.'), '0'), ',')"
+            :value="\App\Helpers\NumberHelper::formatQty($batch->qty_rencana)"
             :subtitle="$batch->produk->satuan . ' · Target kuantitas batch'"
             variant="primary"
         />
@@ -107,6 +107,47 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <!-- Kolom Kiri: Tabel Alokasi Bahan & Modul Produksi -->
         <div class="lg:col-span-2 space-y-5">
+            <!-- Tabel Produk Jadi Luaran (Multi-Output Batch) -->
+            @if($batch->outputs->isNotEmpty())
+            <x-card title="Produk Jadi Luaran Batch" subtitle="Daftar varian dan kuantitas produk jadi yang dihasilkan oleh batch ini" :noPadding="true">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
+                            <tr>
+                                <th class="py-2.5 px-3.5">Produk Jadi</th>
+                                <th class="py-2.5 px-3 text-right">Target Rencana</th>
+                                <th class="py-2.5 px-3 text-right">Hasil Baik</th>
+                                <th class="py-2.5 px-3 text-right">Hasil Rusak</th>
+                                <th class="py-2.5 px-3 text-center">Yield QC</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach($batch->outputs as $out)
+                            <tr class="hover:bg-gray-50/70 transition">
+                                <td class="py-2.5 px-3.5">
+                                    <div class="font-bold text-gray-900">{{ $out->produk?->nama }}</div>
+                                    <div class="font-mono text-[11px] text-gray-400">{{ $out->produk?->sku }}</div>
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-gray-900">
+                                    {{ \App\Helpers\NumberHelper::formatQty($out->qty_rencana) }} <span class="text-gray-400 font-normal">{{ $out->produk?->satuan }}</span>
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-emerald-700">
+                                    {{ $out->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($out->qty_baik) . ' ' . $out->produk?->satuan : '-' }}
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-rose-700">
+                                    {{ $out->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($out->qty_rusak) . ' ' . $out->produk?->satuan : '-' }}
+                                </td>
+                                <td class="py-2.5 px-3 text-center font-mono font-bold">
+                                    {{ $out->yield() !== null ? number_format($out->yield(), 1) . '%' : '-' }}
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
+            @endif
+
             <!-- Tabel Alokasi Bahan Baku (BOM Explode) -->
             <x-card title="Alokasi Bahan Baku (BOM Explode)" subtitle="Formula resep × target kuantitas. Stok fisik dipotong saat Release & Issue." :noPadding="true">
                 <x-slot:tools>
@@ -137,12 +178,12 @@
                                     <div class="font-mono text-[11px] text-gray-400">{{ $a->bahan->sku }}</div>
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-semibold text-gray-900">
-                                    {{ rtrim(rtrim(number_format($a->qty_dialokasikan, 2, ',', '.'), '0'), ',') }}
+                                    {{ \App\Helpers\NumberHelper::formatQty($a->qty_dialokasikan) }}
                                     <span class="text-gray-400 font-normal">{{ $a->bahan->satuan }}</span>
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-medium text-gray-700">
                                     @if($w)
-                                        {{ rtrim(rtrim(number_format($w['stok_fisik_op'], 2, ',', '.'), '0'), ',') }}
+                                        {{ \App\Helpers\NumberHelper::formatQty($w['stok_fisik_op']) }}
                                         <span class="text-gray-400 font-normal">{{ $a->bahan->satuan }}</span>
                                     @else
                                         -
@@ -150,7 +191,7 @@
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-medium {{ ($w['stok_rencana'] ?? 0) < 0 ? 'text-rose-600 font-bold' : 'text-gray-700' }}">
                                     @if($w)
-                                        {{ rtrim(rtrim(number_format($w['stok_rencana'], 2, ',', '.'), '0'), ',') }}
+                                        {{ \App\Helpers\NumberHelper::formatQty($w['stok_rencana']) }}
                                         <span class="text-gray-400 font-normal">{{ $a->bahan->satuan }}</span>
                                     @else
                                         -
@@ -158,25 +199,19 @@
                                 </td>
                                 <td class="py-2.5 px-3 text-right text-gray-500">
                                     @if($w)
-                                        {{ rtrim(rtrim(number_format($w['stok_pusat'], 2, ',', '.'), '0'), ',') }}
+                                        {{ \App\Helpers\NumberHelper::formatQty($w['stok_pusat']) }}
                                         <span class="text-gray-400 font-normal">{{ $a->bahan->satuan }}</span>
                                     @else
                                         -
                                     @endif
                                 </td>
-                                <td class="py-2.5 px-3 text-center whitespace-nowrap">
+                                <td class="py-2.5 px-3 text-center">
                                     @if($batch->status === 'rencana')
-                                        @if($w && $w['kurang_fisik'] > 0)
-                                            <x-badge variant="danger">
-                                                Kurang {{ rtrim(rtrim(number_format($w['kurang_fisik'], 2, ',', '.'), '0'), ',') }} {{ $a->bahan->satuan }}
-                                            </x-badge>
-                                        @elseif($w && !$w['is_cukup_rencana'])
-                                            <x-badge variant="warning">
-                                                Defisit Rencana
-                                            </x-badge>
+                                        @if($w && $w['is_cukup_fisik'])
+                                            <x-badge variant="success" size="xs">Cukup</x-badge>
                                         @else
-                                            <x-badge variant="success">
-                                                Cukup
+                                            <x-badge variant="danger" size="xs">
+                                                Kurang {{ \App\Helpers\NumberHelper::formatQty($w['kurang_fisik'] ?? 0) }}
                                             </x-badge>
                                         @endif
                                     @else
@@ -206,22 +241,67 @@
             <!-- Form Selesaikan Batch (Khusus status release) -->
             @can('batch.complete')
             @if($batch->status === 'release')
-            <x-card title="Selesaikan Batch Produksi" subtitle="Input hasil QC produk jadi. Kuantitas baik otomatis masuk ke saldo stok gudang." variant="success">
-                <form method="POST" action="{{ route('batches.complete', $batch) }}" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <x-card title="Selesaikan Batch Produksi" subtitle="Input hasil QC produk jadi. Kuantitas baik otomatis masuk ke saldo stok gudang." variant="success" :noPadding="true">
+                <form method="POST" action="{{ route('batches.complete', $batch) }}" class="p-3.5">
                     @csrf
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Qty Baik (Pcs)</label>
-                        <input type="number" step="0.01" name="qty_baik" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" placeholder="0" required>
+                    @if($batch->outputs->count() > 1)
+                    <table class="w-full text-left text-xs mb-3">
+                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
+                            <tr>
+                                <th class="py-2 px-3">Produk Jadi</th>
+                                <th class="py-2 px-3 text-right">Target</th>
+                                <th class="py-2 px-3 text-right w-36">Qty Baik <span class="text-rose-500">*</span></th>
+                                <th class="py-2 px-3 text-right w-36">Qty Rusak (Defect)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach($batch->outputs as $index => $out)
+                            <tr>
+                                <td class="py-2 px-3 font-medium text-gray-800">
+                                    <input type="hidden" name="outputs[{{ $index }}][id]" value="{{ $out->id }}">
+                                    <div class="font-bold">{{ $out->produk?->nama }}</div>
+                                    <div class="font-mono text-[10px] text-gray-400">{{ $out->produk?->sku }}</div>
+                                </td>
+                                <td class="py-2 px-3 text-right font-mono text-gray-600">
+                                    {{ \App\Helpers\NumberHelper::formatQty($out->qty_rencana) }} {{ $out->produk?->satuan }}
+                                </td>
+                                <td class="py-2 px-3 text-right">
+                                    <input type="number" step="0.01" min="0" name="outputs[{{ $index }}][qty_baik]" class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono" placeholder="0" required>
+                                </td>
+                                <td class="py-2 px-3 text-right">
+                                    <input type="number" step="0.01" min="0" name="outputs[{{ $index }}][qty_rusak]" value="0" class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono" required>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    @else
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end mb-1">
+                        @if($batch->outputs->isNotEmpty())
+                            <input type="hidden" name="outputs[0][id]" value="{{ $batch->outputs->first()->id }}">
+                        @endif
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Qty Baik (Pcs)</label>
+                            <input type="number" step="0.01" min="0" name="{{ $batch->outputs->isNotEmpty() ? 'outputs[0][qty_baik]' : 'qty_baik' }}" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-right" placeholder="0" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Qty Rusak (Defect)</label>
+                            <input type="number" step="0.01" min="0" name="{{ $batch->outputs->isNotEmpty() ? 'outputs[0][qty_rusak]' : 'qty_rusak' }}" value="0" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-right" required>
+                        </div>
+                        <div>
+                            <x-button type="submit" variant="success" size="sm" class="w-full">
+                                Simpan Hasil Batch
+                            </x-button>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Qty Rusak (Defect)</label>
-                        <input type="number" step="0.01" name="qty_rusak" value="0" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
-                    </div>
-                    <div>
-                        <x-button type="submit" variant="success" size="sm" class="w-full">
-                            Simpan Hasil Batch
+                    @endif
+                    @if($batch->outputs->count() > 1)
+                    <div class="flex justify-end pt-2">
+                        <x-button type="submit" variant="success" size="sm">
+                            Simpan Hasil Batch & Selesaikan
                         </x-button>
                     </div>
+                    @endif
                 </form>
             </x-card>
             @endif
@@ -311,13 +391,13 @@
                     <div class="bg-gray-50 p-2.5 rounded-sm border border-gray-200">
                         <p class="text-[11px] font-semibold text-gray-500 uppercase">Qty Baik</p>
                         <p class="text-xl font-bold text-emerald-700 mt-0.5">
-                            {{ $batch->qty_baik !== null ? rtrim(rtrim(number_format($batch->qty_baik, 2, ',', '.'), '0'), ',') : '-' }}
+                            {{ $batch->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($batch->qty_baik) : '-' }}
                         </p>
                     </div>
                     <div class="bg-gray-50 p-2.5 rounded-sm border border-gray-200">
                         <p class="text-[11px] font-semibold text-gray-500 uppercase">Qty Rusak</p>
                         <p class="text-xl font-bold text-rose-700 mt-0.5">
-                            {{ $batch->qty_rusak !== null ? rtrim(rtrim(number_format($batch->qty_rusak, 2, ',', '.'), '0'), ',') : '-' }}
+                            {{ $batch->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($batch->qty_rusak) : '-' }}
                         </p>
                     </div>
                 </div>

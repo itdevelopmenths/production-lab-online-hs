@@ -18,11 +18,14 @@ class ProdukController extends Controller
         return view('produk.index');
     }
 
-    public function data(): JsonResponse
+    public function data(Request $request): JsonResponse
     {
         $this->authorize('produk.view');
 
-        $query = Produk::query()->select('produk.*');
+        $query = Produk::query()->select('produk.*')
+            ->when($request->filled('tipe') && $request->tipe !== 'all', function ($q) use ($request) {
+                $q->where('tipe', $request->tipe);
+            });
 
         return DataTables::eloquent($query)
             ->editColumn('tipe', fn ($p) => ucfirst(str_replace('_', ' ', $p->tipe)))

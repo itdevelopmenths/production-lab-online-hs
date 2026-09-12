@@ -6,6 +6,7 @@ use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\RequestTransfer;
 use App\Models\Stok;
+use App\Services\Authorization\LocationScopeService;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,8 +16,10 @@ use Yajra\DataTables\Facades\DataTables;
 
 class RequestTransferController extends Controller
 {
-    public function __construct(private readonly StokService $stok)
-    {
+    public function __construct(
+        private readonly StokService $stok,
+        private readonly LocationScopeService $locationScope
+    ) {
     }
 
     public function index()
@@ -30,8 +33,17 @@ class RequestTransferController extends Controller
     {
         $this->authorize('rt.view');
 
+        $user = auth()->user();
+        $accessibleIds = $this->locationScope->getAccessibleWarehouseIds($user);
+
         $query = RequestTransfer::query()->select('request_transfers.*')
             ->with(['gudangAsal:id,nama', 'gudangTujuan:id,nama'])
+            ->when($accessibleIds !== null, function ($q) use ($accessibleIds) {
+                $q->where(function ($sub) use ($accessibleIds) {
+                    $sub->whereIn('gudang_asal_id', $accessibleIds)
+                        ->orWhereIn('gudang_tujuan_id', $accessibleIds);
+                });
+            })
             ->when($request->filled('jenis'), fn ($q) => $q->where('jenis', $request->jenis));
 
         return DataTables::eloquent($query)
@@ -48,10 +60,18 @@ class RequestTransferController extends Controller
     public function create()
     {
         $this->authorize('rt.create');
-        $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
+        $user = auth()->user();
+        $accessibleIds = $this->locationScope->getAccessibleWarehouseIds($user);
+
+        $gudang = Gudang::active()
+            ->when($accessibleIds !== null, fn ($q) => $q->whereIn('id', $accessibleIds))
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'tipe']);
+
+        $allGudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
 
-        return view('request-transfer.create', compact('gudang', 'produk'));
+        return view('request-transfer.create', compact('gudang', 'allGudang', 'produk'));
     }
 
     public function store(Request $request)
@@ -133,11 +153,32 @@ class RequestTransferController extends Controller
             ];
         }
 
+        $user = auth()->user();
+        $isManager = $user->hasRole('manager') || $this->locationScope->isGlobal($user);
+        $canAccessDestination = $requestTransfer->gudang_tujuan_id 
+            ? $this->locationScope->canAccessWarehouse($user, $requestTransfer->gudang_tujuan_id) 
+            : false;
+
+        $isFulfillmentDestination = $requestTransfer->gudangTujuan 
+            && in_array($requestTransfer->gudangTujuan->tipe, ['fulfillment_pusat', 'fulfillment_cabang', 'fulfillment'], true);
+
+        $canReceive = false;
+        if (in_array($requestTransfer->status, ['diproses', 'dikirim'], true) && $user->can('rt.receive')) {
+            if ($isManager) {
+                $canReceive = true;
+            } elseif ($canAccessDestination) {
+                if (!$isFulfillmentDestination || $user->hasRole('fulfillment')) {
+                    $canReceive = true;
+                }
+            }
+        }
+
         return view('request-transfer.show', compact(
             'requestTransfer',
             'stokAsal',
             'hasDeficit',
-            'itemWarnings'
+            'itemWarnings',
+            'canReceive'
         ));
     }
 
@@ -147,12 +188,16 @@ class RequestTransferController extends Controller
      */
     public function transition(Request $request, RequestTransfer $requestTransfer)
     {
-        $aksi = $request->validate([
+        $data = $request->validate([
             'aksi' => ['required', Rule::in(['submit', 'approve', 'process', 'ship', 'receive', 'cancel'])],
             'items' => ['nullable', 'array'],
             'items.*.id' => ['required', 'exists:request_transfer_items,id'],
-            'items.*.qty' => ['required', 'numeric', 'min:0'],
-        ])['aksi'];
+            'items.*.qty' => ['nullable', 'numeric', 'min:0'],
+            'items.*.qty_baik' => ['nullable', 'numeric', 'min:0'],
+            'items.*.qty_rusak' => ['nullable', 'numeric', 'min:0'],
+            'items.*.keterangan_rusak' => ['nullable', 'string', 'max:500'],
+        ]);
+        $aksi = $data['aksi'];
 
         $rt = $requestTransfer;
         $perm = [
@@ -160,6 +205,29 @@ class RequestTransferController extends Controller
             'ship' => 'rt.ship', 'receive' => 'rt.receive', 'cancel' => 'rt.cancel',
         ][$aksi];
         $this->authorize($perm);
+
+        $user = auth()->user();
+        $isManager = $user->hasRole('manager') || $this->locationScope->isGlobal($user);
+
+        // Enforced Separation of Duties (SoD) on Receive
+        if ($aksi === 'receive' && !$isManager) {
+            $canAccessDestination = $rt->gudang_tujuan_id 
+                ? $this->locationScope->canAccessWarehouse($user, $rt->gudang_tujuan_id) 
+                : false;
+
+            $isFulfillmentDestination = $rt->gudangTujuan 
+                && in_array($rt->gudangTujuan->tipe, ['fulfillment_pusat', 'fulfillment_cabang', 'fulfillment'], true);
+
+            // User must be authorized for destination warehouse
+            if (!$canAccessDestination) {
+                abort(403, 'Aksi Ditolak: Anda merupakan pihak pengirim. Konfirmasi penerimaan wajib dilakukan oleh petugas Gudang Fulfillment tujuan.');
+            }
+
+            // If destination is fulfillment, only fulfillment role can receive
+            if ($isFulfillmentDestination && !$user->hasRole('fulfillment')) {
+                abort(403, 'Aksi Ditolak: Anda merupakan pihak pengirim. Konfirmasi penerimaan wajib dilakukan oleh petugas Gudang Fulfillment tujuan.');
+            }
+        }
 
         $qtyMap = collect($request->input('items', []))->keyBy('id');
 
@@ -219,10 +287,37 @@ class RequestTransferController extends Controller
         abort_unless(in_array($rt->status, ['diproses', 'dikirim'], true), 422, 'Transisi tidak valid.');
 
         foreach ($rt->items as $item) {
-            $qty = (float) ($qtyMap[$item->id]['qty'] ?? $item->qty_dikirim ?? $item->qty_diminta);
-            $item->update(['qty_diterima' => $qty]);
-            if ($qty > 0 && $rt->gudang_tujuan_id) {
-                $this->stok->masuk($item->produk_id, $rt->gudang_tujuan_id, $qty, 'request_transfer', $rt->id, "Terima {$rt->no_transaksi}");
+            $row = $qtyMap[$item->id] ?? [];
+            $hasQualityInput = isset($row['qty_baik']) || isset($row['qty_rusak']);
+
+            if ($hasQualityInput) {
+                $qtyBaik = (float) ($row['qty_baik'] ?? 0);
+                $qtyRusak = (float) ($row['qty_rusak'] ?? 0);
+                $qtyTotal = $qtyBaik + $qtyRusak;
+                $keteranganRusak = $row['keterangan_rusak'] ?? null;
+
+                $item->update([
+                    'qty_diterima' => $qtyTotal,
+                    'qty_baik' => $qtyBaik,
+                    'qty_rusak' => $qtyRusak,
+                    'keterangan_rusak' => $keteranganRusak,
+                ]);
+
+                // Hanya qty_baik yang masuk ke saldo stok fisik aktif gudang tujuan!
+                if ($qtyBaik > 0 && $rt->gudang_tujuan_id) {
+                    $note = "Terima {$rt->no_transaksi}" . ($qtyRusak > 0 ? " (Baik: {$qtyBaik}, Rusak: {$qtyRusak})" : "");
+                    $this->stok->masuk($item->produk_id, $rt->gudang_tujuan_id, $qtyBaik, 'request_transfer', $rt->id, $note);
+                }
+            } else {
+                $qty = (float) ($row['qty'] ?? $item->qty_dikirim ?? $item->qty_diminta);
+                $item->update([
+                    'qty_diterima' => $qty,
+                    'qty_baik' => $qty,
+                    'qty_rusak' => 0,
+                ]);
+                if ($qty > 0 && $rt->gudang_tujuan_id) {
+                    $this->stok->masuk($item->produk_id, $rt->gudang_tujuan_id, $qty, 'request_transfer', $rt->id, "Terima {$rt->no_transaksi}");
+                }
             }
         }
         $rt->update(['status' => 'selesai']);
