@@ -2,11 +2,13 @@
 
 use App\Exceptions\DomainException;
 use App\Exceptions\InsufficientStockException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -22,6 +24,30 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        // CSRF Token Mismatch (HTTP 419)
+        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => 'Sesi CSRF telah kedaluwarsa. Silakan refresh halaman atau login ulang.',
+                    'code' => 'CSRF_EXPIRED',
+                ], 419);
+            }
+
+            return redirect()->route('login')->with('warning', 'Sesi kerja Anda telah kedaluwarsa. Silakan login kembali.');
+        });
+
+        // Unauthenticated (HTTP 401)
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => 'Sesi login telah berakhir. Silakan login kembali.',
+                    'code' => 'UNAUTHENTICATED',
+                ], 401);
+            }
+
+            return redirect()->guest(route('login'))->with('warning', 'Sesi login telah berakhir. Silakan login kembali.');
+        });
 
         // Domain/business logic exceptions → redirect back with flash message
         $exceptions->render(function (DomainException $e, Request $request) {
