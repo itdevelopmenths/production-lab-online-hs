@@ -16,7 +16,7 @@ class LocationScopeService
      */
     public function getAccessibleWarehouseIds(User $user): ?array
     {
-        if ($user->hasRole('manager') || $user->can('stok.view.all')) {
+        if ($user->hasRole('manager') || $user->can('stok.view.all') || $user->warehouse_access_type === 'global') {
             return null;
         }
 
@@ -25,17 +25,21 @@ class LocationScopeService
             return array_map('intval', $assigned);
         }
 
-        // Fallback berbasis peran standar
-        $role = $user->roleName();
+        // Fallback berbasis peran standar jika disetel restricted
+        if ($user->warehouse_access_type === 'restricted') {
+            $role = $user->roleName();
 
-        $ids = match ($role) {
-            'gudang' => Gudang::where('tipe', 'bahan_baku')->pluck('id')->toArray(),
-            'operasional' => Gudang::where('tipe', 'operasional')->pluck('id')->toArray(),
-            'fulfillment' => Gudang::fulfillment()->pluck('id')->toArray(),
-            default => [],
-        };
+            $ids = match ($role) {
+                'gudang' => Gudang::where('tipe', 'bahan_baku')->pluck('id')->toArray(),
+                'operasional' => Gudang::where('tipe', 'operasional')->pluck('id')->toArray(),
+                'fulfillment' => Gudang::fulfillment()->pluck('id')->toArray(),
+                default => [],
+            };
 
-        return array_map('intval', $ids);
+            return array_map('intval', $ids);
+        }
+
+        return null;
     }
 
     /**

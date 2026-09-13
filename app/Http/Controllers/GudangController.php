@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Gudang;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -24,11 +25,26 @@ class GudangController extends Controller
         $query = Gudang::query()->select('gudang.*')->with('parent:id,nama');
 
         return DataTables::eloquent($query)
-            ->editColumn('tipe', fn ($g) => ucwords(str_replace('_', ' ', $g->tipe)))
+            ->editColumn('nama', function ($g) {
+                $html = '<span class="font-medium text-gray-900">' . e($g->nama) . '</span>';
+                if ($g->isPusat()) {
+                    $html .= ' <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 ml-1">Pusat</span>';
+                }
+                return $html;
+            })
+            ->editColumn('tipe', function ($g) {
+                $label = match ($g->tipe) {
+                    'bahan_baku' => 'Bahan Baku',
+                    'operasional' => 'Operasional',
+                    'fulfillment', 'fulfillment_pusat', 'fulfillment_cabang' => 'Fulfillment',
+                    default => ucwords(str_replace('_', ' ', $g->tipe)),
+                };
+                return '<span class="text-xs text-gray-700">' . e($label) . '</span>';
+            })
             ->addColumn('parent', fn ($g) => $g->parent?->nama ?? '-')
             ->editColumn('status', fn ($g) => ucfirst($g->status))
             ->addColumn('action', fn ($g) => view('gudang._actions', ['g' => $g])->render())
-            ->rawColumns(['action'])
+            ->rawColumns(['nama', 'tipe', 'action'])
             ->toJson();
     }
 
@@ -43,7 +59,17 @@ class GudangController extends Controller
     public function store(Request $request)
     {
         $this->authorize('gudang.create');
-        Gudang::create($this->validated($request));
+        $data = $this->validated($request);
+
+        DB::transaction(function () use ($data) {
+            if ($data['is_pusat']) {
+                $data['parent_gudang_id'] = null;
+                // Pastikan hanya 1 pusat aktif per kategori tipe
+                Gudang::where('tipe', $data['tipe'])->update(['is_pusat' => false]);
+            }
+
+            Gudang::create($data);
+        });
 
         return redirect()->route('gudang.index')->with('success', 'Gudang berhasil ditambahkan.');
     }
@@ -59,7 +85,19 @@ class GudangController extends Controller
     public function update(Request $request, Gudang $gudang)
     {
         $this->authorize('gudang.edit');
-        $gudang->update($this->validated($request, $gudang->id));
+        $data = $this->validated($request, $gudang->id);
+
+        DB::transaction(function () use ($gudang, $data) {
+            if ($data['is_pusat']) {
+                $data['parent_gudang_id'] = null;
+                // Jika diset sebagai pusat, lepas status pusat gudang lain pada tipe yang sama
+                Gudang::where('tipe', $data['tipe'])
+                    ->where('id', '!=', $gudang->id)
+                    ->update(['is_pusat' => false]);
+            }
+
+            $gudang->update($data);
+        });
 
         return redirect()->route('gudang.index')->with('success', 'Gudang berhasil diperbarui.');
     }
@@ -74,18 +112,24 @@ class GudangController extends Controller
 
     private function validated(Request $request, ?int $id = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'kode' => ['required', 'string', 'max:20', Rule::unique('gudang', 'kode')->ignore($id)],
             'nama' => ['required', 'string', 'max:150'],
-            'tipe' => ['required', Rule::in(Gudang::TIPE)],
+            'tipe' => ['required', Rule::in(Gudang::TIPE_ALL)],
             'parent_gudang_id' => ['nullable', 'exists:gudang,id'],
             'status' => ['required', Rule::in(['aktif', 'nonaktif'])],
-            'allow_negative_stock' => ['boolean'],
+            'is_pusat' => ['sometimes', 'boolean'],
+            'allow_negative_stock' => ['sometimes', 'boolean'],
         ], [], [
             'kode' => 'Kode',
             'nama' => 'Nama',
             'tipe' => 'Tipe',
             'parent_gudang_id' => 'Gudang Induk',
         ]);
+
+        $validated['is_pusat'] = $request->boolean('is_pusat');
+        $validated['allow_negative_stock'] = $request->boolean('allow_negative_stock');
+
+        return $validated;
     }
 }
