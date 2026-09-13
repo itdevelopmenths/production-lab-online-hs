@@ -17,6 +17,7 @@ class PermissionSeeder extends Seeder
             'supplier.view', 'supplier.create', 'supplier.edit', 'supplier.delete',
             'uom.view', 'uom.create', 'uom.edit', 'uom.delete',
             'bom.view', 'bom.manage', 'bom.import',
+            'divisi.view', 'divisi.create', 'divisi.edit', 'divisi.delete',
 
             // Stok & Mutasi
             'stok.view', 'stok.view.all', 'stok.mutasi', 'stok.opname', 'stok.ledger.view',

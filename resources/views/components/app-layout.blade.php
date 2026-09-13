@@ -147,6 +147,15 @@
                 </x-nav-item>
                 @endcan
 
+                @can('divisi.view')
+                <x-nav-item href="{{ route('divisi.index') }}" :active="request()->routeIs('divisi.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    </x-slot:icon>
+                    Divisi
+                </x-nav-item>
+                @endcan
+
                 @can('report.view')
                 <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Laporan</p>
                 <x-nav-item href="{{ route('reports.index') }}" :active="request()->routeIs('reports.*')">
@@ -301,7 +310,10 @@
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script>
         $(function() {
+            // Enterprise: Suppress standard browser alerts on DataTables AJAX errors
             if ($.fn && $.fn.dataTable) {
+                $.fn.dataTable.ext.errMode = 'none';
+
                 $.extend(true, $.fn.dataTable.defaults, {
                     dom: "<'dt-layout-header'lf><'overflow-x-auto't><'dt-layout-footer'ip>",
                     autoWidth: false,
@@ -322,6 +334,111 @@
                     }
                 });
             }
+
+            // Global jQuery Ajax Setup with CSRF Token
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            // Enterprise Global Ajax Error Interceptor (Graceful 401 & 419 handling)
+            let sessionModalActive = false;
+            $(document).ajaxError(function(event, jqXHR, settings, thrownError) {
+                if (settings.url && settings.url.includes('/session/ping')) {
+                    return;
+                }
+
+                if (jqXHR.status === 401 || jqXHR.status === 419) {
+                    if (sessionModalActive) return;
+                    sessionModalActive = true;
+
+                    const title = jqXHR.status === 419 ? 'Sesi Telah Kedaluwarsa' : 'Sesi Login Berakhir';
+                    const message = jqXHR.status === 419
+                        ? 'Token keamanan sesi kerja Anda telah kedaluwarsa. Silakan login kembali.'
+                        : 'Sesi autentikasi Anda telah berakhir untuk alasan keamanan. Silakan login kembali.';
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: title,
+                            text: message,
+                            confirmButtonText: 'Login Kembali',
+                            confirmButtonColor: '#4f46e5',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false
+                        }).then(function() {
+                            window.location.href = "{{ route('login') }}";
+                        });
+                    } else {
+                        window.location.href = "{{ route('login') }}";
+                    }
+                }
+            });
+
+            // Enterprise Session Ping & Token Refresh Lifecycle
+            function refreshSessionSecurity() {
+                fetch("{{ route('session.ping') }}", {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(res) {
+                    if (res.status === 401 || res.status === 419) {
+                        if (sessionModalActive) return null;
+                        sessionModalActive = true;
+
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Sesi Telah Berakhir',
+                                text: 'Sesi kerja Anda telah kedaluwarsa. Silakan login kembali.',
+                                confirmButtonText: 'Login Kembali',
+                                confirmButtonColor: '#4f46e5',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false
+                            }).then(function() {
+                                window.location.href = "{{ route('login') }}";
+                            });
+                        } else {
+                            window.location.href = "{{ route('login') }}";
+                        }
+                        return null;
+                    }
+                    return res.json();
+                })
+                .then(function(data) {
+                    if (data && data.csrf_token) {
+                        $('meta[name="csrf-token"]').attr('content', data.csrf_token);
+                        $('input[name="_token"]').val(data.csrf_token);
+                        $.ajaxSetup({
+                            headers: {
+                                'X-CSRF-TOKEN': data.csrf_token,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                    }
+                })
+                .catch(function() {});
+            }
+
+            // Listen for tab focus / wake-up
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    refreshSessionSecurity();
+                }
+            });
+
+            window.addEventListener('pageshow', function(e) {
+                if (e.persisted) {
+                    refreshSessionSecurity();
+                }
+            });
+
+            // Heartbeat check every 10 minutes
+            setInterval(refreshSessionSecurity, 10 * 60 * 1000);
         });
     </script>
 

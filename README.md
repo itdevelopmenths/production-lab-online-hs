@@ -3,9 +3,8 @@
 Aplikasi manajemen rantai pasok terintegrasi untuk produksi parfum, mencakup modul **Purchasing**, **Gudang**, **Produksi (Batch & BOM)**, **Request & Transfer**, **Analisa Stok (Batas Minimum & Alert 2 Kolom)**, dan **Fulfillment**.
 
 ### 📚 Dokumentasi Utama:
-- **[DOKUMENTASI_FLOW_BISNIS.md](file:///c:/Users/User/HS%20Project/production-lab-online-hs/DOKUMENTASI_FLOW_BISNIS.md)** — Panduan SOP, diagram alur bisnis per peran, dan panduan penggunaan sistem.
-- **[PRD_SC_Online_v3.md](file:///c:/Users/User/HS%20Project/production-lab-online-hs/PRD_SC_Online_v3.md)** — Dokumen Product Requirement Document (PRD v2.0 Konsolidasi).
-- **[.agent/implementation.md](file:///c:/Users/User/HS%20Project/production-lab-online-hs/.agent/implementation.md)** — Status eksekusi task implementasi dan matriks pengujian fitur.
+- **[DOKUMENTASI_FLOW_BISNIS.md](DOKUMENTASI_FLOW_BISNIS.md)** — Panduan SOP, diagram alur bisnis per peran, dan panduan penggunaan sistem.
+- **[PRD_SC_Online_v3.md](PRD_SC_Online_v3.md)** — Dokumen Product Requirement Document (PRD v2.0 Konsolidasi).
 
 ---
 

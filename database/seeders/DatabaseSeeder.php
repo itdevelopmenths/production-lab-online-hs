@@ -13,9 +13,14 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             PermissionSeeder::class,
+            DivisiSeeder::class,
             UserSeeder::class,
             UomSeeder::class,
             MasterDataSeeder::class,
         ]);
+
+        if (!app()->environment('testing')) {
+            $this->call(ProductVarianBomSeeder::class);
+        }
     }
 }

@@ -17,12 +17,12 @@ class MasterDataSeeder extends Seeder
 {
     public function run(): void
     {
-        // ===== Gudang (dengan hierarki fulfillment) =====
-        $gBahan = Gudang::firstOrCreate(['kode' => 'GD-PUSAT'], ['nama' => 'Gudang Bahan Baku Pusat', 'tipe' => 'bahan_baku', 'status' => 'aktif']);
-        $gOps = Gudang::firstOrCreate(['kode' => 'GD-OPS'], ['nama' => 'Gudang Operasional', 'tipe' => 'operasional', 'status' => 'aktif']);
-        $ffPusat = Gudang::firstOrCreate(['kode' => 'FF-PUSAT'], ['nama' => 'Fulfillment Pusat', 'tipe' => 'fulfillment_pusat', 'status' => 'aktif']);
-        $ffSby = Gudang::firstOrCreate(['kode' => 'FF-SBY'], ['nama' => 'Fulfillment SBY', 'tipe' => 'fulfillment_cabang', 'status' => 'aktif', 'parent_gudang_id' => $ffPusat->id]);
-        $ffSolo = Gudang::firstOrCreate(['kode' => 'FF-SOLO'], ['nama' => 'Fulfillment Solo', 'tipe' => 'fulfillment_cabang', 'status' => 'aktif', 'parent_gudang_id' => $ffPusat->id]);
+        // ===== Gudang (dengan hierarki fulfillment & status pusat) =====
+        $gBahan = Gudang::firstOrCreate(['kode' => 'GD-PUSAT'], ['nama' => 'Gudang Bahan Baku Pusat', 'tipe' => 'bahan_baku', 'is_pusat' => true, 'status' => 'aktif']);
+        $gOps = Gudang::firstOrCreate(['kode' => 'GD-OPS'], ['nama' => 'Gudang Operasional', 'tipe' => 'operasional', 'is_pusat' => false, 'status' => 'aktif']);
+        $ffPusat = Gudang::firstOrCreate(['kode' => 'FF-PUSAT'], ['nama' => 'Fulfillment Pusat', 'tipe' => 'fulfillment', 'is_pusat' => true, 'status' => 'aktif']);
+        $ffSby = Gudang::firstOrCreate(['kode' => 'FF-SBY'], ['nama' => 'Fulfillment SBY', 'tipe' => 'fulfillment', 'is_pusat' => false, 'status' => 'aktif', 'parent_gudang_id' => $ffPusat->id]);
+        $ffSolo = Gudang::firstOrCreate(['kode' => 'FF-SOLO'], ['nama' => 'Fulfillment Solo', 'tipe' => 'fulfillment', 'is_pusat' => false, 'status' => 'aktif', 'parent_gudang_id' => $ffPusat->id]);
 
         // ===== Supplier =====
         Supplier::firstOrCreate(['nama' => 'PT Alkohol Nusantara'], ['kategori' => 'lokal', 'kontak' => '081234500001', 'alamat' => 'Sidoarjo', 'termin_default' => 'termin']);

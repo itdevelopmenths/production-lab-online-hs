@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\SessionSecurityController;
 use App\Http\Controllers\BatchController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\GudangController;
 use App\Http\Controllers\AnalisaController;
 use App\Http\Controllers\ProdukController;
@@ -28,6 +30,9 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login']);
 });
+
+// Session Lifecycle & Heartbeat
+Route::get('session/ping', [SessionSecurityController::class, 'ping'])->name('session.ping');
 
 Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'logout'])->name('logout');
@@ -56,6 +61,11 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:uom.view')->group(function () {
         Route::get('uom/data', [UomController::class, 'data'])->name('uom.data');
         Route::resource('uom', UomController::class)->except(['show']);
+    });
+
+    Route::middleware('can:divisi.view')->group(function () {
+        Route::get('divisi/data', [DivisiController::class, 'data'])->name('divisi.data');
+        Route::resource('divisi', DivisiController::class)->except(['show']);
     });
 
     Route::middleware('can:bom.view')->group(function () {
@@ -94,6 +104,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [PurchasingController::class, 'store'])
             ->middleware('can:purchasing.create')->name('store');
         Route::get('{purchaseOrder}', [PurchasingController::class, 'show'])->name('show');
+        Route::get('{purchaseOrder}/edit', [PurchasingController::class, 'edit'])
+            ->middleware('can:purchasing.edit')->name('edit');
+        Route::put('{purchaseOrder}', [PurchasingController::class, 'update'])
+            ->middleware('can:purchasing.edit')->name('update');
         Route::put('{purchaseOrder}/quick-dates', [PurchasingController::class, 'quickDates'])
             ->middleware('can:purchasing.edit')->name('quick-dates');
         Route::post('{purchaseOrder}/submit', [PurchasingController::class, 'submit'])

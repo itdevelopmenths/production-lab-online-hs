@@ -63,6 +63,16 @@ class PermissionCatalogService
                         'bom.import' => 'Impor Data BOM (CSV Stamps POS)',
                     ],
                 ],
+                'divisi' => [
+                    'label' => 'Master Divisi / Departemen',
+                    'icon' => 'user-group',
+                    'actions' => [
+                        'divisi.view' => 'Lihat Daftar Divisi',
+                        'divisi.create' => 'Tambah Divisi Baru',
+                        'divisi.edit' => 'Ubah Data Divisi',
+                        'divisi.delete' => 'Hapus Divisi',
+                    ],
+                ],
             ],
 
             'Operasional & Logistik' => [
