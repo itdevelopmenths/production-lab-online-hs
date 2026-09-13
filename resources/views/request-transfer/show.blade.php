@@ -110,10 +110,8 @@
                                 <th class="py-2.5 px-3 text-right">Stok Fisik Asal</th>
                                 <th class="py-2.5 px-3 text-right">Dikirim</th>
                                 <th class="py-2.5 px-3 text-right">Diterima</th>
-                                @if($rt->status === 'selesai')
-                                <th class="py-2.5 px-3 text-right">Baik</th>
-                                <th class="py-2.5 px-3 text-right">Rusak</th>
-                                @endif
+                                <th class="py-2.5 px-3 text-right text-emerald-800">Kondisi Baik</th>
+                                <th class="py-2.5 px-3 text-right text-rose-800">Kondisi Rusak</th>
                                 <th class="py-2.5 px-3 text-center">Status</th>
                                 <th class="py-2.5 px-3.5 text-center">Aksi</th>
                             </tr>
@@ -159,14 +157,26 @@
                                         <span class="text-gray-400">-</span>
                                     @endif
                                 </td>
-                                @if($rt->status === 'selesai')
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-emerald-700">
-                                    {{ $it->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($it->qty_baik) . ' ' . $it->produk->satuan : '-' }}
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold">
+                                    @if($rt->status === 'selesai')
+                                        <span class="text-emerald-700">{{ $it->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($it->qty_baik) . ' ' . $it->produk->satuan : '-' }}</span>
+                                    @elseif(in_array($rt->status, ['diproses', 'dikirim']))
+                                        <span class="text-gray-400 font-normal italic text-[11px]">Menunggu QC</span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold {{ (float)($it->qty_rusak ?? 0) > 0 ? 'text-rose-700' : 'text-gray-500' }}">
-                                    {{ $it->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($it->qty_rusak) . ' ' . $it->produk->satuan : '-' }}
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold">
+                                    @if($rt->status === 'selesai')
+                                        <span class="{{ (float)($it->qty_rusak ?? 0) > 0 ? 'text-rose-700' : 'text-gray-500' }}">
+                                            {{ $it->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($it->qty_rusak) . ' ' . $it->produk->satuan : '-' }}
+                                        </span>
+                                    @elseif(in_array($rt->status, ['diproses', 'dikirim']))
+                                        <span class="text-gray-400 font-normal italic text-[11px]">Menunggu QC</span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
                                 </td>
-                                @endif
                                 <td class="py-2.5 px-3 text-center whitespace-nowrap">
                                     @if(in_array($rt->status, ['draft', 'diajukan', 'disetujui'], true))
                                         @if($w && $w['kurang'] > 0)
@@ -252,11 +262,15 @@
                     @if($approval)
                         @can('rt.submit')
                         @if($rt->status === 'draft')
-                        <form method="POST" action="{{ route('rt.transition', $rt) }}">
+                        <form method="POST" action="{{ route('rt.transition', $rt) }}" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
                             @csrf
                             <input type="hidden" name="aksi" value="submit">
-                            <x-button type="submit" variant="primary" size="md" class="w-full">
-                                Ajukan Permintaan
+                            <x-button type="submit" variant="primary" size="md" class="w-full" ::disabled="submitting" ::class="{ 'opacity-75 cursor-not-allowed pointer-events-none': submitting }">
+                                <span x-show="!submitting">Ajukan Permintaan</span>
+                                <span x-show="submitting" x-cloak class="inline-flex items-center justify-center gap-1.5">
+                                    <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Memproses...
+                                </span>
                             </x-button>
                         </form>
                         <p class="text-[11px] text-gray-400 text-center">Kirimkan permintaan untuk disetujui Manager.</p>
@@ -265,11 +279,15 @@
 
                         @can('rt.approve')
                         @if($rt->status === 'diajukan')
-                        <form method="POST" action="{{ route('rt.transition', $rt) }}">
+                        <form method="POST" action="{{ route('rt.transition', $rt) }}" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
                             @csrf
                             <input type="hidden" name="aksi" value="approve">
-                            <x-button type="submit" variant="success" size="md" class="w-full">
-                                Setujui Permintaan
+                            <x-button type="submit" variant="success" size="md" class="w-full" ::disabled="submitting" ::class="{ 'opacity-75 cursor-not-allowed pointer-events-none': submitting }">
+                                <span x-show="!submitting">Setujui Permintaan</span>
+                                <span x-show="submitting" x-cloak class="inline-flex items-center justify-center gap-1.5">
+                                    <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Memproses...
+                                </span>
                             </x-button>
                         </form>
                         <p class="text-[11px] text-gray-400 text-center">Wewenang Manager untuk menyetujui mutasi bahan.</p>
@@ -278,11 +296,15 @@
 
                         @can('rt.process')
                         @if($rt->status === 'disetujui')
-                        <form method="POST" action="{{ route('rt.transition', $rt) }}">
+                        <form method="POST" action="{{ route('rt.transition', $rt) }}" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
                             @csrf
                             <input type="hidden" name="aksi" value="process">
-                            <x-button type="submit" variant="primary" size="md" class="w-full">
-                                Proses & Kirim (Stok OUT)
+                            <x-button type="submit" variant="primary" size="md" class="w-full" ::disabled="submitting" ::class="{ 'opacity-75 cursor-not-allowed pointer-events-none': submitting }">
+                                <span x-show="!submitting">Proses & Kirim (Stok OUT)</span>
+                                <span x-show="submitting" x-cloak class="inline-flex items-center justify-center gap-1.5">
+                                    <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Memproses...
+                                </span>
                             </x-button>
                         </form>
                         <p class="text-[11px] text-gray-400 text-center">Gudang menyiapkan dan memotong stok fisik asal.</p>
@@ -291,11 +313,15 @@
                     @else
                         @can('rt.ship')
                         @if($rt->status === 'draft')
-                        <form method="POST" action="{{ route('rt.transition', $rt) }}">
+                        <form method="POST" action="{{ route('rt.transition', $rt) }}" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
                             @csrf
                             <input type="hidden" name="aksi" value="ship">
-                            <x-button type="submit" variant="primary" size="md" class="w-full">
-                                Kirim Barang (Stok OUT)
+                            <x-button type="submit" variant="primary" size="md" class="w-full" ::disabled="submitting" ::class="{ 'opacity-75 cursor-not-allowed pointer-events-none': submitting }">
+                                <span x-show="!submitting">Kirim Barang (Stok OUT)</span>
+                                <span x-show="submitting" x-cloak class="inline-flex items-center justify-center gap-1.5">
+                                    <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Memproses...
+                                </span>
                             </x-button>
                         </form>
                         <p class="text-[11px] text-gray-400 text-center">Memotong stok fisik gudang asal secara langsung.</p>
@@ -307,26 +333,69 @@
                         @if($canReceive)
                         <div class="border border-emerald-200 bg-emerald-50/50 rounded-sm p-3">
                             <h4 class="text-xs font-bold text-emerald-900 mb-2">Konfirmasi Penerimaan Barang</h4>
-                            <form method="POST" action="{{ route('rt.transition', $rt) }}">
+                            <form method="POST" action="{{ route('rt.transition', $rt) }}" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
                                 @csrf
                                 <input type="hidden" name="aksi" value="receive">
                                 <div class="space-y-2.5 mb-3">
                                     @foreach($rt->items as $index => $it)
                                     @php
                                         $qtyKirim = (float) ($it->qty_dikirim ?? $it->qty_diminta);
+                                        $satuan = $it->produk->satuan ?? 'pcs';
+                                        $satuanLower = strtolower(trim($satuan));
+                                        $isDecimal = in_array($satuanLower, ['ml', 'l', 'liter', 'gr', 'gram', 'kg', 'kilogram'], true);
+                                        $step = $isDecimal ? '0.01' : '1';
+                                        $valBaik = $isDecimal ? $qtyKirim : (int) round($qtyKirim);
+                                        $valMax = $isDecimal ? $qtyKirim : (int) round($qtyKirim);
                                     @endphp
-                                    <div class="bg-white p-2.5 rounded-sm border border-emerald-100 text-xs">
+                                    <div class="bg-white p-2.5 rounded-sm border border-emerald-100 text-xs" x-data="{
+                                        maxQty: {{ $valMax }},
+                                        qtyBaik: {{ $valBaik }},
+                                        qtyRusak: 0,
+                                        isDecimal: {{ $isDecimal ? 'true' : 'false' }},
+                                        onRusakChange() {
+                                            let r = parseFloat(this.qtyRusak) || 0;
+                                            if (r > this.maxQty) {
+                                                r = this.maxQty;
+                                            }
+                                            this.qtyRusak = this.isDecimal ? Number(r.toFixed(2)) : Math.round(r);
+                                            let remaining = Math.max(0, this.maxQty - this.qtyRusak);
+                                            this.qtyBaik = this.isDecimal ? Number(remaining.toFixed(2)) : Math.round(remaining);
+                                        }
+                                    }">
                                         <input type="hidden" name="items[{{ $index }}][id]" value="{{ $it->id }}">
                                         <div class="font-bold text-gray-900">{{ $it->produk->nama }}</div>
-                                        <div class="text-[11px] text-gray-500 mb-2">Dikirim: <span class="font-semibold font-mono text-gray-800">{{ \App\Helpers\NumberHelper::formatQty($qtyKirim) }} {{ $it->produk->satuan }}</span></div>
+                                        <div class="text-[11px] text-gray-500 mb-2">Dikirim: <span class="font-semibold font-mono text-gray-800">{{ \App\Helpers\NumberHelper::formatQty($qtyKirim) }} {{ $satuan }}</span></div>
                                         <div class="grid grid-cols-2 gap-2">
                                             <div>
-                                                <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">Qty Baik (Pcs)</label>
-                                                <input type="number" step="0.01" min="0" max="{{ $qtyKirim }}" name="items[{{ $index }}][qty_baik]" value="{{ $qtyKirim }}" class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono" required>
+                                                <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">Qty Baik ({{ $satuan }})</label>
+                                                <input
+                                                    type="number"
+                                                    step="{{ $step }}"
+                                                    min="0"
+                                                    max="{{ $valMax }}"
+                                                    name="items[{{ $index }}][qty_baik]"
+                                                    x-model.number="qtyBaik"
+                                                    value="{{ $valBaik }}"
+                                                    @if(!$isDecimal) onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()" @endif
+                                                    class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+                                                    required
+                                                >
                                             </div>
                                             <div>
-                                                <label class="block text-[11px] font-semibold text-rose-800 mb-0.5">Qty Rusak (Defect)</label>
-                                                <input type="number" step="0.01" min="0" max="{{ $qtyKirim }}" name="items[{{ $index }}][qty_rusak]" value="0" class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 font-mono" required>
+                                                <label class="block text-[11px] font-semibold text-rose-800 mb-0.5">Qty Rusak ({{ $satuan }})</label>
+                                                <input
+                                                    type="number"
+                                                    step="{{ $step }}"
+                                                    min="0"
+                                                    max="{{ $valMax }}"
+                                                    name="items[{{ $index }}][qty_rusak]"
+                                                    x-model.number="qtyRusak"
+                                                    @input="onRusakChange()"
+                                                    value="0"
+                                                    @if(!$isDecimal) onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()" @endif
+                                                    class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 font-mono"
+                                                    required
+                                                >
                                             </div>
                                         </div>
                                         <div class="mt-2">
@@ -335,26 +404,37 @@
                                     </div>
                                     @endforeach
                                 </div>
-                                <x-button type="submit" variant="success" size="md" class="w-full">
-                                    Konfirmasi Terima (Stok IN)
+                                <x-button type="submit" variant="success" size="md" class="w-full" ::disabled="submitting" ::class="{ 'opacity-75 cursor-not-allowed pointer-events-none': submitting }">
+                                    <span x-show="!submitting">Konfirmasi Terima (Stok IN)</span>
+                                    <span x-show="submitting" x-cloak class="inline-flex items-center justify-center gap-1.5">
+                                        <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        Memproses...
+                                    </span>
                                 </x-button>
                             </form>
                             <p class="text-[11px] text-gray-500 text-center mt-1.5">Hanya kuantitas baik yang masuk ke saldo stok fisik gudang.</p>
                         </div>
                         @else
-                        <div class="py-2.5 px-3 bg-amber-50 border border-amber-200 rounded-sm text-center text-xs text-amber-800 font-medium">
-                            Menunggu konfirmasi penerimaan oleh petugas Gudang {{ $rt->gudangTujuan?->nama ?? 'Tujuan' }}.
+                        <div class="py-3 px-3.5 bg-amber-50 border border-amber-200 rounded-sm text-xs text-amber-900">
+                            <div class="font-bold flex items-center gap-1.5 mb-1 text-amber-800">
+                                <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <span>Menunggu Penerimaan & QC Inbound</span>
+                            </div>
+                            <p class="text-[11px] text-amber-700 leading-relaxed">
+                                Barang dalam perjalanan. Sesuai prinsip <em>Separation of Duties (SoD)</em>, konfirmasi penerimaan dan input inspeksi fisik (Kondisi Baik / Rusak) hanya dapat dilakukan oleh petugas <strong>Gudang {{ $rt->gudangTujuan?->nama ?? 'Tujuan' }}</strong>.
+                            </p>
                         </div>
                         @endif
                     @endif
 
                     @can('rt.cancel')
                     @if(!in_array($rt->status, ['selesai', 'dibatalkan'], true))
-                    <form method="POST" action="{{ route('rt.transition', $rt) }}" onsubmit="return confirm('Batalkan dokumen transfer ini?');" class="pt-2 border-t border-gray-100">
+                    <form method="POST" action="{{ route('rt.transition', $rt) }}" onsubmit="return confirm('Batalkan dokumen transfer ini?');" class="pt-2 border-t border-gray-100" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
                         @csrf
                         <input type="hidden" name="aksi" value="cancel">
-                        <x-button type="submit" variant="link" size="xs" class="w-full text-rose-600 hover:text-rose-800">
-                            Batalkan Dokumen
+                        <x-button type="submit" variant="link" size="xs" class="w-full text-rose-600 hover:text-rose-800" ::disabled="submitting">
+                            <span x-show="!submitting">Batalkan Dokumen</span>
+                            <span x-show="submitting" x-cloak>Membatalkan...</span>
                         </x-button>
                     </form>
                     @endif

@@ -12,8 +12,22 @@
             </x-slot:actions>
         </x-page-header>
 
-        <div x-data="rtForm()">
-            <form method="POST" action="{{ route('rt.store') }}">
+        @if(isset($batch))
+        <div class="mb-4">
+            <x-alert type="info" title="Referensi Batch Produksi:">
+                Otomatis mengisi kekurangan bahan baku untuk produksi batch <strong>{{ $batch->no_batch }}</strong> ({{ $batch->produk?->nama }}).
+                Gudang tujuan otomatis diset ke <strong>{{ $batch->gudangOperasional?->nama ?? 'Gudang Operasional' }}</strong> sesuai pengaturan batch.
+            </x-alert>
+        </div>
+        @endif
+
+        <div x-data="rtForm({{ Js::from([
+            'jenis' => old('jenis', $defaultJenis ?? 'req_bahan'),
+            'gudangAsalId' => (string) old('gudang_asal_id', $defaultGudangAsalId ?? ''),
+            'gudangTujuanId' => (string) old('gudang_tujuan_id', $defaultGudangTujuanId ?? ''),
+            'rows' => $prefilledRows ?? [],
+        ]) }})">
+            <form method="POST" action="{{ route('rt.store') }}" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
             @csrf
             <div class="space-y-5">
                 {{-- Card 1: Parameter Transfer & Lokasi --}}
@@ -34,17 +48,17 @@
                         </x-form-group>
 
                         <x-form-group name="gudang_asal_id" label="Gudang Asal" help="Gudang pengirim / sumber stok">
-                            <x-select name="gudang_asal_id" placeholder="— Pilih Gudang Asal —">
-                                @foreach($gudang as $g)
-                                    <option value="{{ $g->id }}" @selected(old('gudang_asal_id') == $g->id)>{{ $g->nama }} ({{ ucfirst($g->tipe) }})</option>
+                            <x-select name="gudang_asal_id" x-model="gudangAsalId" placeholder="— Pilih Gudang Asal —">
+                                @foreach($allGudang as $g)
+                                    <option value="{{ $g->id }}" @selected((string)old('gudang_asal_id', $defaultGudangAsalId ?? '') === (string)$g->id)>{{ $g->nama }} ({{ ucfirst($g->tipe) }})</option>
                                 @endforeach
                             </x-select>
                         </x-form-group>
 
-                        <x-form-group name="gudang_tujuan_id" label="Gudang Tujuan" help="Gudang penerima alokasi fisik">
-                            <x-select name="gudang_tujuan_id" placeholder="— Pilih Gudang Tujuan —">
-                                @foreach($gudang as $g)
-                                    <option value="{{ $g->id }}" @selected(old('gudang_tujuan_id') == $g->id)>{{ $g->nama }} ({{ ucfirst($g->tipe) }})</option>
+                        <x-form-group name="gudang_tujuan_id" label="Gudang Tujuan" help="Gudang penerima alokasi fisik (gudang operasional batch)">
+                            <x-select name="gudang_tujuan_id" x-model="gudangTujuanId" placeholder="— Pilih Gudang Tujuan —">
+                                @foreach($allGudang as $g)
+                                    <option value="{{ $g->id }}" @selected((string)old('gudang_tujuan_id', $defaultGudangTujuanId ?? '') === (string)$g->id)>{{ $g->nama }} ({{ ucfirst($g->tipe) }})</option>
                                 @endforeach
                             </x-select>
                         </x-form-group>
@@ -52,7 +66,7 @@
 
                     <div class="mt-4 pt-4 border-t border-gray-100">
                         <x-form-group name="catatan" label="Catatan / Referensi Dokumen" help="Informasi tambahan untuk tim logistik / gudang operasional">
-                            <x-textarea name="catatan" rows="2" placeholder="Tuliskan catatan khusus atau nomor referensi kerja jika ada..." />
+                            <x-textarea name="catatan" rows="2" placeholder="Tuliskan catatan khusus atau nomor referensi kerja jika ada..." :value="old('catatan', $defaultCatatan ?? '')" />
                         </x-form-group>
                     </div>
                 </x-card>
@@ -202,11 +216,11 @@
                             <x-button href="{{ route('rt.index') }}" variant="secondary" size="sm">
                                 Batal
                             </x-button>
-                            <x-button type="submit" variant="primary" size="sm">
+                            <x-button type="submit" variant="primary" size="sm" ::disabled="submitting">
                                 <x-slot:icon>
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 </x-slot:icon>
-                                Simpan Draft Dokumen
+                                <span x-text="submitting ? 'Menyimpan...' : 'Simpan Draft Dokumen'"></span>
                             </x-button>
                         </div>
                     </x-slot:footer>
@@ -218,10 +232,14 @@
 
     @push('scripts')
     <script>
-        function rtForm() {
+        function rtForm(initial = {}) {
             return {
-                jenis: '{{ old("jenis", "req_bahan") }}',
-                rows: [{ produk_id: '', qty: '', satuan: '', selectedItem: null }],
+                jenis: initial.jenis || '{{ old("jenis", "req_bahan") }}',
+                gudangAsalId: initial.gudangAsalId !== undefined ? String(initial.gudangAsalId) : '{{ old("gudang_asal_id", $defaultGudangAsalId ?? "") }}',
+                gudangTujuanId: initial.gudangTujuanId !== undefined ? String(initial.gudangTujuanId) : '{{ old("gudang_tujuan_id", $defaultGudangTujuanId ?? "") }}',
+                rows: (initial.rows && initial.rows.length > 0) ? initial.rows : [
+                    { produk_id: '', qty: '', satuan: '', selectedItem: null }
+                ],
                 activeRow: null
             };
         }

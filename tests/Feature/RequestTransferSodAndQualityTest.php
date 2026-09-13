@@ -148,4 +148,91 @@ class RequestTransferSodAndQualityTest extends TestCase
         $this->assertContains('TR-TEST-SBY', $transaksiMgr);
         $this->assertContains('TR-TEST-SOLO', $transaksiMgr);
     }
+
+    public function test_receive_item_uom_step_rendering_and_validation(): void
+    {
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $fulfillment = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
+
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $gudangFf = Gudang::where('kode', 'FF-PUSAT')->firstOrFail();
+
+        $produkJadi = Produk::where('satuan', 'pcs')->firstOrFail();
+        $produkBahan = Produk::where('satuan', 'ml')->firstOrFail();
+
+        $stokService = app(StokService::class);
+        $stokService->masuk($produkJadi->id, $gudangOp->id, 100, 'mutasi_manual');
+        $stokService->masuk($produkBahan->id, $gudangOp->id, 500, 'mutasi_manual');
+
+        $this->actingAs($operasional);
+        $this->post(route('rt.store'), [
+            'jenis' => 'kirim_produk_jadi',
+            'gudang_asal_id' => $gudangOp->id,
+            'gudang_tujuan_id' => $gudangFf->id,
+            'items' => [
+                ['produk_id' => $produkJadi->id, 'qty_diminta' => 10],
+                ['produk_id' => $produkBahan->id, 'qty_diminta' => 50.5],
+            ],
+        ]);
+
+        $rt = RequestTransfer::with('items.produk')->latest()->firstOrFail();
+        $itemPcs = $rt->items->firstWhere('produk_id', $produkJadi->id);
+        $itemMl = $rt->items->firstWhere('produk_id', $produkBahan->id);
+
+        $this->post(route('rt.transition', $rt), [
+            'aksi' => 'ship',
+            'items' => [
+                ['id' => $itemPcs->id, 'qty' => 10],
+                ['id' => $itemMl->id, 'qty' => 50.5],
+            ],
+        ]);
+
+        $rt->refresh();
+        $this->assertEquals('dikirim', $rt->status);
+
+        // 1. Cek rendering Blade: PCS memiliki step="1", ML memiliki step="0.01"
+        $this->actingAs($fulfillment);
+        $viewRes = $this->get(route('rt.show', $rt));
+        $viewRes->assertOk();
+        $viewRes->assertSee('step="1"', false);
+        $viewRes->assertSee('step="0.01"', false);
+        $viewRes->assertSee("Qty Baik ({$itemPcs->produk->satuan})", false);
+        $viewRes->assertSee("Qty Baik ({$itemMl->produk->satuan})", false);
+        $viewRes->assertSee("event.preventDefault()", false);
+
+        // 2. Cek validasi backend: Submisi desimal untuk PCS ditolak
+        $invalidRes = $this->post(route('rt.transition', $rt), [
+            'aksi' => 'receive',
+            'items' => [
+                ['id' => $itemPcs->id, 'qty_baik' => 8.5, 'qty_rusak' => 1.5],
+                ['id' => $itemMl->id, 'qty_baik' => 50.5, 'qty_rusak' => 0],
+            ],
+        ]);
+        $invalidRes->assertSessionHas('error');
+        $this->assertStringContainsString('harus berupa bilangan bulat', session('error'));
+
+        // Dokumen tetap 'dikirim' karena transaksi di-rollback
+        $rt->refresh();
+        $this->assertEquals('dikirim', $rt->status);
+
+        // 3. Submisi valid: integer untuk PCS dan desimal untuk ML berhasil diterima
+        $validRes = $this->post(route('rt.transition', $rt), [
+            'aksi' => 'receive',
+            'items' => [
+                ['id' => $itemPcs->id, 'qty_baik' => 9, 'qty_rusak' => 1],
+                ['id' => $itemMl->id, 'qty_baik' => 45.25, 'qty_rusak' => 5.25],
+            ],
+        ]);
+        $validRes->assertSessionHas('success');
+
+        $rt->refresh();
+        $this->assertEquals('selesai', $rt->status);
+        $itemPcs->refresh();
+        $itemMl->refresh();
+
+        $this->assertEquals(9, (float) $itemPcs->qty_baik);
+        $this->assertEquals(1, (float) $itemPcs->qty_rusak);
+        $this->assertEquals(45.25, (float) $itemMl->qty_baik);
+        $this->assertEquals(5.25, (float) $itemMl->qty_rusak);
+    }
 }

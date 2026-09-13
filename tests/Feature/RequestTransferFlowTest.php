@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\KartuStok;
 use App\Models\Produk;
 use App\Models\RequestTransfer;
+use App\Models\Stok;
 use App\Models\User;
 use App\Services\StokService;
 use Illuminate\Database\Eloquent\Model;
@@ -453,5 +455,120 @@ class RequestTransferFlowTest extends TestCase
         $response->assertOk();
         $response->assertSee('Stok Asal Cukup');
         $response->assertSee('Tersedia');
+    }
+
+    public function test_idempotent_transition_handles_concurrent_or_double_submissions_gracefully(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $gudangBahan = Gudang::where('kode', 'GD-PUSAT')->firstOrFail();
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $bahan = Produk::bahan()->firstOrFail();
+
+        // Buat request transfer status draft
+        $rt = RequestTransfer::create([
+            'no_transaksi' => 'TR-IDEMP-01',
+            'jenis' => 'req_bahan',
+            'gudang_asal_id' => $gudangBahan->id,
+            'gudang_tujuan_id' => $gudangOp->id,
+            'status' => 'draft',
+            'created_by' => $manager->id,
+        ]);
+
+        $rt->items()->create([
+            'produk_id' => $bahan->id,
+            'qty_diminta' => 10,
+        ]);
+
+        $this->actingAs($manager);
+
+        // 1. Submit pertama: draft -> diajukan
+        $res1 = $this->post(route('rt.transition', $rt), ['aksi' => 'submit']);
+        $res1->assertSessionHas('success');
+        $this->assertEquals('diajukan', $rt->fresh()->status);
+
+        // 2. Submit kedua (simulasi double-click): aksi submit dikirim lagi saat status sudah diajukan
+        // Sistem tidak boleh melempar error "Transisi tidak valid", melainkan merespon sukses secara idempoten
+        $res2 = $this->post(route('rt.transition', $rt), ['aksi' => 'submit']);
+        $res2->assertSessionHas('success');
+        $res2->assertSessionMissing('error');
+        $this->assertEquals('diajukan', $rt->fresh()->status);
+
+        // 3. Approve pertama: diajukan -> disetujui
+        $resApprove1 = $this->post(route('rt.transition', $rt), ['aksi' => 'approve']);
+        $resApprove1->assertSessionHas('success');
+        $this->assertEquals('disetujui', $rt->fresh()->status);
+
+        // 4. Approve kedua (simulasi double-click):
+        $resApprove2 = $this->post(route('rt.transition', $rt), ['aksi' => 'approve']);
+        $resApprove2->assertSessionHas('success');
+        $resApprove2->assertSessionMissing('error');
+        $this->assertEquals('disetujui', $rt->fresh()->status);
+    }
+
+    public function test_create_view_auto_fills_shortage_from_batch(): void
+    {
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $gudangPusat = Gudang::where('kode', 'GD-PUSAT')->firstOrFail();
+
+        $produkJadi = Produk::where('tipe', 'produk_jadi')->firstOrFail();
+        $bahanA = Produk::where('tipe', 'bahan')->firstOrFail();
+        $bahanB = Produk::where('tipe', 'bahan')->where('id', '!=', $bahanA->id)->firstOrFail();
+
+        // Setup batch produksi dengan alokasi 2 bahan
+        $batch = BatchProduksi::create([
+            'no_batch' => 'BATCH-TEST-SHORTAGE',
+            'produk_id' => $produkJadi->id,
+            'qty_rencana' => 100,
+            'gudang_operasional_id' => $gudangOp->id,
+            'status' => 'rencana',
+            'tanggal' => now(),
+            'created_by' => $operasional->id,
+        ]);
+
+        // Bahan A: dialokasikan 50, stok fisik di gd ops = 10 -> KURANG 40
+        $batch->alokasi()->create([
+            'bahan_id' => $bahanA->id,
+            'qty_dialokasikan' => 50,
+            'status' => 'aktif',
+        ]);
+        Stok::updateOrCreate(
+            ['gudang_id' => $gudangOp->id, 'produk_id' => $bahanA->id],
+            ['qty_saat_ini' => 10]
+        );
+
+        // Bahan B: dialokasikan 20, stok fisik di gd ops = 30 -> CUKUP (kurang 0)
+        $batch->alokasi()->create([
+            'bahan_id' => $bahanB->id,
+            'qty_dialokasikan' => 20,
+            'status' => 'aktif',
+        ]);
+        Stok::updateOrCreate(
+            ['gudang_id' => $gudangOp->id, 'produk_id' => $bahanB->id],
+            ['qty_saat_ini' => 30]
+        );
+
+        $this->actingAs($operasional);
+
+        // 1. Akses halaman create dengan query parameter batch_id
+        $response = $this->get(route('rt.create', ['batch_id' => $batch->id]));
+
+        $response->assertOk();
+        $response->assertViewHas('prefilledRows');
+        $response->assertViewHas('defaultGudangTujuanId', $gudangOp->id);
+        $response->assertViewHas('defaultGudangAsalId', $gudangPusat->id);
+
+        $prefilled = $response->viewData('prefilledRows');
+        // Hanya Bahan A yang kurang yang masuk ke prefilled
+        $this->assertCount(1, $prefilled);
+        $this->assertEquals($bahanA->id, $prefilled[0]['produk_id']);
+        $this->assertEquals(40, $prefilled[0]['qty']); // 50 - 10 = 40
+        $this->assertEquals($bahanA->satuan, $prefilled[0]['satuan']);
+        $this->assertEquals($bahanA->nama, $prefilled[0]['selectedItem']['nama']);
+
+        // 2. Akses halaman create tanpa batch_id -> prefilledRows harus kosong
+        $responseNormal = $this->get(route('rt.create'));
+        $responseNormal->assertOk();
+        $this->assertEmpty($responseNormal->viewData('prefilledRows'));
     }
 }

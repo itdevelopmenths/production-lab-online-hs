@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\RequestTransfer;
 use App\Models\Stok;
+use App\Models\User;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
@@ -57,7 +59,7 @@ class RequestTransferController extends Controller
             ->toJson();
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $this->authorize('rt.create');
         $user = auth()->user();
@@ -71,7 +73,106 @@ class RequestTransferController extends Controller
         $allGudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
 
-        return view('request-transfer.create', compact('gudang', 'allGudang', 'produk'));
+        $prefilledRows = [];
+        $defaultJenis = 'req_bahan';
+        $defaultGudangAsalId = null;
+        $defaultGudangTujuanId = null;
+        $defaultCatatan = null;
+        $batch = null;
+
+        if ($request->old('items')) {
+            $oldItems = $request->old('items');
+            $oldProductIds = array_filter(array_column($oldItems, 'produk_id'));
+            $products = Produk::whereIn('id', $oldProductIds)->get()->keyBy('id');
+
+            foreach ($oldItems as $item) {
+                $pId = $item['produk_id'] ?? null;
+                $prod = $pId ? $products->get($pId) : null;
+                $prefilledRows[] = [
+                    'produk_id' => $pId,
+                    'qty' => $item['qty_diminta'] ?? '',
+                    'satuan' => $prod?->satuan ?? '',
+                    'selectedItem' => $prod ? [
+                        'id' => $prod->id,
+                        'sku' => $prod->sku,
+                        'nama' => $prod->nama,
+                        'satuan' => $prod->satuan,
+                    ] : null,
+                ];
+            }
+        } elseif ($request->filled('batch_id')) {
+            $batch = BatchProduksi::with(['alokasi.bahan', 'gudangOperasional', 'produk'])->find($request->batch_id);
+            if ($batch) {
+                $defaultJenis = 'req_bahan';
+                $defaultGudangTujuanId = $batch->gudang_operasional_id 
+                    ? (int) $batch->gudang_operasional_id 
+                    : (int) Gudang::where('tipe', 'operasional')->value('id');
+
+                // Gudang pusat bahan baku sebagai default gudang asal
+                $gudangPusat = Gudang::bahanBakuPusat()->first()
+                    ?? Gudang::where('tipe', 'bahan_baku')->first()
+                    ?? Gudang::where('kode', 'GD-PUSAT')->first();
+                if ($gudangPusat) {
+                    $defaultGudangAsalId = (int) $gudangPusat->id;
+                }
+
+                $defaultCatatan = "Permintaan kekurangan bahan baku untuk produksi Batch {$batch->no_batch}";
+
+                $bahanIds = $batch->alokasi->pluck('bahan_id')->unique()->filter()->values();
+                $stokOperasional = [];
+                if ($batch->gudang_operasional_id && $bahanIds->isNotEmpty()) {
+                    $stokOperasional = Stok::where('gudang_id', $batch->gudang_operasional_id)
+                        ->whereIn('produk_id', $bahanIds)
+                        ->pluck('qty_saat_ini', 'produk_id')
+                        ->map(fn ($v) => (float) $v)
+                        ->toArray();
+                }
+
+                $prefilledMap = [];
+                foreach ($batch->alokasi as $alokasi) {
+                    $bahan = $alokasi->bahan;
+                    if (!$bahan) {
+                        continue;
+                    }
+
+                    if ($request->filled('bahan_id') && (int) $request->bahan_id !== (int) $bahan->id) {
+                        continue;
+                    }
+
+                    $qtyAlokasi = (float) $alokasi->qty_dialokasikan;
+                    $fisikOp = (float) ($stokOperasional[$bahan->id] ?? 0);
+                    $kurangFisik = max(0, $qtyAlokasi - $fisikOp);
+
+                    if ($kurangFisik > 0 || $request->filled('bahan_id')) {
+                        $qtyToRequest = $kurangFisik > 0 ? $kurangFisik : $qtyAlokasi;
+                        $prefilledMap[$bahan->id] = [
+                            'produk_id' => $bahan->id,
+                            'qty' => round($qtyToRequest, 2),
+                            'satuan' => $bahan->satuan,
+                            'selectedItem' => [
+                                'id' => $bahan->id,
+                                'sku' => $bahan->sku,
+                                'nama' => $bahan->nama,
+                                'satuan' => $bahan->satuan,
+                            ],
+                        ];
+                    }
+                }
+                $prefilledRows = array_values($prefilledMap);
+            }
+        }
+
+        return view('request-transfer.create', compact(
+            'gudang',
+            'allGudang',
+            'produk',
+            'prefilledRows',
+            'defaultJenis',
+            'defaultGudangAsalId',
+            'defaultGudangTujuanId',
+            'defaultCatatan',
+            'batch'
+        ));
     }
 
     public function store(Request $request)
@@ -154,24 +255,8 @@ class RequestTransferController extends Controller
         }
 
         $user = auth()->user();
-        $isManager = $user->hasRole('manager') || $this->locationScope->isGlobal($user);
-        $canAccessDestination = $requestTransfer->gudang_tujuan_id 
-            ? $this->locationScope->canAccessWarehouse($user, $requestTransfer->gudang_tujuan_id) 
-            : false;
-
-        $isFulfillmentDestination = $requestTransfer->gudangTujuan 
-            && in_array($requestTransfer->gudangTujuan->tipe, ['fulfillment_pusat', 'fulfillment_cabang', 'fulfillment'], true);
-
-        $canReceive = false;
-        if (in_array($requestTransfer->status, ['diproses', 'dikirim'], true) && $user->can('rt.receive')) {
-            if ($isManager) {
-                $canReceive = true;
-            } elseif ($canAccessDestination) {
-                if (!$isFulfillmentDestination || $user->hasRole('fulfillment')) {
-                    $canReceive = true;
-                }
-            }
-        }
+        $canReceive = in_array($requestTransfer->status, ['diproses', 'dikirim'], true)
+            && $this->canUserReceiveTransfer($user, $requestTransfer);
 
         return view('request-transfer.show', compact(
             'requestTransfer',
@@ -207,32 +292,37 @@ class RequestTransferController extends Controller
         $this->authorize($perm);
 
         $user = auth()->user();
-        $isManager = $user->hasRole('manager') || $this->locationScope->isGlobal($user);
 
         // Enforced Separation of Duties (SoD) on Receive
-        if ($aksi === 'receive' && !$isManager) {
-            $canAccessDestination = $rt->gudang_tujuan_id 
-                ? $this->locationScope->canAccessWarehouse($user, $rt->gudang_tujuan_id) 
-                : false;
-
-            $isFulfillmentDestination = $rt->gudangTujuan 
-                && in_array($rt->gudangTujuan->tipe, ['fulfillment_pusat', 'fulfillment_cabang', 'fulfillment'], true);
-
-            // User must be authorized for destination warehouse
-            if (!$canAccessDestination) {
-                abort(403, 'Aksi Ditolak: Anda merupakan pihak pengirim. Konfirmasi penerimaan wajib dilakukan oleh petugas Gudang Fulfillment tujuan.');
-            }
-
-            // If destination is fulfillment, only fulfillment role can receive
-            if ($isFulfillmentDestination && !$user->hasRole('fulfillment')) {
-                abort(403, 'Aksi Ditolak: Anda merupakan pihak pengirim. Konfirmasi penerimaan wajib dilakukan oleh petugas Gudang Fulfillment tujuan.');
+        if ($aksi === 'receive') {
+            if (! $this->canUserReceiveTransfer($user, $rt)) {
+                $destName = $rt->gudangTujuan?->nama ?? 'Tujuan';
+                abort(403, "Aksi Ditolak: Anda tidak memiliki wewenang menerima transfer ini. Konfirmasi penerimaan dan inspeksi kualitas fisik wajib dilakukan oleh petugas Gudang {$destName}.");
             }
         }
 
         $qtyMap = collect($request->input('items', []))->keyBy('id');
 
         try {
-            DB::transaction(function () use ($rt, $aksi, $qtyMap) {
+            DB::transaction(function () use ($requestTransfer, $aksi, $qtyMap) {
+                // Lock baris untuk mencegah race condition
+                $rt = RequestTransfer::where('id', $requestTransfer->id)->lockForUpdate()->firstOrFail();
+
+                // Idempotency: Jika status dokumen sudah mencapai target aksi ini (akibat double-click / network retry),
+                // anggap sukses secara idempoten tanpa mengeksekusi mutasi stok berulang dan tanpa error transisi tidak valid.
+                $isAlreadyTarget = match ($aksi) {
+                    'submit' => $rt->status === 'diajukan',
+                    'approve' => $rt->status === 'disetujui',
+                    'process' => $rt->status === 'diproses',
+                    'ship' => $rt->status === 'dikirim',
+                    'receive' => $rt->status === 'selesai',
+                    'cancel' => $rt->status === 'dibatalkan',
+                };
+
+                if ($isAlreadyTarget) {
+                    return;
+                }
+
                 match ($aksi) {
                     'submit' => $this->doSubmit($rt),
                     'approve' => $this->doApprove($rt),
@@ -286,6 +376,8 @@ class RequestTransferController extends Controller
     {
         abort_unless(in_array($rt->status, ['diproses', 'dikirim'], true), 422, 'Transisi tidak valid.');
 
+        $rt->loadMissing('items.produk');
+
         foreach ($rt->items as $item) {
             $row = $qtyMap[$item->id] ?? [];
             $hasQualityInput = isset($row['qty_baik']) || isset($row['qty_rusak']);
@@ -294,6 +386,23 @@ class RequestTransferController extends Controller
                 $qtyBaik = (float) ($row['qty_baik'] ?? 0);
                 $qtyRusak = (float) ($row['qty_rusak'] ?? 0);
                 $qtyTotal = $qtyBaik + $qtyRusak;
+                $qtyKirim = (float) ($item->qty_dikirim ?? $item->qty_diminta);
+
+                if ($qtyTotal > $qtyKirim) {
+                    throw new \RuntimeException("Total kuantitas diterima ({$qtyTotal}) untuk {$item->produk->nama} tidak boleh melebihi kuantitas dikirim ({$qtyKirim}).");
+                }
+
+                $satuanLower = strtolower(trim($item->produk->satuan ?? 'pcs'));
+                $isDecimal = in_array($satuanLower, ['ml', 'l', 'liter', 'gr', 'gram', 'kg', 'kilogram'], true);
+                if (! $isDecimal) {
+                    if (abs($qtyBaik - round($qtyBaik)) > 0.00001 || abs($qtyRusak - round($qtyRusak)) > 0.00001) {
+                        throw new \RuntimeException("Kuantitas untuk {$item->produk->nama} ({$item->produk->satuan}) harus berupa bilangan bulat (satuan), bukan pecahan/desimal.");
+                    }
+                    $qtyBaik = (float) round($qtyBaik);
+                    $qtyRusak = (float) round($qtyRusak);
+                    $qtyTotal = $qtyBaik + $qtyRusak;
+                }
+
                 $keteranganRusak = $row['keterangan_rusak'] ?? null;
 
                 $item->update([
@@ -335,5 +444,94 @@ class RequestTransferController extends Controller
         $count = RequestTransfer::whereYear('created_at', $year)->count() + 1;
 
         return sprintf('TR-%d-%04d', $year, $count);
+    }
+
+    /**
+     * Memeriksa apakah pengguna berwenang mengonfirmasi penerimaan transfer ini
+     * sesuai prinsip Separation of Duties (SoD) dan hierarki gudang.
+     */
+    public function canUserReceiveTransfer(User $user, RequestTransfer $rt): bool
+    {
+        if (! $user->can('rt.receive')) {
+            return false;
+        }
+
+        // Hanya role 'manager' eksplisit yang memiliki hak supervisi/override manajerial
+        if ($user->hasRole('manager')) {
+            return true;
+        }
+
+        $dest = $rt->gudangTujuan;
+        if (! $dest) {
+            return false;
+        }
+
+        // 1. User wajib memiliki hak akses lokasi ke gudang tujuan
+        if (! $this->locationScope->canAccessWarehouse($user, $dest->id)) {
+            return false;
+        }
+
+        // 2. Anti Self-Dealing: Pembuat pengajuan transfer keluar dilarang menerima dokumennya sendiri
+        //    (Kecuali jenis 'req_bahan', di mana staf pemohon di lab meminta bahan untuk dikonsumsi di labnya).
+        if ($rt->jenis !== 'req_bahan' && (int) $rt->created_by === (int) $user->id) {
+            return false;
+        }
+
+        // 3. Separation of Duties (SoD) berdasarkan fungsi fasilitas tujuan:
+
+        // A. Pengiriman ke Fulfillment (misal kirim_produk_jadi, antar_fulfillment):
+        //    Penerima WAJIB memiliki peran 'fulfillment'. Staf operasional/pengirim dilarang menerima!
+        if ($dest->isFulfillment() || in_array($rt->jenis, ['kirim_produk_jadi', 'antar_fulfillment'], true)) {
+            return $user->hasRole('fulfillment');
+        }
+
+        // B. Penerimaan di Gudang Operasional (Lab) (misal req_bahan, retur_produk_jadi):
+        //    Dapat diterima oleh:
+        //    1) Staf Operasional Lab (role 'operasional'), ATAU
+        //    2) Staf Gudang Operasional (role 'gudang' yang ditugaskan di gudang operasional tujuan),
+        //       dengan syarat pos utamanya bukan di gudang asal pengirim (Gudang Bahan Baku Pusat).
+        if ($dest->isOperasional() || in_array($rt->jenis, ['req_bahan', 'retur_produk_jadi'], true)) {
+            if ($user->hasRole('operasional')) {
+                return true;
+            }
+
+            if ($user->hasRole('gudang')) {
+                // Jika pos utama user adalah gudang asal pengirim, tolak (SoD)
+                $primaryGudangId = $user->primaryGudang()?->id;
+                if ($primaryGudangId && (int) $primaryGudangId === (int) $rt->gudang_asal_id) {
+                    return false;
+                }
+
+                // Jika user memiliki akses restricted, pastikan dia memang memiliki hak atas gudang tujuan
+                if ($user->warehouse_access_type === 'restricted') {
+                    return $user->gudangs()->where('gudang.id', $dest->id)->exists();
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        // C. Penerimaan di Gudang Bahan Baku (misal retur_bahan):
+        //    Penerima WAJIB memiliki peran 'gudang' dan pos utamanya bukan di gudang asal pengirim.
+        if ($dest->isBahanBaku() || $rt->jenis === 'retur_bahan') {
+            if (! $user->hasRole('gudang')) {
+                return false;
+            }
+
+            $primaryGudangId = $user->primaryGudang()?->id;
+            if ($primaryGudangId && (int) $primaryGudangId === (int) $rt->gudang_asal_id) {
+                return false;
+            }
+
+            if ($user->warehouse_access_type === 'restricted') {
+                return $user->gudangs()->where('gudang.id', $dest->id)->exists();
+            }
+
+            return true;
+        }
+
+        return true;
     }
 }
