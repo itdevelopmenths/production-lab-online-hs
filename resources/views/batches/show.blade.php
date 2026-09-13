@@ -41,19 +41,28 @@
             @endif
             @endcan
 
-            @can('rt.create')
             @if($batch->status === 'selesai')
-            <form method="POST" action="{{ route('batches.kirim', $batch) }}" class="inline">
-                @csrf
-                <x-button type="submit" variant="primary" size="xs">
+                @if($batch->transferKirim)
+                <x-button href="{{ route('rt.show', $batch->transferKirim) }}" variant="secondary" size="xs">
                     <x-slot:icon>
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"/></svg>
+                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </x-slot:icon>
-                    Kirim ke Fulfillment
+                    Transfer: {{ $batch->transferKirim->no_transaksi }}
                 </x-button>
-            </form>
+                @else
+                    @can('rt.create')
+                    <form method="POST" action="{{ route('batches.kirim', $batch) }}" class="inline">
+                        @csrf
+                        <x-button type="submit" variant="primary" size="xs">
+                            <x-slot:icon>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"/></svg>
+                            </x-slot:icon>
+                            Kirim ke Fulfillment
+                        </x-button>
+                    </form>
+                    @endcan
+                @endif
             @endif
-            @endcan
         </x-slot:actions>
     </x-page-header>
 
@@ -92,14 +101,7 @@
     @if($batch->status === 'rencana' && $hasDeficitFisik)
     <div class="mb-5">
         <x-alert type="danger" title="Peringatan Dini:">
-            Saldo fisik bahan baku di {{ $batch->gudangOperasional?->nama ?? 'Gudang Operasional' }} belum mencukupi untuk batch ini.
-            <x-slot:action>
-                @can('rt.create')
-                <x-button href="{{ route('rt.create') }}" variant="danger" size="xs">
-                    + Buat Request Bahan
-                </x-button>
-                @endcan
-            </x-slot:action>
+            Saldo fisik bahan baku di {{ $batch->gudangOperasional?->nama ?? 'Gudang Operasional' }} belum mencukupi untuk batch ini. Silakan gunakan tombol <strong>Request Bahan yang Kurang</strong> pada panel Kontrol Batch.
         </x-alert>
     </div>
     @endif
@@ -162,7 +164,7 @@
                                 <th class="py-2.5 px-3 text-right">Kebutuhan</th>
                                 <th class="py-2.5 px-3 text-right">Stok Fisik Ops</th>
                                 <th class="py-2.5 px-3 text-right">Kolom Rencana</th>
-                                <th class="py-2.5 px-3 text-right">Stok GD Pusat</th>
+                                <th class="py-2.5 px-3 text-right whitespace-nowrap" title="Stok fisik di {{ $gudangPusat?->nama ?? 'Gudang Bahan Baku Pusat' }}">Stok GD BB Pusat</th>
                                 <th class="py-2.5 px-3 text-center">Status</th>
                                 <th class="py-2.5 px-3.5 text-center">Aksi</th>
                             </tr>
@@ -252,46 +254,159 @@
                                 <th class="py-2 px-3 text-right">Target</th>
                                 <th class="py-2 px-3 text-right w-36">Qty Baik <span class="text-rose-500">*</span></th>
                                 <th class="py-2 px-3 text-right w-36">Qty Rusak (Defect)</th>
+                                <th class="py-2 px-3 text-center w-28">Status Imbang</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
                             @foreach($batch->outputs as $index => $out)
-                            <tr>
+                            @php
+                                $targetOut = (int) round((float) $out->qty_rencana);
+                                $defaultBaikOut = old("outputs.{$index}.qty_baik", $targetOut);
+                                $defaultRusakOut = old("outputs.{$index}.qty_rusak", 0);
+                            @endphp
+                            <tr x-data="{
+                                target: {{ $targetOut }},
+                                baik: {{ (int) $defaultBaikOut }},
+                                rusak: {{ (int) $defaultRusakOut }},
+                                syncFromRusak() {
+                                    let r = parseInt(this.rusak);
+                                    if (isNaN(r) || r < 0) r = 0;
+                                    if (r > this.target) r = this.target;
+                                    this.rusak = r;
+                                    this.baik = this.target - r;
+                                },
+                                syncFromBaik() {
+                                    let b = parseInt(this.baik);
+                                    if (isNaN(b) || b < 0) b = 0;
+                                    if (b > this.target) b = this.target;
+                                    this.baik = b;
+                                    this.rusak = this.target - b;
+                                }
+                            }">
                                 <td class="py-2 px-3 font-medium text-gray-800">
                                     <input type="hidden" name="outputs[{{ $index }}][id]" value="{{ $out->id }}">
                                     <div class="font-bold">{{ $out->produk?->nama }}</div>
                                     <div class="font-mono text-[10px] text-gray-400">{{ $out->produk?->sku }}</div>
                                 </td>
-                                <td class="py-2 px-3 text-right font-mono text-gray-600">
+                                <td class="py-2 px-3 text-right font-mono text-gray-600 whitespace-nowrap">
                                     {{ \App\Helpers\NumberHelper::formatQty($out->qty_rencana) }} {{ $out->produk?->satuan }}
                                 </td>
                                 <td class="py-2 px-3 text-right">
-                                    <input type="number" step="0.01" min="0" name="outputs[{{ $index }}][qty_baik]" class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono" placeholder="0" required>
+                                    <input
+                                        type="number"
+                                        step="1"
+                                        min="0"
+                                        max="{{ $targetOut }}"
+                                        name="outputs[{{ $index }}][qty_baik]"
+                                        x-model.number="baik"
+                                        @input="syncFromBaik()"
+                                        onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
+                                        class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono"
+                                        required
+                                    >
                                 </td>
                                 <td class="py-2 px-3 text-right">
-                                    <input type="number" step="0.01" min="0" name="outputs[{{ $index }}][qty_rusak]" value="0" class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono" required>
+                                    <input
+                                        type="number"
+                                        step="1"
+                                        min="0"
+                                        max="{{ $targetOut }}"
+                                        name="outputs[{{ $index }}][qty_rusak]"
+                                        x-model.number="rusak"
+                                        @input="syncFromRusak()"
+                                        onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
+                                        class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono"
+                                        required
+                                    >
+                                </td>
+                                <td class="py-2 px-3 text-center whitespace-nowrap">
+                                    <span x-show="(baik + rusak) === target" class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-xs border border-emerald-200 font-mono">
+                                        &check; Pas (<span x-text="target"></span>)
+                                    </span>
+                                    <span x-show="(baik + rusak) !== target" class="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-xs border border-rose-200 font-mono" x-cloak>
+                                        &times; <span x-text="baik + rusak"></span>/<span x-text="target"></span>
+                                    </span>
                                 </td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
                     @else
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end mb-1">
-                        @if($batch->outputs->isNotEmpty())
-                            <input type="hidden" name="outputs[0][id]" value="{{ $batch->outputs->first()->id }}">
-                        @endif
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Qty Baik (Pcs)</label>
-                            <input type="number" step="0.01" min="0" name="{{ $batch->outputs->isNotEmpty() ? 'outputs[0][qty_baik]' : 'qty_baik' }}" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-right" placeholder="0" required>
+                    @php
+                        $targetRencana = (int) round((float) $batch->qty_rencana);
+                        $defaultBaik = old('qty_baik', old('outputs.0.qty_baik', $targetRencana));
+                        $defaultRusak = old('qty_rusak', old('outputs.0.qty_rusak', 0));
+                    @endphp
+                    <div x-data="{
+                        target: {{ $targetRencana }},
+                        baik: {{ (int) $defaultBaik }},
+                        rusak: {{ (int) $defaultRusak }},
+                        syncFromRusak() {
+                            let r = parseInt(this.rusak);
+                            if (isNaN(r) || r < 0) r = 0;
+                            if (r > this.target) r = this.target;
+                            this.rusak = r;
+                            this.baik = this.target - r;
+                        },
+                        syncFromBaik() {
+                            let b = parseInt(this.baik);
+                            if (isNaN(b) || b < 0) b = 0;
+                            if (b > this.target) b = this.target;
+                            this.baik = b;
+                            this.rusak = this.target - b;
+                        }
+                    }">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end mb-1">
+                            @if($batch->outputs->isNotEmpty())
+                                <input type="hidden" name="outputs[0][id]" value="{{ $batch->outputs->first()->id }}">
+                            @endif
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Qty Baik ({{ $batch->produk?->satuan ?? 'Pcs' }}) <span class="text-rose-500">*</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    step="1"
+                                    min="0"
+                                    max="{{ $targetRencana }}"
+                                    name="{{ $batch->outputs->isNotEmpty() ? 'outputs[0][qty_baik]' : 'qty_baik' }}"
+                                    x-model.number="baik"
+                                    @input="syncFromBaik()"
+                                    onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
+                                    class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-right"
+                                    required
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                    Qty Rusak ({{ $batch->produk?->satuan ?? 'Pcs' }})
+                                </label>
+                                <input
+                                    type="number"
+                                    step="1"
+                                    min="0"
+                                    max="{{ $targetRencana }}"
+                                    name="{{ $batch->outputs->isNotEmpty() ? 'outputs[0][qty_rusak]' : 'qty_rusak' }}"
+                                    x-model.number="rusak"
+                                    @input="syncFromRusak()"
+                                    onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
+                                    class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-right"
+                                    required
+                                >
+                            </div>
+                            <div>
+                                <x-button type="submit" variant="success" size="sm" class="w-full">
+                                    Simpan Hasil Batch
+                                </x-button>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Qty Rusak (Defect)</label>
-                            <input type="number" step="0.01" min="0" name="{{ $batch->outputs->isNotEmpty() ? 'outputs[0][qty_rusak]' : 'qty_rusak' }}" value="0" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-right" required>
-                        </div>
-                        <div>
-                            <x-button type="submit" variant="success" size="sm" class="w-full">
-                                Simpan Hasil Batch
-                            </x-button>
+                        <div class="flex items-center justify-between text-[11px] text-gray-500 px-0.5 mt-1.5">
+                            <span>Target Rencana: <strong class="font-mono text-gray-800">{{ $targetRencana }} {{ $batch->produk?->satuan ?? 'Pcs' }}</strong></span>
+                            <span :class="(baik + rusak) === target ? 'text-emerald-700 font-semibold' : 'text-rose-600 font-bold'">
+                                Total Input: <span class="font-mono" x-text="baik + rusak"></span> / <span class="font-mono" x-text="target"></span>
+                                <span x-show="(baik + rusak) === target" class="text-emerald-600 ml-1">&check; Pas</span>
+                                <span x-show="(baik + rusak) !== target" class="text-rose-600 ml-1">&times; Wajib sama dengan target</span>
+                            </span>
                         </div>
                     </div>
                     @endif
@@ -434,9 +549,23 @@
 
                     @can('rt.create')
                     <div class="mt-2.5">
+                        @if($hasDeficitFisik)
+                        <x-button href="{{ route('rt.create', ['batch_id' => $batch->id]) }}" variant="danger" size="sm" class="w-full">
+                            <x-slot:icon>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            </x-slot:icon>
+                            Buat Request Bahan (Kurang Stok)
+                        </x-button>
+                        <p class="text-[10px] text-rose-600 text-center mt-1 font-medium">Auto-fill bahan & kuantitas yang kurang ke Request Transfer.</p>
+                        @else
                         <x-button href="{{ route('rt.create') }}" variant="secondary" size="sm" class="w-full">
+                            <x-slot:icon>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            </x-slot:icon>
                             + Buat Request Bahan
                         </x-button>
+                        <p class="text-[10px] text-gray-500 text-center mt-1">Buat permintaan mutasi bahan (form kosong).</p>
+                        @endif
                     </div>
                     @endcan
 
@@ -451,18 +580,41 @@
                 @endif
 
                 @if($batch->status === 'selesai')
-                    @can('rt.create')
-                    <form method="POST" action="{{ route('batches.kirim', $batch) }}">
-                        @csrf
-                        <x-button type="submit" variant="primary" size="md" class="w-full">
-                            <x-slot:icon>
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"/></svg>
-                            </x-slot:icon>
-                            Kirim ke Fulfillment
-                        </x-button>
-                    </form>
-                    <p class="text-[11px] text-gray-500 text-center mt-1">Buat dokumen transfer produk jadi ke fulfillment hub.</p>
-                    @endcan
+                    @if($batch->transferKirim)
+                    <div class="py-3 px-3.5 bg-emerald-50 border border-emerald-200 rounded-sm text-xs">
+                        <div class="flex items-center justify-between gap-2 mb-1.5">
+                            <span class="font-bold text-emerald-900 flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Pengiriman Selesai
+                            </span>
+                            <x-badge variant="success" size="xs">
+                                {{ ucfirst($batch->transferKirim->status) }}
+                            </x-badge>
+                        </div>
+                        <p class="text-[11px] text-emerald-800 leading-relaxed">
+                            Produk jadi telah dikirim ke fulfillment hub via dokumen <a href="{{ route('rt.show', $batch->transferKirim) }}" class="font-mono font-bold underline hover:text-emerald-950">{{ $batch->transferKirim->no_transaksi }}</a>.
+                        </p>
+                        <div class="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between">
+                            <span class="text-[10px] text-emerald-700 font-mono">Tujuan: {{ $batch->gudangTujuan?->nama ?? 'Fulfillment' }}</span>
+                            <a href="{{ route('rt.show', $batch->transferKirim) }}" class="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1">
+                                Dokumen Transfer &rarr;
+                            </a>
+                        </div>
+                    </div>
+                    @else
+                        @can('rt.create')
+                        <form method="POST" action="{{ route('batches.kirim', $batch) }}">
+                            @csrf
+                            <x-button type="submit" variant="primary" size="md" class="w-full">
+                                <x-slot:icon>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"/></svg>
+                                </x-slot:icon>
+                                Kirim ke Fulfillment
+                            </x-button>
+                        </form>
+                        <p class="text-[11px] text-gray-500 text-center mt-1">Buat dokumen transfer produk jadi ke fulfillment hub.</p>
+                        @endcan
+                    @endif
                 @endif
 
                 @if($batch->status === 'dibatalkan')

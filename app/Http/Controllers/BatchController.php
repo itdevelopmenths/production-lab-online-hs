@@ -11,6 +11,7 @@ use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
 
 class BatchController extends Controller
@@ -183,6 +184,7 @@ class BatchController extends Controller
             'creator:id,name',
             'alokasi.bahan:id,sku,nama,satuan,tipe',
             'opname.bahan:id,nama',
+            'transferKirim:id,no_transaksi,referensi_batch_id,status,gudang_asal_id,gudang_tujuan_id',
         ]);
 
         $bahanIds = $batch->alokasi->pluck('bahan_id')->unique()->filter()->values();
@@ -216,7 +218,8 @@ class BatchController extends Controller
         }
 
         // 3. Stok fisik di Gudang Bahan Baku Pusat (sebagai referensi untuk Request Bahan jika kurang)
-        $gudangPusat = Gudang::where('tipe', 'bahan_baku')->first()
+        $gudangPusat = Gudang::bahanBakuPusat()->first()
+            ?? Gudang::where('tipe', 'bahan_baku')->first()
             ?? Gudang::where('kode', 'GD-PUSAT')->first();
         $stokPusat = [];
         if ($gudangPusat && $bahanIds->isNotEmpty()) {
@@ -298,13 +301,40 @@ class BatchController extends Controller
         abort_unless($batch->status === 'release', 422, 'Hanya batch yang sudah Release yang dapat diselesaikan.');
 
         $data = $request->validate([
-            'qty_baik' => ['nullable', 'numeric', 'min:0'],
-            'qty_rusak' => ['nullable', 'numeric', 'min:0'],
+            'qty_baik' => ['nullable', 'integer', 'min:0'],
+            'qty_rusak' => ['nullable', 'integer', 'min:0'],
             'outputs' => ['nullable', 'array'],
             'outputs.*.id' => ['required_with:outputs', 'exists:batch_produksi_outputs,id'],
-            'outputs.*.qty_baik' => ['required_with:outputs', 'numeric', 'min:0'],
-            'outputs.*.qty_rusak' => ['required_with:outputs', 'numeric', 'min:0'],
+            'outputs.*.qty_baik' => ['required_with:outputs', 'integer', 'min:0'],
+            'outputs.*.qty_rusak' => ['required_with:outputs', 'integer', 'min:0'],
         ]);
+
+        if (!empty($data['outputs'])) {
+            foreach ($data['outputs'] as $index => $row) {
+                $output = $batch->outputs()->where('id', $row['id'])->first();
+                if ($output) {
+                    $baik = (int) ($row['qty_baik'] ?? 0);
+                    $rusak = (int) ($row['qty_rusak'] ?? 0);
+                    $total = $baik + $rusak;
+                    $target = (int) round((float) $output->qty_rencana);
+                    if ($total !== $target) {
+                        throw ValidationException::withMessages([
+                            "outputs.{$index}.qty_baik" => "Total kuantitas (Qty Baik + Qty Rusak: {$total}) untuk {$output->produk?->nama} tidak boleh lebih atau kurang dari kuantitas rencana ({$target}).",
+                        ]);
+                    }
+                }
+            }
+        } else {
+            $qtyBaik = (int) ($data['qty_baik'] ?? 0);
+            $qtyRusak = (int) ($data['qty_rusak'] ?? 0);
+            $total = $qtyBaik + $qtyRusak;
+            $target = (int) round((float) $batch->qty_rencana);
+            if ($total !== $target) {
+                throw ValidationException::withMessages([
+                    'qty_baik' => "Total kuantitas (Qty Baik + Qty Rusak: {$total}) tidak boleh lebih atau kurang dari kuantitas rencana ({$target}).",
+                ]);
+            }
+        }
 
         DB::transaction(function () use ($batch, $data) {
             $gudang = $batch->gudang_operasional_id ?? $batch->gudang_tujuan_rencana_id;
@@ -422,6 +452,16 @@ class BatchController extends Controller
         $this->authorize('rt.create');
         abort_unless($batch->status === 'selesai', 422, 'Batch harus Selesai untuk dikirim.');
         abort_unless((float) $batch->qty_baik > 0, 422, 'Tidak ada qty baik untuk dikirim.');
+
+        $existing = RequestTransfer::where('referensi_batch_id', $batch->id)
+            ->where('jenis', 'kirim_produk_jadi')
+            ->where('status', '!=', 'dibatalkan')
+            ->first();
+
+        if ($existing) {
+            return redirect()->route('rt.show', $existing)
+                ->with('info', "Dokumen transfer untuk batch {$batch->no_batch} sudah dibuat ({$existing->no_transaksi}).");
+        }
 
         $rt = DB::transaction(function () use ($batch) {
             $year = now()->year;

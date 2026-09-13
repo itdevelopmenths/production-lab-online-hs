@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BatchProduksi extends Model
 {
@@ -68,6 +69,18 @@ class BatchProduksi extends Model
     public function outputs(): HasMany
     {
         return $this->hasMany(BatchProduksiOutput::class, 'batch_id');
+    }
+
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(RequestTransfer::class, 'referensi_batch_id');
+    }
+
+    public function transferKirim(): HasOne
+    {
+        return $this->hasOne(RequestTransfer::class, 'referensi_batch_id')
+            ->where('jenis', 'kirim_produk_jadi')
+            ->where('status', '!=', 'dibatalkan');
     }
 
     /** Yield (%) = qty_baik / qty_rencana * 100. */

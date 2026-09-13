@@ -454,4 +454,132 @@ class ProductionFlowTest extends TestCase
         $response->assertSee('Siap Rilis');
         $response->assertSee('Cukup');
     }
+
+    public function test_batch_completion_qty_requires_integer_and_renders_step_one(): void
+    {
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $this->actingAs($operasional);
+
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $produk = Produk::produkJadi()->firstOrFail();
+        $stokService = app(StokService::class);
+
+        // Buat batch dan isi stok bahan
+        $this->post(route('batches.store'), [
+            'produk_id' => $produk->id,
+            'qty_rencana' => 50,
+            'gudang_operasional_id' => $gudangOp->id,
+            'tanggal' => now()->toDateString(),
+        ]);
+
+        $batch = BatchProduksi::latest()->firstOrFail();
+        foreach ($batch->alokasi as $alok) {
+            $stokService->masuk($alok->bahan_id, $gudangOp->id, 5000, 'mutasi_manual');
+        }
+
+        // Release batch
+        $this->post(route('batches.release', $batch))->assertSessionHas('success');
+        $batch->refresh();
+        $this->assertEquals('release', $batch->status);
+
+        // 1. Verifikasi UI: form penyelesaian batch memiliki step="1" dan onkeydown pencegah desimal
+        $res = $this->get(route('batches.show', $batch));
+        $res->assertOk();
+        $res->assertSee('step="1"', false);
+        $res->assertSee('onkeydown="if(event.key === \'.\' || event.key === \',\') event.preventDefault()"', false);
+
+        // 2. Submisi desimal ditolak oleh validasi integer
+        $invalidDecimalRes = $this->post(route('batches.complete', $batch), [
+            'qty_baik' => 48.5,
+            'qty_rusak' => 1.5,
+        ]);
+        $invalidDecimalRes->assertSessionHasErrors(['qty_baik', 'qty_rusak']);
+
+        // 3. Submisi kurang dari target rencana ditolak (40 + 5 = 45 < 50)
+        $invalidUnderRes = $this->post(route('batches.complete', $batch), [
+            'qty_baik' => 40,
+            'qty_rusak' => 5,
+        ]);
+        $invalidUnderRes->assertSessionHasErrors(['qty_baik']);
+
+        // 4. Submisi lebih dari target rencana ditolak (50 + 5 = 55 > 50)
+        $invalidOverRes = $this->post(route('batches.complete', $batch), [
+            'qty_baik' => 50,
+            'qty_rusak' => 5,
+        ]);
+        $invalidOverRes->assertSessionHasErrors(['qty_baik']);
+
+        // Status batch tetap 'release'
+        $batch->refresh();
+        $this->assertEquals('release', $batch->status);
+
+        // 5. Submisi tepat sama dengan target rencana diterima (48 + 2 = 50)
+        $validRes = $this->post(route('batches.complete', $batch), [
+            'qty_baik' => 48,
+            'qty_rusak' => 2,
+        ]);
+        $validRes->assertSessionHas('success');
+
+        $batch->refresh();
+        $this->assertEquals('selesai', $batch->status);
+        $this->assertEquals(48, (int) $batch->qty_baik);
+        $this->assertEquals(2, (int) $batch->qty_rusak);
+    }
+
+    public function test_completed_batch_hides_kirim_fulfillment_button_when_already_transferred(): void
+    {
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $this->actingAs($operasional);
+
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $produk = Produk::produkJadi()->firstOrFail();
+        $stokService = app(StokService::class);
+
+        // Buat batch, isi bahan, release, lalu selesaikan
+        $this->post(route('batches.store'), [
+            'produk_id' => $produk->id,
+            'qty_rencana' => 20,
+            'gudang_operasional_id' => $gudangOp->id,
+            'tanggal' => now()->toDateString(),
+        ]);
+
+        $batch = BatchProduksi::latest()->firstOrFail();
+        foreach ($batch->alokasi as $alok) {
+            $stokService->masuk($alok->bahan_id, $gudangOp->id, 5000, 'mutasi_manual');
+        }
+
+        $this->post(route('batches.release', $batch))->assertSessionHas('success');
+        $this->post(route('batches.complete', $batch), [
+            'qty_baik' => 20,
+            'qty_rusak' => 0,
+        ])->assertSessionHas('success');
+
+        $batch->refresh();
+        $this->assertEquals('selesai', $batch->status);
+
+        // 1. Sebelum dikirim: Button "Kirim ke Fulfillment" masih muncul
+        $resBefore = $this->get(route('batches.show', $batch));
+        $resBefore->assertOk();
+        $resBefore->assertSee('Kirim ke Fulfillment');
+        $resBefore->assertDontSee('Pengiriman Selesai');
+
+        // 2. Eksekusi pengiriman ke fulfillment
+        $kirimRes = $this->post(route('batches.kirim', $batch));
+        $kirimRes->assertRedirect();
+
+        $batch->refresh();
+        $this->assertNotNull($batch->transferKirim);
+
+        // 3. Setelah dikirim: Button "Kirim ke Fulfillment" HILANG, berganti tampilan komplit
+        $resAfter = $this->get(route('batches.show', $batch));
+        $resAfter->assertOk();
+        $resAfter->assertDontSee('Kirim ke Fulfillment');
+        $resAfter->assertSee('Pengiriman Selesai');
+        $resAfter->assertSee($batch->transferKirim->no_transaksi);
+
+        // 4. Jika mencoba kirim lagi via POST: Di-redirect ke transfer eksisting tanpa duplikasi
+        $retryRes = $this->post(route('batches.kirim', $batch));
+        $retryRes->assertRedirect(route('rt.show', $batch->transferKirim));
+        $this->assertEquals(1, RequestTransfer::where('referensi_batch_id', $batch->id)->count());
+    }
 }
