@@ -104,6 +104,31 @@ class UserAccessAndDivisionManagementTest extends TestCase
         $this->assertNull($allowedIds, 'Global user with stok.view.all must have unrestricted warehouse scope (null)');
     }
 
+    public function test_user_created_with_default_all_gudang_has_unrestricted_scope_without_special_permission(): void
+    {
+        // Admin creates a normal gudang staff with DEFAULT global access and NO special permissions
+        $response = $this->actingAs($this->adminUser)->post(route('users.store'), [
+            'name' => 'Staf Gudang Global Default',
+            'email' => 'gudang_global_default@heavenscent.id',
+            'divisi' => 'gudang',
+            'role' => 'gudang',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'warehouse_access_type' => 'global',
+        ]);
+
+        $response->assertRedirect(route('users.index'));
+
+        $user = User::where('email', 'gudang_global_default@heavenscent.id')->firstOrFail();
+        $this->assertEquals('global', $user->warehouse_access_type);
+        $this->assertTrue($user->isGlobalWarehouseAccess());
+
+        $scopeService = app(LocationScopeService::class);
+        $allowedIds = $scopeService->getAccessibleWarehouseIds($user);
+        $this->assertNull($allowedIds, 'Default all-gudang user must have global unrestricted access (null)');
+        $this->assertTrue($scopeService->isGlobal($user));
+    }
+
     public function test_user_update_allows_switching_access_and_updating_division(): void
     {
         $gudang = Gudang::create([

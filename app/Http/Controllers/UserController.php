@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UserStoreRequest;
 use App\Http\Requests\UserUpdateRequest;
+use App\Models\Divisi;
 use App\Models\Gudang;
 use App\Models\Role;
 use App\Models\User;
@@ -26,9 +27,10 @@ class UserController extends Controller
         $this->authorize('user.manage');
 
         $divisiList = User::DIVISI_LIST;
+        $divisis = Divisi::orderBy('nama')->get();
         $roles = Role::orderBy('is_system', 'desc')->orderBy('name')->get();
 
-        return view('users.index', compact('divisiList', 'roles'));
+        return view('users.index', compact('divisiList', 'divisis', 'roles'));
     }
 
     public function data(Request $request): JsonResponse
@@ -41,10 +43,19 @@ class UserController extends Controller
                 'roles:id,name,display_name',
                 'gudangs:id,kode,nama,tipe',
                 'permissions:id,name',
+                'divisiRelation:id,kode,nama,color',
             ]);
 
         if ($request->filled('divisi')) {
-            $query->where('divisi', $request->divisi);
+            $divisiVal = $request->divisi;
+            $query->where(function ($q) use ($divisiVal) {
+                $q->where('divisi', $divisiVal);
+                if (is_numeric($divisiVal)) {
+                    $q->orWhere('divisi_id', (int) $divisiVal);
+                } else {
+                    $q->orWhereHas('divisiRelation', fn ($sub) => $sub->where('kode', $divisiVal));
+                }
+            });
         }
 
         if ($request->filled('role')) {
@@ -53,20 +64,21 @@ class UserController extends Controller
 
         return DataTables::eloquent($query)
             ->addColumn('divisi_badge', function (User $u) {
-                if (empty($u->divisi)) {
+                if (empty($u->divisi) && empty($u->divisi_id)) {
                     return '<span class="text-slate-400 text-xs italic">-</span>';
                 }
 
                 $colorMap = [
-                    'purchasing' => 'bg-purple-50 text-purple-700 border-purple-200/80',
-                    'produksi' => 'bg-amber-50 text-amber-800 border-amber-200/80',
-                    'gudang' => 'bg-sky-50 text-sky-700 border-sky-200/80',
-                    'fulfillment' => 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
-                    'qc' => 'bg-rose-50 text-rose-700 border-rose-200/80',
-                    'finance' => 'bg-teal-50 text-teal-700 border-teal-200/80',
+                    'purchasing' => 'bg-amber-50 text-amber-700 border-amber-200/80',
+                    'produksi' => 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+                    'gudang' => 'bg-blue-50 text-blue-700 border-blue-200/80',
+                    'fulfillment' => 'bg-purple-50 text-purple-700 border-purple-200/80',
+                    'qc' => 'bg-teal-50 text-teal-700 border-teal-200/80',
+                    'finance' => 'bg-rose-50 text-rose-700 border-rose-200/80',
                     'manajemen' => 'bg-indigo-50 text-indigo-700 border-indigo-200/80',
                 ];
-                $cls = $colorMap[$u->divisi] ?? 'bg-slate-50 text-slate-700 border-slate-200/80';
+
+                $cls = $u->divisiRelation ? $u->divisiRelation->badgeClass() : ($colorMap[$u->divisi] ?? 'bg-slate-50 text-slate-700 border-slate-200/80');
                 $label = e($u->divisiLabel());
 
                 return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ' . $cls . '">' . $label . '</span>';
@@ -85,7 +97,7 @@ class UserController extends Controller
                 return $badges;
             })
             ->addColumn('gudang_access_badge', function (User $u) {
-                if ($u->hasRole('manager') || $u->can('stok.view.all') || $u->gudangs->isEmpty()) {
+                if ($u->hasRole('manager') || $u->can('stok.view.all') || $u->warehouse_access_type === 'global' || ($u->warehouse_access_type === null && $u->gudangs->isEmpty())) {
                     return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                                 <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
@@ -141,6 +153,7 @@ class UserController extends Controller
         $roles = Role::orderBy('is_system', 'desc')->orderBy('name')->get();
         $gudangs = Gudang::active()->orderBy('tipe')->orderBy('nama')->get();
         $divisiList = User::DIVISI_LIST;
+        $divisis = Divisi::active()->orderBy('nama')->get();
         $catalog = $this->permissionCatalogService->getGroupedCatalog();
         $assignedGudangIds = [];
         $activeDirectPermissions = [];
@@ -151,6 +164,7 @@ class UserController extends Controller
             'roles',
             'gudangs',
             'divisiList',
+            'divisis',
             'catalog',
             'assignedGudangIds',
             'activeDirectPermissions',
@@ -165,10 +179,24 @@ class UserController extends Controller
 
         $data = $request->validated();
 
+        $divisiId = $data['divisi_id'] ?? null;
+        $divisiKode = $data['divisi'] ?? null;
+        if ($divisiId) {
+            $divisiModel = Divisi::find($divisiId);
+            if ($divisiModel) {
+                $divisiKode = $divisiModel->kode;
+            }
+        } elseif (!empty($divisiKode)) {
+            $divisiModel = Divisi::where('kode', $divisiKode)->first();
+            $divisiId = $divisiModel?->id;
+        }
+
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'divisi' => $data['divisi'] ?? null,
+            'divisi' => $divisiKode,
+            'divisi_id' => $divisiId,
+            'warehouse_access_type' => $data['warehouse_access_type'] ?? 'global',
             'password' => Hash::make($data['password']),
         ]);
 
@@ -184,23 +212,25 @@ class UserController extends Controller
     {
         $this->authorize('user.manage');
 
-        $user->load(['roles:id,name,display_name', 'gudangs', 'permissions:id,name']);
+        $user->load(['roles:id,name,display_name', 'gudangs', 'permissions:id,name', 'divisiRelation']);
 
         $roles = Role::orderBy('is_system', 'desc')->orderBy('name')->get();
         $gudangs = Gudang::active()->orderBy('tipe')->orderBy('nama')->get();
         $divisiList = User::DIVISI_LIST;
+        $divisis = Divisi::active()->orderBy('nama')->get();
         $catalog = $this->permissionCatalogService->getGroupedCatalog();
 
         $activeDirectPermissions = $user->permissions->pluck('name')->toArray();
         $assignedGudangIds = $user->gudangs->pluck('id')->toArray();
         $primaryGudangId = $user->primaryGudang()?->id;
-        $isGlobalWarehouse = $user->gudangs->isEmpty();
+        $isGlobalWarehouse = $user->warehouse_access_type === 'global' || ($user->warehouse_access_type === null && $user->gudangs->isEmpty());
 
         return view('users.edit', compact(
             'user',
             'roles',
             'gudangs',
             'divisiList',
+            'divisis',
             'catalog',
             'activeDirectPermissions',
             'assignedGudangIds',
@@ -215,10 +245,23 @@ class UserController extends Controller
 
         $data = $request->validated();
 
+        $divisiId = $data['divisi_id'] ?? null;
+        $divisiKode = $data['divisi'] ?? null;
+        if ($divisiId) {
+            $divisiModel = Divisi::find($divisiId);
+            if ($divisiModel) {
+                $divisiKode = $divisiModel->kode;
+            }
+        } elseif (!empty($divisiKode)) {
+            $divisiModel = Divisi::where('kode', $divisiKode)->first();
+            $divisiId = $divisiModel?->id;
+        }
+
         $user->update([
             'name' => $data['name'],
             'email' => $data['email'],
-            'divisi' => $data['divisi'] ?? null,
+            'divisi' => $divisiKode,
+            'divisi_id' => $divisiId,
         ]);
 
         if (! empty($data['password'])) {
@@ -255,6 +298,7 @@ class UserController extends Controller
     protected function syncWarehouseAccess(User $user, Request $request): void
     {
         $accessType = $request->input('warehouse_access_type', 'global');
+        $user->update(['warehouse_access_type' => $accessType]);
 
         if ($accessType === 'restricted' && ! empty($request->input('gudang_ids'))) {
             $syncData = [];

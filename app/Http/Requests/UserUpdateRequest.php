@@ -19,6 +19,7 @@ class UserUpdateRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => "required|email|unique:users,email,{$userId}",
             'divisi' => 'nullable|string|max:100',
+            'divisi_id' => 'nullable|exists:divisi,id',
             'password' => 'nullable|string|min:8|confirmed',
             'role' => 'required|exists:roles,name',
             'warehouse_access_type' => 'nullable|in:global,restricted',

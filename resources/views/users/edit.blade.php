@@ -32,11 +32,29 @@
                     </div>
 
                     <div class="md:col-span-2">
-                        <x-form-group name="divisi" label="Divisi / Departemen Kerja" help="Menentukan unit kerja pengguna dalam struktur rantai pasok Heaven Scent">
-                            <x-select name="divisi" placeholder="-- Pilih Divisi / Departemen --">
-                                @foreach($divisiList as $divKey => $divLabel)
-                                    <option value="{{ $divKey }}" @selected(old('divisi', $user->divisi) === $divKey)>{{ $divLabel }}</option>
-                                @endforeach
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-gray-700">
+                                Divisi / Departemen Kerja
+                            </label>
+                            @can('divisi.view')
+                            <a href="{{ route('divisi.index') }}" target="_blank" class="text-[11px] text-primary-600 hover:text-primary-800 underline">
+                                Kelola Master Divisi &rarr;
+                            </a>
+                            @endcan
+                        </div>
+                        <x-form-group name="divisi_id" help="Menentukan unit kerja pengguna dalam struktur rantai pasok Heaven Scent">
+                            <x-select name="divisi_id" placeholder="-- Pilih Divisi / Departemen --">
+                                @if(isset($divisis) && $divisis->isNotEmpty())
+                                    @foreach($divisis as $d)
+                                        <option value="{{ $d->id }}" @selected((string) old('divisi_id', $user->divisi_id) === (string) $d->id || (empty($user->divisi_id) && old('divisi', $user->divisi) === $d->kode))>
+                                            {{ $d->nama }} ({{ $d->kode }})
+                                        </option>
+                                    @endforeach
+                                @else
+                                    @foreach($divisiList as $divKey => $divLabel)
+                                        <option value="{{ $divKey }}" @selected(old('divisi', $user->divisi) === $divKey)>{{ $divLabel }}</option>
+                                    @endforeach
+                                @endif
                             </x-select>
                         </x-form-group>
                     </div>
@@ -140,7 +158,7 @@
                                         return match($g->tipe) {
                                             'bahan_baku' => 'Gudang Bahan Baku & Kemasan',
                                             'operasional' => 'Gudang Operasional / Lab Produksi',
-                                            'fulfillment_pusat', 'fulfillment_cabang' => 'Fulfillment & Distribusi Produk Jadi',
+                                            'fulfillment', 'fulfillment_pusat', 'fulfillment_cabang' => 'Fulfillment & Distribusi Produk Jadi',
                                             default => 'Lainnya',
                                         };
                                     });
@@ -163,7 +181,12 @@
                                                                @change="toggleGudang({{ $g->id }})"
                                                                class="w-4 h-4 rounded-sm text-primary-600 focus:ring-primary-500 border-gray-300">
                                                         <div class="min-w-0">
-                                                            <div class="text-xs font-semibold text-gray-900 truncate">{{ $g->nama }}</div>
+                                                            <div class="text-xs font-semibold text-gray-900 truncate flex items-center gap-1">
+                                                                <span>{{ $g->nama }}</span>
+                                                                @if($g->isPusat())
+                                                                    <span class="px-1 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Pusat</span>
+                                                                @endif
+                                                            </div>
                                                             <div class="text-[10px] text-gray-400 font-mono">{{ $g->kode }}</div>
                                                         </div>
                                                     </label>

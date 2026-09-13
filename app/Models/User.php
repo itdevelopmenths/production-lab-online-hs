@@ -6,6 +6,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -17,6 +18,8 @@ class User extends Authenticatable
         'name',
         'email',
         'divisi',
+        'divisi_id',
+        'warehouse_access_type',
         'password',
     ];
 
@@ -60,18 +63,38 @@ class User extends Authenticatable
         return $this->hasRole('manager');
     }
 
+    public function divisiRelation(): BelongsTo
+    {
+        return $this->belongsTo(Divisi::class, 'divisi_id');
+    }
+
     public function divisiLabel(): string
     {
-        if (empty($this->divisi)) {
-            return '-';
+        if ($this->relationLoaded('divisiRelation') && $this->divisiRelation) {
+            return $this->divisiRelation->nama;
         }
 
-        return self::DIVISI_LIST[$this->divisi] ?? ucwords(str_replace(['_', '-'], ' ', $this->divisi));
+        if ($this->divisi_id && $this->divisiRelation) {
+            return $this->divisiRelation->nama;
+        }
+
+        if (!empty($this->divisi)) {
+            $divisiModel = Divisi::where('kode', $this->divisi)->first();
+            if ($divisiModel) {
+                return $divisiModel->nama;
+            }
+            return self::DIVISI_LIST[$this->divisi] ?? ucwords(str_replace(['_', '-'], ' ', $this->divisi));
+        }
+
+        return '-';
     }
 
     public function isGlobalWarehouseAccess(): bool
     {
-        return $this->isManager() || $this->can('stok.view.all') || $this->gudangs()->count() === 0;
+        return $this->isManager()
+            || $this->can('stok.view.all')
+            || $this->warehouse_access_type === 'global'
+            || ($this->warehouse_access_type === null && $this->gudangs()->count() === 0);
     }
 
     public function primaryGudang(): ?Gudang

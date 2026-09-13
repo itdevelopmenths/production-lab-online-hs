@@ -30,9 +30,15 @@
                     <div class="min-w-[190px]">
                         <select id="filterDivisi" class="w-full text-xs rounded-sm border-gray-300 focus:border-primary-500 focus:ring-primary-500 py-1.5 px-2.5 bg-gray-50/50">
                             <option value="">-- Semua Divisi --</option>
-                            @foreach($divisiList as $divKey => $divLabel)
-                                <option value="{{ $divKey }}">{{ $divLabel }}</option>
-                            @endforeach
+                            @if(isset($divisis) && $divisis->isNotEmpty())
+                                @foreach($divisis as $d)
+                                    <option value="{{ $d->kode }}">{{ $d->nama }}</option>
+                                @endforeach
+                            @else
+                                @foreach($divisiList as $divKey => $divLabel)
+                                    <option value="{{ $divKey }}">{{ $divLabel }}</option>
+                                @endforeach
+                            @endif
                         </select>
                     </div>
 
