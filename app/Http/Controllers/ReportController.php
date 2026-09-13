@@ -74,7 +74,7 @@ class ReportController extends Controller
         $this->authorize('report.view');
         // Pergerakan stok produk jadi antar gudang fulfillment.
         $rows = KartuStok::with(['produk:id,nama', 'gudang:id,nama'])
-            ->whereHas('gudang', fn ($q) => $q->whereIn('tipe', ['fulfillment_pusat', 'fulfillment_cabang']))
+            ->whereHas('gudang', fn ($q) => $q->fulfillment())
             ->latest('id')->limit(500)->get();
 
         return view('reports.fulfillment', compact('rows'));

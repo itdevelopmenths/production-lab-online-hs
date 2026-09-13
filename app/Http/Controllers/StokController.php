@@ -46,7 +46,8 @@ class StokController extends Controller
         $batasMinMap = $this->analisa->getBatasMinimumMap();
 
         // 2. Inbound PO untuk Bahan/Kemas ke Gudang Pusat
-        $gudangPusatId = Gudang::where('tipe', 'bahan_baku')->value('id')
+        $gudangPusatId = Gudang::bahanBakuPusat()->value('id')
+            ?? Gudang::where('tipe', 'bahan_baku')->value('id')
             ?? Gudang::where('kode', 'GD-PUSAT')->value('id');
 
         $inboundPo = DB::table('purchase_order_items as poi')
@@ -82,25 +83,87 @@ class StokController extends Controller
             }
         }
 
-        // 5. Pre-fetch HPP Map
-        $latestPoHpp = DB::table('purchase_order_items as poi')
+        // 5. Pre-fetch HPP Map dari Purchase Orders (Prioritaskan PO selesai -> dikirim -> disetujui -> diajukan -> draft)
+        $poItems = DB::table('purchase_order_items as poi')
             ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
-            ->whereIn('po.status', ['dikirim_ke_gudang', 'selesai'])
-            ->where('poi.hpp_per_satuan', '>', 0)
+            ->where('po.status', '!=', 'dibatalkan')
+            ->where(function ($q) {
+                $q->where('poi.hpp_per_satuan', '>', 0)
+                    ->orWhere('poi.harga_total', '>', 0);
+            })
+            ->orderByRaw("CASE 
+                WHEN po.status = 'selesai' THEN 1
+                WHEN po.status = 'dikirim_ke_gudang' THEN 2
+                WHEN po.status = 'disetujui' THEN 3
+                WHEN po.status = 'diajukan' THEN 4
+                ELSE 5 END ASC")
             ->orderByDesc('po.tanggal')
-            ->select('poi.produk_id', 'poi.hpp_per_satuan')
-            ->get()
-            ->unique('produk_id')
-            ->pluck('hpp_per_satuan', 'produk_id');
+            ->orderByDesc('po.created_at')
+            ->orderByDesc('poi.id')
+            ->select('poi.produk_id', 'poi.hpp_per_satuan', 'poi.harga_total', 'poi.qty')
+            ->get();
 
+        $latestPoHpp = [];
+        foreach ($poItems as $pi) {
+            if (! isset($latestPoHpp[$pi->produk_id])) {
+                $hppVal = (float) $pi->hpp_per_satuan;
+                if ($hppVal <= 0 && (float) $pi->qty > 0) {
+                    $hppVal = (float) $pi->harga_total / (float) $pi->qty;
+                }
+                if ($hppVal > 0) {
+                    $latestPoHpp[$pi->produk_id] = $hppVal;
+                }
+            }
+        }
+
+        // Prefetch referensi harga dari analisa stok & master produk sebagai fallback
+        $analisaLokalPrices = DB::table('analisa_lokal_input')
+            ->where('harga_per_satuan', '>', 0)
+            ->pluck('harga_per_satuan', 'produk_id');
+
+        $analisaImporPrices = DB::table('analisa_impor_meta')
+            ->where('harga_per_satuan', '>', 0)
+            ->pluck('harga_per_satuan', 'produk_id');
+
+        $resolveRawMaterialHpp = function ($produkId, $produkHargaHpp = 0) use ($latestPoHpp, $analisaLokalPrices, $analisaImporPrices) {
+            if (isset($latestPoHpp[$produkId]) && (float) $latestPoHpp[$produkId] > 0) {
+                return (float) $latestPoHpp[$produkId];
+            }
+            if ((float) $produkHargaHpp > 0) {
+                return (float) $produkHargaHpp;
+            }
+            if (isset($analisaLokalPrices[$produkId]) && (float) $analisaLokalPrices[$produkId] > 0) {
+                return (float) $analisaLokalPrices[$produkId];
+            }
+            if (isset($analisaImporPrices[$produkId]) && (float) $analisaImporPrices[$produkId] > 0) {
+                return (float) $analisaImporPrices[$produkId];
+            }
+
+            return 0.0;
+        };
+
+        // Hitung HPP produk jadi berbasis resep BOM
         $bomLines = DB::table('bom')
             ->select('produk_jadi_id', 'bahan_id', 'qty_per_unit')
             ->get();
         $bomHppMap = [];
         foreach ($bomLines as $line) {
-            $ingHpp = (float) ($latestPoHpp[$line->bahan_id] ?? 0);
-            $bomHppMap[$line->produk_jadi_id] = ($bomHppMap[$line->produk_jadi_id] ?? 0) + ((float) $line->qty_per_unit * $ingHpp);
+            $ingHpp = $resolveRawMaterialHpp($line->bahan_id);
+            $bomHppMap[$line->produk_jadi_id] = ($bomHppMap[$line->produk_jadi_id] ?? 0.0) + ((float) $line->qty_per_unit * $ingHpp);
         }
+
+        $resolveProductHpp = function ($s) use ($resolveRawMaterialHpp, $bomHppMap) {
+            if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true)) {
+                return $resolveRawMaterialHpp($s->produk_id, $s->produk?->harga_hpp);
+            }
+
+            $bomVal = (float) ($bomHppMap[$s->produk_id] ?? 0);
+            if ($bomVal > 0) {
+                return $bomVal;
+            }
+
+            return $resolveRawMaterialHpp($s->produk_id, $s->produk?->harga_hpp);
+        };
 
         // Query stok dengan alokasi bahan aktif dan scoping gudang/kategori
         $query = Stok::query()
@@ -193,33 +256,71 @@ class StokController extends Controller
 
                 return '<div class="flex items-center justify-end"><span>' . $val . '</span>' . $badge . '</div>';
             })
-            ->addColumn('hpp', function ($s) use ($latestPoHpp, $bomHppMap, $canSeePrice) {
+            ->addColumn('hpp', function ($s) use ($resolveProductHpp, $canSeePrice) {
                 if (! $canSeePrice) {
                     return '—';
                 }
-                $hpp = in_array($s->produk?->tipe, ['bahan', 'kemas'], true)
-                    ? (float) ($latestPoHpp[$s->produk_id] ?? $s->produk?->harga_hpp ?? 0)
-                    : (float) ($bomHppMap[$s->produk_id] ?? $s->produk?->harga_hpp ?? 0);
+                $hpp = $resolveProductHpp($s);
 
-                return $hpp > 0 ? 'Rp ' . number_format($hpp, 0, ',', '.') : '—';
+                return $this->formatHpp($hpp);
             })
-            ->addColumn('nilai_stok', function ($s) use ($latestPoHpp, $bomHppMap, $canSeePrice) {
+            ->addColumn('nilai_stok', function ($s) use ($resolveProductHpp, $canSeePrice) {
                 if (! $canSeePrice) {
                     return '—';
                 }
-                $hpp = in_array($s->produk?->tipe, ['bahan', 'kemas'], true)
-                    ? (float) ($latestPoHpp[$s->produk_id] ?? $s->produk?->harga_hpp ?? 0)
-                    : (float) ($bomHppMap[$s->produk_id] ?? $s->produk?->harga_hpp ?? 0);
-
+                $hpp = $resolveProductHpp($s);
                 $nilai = (float) $s->qty_saat_ini * $hpp;
 
-                return $nilai > 0 ? 'Rp ' . number_format($nilai, 0, ',', '.') : 'Rp 0';
+                return $this->formatNilaiStok($nilai);
             })
             ->addColumn('action', function ($s) {
                 return '<a href="' . route('stok.ledger', $s->produk_id) . '" class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition">Kartu Stok</a>';
             })
             ->rawColumns(['kolom_stok', 'kolom_rencana', 'action'])
             ->toJson();
+    }
+
+    private function formatHpp(float $val): string
+    {
+        if ($val <= 0) {
+            return '—';
+        }
+
+        // Jika bilangan bulat murni tanpa pecahan
+        if (abs($val - round($val)) < 0.00001) {
+            return 'Rp ' . number_format(round($val), 0, ',', '.');
+        }
+
+        // Cek apakah ada digit pecahan signifikan setelah 2 desimal (hingga 4 desimal)
+        $rounded2 = round($val, 2);
+        if (abs($val - $rounded2) > 0.00001) {
+            $formatted = number_format($val, 4, ',', '.');
+
+            return 'Rp ' . rtrim(rtrim($formatted, '0'), ',');
+        }
+
+        // 1 atau 2 digit desimal standar (misal Rp 526,35 atau Rp 1.000,50)
+        return 'Rp ' . number_format($val, 2, ',', '.');
+    }
+
+    private function formatNilaiStok(float $val): string
+    {
+        if ($val <= 0) {
+            return 'Rp 0';
+        }
+
+        if (abs($val - round($val)) < 0.00001) {
+            return 'Rp ' . number_format(round($val), 0, ',', '.');
+        }
+
+        $rounded2 = round($val, 2);
+        if (abs($val - $rounded2) > 0.00001) {
+            $formatted = number_format($val, 4, ',', '.');
+
+            return 'Rp ' . rtrim(rtrim($formatted, '0'), ',');
+        }
+
+        return 'Rp ' . number_format($val, 2, ',', '.');
     }
 
     private function formatQty(float $qty): string
