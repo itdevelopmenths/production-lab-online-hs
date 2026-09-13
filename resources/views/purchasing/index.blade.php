@@ -50,6 +50,40 @@
 
         <!-- TAB 1: Daftar Purchase Order -->
         <div x-show="activeTab === 'po'" class="transition-opacity duration-150">
+            <!-- Toolbar Filter PO & Status Bayar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-sm border border-gray-200 mb-3 shadow-xs">
+                <div class="flex flex-wrap items-center gap-3">
+                    @if($canSeePrice)
+                    <div>
+                        <label for="filter-status-bayar-po" class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Status AP / Bayar</label>
+                        <select id="filter-status-bayar-po" class="rounded-sm border-gray-300 text-xs py-1.5 px-2.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[200px]">
+                            <option value="">— Semua Status AP —</option>
+                            <option value="overdue">🔴 Overdue (Jatuh Tempo - Prioritas)</option>
+                            <option value="belum_lunas">🟡 Belum Lunas</option>
+                            <option value="parsial">🔵 Parsial (Sebagian)</option>
+                            <option value="lunas">🟢 Lunas</option>
+                        </select>
+                    </div>
+                    @endif
+                    <div>
+                        <label for="filter-status-po" class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Status PO</label>
+                        <select id="filter-status-po" class="rounded-sm border-gray-300 text-xs py-1.5 px-2.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[160px]">
+                            <option value="">— Semua Status PO —</option>
+                            <option value="draft">Draft</option>
+                            <option value="diajukan">Diajukan</option>
+                            <option value="disetujui">Disetujui (Gudang)</option>
+                            <option value="selesai">Selesai</option>
+                            <option value="dibatalkan">Dibatalkan</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <button type="button" id="btn-reset-po" class="text-xs text-gray-500 hover:text-gray-800 underline font-medium cursor-pointer">
+                        Reset Filter
+                    </button>
+                </div>
+            </div>
+
             <x-card title="Semua Dokumen Purchase Order" :noPadding="true">
                 <div class="overflow-x-auto p-2">
                     <table id="tbl" class="w-full text-xs">
@@ -78,6 +112,36 @@
         <!-- TAB 2: Tagihan & Pembayaran AP (Requirement 8) -->
         @if($canSeePrice)
         <div x-show="activeTab === 'ap'" x-cloak class="transition-opacity duration-150">
+            <!-- Toolbar Filter AP -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-sm border border-gray-200 mb-3 shadow-xs">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div>
+                        <label for="filter-status-bayar-ap" class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Status Bayar / AP</label>
+                        <select id="filter-status-bayar-ap" class="rounded-sm border-gray-300 text-xs py-1.5 px-2.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[200px]">
+                            <option value="">— Semua Status AP —</option>
+                            <option value="overdue">🔴 Overdue (Jatuh Tempo - Prioritas)</option>
+                            <option value="belum_lunas">🟡 Belum Lunas</option>
+                            <option value="parsial">🔵 Parsial (Sebagian)</option>
+                            <option value="lunas">🟢 Lunas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filter-skema-bayar-ap" class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Skema Transaksi</label>
+                        <select id="filter-skema-bayar-ap" class="rounded-sm border-gray-300 text-xs py-1.5 px-2.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[160px]">
+                            <option value="">— Semua Skema —</option>
+                            <option value="cash">Tunai (Cash)</option>
+                            <option value="tempo">Tempo</option>
+                            <option value="termin">Termin</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <button type="button" id="btn-reset-ap" class="text-xs text-gray-500 hover:text-gray-800 underline font-medium cursor-pointer">
+                        Reset Filter
+                    </button>
+                </div>
+            </div>
+
             <x-card title="Buku Rekapitulasi Tagihan Vendor (Accounts Payable)" subtitle="Daftar status pelunasan dan jatuh tempo pembayaran ke supplier" :noPadding="true">
                 <div class="overflow-x-auto p-2">
                     <table id="tblAp" class="w-full text-xs">
@@ -166,21 +230,72 @@
             }
         ];
 
+        function renderStatusApPriorityBadge(data) {
+            if (!data || data === '—') return '—';
+            let norm = data.toLowerCase().replace(/_/g, ' ');
+            let badgeClass = 'bg-gray-100 text-gray-700 border border-gray-200';
+            let dotClass = 'bg-gray-400';
+            let label = data.replace(/_/g, ' ');
+
+            if (norm.includes('overdue')) {
+                // Priority 1: Critical Overdue (Merah / Tunggakan Jatuh Tempo)
+                badgeClass = 'bg-rose-50 text-rose-700 border border-rose-200 font-bold';
+                dotClass = 'bg-rose-600 animate-pulse';
+                label = 'Overdue';
+            } else if (norm.includes('belum')) {
+                // Priority 2: High Attention (Kuning-Amber / Belum Lunas)
+                badgeClass = 'bg-amber-50 text-amber-800 border border-amber-200 font-semibold';
+                dotClass = 'bg-amber-500';
+                label = 'Belum Lunas';
+            } else if (norm.includes('parsial')) {
+                // Priority 3: In Progress (Biru / Cicilan Parsial)
+                badgeClass = 'bg-blue-50 text-blue-700 border border-blue-200 font-semibold';
+                dotClass = 'bg-blue-500';
+                label = 'Parsial';
+            } else if (norm.includes('lunas')) {
+                // Priority 4: Completed (Hijau / Lunas)
+                badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold';
+                dotClass = 'bg-emerald-600';
+                label = 'Lunas';
+            }
+
+            return `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[11px] ${badgeClass}">
+                <span class="w-1.5 h-1.5 rounded-full ${dotClass}"></span>
+                ${label}
+            </span>`;
+        }
+
         if (canSeePrice) {
             columns.push(
                 {
                     data: 'status_pembayaran',
                     render: function(data) {
-                        if (!data || data === '—') return '—';
-                        let color = 'bg-gray-100 text-gray-700';
-                        if (data.toLowerCase().includes('lunas')) color = 'bg-emerald-100 text-emerald-800 font-bold';
-                        if (data.toLowerCase().includes('parsial')) color = 'bg-blue-100 text-blue-800 font-bold';
-                        if (data.toLowerCase().includes('overdue')) color = 'bg-rose-100 text-rose-800 font-bold';
-                        return `<span class="px-1.5 py-0.5 rounded text-[10px] ${color}">${data}</span>`;
+                        return renderStatusApPriorityBadge(data);
                     }
                 },
-                { data: 'total_nilai', className: 'text-right font-mono', searchable: false, orderable: false },
-                { data: 'sisa', className: 'text-right font-mono font-semibold', searchable: false, orderable: false }
+                {
+                    data: 'total_nilai',
+                    className: 'text-right font-mono text-gray-800',
+                    searchable: false,
+                    orderable: false,
+                    render: function(data) {
+                        return data === '—' ? '—' : `Rp ${data}`;
+                    }
+                },
+                {
+                    data: 'sisa',
+                    className: 'text-right font-mono font-semibold',
+                    searchable: false,
+                    orderable: false,
+                    render: function(data, type, row) {
+                        if (data === '—' || data === null || data === undefined) return '—';
+                        const isLunas = data === '0' || (row.status_pembayaran && row.status_pembayaran.toLowerCase().trim() === 'lunas');
+                        if (isLunas) {
+                            return `<span class="text-emerald-600 font-medium font-mono">Rp 0</span>`;
+                        }
+                        return `<span class="text-rose-600 font-bold font-mono">Rp ${data}</span>`;
+                    }
+                }
             );
         }
 
@@ -189,37 +304,95 @@
         dtTable = $('#tbl').DataTable({
             processing: true,
             serverSide: true,
-            ajax: '{{ route("purchasing.data") }}',
+            ajax: {
+                url: '{{ route("purchasing.data") }}',
+                data: function(d) {
+                    if (canSeePrice) {
+                        d.status_bayar = $('#filter-status-bayar-po').val();
+                    }
+                    d.status_po = $('#filter-status-po').val();
+                }
+            },
             columns: columns
+        });
+
+        $('#filter-status-bayar-po, #filter-status-po').on('change', function() {
+            if (dtTable) dtTable.ajax.reload();
+        });
+
+        $('#btn-reset-po').on('click', function() {
+            $('#filter-status-bayar-po').val('');
+            $('#filter-status-po').val('');
+            if (dtTable) dtTable.ajax.reload();
         });
 
         if (canSeePrice && $('#tblAp').length) {
             dtApTable = $('#tblAp').DataTable({
                 processing: true,
                 serverSide: true,
-                ajax: '{{ route("purchasing.data-ap") }}',
+                ajax: {
+                    url: '{{ route("purchasing.data-ap") }}',
+                    data: function(d) {
+                        d.status_bayar = $('#filter-status-bayar-ap').val();
+                        d.skema_bayar = $('#filter-skema-bayar-ap').val();
+                    }
+                },
                 columns: [
                     { data: 'no_po', className: 'font-mono font-bold' },
                     { data: 'no_invoice', className: 'font-mono text-gray-600' },
                     { data: 'supplier_nama', orderable: false },
                     { data: 'tanggal', className: 'font-mono' },
                     { data: 'skema_bayar' },
-                    { data: 'total_nilai', className: 'text-right font-mono' },
-                    { data: 'total_dibayar', className: 'text-right font-mono text-emerald-600' },
-                    { data: 'sisa', className: 'text-right font-mono font-bold text-rose-600' },
-                    { data: 'jatuh_tempo_terdekat', className: 'font-mono' },
+                    {
+                        data: 'total_nilai',
+                        className: 'text-right font-mono text-gray-800',
+                        render: function(data) { return `Rp ${data}`; }
+                    },
+                    {
+                        data: 'total_dibayar',
+                        className: 'text-right font-mono text-emerald-600 font-semibold',
+                        render: function(data) { return `Rp ${data}`; }
+                    },
+                    {
+                        data: 'sisa',
+                        className: 'text-right font-mono font-bold',
+                        render: function(data, type, row) {
+                            if (data === '—' || data === null || data === undefined) return '—';
+                            const isLunas = data === '0' || (row.status_pembayaran && row.status_pembayaran.toLowerCase().trim() === 'lunas');
+                            if (isLunas) {
+                                return `<span class="text-emerald-600 font-semibold font-mono">Rp 0</span>`;
+                            }
+                            return `<span class="text-rose-600 font-bold font-mono">Rp ${data}</span>`;
+                        }
+                    },
+                    {
+                        data: 'jatuh_tempo_terdekat',
+                        className: 'font-mono text-xs',
+                        render: function(data, type, row) {
+                            if (row.status_pembayaran === 'overdue') {
+                                return `<span class="text-rose-600 font-bold inline-flex items-center gap-1">⚠️ ${data}</span>`;
+                            }
+                            return `<span class="text-gray-700">${data}</span>`;
+                        }
+                    },
                     {
                         data: 'status_pembayaran',
                         render: function(data) {
-                            let color = 'bg-gray-100 text-gray-700';
-                            if (data === 'lunas') color = 'bg-emerald-100 text-emerald-800 font-bold';
-                            if (data === 'parsial') color = 'bg-blue-100 text-blue-800 font-bold';
-                            if (data === 'overdue') color = 'bg-rose-100 text-rose-800 font-bold';
-                            return `<span class="px-1.5 py-0.5 rounded text-[10px] capitalize ${color}">${data.replace('_',' ')}</span>`;
+                            return renderStatusApPriorityBadge(data);
                         }
                     },
                     { data: 'action', orderable: false, searchable: false, className: 'text-center' }
                 ]
+            });
+
+            $('#filter-status-bayar-ap, #filter-skema-bayar-ap').on('change', function() {
+                if (dtApTable) dtApTable.ajax.reload();
+            });
+
+            $('#btn-reset-ap').on('click', function() {
+                $('#filter-status-bayar-ap').val('');
+                $('#filter-skema-bayar-ap').val('');
+                if (dtApTable) dtApTable.ajax.reload();
             });
         }
     });

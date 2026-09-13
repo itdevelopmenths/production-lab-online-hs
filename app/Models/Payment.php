@@ -23,7 +23,7 @@ class Payment extends Model
         'nominal' => 'decimal:2',
     ];
 
-    public const SKEMA = ['tempo', 'termin', 'pelunasan'];
+    public const SKEMA = ['cash', 'tempo', 'termin', 'pelunasan'];
 
     public function purchaseOrder(): BelongsTo
     {

@@ -1,20 +1,96 @@
-<x-app-layout title="Buat Purchase Order">
+<x-app-layout title="Edit Purchase Order {{ $purchaseOrder->no_po }}">
+    @php
+        $oldItems = old('items');
+        $oldTermins = old('termins');
+
+        $rows = [];
+        if (is_array($oldItems)) {
+            foreach ($oldItems as $item) {
+                $p = \App\Models\Produk::find($item['produk_id'] ?? null);
+                $rows[] = [
+                    'produk_id' => $item['produk_id'] ?? '',
+                    'qty' => $item['qty'] ?? '',
+                    'harga' => $item['harga_total'] ?? '',
+                    'satuan' => $p?->satuan ?? 'UNIT',
+                    'selectedItem' => $p ? [
+                        'id' => $p->id,
+                        'sku' => $p->sku,
+                        'nama' => $p->nama,
+                        'satuan' => $p->satuan,
+                    ] : null,
+                ];
+            }
+        } else {
+            $rows = $purchaseOrder->items->map(fn($item) => [
+                'produk_id' => $item->produk_id,
+                'qty' => (float) $item->qty,
+                'harga' => (float) $item->harga_total,
+                'satuan' => $item->produk?->satuan ?? 'UNIT',
+                'selectedItem' => $item->produk ? [
+                    'id' => $item->produk->id,
+                    'sku' => $item->produk->sku,
+                    'nama' => $item->produk->nama,
+                    'satuan' => $item->produk->satuan,
+                ] : null,
+            ])->values()->all();
+        }
+
+        $termins = [];
+        if (is_array($oldTermins)) {
+            foreach ($oldTermins as $tm) {
+                $termins[] = [
+                    'tanggal_tempo' => $tm['tanggal_tempo'] ?? '',
+                    'nominal_tagihan' => (float) ($tm['nominal_tagihan'] ?? 0),
+                    'keterangan' => $tm['keterangan'] ?? '',
+                ];
+            }
+        } else {
+            $termins = $purchaseOrder->termins->sortBy('termin_ke')->map(fn($tm) => [
+                'tanggal_tempo' => $tm->tanggal_tempo ? $tm->tanggal_tempo->format('Y-m-d') : '',
+                'nominal_tagihan' => (float) $tm->nominal_tagihan,
+                'keterangan' => $tm->keterangan ?? ('Termin ' . $tm->termin_ke),
+            ])->values()->all();
+        }
+
+        $initialData = [
+            'skemaBayar' => old('skema_bayar', $purchaseOrder->skema_bayar ?? 'cash'),
+            'headerDiskon' => (float) old('diskon_total', $purchaseOrder->diskon_total ?? 0),
+            'headerPpn' => (float) old('ppn_nominal', $purchaseOrder->ppn_nominal ?? 0),
+            'headerOngkir' => (float) old('ongkos_kirim', $purchaseOrder->ongkos_kirim ?? 0),
+            'headerAdj' => (float) old('adjustment', $purchaseOrder->adjustment ?? 0),
+            'rows' => $rows,
+            'termins' => $termins,
+        ];
+
+        $totalDibayar = $purchaseOrder->totalDibayar();
+    @endphp
+
     <div class="max-w-6xl mx-auto">
         <x-page-header
-            title="Buat Purchase Order"
-            subtitle="Formulir pengadaan bahan baku, kemasan, atau botol ke supplier rekanan"
-            :breadcrumbs="['Purchasing' => route('purchasing.index'), 'Buat PO' => null]"
+            title="Edit Purchase Order {{ $purchaseOrder->no_po }}"
+            subtitle="Perbarui data pengadaan bahan baku, kuantitas, harga, dan jadwal pembayaran"
+            :breadcrumbs="['Purchasing' => route('purchasing.index'), $purchaseOrder->no_po => route('purchasing.show', $purchaseOrder), 'Edit PO' => null]"
         >
             <x-slot:actions>
-                <x-button href="{{ route('purchasing.index') }}" variant="secondary" size="xs">
-                    &larr; Kembali ke Daftar
+                <x-button href="{{ route('purchasing.show', $purchaseOrder) }}" variant="secondary" size="xs">
+                    &larr; Kembali ke Detail
                 </x-button>
             </x-slot:actions>
         </x-page-header>
 
-        <div x-data="poForm()">
-            <form method="POST" action="{{ route('purchasing.store') }}">
+        @if($totalDibayar > 0)
+            <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-sm text-xs text-amber-800 flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div>
+                    PO ini telah memiliki pencatatan pembayaran sebesar <strong>Rp {{ number_format($totalDibayar, 0, ',', '.') }}</strong>. Nilai grand total baru tidak boleh lebih kecil dari nominal yang telah terbayar.
+                </div>
+            </div>
+        @endif
+
+        <div x-data="poForm({{ Js::from($initialData) }})" x-init="init()">
+            <form method="POST" action="{{ route('purchasing.update', $purchaseOrder) }}">
             @csrf
+            @method('PUT')
             <div class="space-y-5">
                 {{-- Card 1: Informasi Header PO & Lokasi --}}
                 <x-card title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice" variant="primary">
@@ -22,7 +98,7 @@
                         <x-form-group name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
                             <x-select name="supplier_id" placeholder="— Pilih Supplier —" :required="true">
                                 @foreach($suppliers as $s)
-                                    <option value="{{ $s->id }}" @selected(old('supplier_id') == $s->id)>
+                                    <option value="{{ $s->id }}" @selected(old('supplier_id', $purchaseOrder->supplier_id) == $s->id)>
                                         {{ $s->nama }} ({{ ucfirst($s->kategori) }})
                                     </option>
                                 @endforeach
@@ -32,27 +108,27 @@
                         <x-form-group name="gudang_id" label="Lokasi PO (Gudang Tujuan)" help="Gudang penerima saat barang datang">
                             <x-select name="gudang_id" placeholder="— Pilih Gudang Penerima —">
                                 @foreach($gudang as $g)
-                                    <option value="{{ $g->id }}" @selected(old('gudang_id') == $g->id)>
+                                    <option value="{{ $g->id }}" @selected(old('gudang_id', $purchaseOrder->gudang_id) == $g->id)>
                                         {{ $g->nama }} ({{ ucwords(str_replace('_', ' ', $g->tipe)) }})
                                     </option>
                                 @endforeach
                             </x-select>
                         </x-form-group>
 
-                        <x-form-group name="no_invoice" label="No Invoice / Vendor Ref" help="Kosongkan jika ingin dibuat otomatis oleh sistem">
-                            <x-input type="text" name="no_invoice" value="{{ old('no_invoice') }}" placeholder="Otomatis (cth: INV/PO/202609/0001)" />
+                        <x-form-group name="no_invoice" label="No Invoice / Vendor Ref" help="Nomor invoice referensi dari vendor">
+                            <x-input type="text" name="no_invoice" value="{{ old('no_invoice', $purchaseOrder->no_invoice) }}" placeholder="Contoh: INV/PO/202609/0001" />
                         </x-form-group>
 
                         <x-form-group name="tanggal" label="Tanggal PO" :required="true">
-                            <x-input type="date" name="tanggal" value="{{ old('tanggal', date('Y-m-d')) }}" :required="true" />
+                            <x-input type="date" name="tanggal" value="{{ old('tanggal', $purchaseOrder->tanggal?->format('Y-m-d')) }}" :required="true" />
                         </x-form-group>
 
                         <x-form-group name="eta" label="Estimasi Kedatangan (ETA)" help="Perkiraan pesanan tiba di gudang">
-                            <x-input type="date" name="eta" value="{{ old('eta') }}" />
+                            <x-input type="date" name="eta" value="{{ old('eta', $purchaseOrder->eta?->format('Y-m-d')) }}" />
                         </x-form-group>
 
                         <x-form-group name="sumber_dana" label="Sumber Dana / Rekening">
-                            <x-input type="text" name="sumber_dana" value="{{ old('sumber_dana', 'BCA Operasional') }}" placeholder="Contoh: BCA Operasional" />
+                            <x-input type="text" name="sumber_dana" value="{{ old('sumber_dana', $purchaseOrder->sumber_dana) }}" placeholder="Contoh: BCA Operasional" />
                         </x-form-group>
                     </div>
 
@@ -444,14 +520,14 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2">
-                    <x-button href="{{ route('purchasing.index') }}" variant="secondary" size="md">
+                    <x-button href="{{ route('purchasing.show', $purchaseOrder) }}" variant="secondary" size="md">
                         Batal
                     </x-button>
                     <x-button type="submit" variant="primary" size="md">
                         <x-slot:icon>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         </x-slot:icon>
-                        Simpan Draft PO
+                        Simpan Perubahan PO
                     </x-button>
                 </div>
             </div>
@@ -461,20 +537,20 @@
 
     @push('scripts')
     <script>
-        function poForm() {
+        function poForm(initial = {}) {
             return {
-                skemaBayar: 'cash',
+                skemaBayar: initial.skemaBayar || 'cash',
                 headerDiskonMode: 'nominal',
                 headerDiskonVal: 0,
-                headerDiskon: 0,
+                headerDiskon: initial.headerDiskon || 0,
 
                 headerPpnMode: 'nominal',
                 headerPpnVal: 0,
-                headerPpn: 0,
+                headerPpn: initial.headerPpn || 0,
 
-                headerOngkir: 0,
-                headerAdj: 0,
-                rows: [
+                headerOngkir: initial.headerOngkir || 0,
+                headerAdj: initial.headerAdj || 0,
+                rows: (initial.rows && initial.rows.length > 0) ? initial.rows : [
                     {
                         produk_id: '',
                         qty: '',
@@ -483,10 +559,14 @@
                         selectedItem: null
                     }
                 ],
-                termins: [
+                termins: (initial.termins && initial.termins.length > 0) ? initial.termins : [
                     { tanggal_tempo: '', nominal_tagihan: 0, keterangan: 'Termin 1' }
                 ],
                 activeRow: null,
+
+                init() {
+                    this.recalcAll();
+                },
 
                 addRow() {
                     this.rows.push({

@@ -54,14 +54,55 @@ class PurchaseOrderItem extends Model
         return (float) $this->harga_total - (float) $this->diskon + (float) $this->ppn + (float) $this->ongkir + (float) $this->adjustment;
     }
 
-    /** Harga per satuan (HPP) = netTotal / qty. */
+    /** Harga per satuan (HPP) = netTotal / qty, dengan fallback ke produk harga_hpp jika ada. */
     public function hargaPerSatuan(): float
     {
         if ((float) $this->hpp_per_satuan > 0) {
             return (float) $this->hpp_per_satuan;
         }
 
-        return $this->qty > 0 ? $this->netTotal() / (float) $this->qty : 0;
+        $qty = (float) $this->qty;
+        if ($qty > 0) {
+            $net = $this->netTotal();
+            if ($net > 0) {
+                return round($net / $qty, 4);
+            }
+            if ((float) $this->harga_total > 0) {
+                return round((float) $this->harga_total / $qty, 4);
+            }
+        }
+
+        return (float) ($this->produk?->harga_hpp ?? 0);
+    }
+
+    /**
+     * Format nilai HPP per satuan dengan presisi desimal cerdas:
+     * - Bulat murni: Rp 15.000
+     * - Pecahan standar (<= 2 desimal): Rp 526,35
+     * - Pecahan mikro (> 2 desimal, hingga 4 desimal): Rp 106.666,6667
+     */
+    public function formattedHpp(): string
+    {
+        $val = $this->hargaPerSatuan();
+        if ($val <= 0) {
+            return '—';
+        }
+
+        // Jika bilangan bulat murni tanpa pecahan
+        if (abs($val - round($val)) < 0.00001) {
+            return 'Rp ' . number_format(round($val), 0, ',', '.');
+        }
+
+        // Cek apakah ada digit pecahan signifikan setelah 2 desimal (hingga 4 desimal)
+        $rounded2 = round($val, 2);
+        if (abs($val - $rounded2) > 0.00001) {
+            $formatted = number_format($val, 4, ',', '.');
+
+            return 'Rp ' . rtrim(rtrim($formatted, '0'), ',');
+        }
+
+        // 1 atau 2 digit desimal standar (misal Rp 526,35 atau Rp 1.000,50)
+        return 'Rp ' . number_format($val, 2, ',', '.');
     }
 
     public function qtyDiterima(): float

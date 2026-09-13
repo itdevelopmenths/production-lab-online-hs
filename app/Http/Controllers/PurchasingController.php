@@ -12,9 +12,11 @@ use App\Services\Purchasing\PurchasingCostCalculator;
 use App\Services\Purchasing\PurchasingPaymentService;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
 
 class PurchasingController extends Controller
@@ -34,15 +36,32 @@ class PurchasingController extends Controller
         return view('purchasing.index', compact('canSeePrice'));
     }
 
-    public function data(): JsonResponse
+    public function data(Request $request): JsonResponse
     {
         $this->authorize('purchasing.view');
-        $canSeePrice = auth()->user()->can('purchasing.price.view');
+        $user = auth()->user();
+        $canSeePrice = $user->can('purchasing.price.view');
+        $canEditUser = $user->can('purchasing.edit');
 
         $query = PurchaseOrder::query()->select('purchase_orders.*')
             ->with(['supplier:id,nama', 'gudang:id,nama', 'barangDatang:id,po_id,tanggal_terima'])
             ->withSum('items as total_nilai', 'harga_total')
             ->withSum('payments as total_dibayar', 'nominal');
+
+        if ($canSeePrice && $request->filled('status_bayar')) {
+            if ($request->status_bayar === 'belum_lunas') {
+                $query->where(function ($q) {
+                    $q->where('purchase_orders.status_pembayaran', 'belum_lunas')
+                      ->orWhereNull('purchase_orders.status_pembayaran');
+                });
+            } else {
+                $query->where('purchase_orders.status_pembayaran', $request->status_bayar);
+            }
+        }
+
+        if ($request->filled('status_po')) {
+            $query->where('purchase_orders.status', $request->status_po);
+        }
 
         return DataTables::eloquent($query)
             ->addColumn('no_invoice', fn ($po) => $po->no_invoice ?? '—')
@@ -62,13 +81,13 @@ class PurchasingController extends Controller
             ->addColumn('action', fn ($po) => view('purchasing._actions', [
                 'po' => $po,
                 'canSeePrice' => $canSeePrice,
-                'canEdit' => auth()->user()->can('purchasing.edit') && ! in_array($po->status, ['selesai', 'dibatalkan'], true),
+                'canEdit' => $canEditUser && in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty(),
             ])->render())
             ->rawColumns(['action'])
             ->toJson();
     }
 
-    public function dataAp(): JsonResponse
+    public function dataAp(Request $request): JsonResponse
     {
         $this->authorize('purchasing.price.view');
 
@@ -76,6 +95,21 @@ class PurchasingController extends Controller
             ->with(['supplier:id,nama', 'termins'])
             ->withSum('items as total_nilai', 'harga_total')
             ->withSum('payments as total_dibayar', 'nominal');
+
+        if ($request->filled('status_bayar')) {
+            if ($request->status_bayar === 'belum_lunas') {
+                $query->where(function ($q) {
+                    $q->where('purchase_orders.status_pembayaran', 'belum_lunas')
+                      ->orWhereNull('purchase_orders.status_pembayaran');
+                });
+            } else {
+                $query->where('purchase_orders.status_pembayaran', $request->status_bayar);
+            }
+        }
+
+        if ($request->filled('skema_bayar')) {
+            $query->where('purchase_orders.skema_bayar', $request->skema_bayar);
+        }
 
         return DataTables::eloquent($query)
             ->addColumn('no_invoice', fn ($po) => $po->no_invoice ?? '—')
@@ -180,13 +214,120 @@ class PurchasingController extends Controller
         return redirect()->route('purchasing.show', $po)->with('success', "PO {$po->no_po} dibuat (draft).");
     }
 
+    public function edit(PurchaseOrder $purchaseOrder)
+    {
+        $this->authorize('purchasing.edit');
+
+        if (in_array($purchaseOrder->status, ['selesai', 'dibatalkan'], true) || $purchaseOrder->barangDatang()->exists()) {
+            return redirect()->route('purchasing.show', $purchaseOrder)
+                ->with('error', 'Dokumen Purchase Order ini sudah final / barang sudah diterima sehingga tidak dapat diubah.');
+        }
+
+        $purchaseOrder->load(['items.produk', 'termins']);
+        $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
+        $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
+        $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+
+        return view('purchasing.edit', compact('purchaseOrder', 'suppliers', 'gudang', 'produk'));
+    }
+
+    public function update(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse
+    {
+        $this->authorize('purchasing.edit');
+
+        if (in_array($purchaseOrder->status, ['selesai', 'dibatalkan'], true) || $purchaseOrder->barangDatang()->exists()) {
+            throw ValidationException::withMessages([
+                'status' => 'Dokumen Purchase Order ini sudah final / barang sudah diterima sehingga tidak dapat diubah.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'no_invoice' => ['nullable', 'string', 'max:50'],
+            'supplier_id' => ['required', 'exists:supplier,id'],
+            'gudang_id' => ['nullable', 'exists:gudang,id'],
+            'tanggal' => ['required', 'date'],
+            'eta' => ['nullable', 'date'],
+            'sumber_dana' => ['nullable', 'string', 'max:50'],
+            'skema_bayar' => ['nullable', Rule::in(['cash', 'tempo', 'termin'])],
+            'diskon_total' => ['nullable', 'numeric', 'min:0'],
+            'ppn_nominal' => ['nullable', 'numeric', 'min:0'],
+            'ongkos_kirim' => ['nullable', 'numeric', 'min:0'],
+            'adjustment' => ['nullable', 'numeric'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.produk_id' => ['required', 'distinct', 'exists:produk,id'],
+            'items.*.qty' => ['required', 'numeric', 'gt:0'],
+            'items.*.harga_total' => ['required', 'numeric', 'min:0'],
+            'items.*.diskon' => ['nullable', 'numeric', 'min:0'],
+            'items.*.ppn' => ['nullable', 'numeric', 'min:0'],
+            'items.*.ongkir' => ['nullable', 'numeric', 'min:0'],
+            'items.*.adjustment' => ['nullable', 'numeric'],
+            'termins' => ['nullable', 'array'],
+            'termins.*.tanggal_tempo' => ['required_with:termins', 'date'],
+            'termins.*.nominal_tagihan' => ['required_with:termins', 'numeric', 'gt:0'],
+            'termins.*.keterangan' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $totals = $this->calculator->calculatePoTotals(
+            $data['items'],
+            (float) ($data['diskon_total'] ?? 0),
+            (float) ($data['ppn_nominal'] ?? 0),
+            (float) ($data['ongkos_kirim'] ?? 0),
+            (float) ($data['adjustment'] ?? 0)
+        );
+
+        $totalDibayar = $purchaseOrder->totalDibayar();
+        if ($totalDibayar > 0 && $totals['grand_total'] < $totalDibayar) {
+            throw ValidationException::withMessages([
+                'items' => 'Grand total baru (Rp ' . number_format($totals['grand_total'], 0, ',', '.') . ') tidak boleh lebih kecil dari total yang sudah dibayar (Rp ' . number_format($totalDibayar, 0, ',', '.') . ').',
+            ]);
+        }
+
+        DB::transaction(function () use ($purchaseOrder, $data, $totals) {
+            $purchaseOrder->update([
+                'no_invoice' => ! empty($data['no_invoice']) ? $data['no_invoice'] : $purchaseOrder->no_invoice,
+                'supplier_id' => $data['supplier_id'],
+                'gudang_id' => $data['gudang_id'] ?? null,
+                'tanggal' => $data['tanggal'],
+                'eta' => $data['eta'] ?? null,
+                'sumber_dana' => $data['sumber_dana'] ?? null,
+                'skema_bayar' => $data['skema_bayar'] ?? 'cash',
+                'subtotal_produk' => $totals['subtotal_produk'],
+                'diskon_total' => $totals['diskon_total'],
+                'ppn_nominal' => $totals['ppn_nominal'],
+                'ongkos_kirim' => $totals['ongkos_kirim'],
+                'adjustment' => $totals['adjustment'],
+                'grand_total' => $totals['grand_total'],
+            ]);
+
+            // Replace items dengan data terbaru & alokasi HPP prorata
+            $purchaseOrder->items()->delete();
+            foreach ($totals['items'] as $itemData) {
+                $purchaseOrder->items()->create($itemData);
+            }
+
+            // Sync jadwal termin jika skema termin
+            if (! empty($data['termins']) && ($data['skema_bayar'] ?? '') === 'termin') {
+                $purchaseOrder->termins()->delete();
+                $this->paymentService->createTerminsForPo($purchaseOrder, $data['termins']);
+            } elseif (($data['skema_bayar'] ?? '') !== 'termin') {
+                $purchaseOrder->termins()->delete();
+            }
+
+            $purchaseOrder->refreshStatusPembayaran();
+            $purchaseOrder->save();
+        });
+
+        return redirect()->route('purchasing.show', $purchaseOrder)
+            ->with('success', "PO {$purchaseOrder->no_po} berhasil diperbarui.");
+    }
+
     public function show(PurchaseOrder $purchaseOrder)
     {
         $this->authorize('purchasing.view');
         $purchaseOrder->load([
             'supplier',
             'gudang',
-            'items.produk:id,sku,nama,satuan',
+            'items.produk:id,sku,nama,satuan,harga_hpp',
             'items.bardatItems',
             'payments',
             'termins',
@@ -194,6 +335,16 @@ class PurchasingController extends Controller
             'barangDatang.items.poItem.produk:id,sku,nama,satuan',
             'creator:id,name',
         ]);
+
+        // Auto-refresh status pembayaran jika ada perubahan status (misal lewat jatuh tempo)
+        if (! $purchaseOrder->isLunas()) {
+            $prevStatus = $purchaseOrder->status_pembayaran;
+            $purchaseOrder->refreshStatusPembayaran();
+            if ($purchaseOrder->status_pembayaran !== $prevStatus) {
+                $purchaseOrder->save();
+            }
+        }
+
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $canSeePrice = auth()->user()->can('purchasing.price.view');
 
@@ -249,7 +400,7 @@ class PurchasingController extends Controller
         $this->ensureStatus($purchaseOrder, ['dikirim_ke_gudang']);
 
         $data = $request->validate([
-            'gudang_id' => ['required', 'exists:gudang,id'],
+            'gudang_id' => ['nullable', 'exists:gudang,id'],
             'tanggal_terima' => ['required', 'date'],
             'kondisi' => ['required', Rule::in(['baik', 'rusak_sebagian'])],
             'items' => ['required', 'array', 'min:1'],
@@ -258,7 +409,14 @@ class PurchasingController extends Controller
             'items.*.keterangan_selisih' => ['nullable', 'string', 'max:500'],
         ]);
 
-        DB::transaction(function () use ($data, $purchaseOrder) {
+        // Lokasi stok penerimaan: Mutlak sesuai dengan lokasi gudang pada PO
+        $targetGudangId = $purchaseOrder->gudang_id ?: ($data['gudang_id'] ?? null);
+
+        if (! $targetGudangId) {
+            $targetGudangId = Gudang::where('status', 'aktif')->first()?->id;
+        }
+
+        DB::transaction(function () use ($data, $purchaseOrder, $targetGudangId) {
             $bardat = BarangDatang::create([
                 'po_id' => $purchaseOrder->id,
                 'tanggal_terima' => $data['tanggal_terima'],
@@ -282,20 +440,28 @@ class PurchasingController extends Controller
                 if ($qty > 0) {
                     $this->stok->masuk(
                         $item->produk_id,
-                        $data['gudang_id'],
+                        $targetGudangId,
                         $qty,
                         'purchase_order',
                         $purchaseOrder->id,
                         "Barang Datang {$purchaseOrder->no_po}",
                         \Illuminate\Support\Carbon::parse($data['tanggal_terima']),
                     );
+
+                    if ((float) $item->hpp_per_satuan > 0) {
+                        $item->produk()->update(['harga_hpp' => (float) $item->hpp_per_satuan]);
+                    }
                 }
             }
 
-            $purchaseOrder->update(['status' => 'selesai']);
+            $updateData = ['status' => 'selesai'];
+            if (! $purchaseOrder->gudang_id) {
+                $updateData['gudang_id'] = $targetGudangId;
+            }
+            $purchaseOrder->update($updateData);
         });
 
-        return back()->with('success', 'Barang datang dicatat & stok bertambah.');
+        return back()->with('success', 'Barang datang dicatat & stok bertambah sesuai lokasi PO.');
     }
 
     public function pay(Request $request, PurchaseOrder $purchaseOrder)
@@ -303,7 +469,7 @@ class PurchasingController extends Controller
         $this->authorize('purchasing.pay');
 
         $data = $request->validate([
-            'skema' => ['required', Rule::in(['tempo', 'termin', 'pelunasan'])],
+            'skema' => ['required', Rule::in(['cash', 'tempo', 'termin', 'pelunasan'])],
             'tanggal_bayar' => ['required', 'date'],
             'nominal' => ['required', 'numeric', 'gt:0'],
             'termin_id' => ['nullable', 'exists:purchase_order_termins,id'],

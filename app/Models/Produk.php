@@ -23,7 +23,7 @@ class Produk extends Model
 
     protected $casts = [
         'satuan_order_moq' => 'decimal:2',
-        'harga_hpp' => 'decimal:2',
+        'harga_hpp' => 'decimal:4',
         'is_active' => 'boolean',
     ];
 

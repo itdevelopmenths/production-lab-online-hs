@@ -29,13 +29,14 @@
             @if($canSeePrice && $po->status_pembayaran)
                 @php
                     $payBadge = match($po->status_pembayaran) {
-                        'lunas' => 'success',
-                        'parsial' => 'info',
-                        'overdue' => 'danger',
-                        default => 'gray',
+                        'overdue' => 'danger',      // Priority 1: Critical (Merah)
+                        'belum_lunas' => 'warning', // Priority 2: High Attention (Kuning)
+                        'parsial' => 'info',        // Priority 3: In Progress (Biru)
+                        'lunas' => 'success',       // Priority 4: Completed (Hijau)
+                        default => 'secondary',
                     };
                 @endphp
-                <x-badge :variant="$payBadge" size="sm">
+                <x-badge :variant="$payBadge" :dot="true" size="sm">
                     AP: {{ ucwords(str_replace('_',' ',$po->status_pembayaran)) }}
                 </x-badge>
             @endif
@@ -43,6 +44,17 @@
             @if($po->dari_analisa)
                 <x-badge variant="gold" size="sm">Dari Analisa</x-badge>
             @endif
+
+            @can('purchasing.edit')
+                @if(in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty())
+                    <x-button href="{{ route('purchasing.edit', $po) }}" variant="warning" size="xs">
+                        <x-slot:icon>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </x-slot:icon>
+                        Edit PO
+                    </x-button>
+                @endif
+            @endcan
 
             <x-button href="{{ route('purchasing.index') }}" variant="secondary" size="xs">
                 &larr; Kembali
@@ -128,10 +140,10 @@
                                         {{ (float)$it->ongkir > 0 ? '+Rp ' . number_format($it->ongkir, 0, ',', '.') : '—' }}
                                     </td>
                                     <td class="py-2.5 px-3 text-right font-mono font-semibold text-gray-900">
-                                        Rp {{ number_format($it->netTotal(), 0, ',', '.') }}
+                                        Rp {{ number_format($it->netTotal(), abs($it->netTotal() - round($it->netTotal())) < 0.00001 ? 0 : 2, ',', '.') }}
                                     </td>
-                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-primary-800 bg-primary-50/30">
-                                        Rp {{ number_format($it->hargaPerSatuan(), 2, ',', '.') }}
+                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-primary-800 bg-primary-50/30" title="HPP / Unit: {{ $it->formattedHpp() }}">
+                                        {{ $it->formattedHpp() }}
                                     </td>
                                 @endif
                                 <td class="py-2.5 px-3.5 text-right font-mono font-medium {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-emerald-700 font-bold' : 'text-gray-700' }}">
@@ -236,12 +248,12 @@
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Gudang Penerima <span class="text-rose-500">*</span></label>
-                            <select name="gudang_id" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
-                                @foreach($gudang as $g)
-                                    <option value="{{ $g->id }}" @selected($po->gudang_id == $g->id)>{{ $g->nama }}</option>
-                                @endforeach
-                            </select>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Gudang Penerima</label>
+                            @php
+                                $targetGudang = $po->gudang ?? $gudang->firstWhere('id', $po->gudang_id) ?? $gudang->first();
+                            @endphp
+                            <input type="hidden" name="gudang_id" value="{{ $targetGudang?->id }}">
+                            <input type="text" value="{{ $targetGudang?->nama ?? '—' }}" class="w-full rounded-sm border-gray-300 bg-gray-100 text-xs py-1.5 px-2.5 text-gray-700 cursor-not-allowed focus:outline-none" readonly>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Tanggal Terima <span class="text-rose-500">*</span></label>
@@ -344,6 +356,17 @@
                     @endif
                     @endcan
 
+                    @can('purchasing.edit')
+                    @if(in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty())
+                    <x-button href="{{ route('purchasing.edit', $po) }}" variant="secondary" size="md" class="w-full">
+                        <x-slot:icon>
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </x-slot:icon>
+                        Edit Purchase Order
+                    </x-button>
+                    @endif
+                    @endcan
+
                     @can('purchasing.cancel')
                     @if(!in_array($po->status, ['selesai', 'dibatalkan']))
                     <form method="POST" action="{{ route('purchasing.cancel', $po) }}" onsubmit="return confirm('Batalkan Purchase Order ini?');" class="pt-2 border-t border-gray-100">
@@ -367,6 +390,26 @@
             @if($canSeePrice)
             <x-card title="Status Pembayaran (AP)" variant="default" id="form-pembayaran">
                 <div class="space-y-2.5 text-xs pb-3 border-b border-gray-100">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Status Pembayaran (AP)</span>
+                        <span>
+                            <x-badge :variant="$payBadge ?? 'secondary'" :dot="true" size="xs">
+                                {{ ucwords(str_replace('_',' ',$po->status_pembayaran ?? 'belum_lunas')) }}
+                            </x-badge>
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">Skema Transaksi</span>
+                        <span class="font-semibold text-gray-800">
+                            @if($po->skema_bayar === 'cash')
+                                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[11px] font-medium">Tunai (Cash / Penuh)</span>
+                            @elseif($po->skema_bayar === 'tempo')
+                                <span class="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[11px] font-medium">Tempo (Jatuh Tempo Tunggal)</span>
+                            @else
+                                <span class="bg-primary-50 text-primary-700 border border-primary-200 px-2 py-0.5 rounded text-[11px] font-medium">Termin (Cicilan Bertahap)</span>
+                            @endif
+                        </span>
+                    </div>
                     <div class="flex justify-between">
                         <span class="text-gray-500">Total Tagihan</span>
                         <span class="font-bold font-mono text-gray-900">Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}</span>
@@ -383,18 +426,19 @@
                     </div>
                 </div>
 
-                <!-- Daftar Termin Tagihan (Requirement 4) -->
-                @if($po->termins->count())
+                <!-- Daftar Termin Tagihan (Hanya ditampilkan jika skema termin dan ada jadwal) -->
+                @if($po->skema_bayar === 'termin' && $po->termins->count())
                 <div class="py-3 border-b border-gray-100">
                     <p class="text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-2">Jadwal Termin Tagihan:</p>
                     <div class="space-y-1.5">
                         @foreach($po->termins as $tm)
                         @php
                             $tmBadge = match($tm->status) {
-                                'lunas' => 'success',
-                                'parsial' => 'info',
                                 'overdue' => 'danger',
-                                default => 'gray',
+                                'belum_dibayar' => 'warning',
+                                'parsial' => 'info',
+                                'lunas' => 'success',
+                                default => 'secondary',
                             };
                         @endphp
                         <div class="p-2 bg-gray-50 rounded-sm border border-gray-100 text-xs flex items-center justify-between">
@@ -404,7 +448,7 @@
                             </div>
                             <div class="text-right">
                                 <div class="font-mono font-bold text-gray-900">Rp {{ number_format($tm->nominal_tagihan, 0, ',', '.') }}</div>
-                                <x-badge :variant="$tmBadge" size="xs">{{ ucfirst(str_replace('_',' ', $tm->status)) }}</x-badge>
+                                <x-badge :variant="$tmBadge" :dot="true" size="xs">{{ ucfirst(str_replace('_',' ', $tm->status)) }}</x-badge>
                             </div>
                         </div>
                         @endforeach
@@ -414,24 +458,43 @@
 
                 @can('purchasing.pay')
                 @if(!$po->isLunas() && !in_array($po->status, ['dibatalkan']))
-                <form method="POST" action="{{ route('purchasing.pay', $po) }}" class="space-y-3 pt-3" x-data="payForm({{ $po->sisaTagihan() }})">
+                @php
+                    $defaultPaySkema = match($po->skema_bayar) {
+                        'cash' => 'cash',
+                        'tempo' => 'tempo',
+                        'termin' => 'termin',
+                        default => 'tempo',
+                    };
+                    $nextUnpaidTermin = $po->termins->where('status', '!=', 'lunas')->first();
+                    $initialPayNominal = ($po->skema_bayar === 'termin' && $nextUnpaidTermin)
+                        ? (float) $nextUnpaidTermin->sisaNominal()
+                        : (float) $po->sisaTagihan();
+                @endphp
+                <form method="POST" action="{{ route('purchasing.pay', $po) }}" class="space-y-3 pt-3" x-data="payForm({{ $po->sisaTagihan() }}, '{{ $defaultPaySkema }}', {{ $initialPayNominal }})">
                     @csrf
                     <div>
                         <label class="block text-[11px] font-semibold text-gray-700 mb-1">Skema Pembayaran</label>
                         <select name="skema" x-model="skema" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                            <option value="termin">Termin</option>
-                            <option value="tempo">Tempo</option>
-                            <option value="pelunasan">Pelunasan Penuh (Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }})</option>
+                            @if($po->skema_bayar === 'cash')
+                                <option value="cash">Tunai (Cash / Transfer Penuh - Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }})</option>
+                                <option value="pelunasan">Pelunasan Penuh (Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }})</option>
+                            @elseif($po->skema_bayar === 'tempo')
+                                <option value="tempo">Tempo (Pembayaran Parsial / Cicilan)</option>
+                                <option value="pelunasan">Pelunasan Penuh (Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }})</option>
+                            @else
+                                <option value="termin">Termin (Pembayaran Cicilan)</option>
+                                <option value="pelunasan">Pelunasan Penuh (Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }})</option>
+                            @endif
                         </select>
                     </div>
 
-                    @if($po->termins->where('status', '!=', 'lunas')->count())
-                    <div>
+                    @if($po->skema_bayar === 'termin' && $po->termins->where('status', '!=', 'lunas')->count())
+                    <div x-show="skema === 'termin'">
                         <label class="block text-[11px] font-semibold text-gray-700 mb-1">Target Termin (Opsional)</label>
-                        <select name="termin_id" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
-                            <option value="">— Alokasikan Otomatis —</option>
+                        <select name="termin_id" @change="onTerminChange($event)" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <option value="">— Alokasikan Otomatis (FIFO) —</option>
                             @foreach($po->termins->where('status', '!=', 'lunas') as $tOpt)
-                                <option value="{{ $tOpt->id }}">
+                                <option value="{{ $tOpt->id }}" data-sisa="{{ $tOpt->sisaNominal() }}">
                                     Termin {{ $tOpt->termin_ke }} (Sisa: Rp {{ number_format($tOpt->sisaNominal(), 0, ',', '.') }})
                                 </option>
                             @endforeach
@@ -503,11 +566,11 @@
             };
         }
 
-        function payForm(sisaTagihan) {
+        function payForm(sisaTagihan, defaultSkema, defaultNominal) {
             return {
                 sisa: sisaTagihan,
-                skema: 'termin',
-                nominal: sisaTagihan,
+                skema: defaultSkema || 'tempo',
+                nominal: defaultNominal !== undefined && defaultNominal !== null ? defaultNominal : sisaTagihan,
                 formatThousand(val) {
                     if (val === '' || val === null || val === undefined) return '';
                     const clean = val.toString().replace(/\D/g, '');
@@ -518,9 +581,18 @@
                     this.nominal = clean ? parseInt(clean, 10) : 0;
                     event.target.value = this.formatThousand(this.nominal);
                 },
+                onTerminChange(event) {
+                    const selected = event.target.selectedOptions[0];
+                    if (selected && selected.dataset.sisa) {
+                        const sisaTermin = parseFloat(selected.dataset.sisa) || 0;
+                        if (sisaTermin > 0) {
+                            this.nominal = sisaTermin;
+                        }
+                    }
+                },
                 init() {
                     this.$watch('skema', (val) => {
-                        if (val === 'pelunasan') {
+                        if (val === 'pelunasan' || val === 'cash') {
                             this.nominal = this.sisa;
                         }
                     });

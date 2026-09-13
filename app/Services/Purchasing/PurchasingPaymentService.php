@@ -40,11 +40,12 @@ class PurchasingPaymentService
             ]);
         }
 
-        // Validasi 2: Cegah pembayaran kurang pada skema Pelunasan
-        if ($skema === 'pelunasan' && $nominal < $sisaTagihan) {
+        // Validasi 2: Cegah pembayaran kurang pada skema Pelunasan / Tunai
+        if (in_array($skema, ['pelunasan', 'cash'], true) && $nominal < $sisaTagihan) {
             throw ValidationException::withMessages([
                 'nominal' => sprintf(
-                    "Skema 'Pelunasan Penuh' harus melunasi sisa tagihan tepat sebesar Rp %s. Jika ingin mencicil sebagian, pilih skema 'Termin' atau 'Tempo'.",
+                    "Skema '%s' harus melunasi sisa tagihan tepat sebesar Rp %s. Jika ingin mencicil sebagian, pilih skema 'Tempo' atau 'Termin'.",
+                    $skema === 'cash' ? 'Tunai (Cash / Transfer Penuh)' : 'Pelunasan Penuh',
                     number_format($sisaTagihan, 0, ',', '.')
                 ),
             ]);
@@ -154,11 +155,14 @@ class PurchasingPaymentService
     }
 
     /**
-     * Periksa dan perbarui status overdue untuk seluruh termin aktif.
+     * Periksa dan perbarui status overdue untuk seluruh termin dan PO aktif.
      */
     public function refreshAllOverdueStatuses(): int
     {
         $overdueCount = 0;
+        $poIds = collect();
+
+        // 1. Perbarui status termin yang jatuh tempo sebelum hari ini
         $termins = PurchaseOrderTermin::where('status', '!=', 'lunas')
             ->whereDate('tanggal_tempo', '<', now()->toDateString())
             ->get();
@@ -166,7 +170,27 @@ class PurchasingPaymentService
         foreach ($termins as $termin) {
             $termin->updateStatusAutomatically();
             $termin->save();
+            $poIds->push($termin->po_id);
             $overdueCount++;
+        }
+
+        // 2. Kumpulkan PO tempo yang memiliki ETA lewat hari ini dan belum lunas
+        $posTempo = PurchaseOrder::where('status_pembayaran', '!=', 'lunas')
+            ->whereNotNull('eta')
+            ->whereDate('eta', '<', now()->toDateString())
+            ->pluck('id');
+
+        foreach ($posTempo as $id) {
+            $poIds->push($id);
+        }
+
+        // 3. Sinkronkan status pembayaran di purchase_orders
+        foreach ($poIds->unique() as $poId) {
+            $po = PurchaseOrder::find($poId);
+            if ($po && ! $po->isLunas()) {
+                $po->refreshStatusPembayaran();
+                $po->save();
+            }
         }
 
         return $overdueCount;

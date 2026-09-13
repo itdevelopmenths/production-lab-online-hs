@@ -89,7 +89,7 @@ class PurchaseOrder extends Model
             return (float) $this->grand_total;
         }
 
-        if (isset($this->attributes['total_nilai'])) {
+        if (array_key_exists('total_nilai', $this->attributes) && $this->attributes['total_nilai'] !== null) {
             return (float) $this->attributes['total_nilai'];
         }
 
@@ -102,8 +102,8 @@ class PurchaseOrder extends Model
 
     public function totalDibayar(): float
     {
-        if (isset($this->attributes['total_dibayar'])) {
-            return (float) $this->attributes['total_dibayar'];
+        if (array_key_exists('total_dibayar', $this->attributes)) {
+            return (float) ($this->attributes['total_dibayar'] ?? 0);
         }
 
         if ($this->relationLoaded('payments')) {
@@ -131,8 +131,22 @@ class PurchaseOrder extends Model
         if ($dibayar >= $total && $total > 0) {
             $this->status_pembayaran = 'lunas';
         } else {
-            // Cek apakah ada termin yang overdue
-            $hasOverdue = $this->termins()->where('status', 'overdue')->exists();
+            // 1. Cek apakah ada termin yang overdue (baik dari status kolom atau tanggal_tempo lewat)
+            $hasOverdue = false;
+            if ($this->relationLoaded('termins') && $this->termins->count() > 0) {
+                $hasOverdue = $this->termins->where('status', '!=', 'lunas')
+                    ->contains(fn ($tm) => $tm->status === 'overdue' || ($tm->tanggal_tempo && $tm->tanggal_tempo->isPast() && ! $tm->tanggal_tempo->isToday()));
+            } else {
+                $hasOverdue = $this->termins()
+                    ->where('status', '!=', 'lunas')
+                    ->where(function ($q) {
+                        $q->where('status', 'overdue')
+                          ->orWhereDate('tanggal_tempo', '<', now()->toDateString());
+                    })
+                    ->exists();
+            }
+
+            // 2. Cek apakah PO tempo memiliki ETA yang sudah lewat hari ini
             if (! $hasOverdue && $this->eta && $this->eta->isPast() && ! $this->eta->isToday()) {
                 $hasOverdue = true;
             }
