@@ -1,0 +1,127 @@
+name: Deploy to Production
+
+# Setiap push ke main: build image (tag = git SHA + latest), lalu deploy
+# otomatis ke VPS produksi via SSH. VPS yang sama dengan POS-Harumnya —
+# stack ini ikut network + nginx-proxy/acme-companion milik POS-Harumnya.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/itdevelopmenths/production-lab-online-hs
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    # Opsional: aktifkan required reviewers di Settings -> Environments -> production
+    # supaya deploy perlu approval manual sebelum jalan.
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image (tag = SHA + latest)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          # Nonaktifkan provenance/SBOM - bikin image multi-manifest yg kadang
+          # ditolak ghcr.io ("unknown blob").
+          provenance: false
+          sbom: false
+
+      - name: Deploy to Production via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GIT_SHA: ${{ github.sha }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GIT_SHA,GHCR_TOKEN,GHCR_ACTOR
+          script: |
+            set -e
+            IMAGE="ghcr.io/itdevelopmenths/production-lab-online-hs"
+
+            cd /var/www/production-lab-online-hs
+
+            # Checkout commit yang persis dibangun (kode PHP dibaca dari host).
+            git fetch origin
+            git checkout -f "$GIT_SHA"
+
+            # Login GHCR & pull image SHA ini.
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
+            docker pull "$IMAGE:$GIT_SHA"
+            docker tag "$IMAGE:$GIT_SHA" "$IMAGE:latest"
+
+            # Deteksi network yang dipakai nginx-proxy milik POS-Harumnya (biar routing jalan).
+            export PROXY_NETWORK=$(docker inspect nginx-proxy \
+              -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' \
+              | awk '{print $1}')
+            echo "Proxy network: ${PROXY_NETWORK:-<not found>}"
+            if [ -z "$PROXY_NETWORK" ]; then
+              echo "ERROR: container nginx-proxy tidak ditemukan / tidak jalan."
+              exit 1
+            fi
+
+            # Direktori runtime.
+            mkdir -p logs/nginx storage bootstrap/cache \
+                     storage/app/public storage/framework/cache/data \
+                     storage/framework/sessions storage/framework/views storage/logs
+
+            if [ ! -f .env ]; then
+              echo "ERROR: .env production tidak ada di /var/www/production-lab-online-hs" && exit 1
+            fi
+
+            docker compose up -d --remove-orphans
+
+            echo "Menunggu database..."
+            sleep 15
+
+            # key:generate hanya jika APP_KEY belum diisi.
+            if ! grep -q "^APP_KEY=base64:" .env; then
+              docker compose exec -T --user root app php artisan key:generate --force
+              docker compose exec -T --user root app chown www-data:www-data /var/www/.env
+            fi
+
+            docker compose exec -T --user root app chown -R www-data:www-data \
+              /var/www/storage /var/www/bootstrap/cache
+            docker compose exec -T --user root app chmod -R 775 \
+              /var/www/storage /var/www/bootstrap/cache
+
+            docker compose exec -T app php artisan migrate --force
+            docker compose exec -T app php artisan storage:link --force
+            docker compose exec -T app php artisan optimize:clear
+            docker compose exec -T app php artisan optimize
+
+            # Restart paksa app agar OPcache (validate_timestamps=0) tidak
+            # menyajikan bytecode basi dari sebelum optimize di-refresh di atas -
+            # kode di-mount dari host, jadi container kadang tidak otomatis
+            # di-recreate meski app/resources/config berubah.
+            docker compose restart app
+
+            echo "Deploy selesai untuk commit $GIT_SHA"
+            docker compose ps

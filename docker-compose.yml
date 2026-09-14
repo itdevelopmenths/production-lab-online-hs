@@ -1,0 +1,121 @@
+# -----------------------------------------------------------------------------
+# Stack produksi SC Online — jalan di VPS yang SAMA dengan POS-Harumnya.
+#
+# nginx-proxy + acme-companion TIDAK didefinisikan di sini — keduanya dipakai
+# bersama dari stack POS-Harumnya (routing by VIRTUAL_HOST, cert by
+# LETSENCRYPT_HOST). Stack ini cukup ikut network POS-Harumnya yang sudah ada
+# (external), nama network di-inject lewat env PROXY_NETWORK (dideteksi
+# otomatis oleh workflow deploy).
+# -----------------------------------------------------------------------------
+
+networks:
+  proxy-net:
+    external: true
+    name: ${PROXY_NETWORK:-pos-harumnya_proxy-net}
+
+services:
+  db:
+    image: postgres:15-alpine
+    command: postgres -c max_connections=100
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_DATABASE:-sc_online}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - proxy-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-sc_online}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/itdevelopmenths/production-lab-online-hs:latest
+    container_name: sc_online_app
+    restart: unless-stopped
+    volumes:
+      - ./.env:/var/www/.env # .env dari host, bukan dari image
+      - ./storage:/var/www/storage # persist upload & log
+      - ./bootstrap/cache:/var/www/bootstrap/cache # persist cache
+      - public_data:/var/www/public-shared # asset publik (Vite build) untuk nginx
+      # Mount folder agar perubahan code (setelah git checkout SHA) langsung terbaca tanpa build ulang
+      - ./app:/var/www/app
+      - ./routes:/var/www/routes
+      - ./resources:/var/www/resources
+      - ./config:/var/www/config
+    networks:
+      - proxy-net
+    depends_on:
+      db:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$c = @fsockopen('127.0.0.1', 9000); if ($$c) { fclose($$c); exit(0); } exit(1);"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  nginx:
+    image: nginx:alpine
+    container_name: sc_online_nginx
+    restart: unless-stopped
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - public_data:/var/www/public
+      - ./storage/app/public:/var/www/public/storage:ro
+      - ./logs/nginx:/var/log/nginx
+    expose:
+      - "80"
+    environment:
+      VIRTUAL_HOST: ${APP_DOMAIN:-lab.harumnya.cloud}
+      LETSENCRYPT_HOST: ${APP_DOMAIN:-lab.harumnya.cloud}
+      VIRTUAL_PORT: 80
+    networks:
+      - proxy-net
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:15
+    container_name: sc_online_db_backup
+    restart: always
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${DB_DATABASE:-sc_online}
+      - POSTGRES_USER=${DB_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - SCHEDULE=0 3 * * *
+      - BACKUP_KEEP_DAYS=7
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      - db
+    networks:
+      - proxy-net
+
+volumes:
+  pgdata:
+  public_data:
