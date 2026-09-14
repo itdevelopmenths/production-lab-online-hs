@@ -143,8 +143,16 @@ table.dataTable tbody td.dataTables_empty {
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-    @apply bg-primary-600 text-white border-primary-600 shadow-xs font-semibold;
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:focus,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:active,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current a,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current span {
+    @apply border-primary-600 shadow-xs font-semibold;
+    color: #ffffff !important;
+    background-color: var(--color-primary-600, #1a3352) !important;
+    background: var(--color-primary-600, #1a3352) !important;
+    border-color: var(--color-primary-600, #1a3352) !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,

@@ -16,31 +16,47 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div class="mb-4" x-data="{ currentTab: 'all' }">
-        <div class="border-b border-gray-200 bg-white px-3 py-2 rounded-t-sm shadow-2xs">
-            <nav class="flex space-x-2" aria-label="Tabs">
-                <button type="button"
+    <div x-data="{ currentTab: 'all' }">
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200 mb-5 flex items-center justify-between">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                <button
+                    type="button"
                     @click="currentTab = 'all'; filterTab('all')"
-                    :class="currentTab === 'all' ? 'bg-primary-50 text-primary-700 border-primary-500 font-semibold' : 'text-gray-500 hover:text-gray-700 border-transparent'"
-                    class="px-3 py-1.5 text-xs rounded-sm border-b-2 transition cursor-pointer">
+                    :class="currentTab === 'all' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
+                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                     Semua Produk
                 </button>
-                <button type="button"
+
+                <button
+                    type="button"
                     @click="currentTab = 'bahan'; filterTab('bahan')"
-                    :class="currentTab === 'bahan' ? 'bg-primary-50 text-primary-700 border-primary-500 font-semibold' : 'text-gray-500 hover:text-gray-700 border-transparent'"
-                    class="px-3 py-1.5 text-xs rounded-sm border-b-2 transition cursor-pointer">
+                    :class="currentTab === 'bahan' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
+                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
                     Bahan Baku
                 </button>
-                <button type="button"
+
+                <button
+                    type="button"
                     @click="currentTab = 'kemas'; filterTab('kemas')"
-                    :class="currentTab === 'kemas' ? 'bg-primary-50 text-primary-700 border-primary-500 font-semibold' : 'text-gray-500 hover:text-gray-700 border-transparent'"
-                    class="px-3 py-1.5 text-xs rounded-sm border-b-2 transition cursor-pointer">
+                    :class="currentTab === 'kemas' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
+                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                     Komponen Kemasan
                 </button>
-                <button type="button"
+
+                <button
+                    type="button"
                     @click="currentTab = 'produk_jadi'; filterTab('produk_jadi')"
-                    :class="currentTab === 'produk_jadi' ? 'bg-primary-50 text-primary-700 border-primary-500 font-semibold' : 'text-gray-500 hover:text-gray-700 border-transparent'"
-                    class="px-3 py-1.5 text-xs rounded-sm border-b-2 transition cursor-pointer">
+                    :class="currentTab === 'produk_jadi' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
+                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
                     Produk Jadi
                 </button>
             </nav>

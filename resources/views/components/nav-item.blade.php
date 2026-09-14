@@ -7,8 +7,8 @@
 
 @php
     $activeClasses = $active
-        ? 'bg-[#374151] text-white font-medium border-l-2 border-primary-400'
-        : 'text-gray-300 hover:bg-[#2d3748] hover:text-white border-l-2 border-transparent';
+        ? 'bg-[#374151] text-white font-medium'
+        : 'text-gray-300 hover:bg-[#2d3748] hover:text-white';
 
     $badgeClasses = match ($badgeVariant) {
         'danger' => 'bg-rose-600 text-white',

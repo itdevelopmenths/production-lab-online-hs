@@ -1,20 +1,21 @@
 <x-app-layout title="Kelola BOM">
-    <x-page-header
-        title="Kelola Formula Resep (BOM)"
-        subtitle="Definisi kebutuhan komposisi bahan baku & kemasan per 1 unit produk jadi"
-        :breadcrumbs="['Master Data' => null, 'BOM' => route('bom.index'), $produk->nama => null, 'Kelola Resep' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('bom.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Daftar BOM
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+    <div class="max-w-4xl mx-auto">
+        <x-page-header
+            title="Kelola Formula Resep (BOM)"
+            subtitle="Definisi kebutuhan komposisi bahan baku & kemasan per 1 unit produk jadi"
+            :breadcrumbs="['Master Data' => null, 'BOM' => route('bom.index'), $produk->nama => null, 'Kelola Resep' => null]"
+        >
+            <x-slot:actions>
+                <x-button href="{{ route('bom.index') }}" variant="secondary" size="xs">
+                    &larr; Kembali ke Daftar BOM
+                </x-button>
+            </x-slot:actions>
+        </x-page-header>
 
-    <div class="max-w-5xl" x-data="bomForm()">
-        <form method="POST" action="{{ route('bom.update', $produk) }}">
-            @csrf
-            @method('PUT')
+        <div x-data="bomForm()">
+            <form method="POST" action="{{ route('bom.update', $produk) }}">
+                @csrf
+                @method('PUT')
 
             <div class="space-y-4">
                 <!-- Info Header Card -->
@@ -186,6 +187,7 @@
             </div>
         </form>
     </div>
+</div>
 
     @push('scripts')
     <script>
