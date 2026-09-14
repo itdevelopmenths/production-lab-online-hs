@@ -9,7 +9,7 @@ POS-Harumnya dipakai bersama — routing by domain, SSL otomatis lewat
 Let's Encrypt.
 
 ```
-push main ──► [deploy.yml] build image (:<sha> + :latest) ──► deploy ke VPS (lab.harumnya.cloud)
+push main ──► [deploy.yml] build image (:<sha> + :latest) ──► deploy ke VPS (sc.harumnya.cloud)
 ```
 
 ---
@@ -17,9 +17,9 @@ push main ──► [deploy.yml] build image (:<sha> + :latest) ──► deploy
 ## Setup satu kali (VPS + GitHub)
 
 ### 1. DNS
-Tambah A record domain app ini (ganti `lab.harumnya.cloud` sesuai domain final)
+Tambah A record domain app ini (ganti `sc.harumnya.cloud` sesuai domain final)
 → **IP VPS yang sama** dengan POS-Harumnya.
-Cek: `dig +short lab.harumnya.cloud` harus mengembalikan IP VPS.
+Cek: `dig +short sc.harumnya.cloud` harus mengembalikan IP VPS.
 
 ### 2. Pastikan stack POS-Harumnya sudah jalan
 `nginx-proxy` + `acme-companion` dipakai bersama dari stack POS-Harumnya.
