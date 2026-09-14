@@ -3,15 +3,27 @@
 #
 # nginx-proxy + acme-companion TIDAK didefinisikan di sini — keduanya dipakai
 # bersama dari stack POS-Harumnya (routing by VIRTUAL_HOST, cert by
-# LETSENCRYPT_HOST). Stack ini cukup ikut network POS-Harumnya yang sudah ada
-# (external), nama network di-inject lewat env PROXY_NETWORK (dideteksi
-# otomatis oleh workflow deploy).
+# LETSENCRYPT_HOST). Hanya service `nginx` yang ikut network POS-Harumnya
+# yang sudah ada (external), nama network di-inject lewat env PROXY_NETWORK
+# (dideteksi otomatis oleh workflow deploy).
+#
+# `db`, `app`, `db-backup` sengaja dipisah ke network `internal` (privat,
+# khusus project ini). JANGAN pindahkan mereka ke proxy-net: Docker DNS
+# memberi setiap service alias otomatis senama service-nya (mis. "db",
+# "app"). POS-Harumnya juga punya service bernama "db" dan "app" di
+# network yang sama — kalau kedua project berbagi alias itu, Docker akan
+# round-robin DNS antara kedua container, sehingga Laravel salah satu
+# project bisa nyasar connect ke database/app-server project yang lain
+# (pernah terjadi: password auth failed intermiten di harumnya.cloud
+# karena "db" resolve ke container Postgres sc_online, bukan punya sendiri).
 # -----------------------------------------------------------------------------
 
 networks:
   proxy-net:
     external: true
     name: ${PROXY_NETWORK:-pos-harumnya_proxy-net}
+  internal:
+    driver: bridge
 
 services:
   db:
@@ -25,7 +37,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - proxy-net
+      - internal
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-sc_online}" ]
       interval: 10s
@@ -56,7 +68,7 @@ services:
       - ./resources:/var/www/resources
       - ./config:/var/www/config
     networks:
-      - proxy-net
+      - internal
     depends_on:
       db:
         condition: service_healthy
@@ -89,6 +101,7 @@ services:
       VIRTUAL_PORT: 80
     networks:
       - proxy-net
+      - internal
     depends_on:
       app:
         condition: service_healthy
@@ -114,7 +127,7 @@ services:
     depends_on:
       - db
     networks:
-      - proxy-net
+      - internal
 
 volumes:
   pgdata:
