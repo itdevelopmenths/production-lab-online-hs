@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Bom extends Model
 {
+    use \App\Traits\AuditableMasterData;
+
     protected $table = 'bom';
 
     protected $fillable = [

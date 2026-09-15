@@ -59,24 +59,40 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
                     Produk Jadi
                 </button>
+
+                <button
+                    type="button"
+                    @click="currentTab = 'audit'; $nextTick(() => { if (window.tblAuditProduk) window.tblAuditProduk.columns.adjust().draw(false); })"
+                    :class="currentTab === 'audit' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
+                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Riwayat Audit
+                </button>
             </nav>
         </div>
 
-        <x-card title="Katalog Produk & Bahan Baku" :noPadding="true">
-            <table id="tbl" class="w-full text-xs">
-                <thead>
-                    <tr>
-                        <th class="px-4 py-3 text-left">SKU</th>
-                        <th class="px-4 py-3 text-left">Nama</th>
-                        <th class="px-4 py-3 text-left">Tipe</th>
-                        <th class="px-4 py-3 text-left">Satuan</th>
-                        <th class="px-4 py-3 text-left">MOQ</th>
-                        <th class="px-4 py-3 text-left">Status</th>
-                        <th class="px-4 py-3 text-center">Aksi</th>
-                    </tr>
-                </thead>
-            </table>
-        </x-card>
+        <div x-show="currentTab !== 'audit'">
+            <x-card title="Katalog Produk & Bahan Baku" :noPadding="true">
+                <table id="tbl" class="w-full text-xs">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left">SKU</th>
+                            <th class="px-4 py-3 text-left">Nama</th>
+                            <th class="px-4 py-3 text-left">Tipe</th>
+                            <th class="px-4 py-3 text-left">Satuan</th>
+                            <th class="px-4 py-3 text-left">MOQ</th>
+                            <th class="px-4 py-3 text-left">Status</th>
+                            <th class="px-4 py-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                </table>
+            </x-card>
+        </div>
+
+        <div x-show="currentTab === 'audit'" x-cloak>
+            <x-master-audit-tab entity="produk" />
+        </div>
     </div>
 
     @push('scripts')

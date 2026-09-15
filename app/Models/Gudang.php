@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Gudang extends Model
 {
+    use \App\Traits\AuditableMasterData;
+
     protected $table = 'gudang';
 
     protected $fillable = [

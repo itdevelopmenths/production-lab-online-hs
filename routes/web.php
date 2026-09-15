@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
 
     // API / Search Endpoints
     Route::get('produk/select-data', [ProdukController::class, 'selectData'])->name('produk.select-data');
+    Route::get('master-data-audit/data', [\App\Http\Controllers\MasterDataAuditController::class, 'data'])->name('master-audit.data');
 
     // ===== Master Data =====
     Route::middleware('can:produk.view')->group(function () {

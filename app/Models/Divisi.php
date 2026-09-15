@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Divisi extends Model
 {
+    use \App\Traits\AuditableMasterData;
+
     protected $table = 'divisi';
 
     protected $fillable = [

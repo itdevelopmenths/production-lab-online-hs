@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Produk extends Model
 {
+    use \App\Traits\AuditableMasterData;
+
     protected $table = 'produk';
 
     protected $fillable = [

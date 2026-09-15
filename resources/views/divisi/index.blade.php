@@ -16,22 +16,55 @@
         </x-slot:actions>
     </x-page-header>
 
-    <x-card title="Daftar Master Divisi / Departemen Kerja" subtitle="Divisi yang aktif akan otomatis muncul sebagai opsi pemilihan saat membuat atau mengedit akun staf pengguna" :noPadding="true">
-        <div class="overflow-x-auto">
-            <table id="tbl" class="w-full text-xs">
-                <thead>
-                    <tr>
-                        <th class="px-4 py-3 text-left w-28">Kode Unik</th>
-                        <th class="px-4 py-3 text-left">Nama Divisi & Deskripsi</th>
-                        <th class="px-4 py-3 text-left w-48">Tampilan Badge</th>
-                        <th class="px-4 py-3 text-left w-36">Staf Terdaftar</th>
-                        <th class="px-4 py-3 text-center w-28">Status</th>
-                        <th class="px-4 py-3 text-center w-28">Aksi</th>
-                    </tr>
-                </thead>
-            </table>
+    <div x-data="{ currentTab: 'divisi' }">
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200 mb-5 flex items-center justify-between">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                <button
+                    type="button"
+                    @click="currentTab = 'divisi'"
+                    :class="currentTab === 'divisi' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
+                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    Master Divisi
+                </button>
+
+                <button
+                    type="button"
+                    @click="currentTab = 'audit'; $nextTick(() => { if (window.tblAuditDivisi) window.tblAuditDivisi.columns.adjust().draw(false); })"
+                    :class="currentTab === 'audit' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
+                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Riwayat Audit
+                </button>
+            </nav>
         </div>
-    </x-card>
+
+        <div x-show="currentTab === 'divisi'">
+            <x-card title="Daftar Master Divisi / Departemen Kerja" subtitle="Divisi yang aktif akan otomatis muncul sebagai opsi pemilihan saat membuat atau mengedit akun staf pengguna" :noPadding="true">
+                <div class="overflow-x-auto">
+                    <table id="tbl" class="w-full text-xs">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 text-left w-28">Kode Unik</th>
+                                <th class="px-4 py-3 text-left">Nama Divisi & Deskripsi</th>
+                                <th class="px-4 py-3 text-left w-48">Tampilan Badge</th>
+                                <th class="px-4 py-3 text-left w-36">Staf Terdaftar</th>
+                                <th class="px-4 py-3 text-center w-28">Status</th>
+                                <th class="px-4 py-3 text-center w-28">Aksi</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </x-card>
+        </div>
+
+        <div x-show="currentTab === 'audit'" x-cloak>
+            <x-master-audit-tab entity="divisi" />
+        </div>
+    </div>
 
     @push('scripts')
     <script>

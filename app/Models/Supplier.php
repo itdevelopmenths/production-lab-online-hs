@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Supplier extends Model
 {
+    use \App\Traits\AuditableMasterData;
+
     protected $table = 'supplier';
 
     protected $fillable = [
