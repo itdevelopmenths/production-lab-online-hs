@@ -65,6 +65,113 @@ class BomController extends Controller
         return redirect()->route('bom.index')->with('success', "BOM {$produk->nama} berhasil disimpan.");
     }
 
+    public function importPage()
+    {
+        $this->authorize('bom.import');
+
+        $produkJadiList = Produk::produkJadi()->active()->orderBy('nama')->get(['id', 'sku', 'nama']);
+        $bahanList = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+
+        return view('bom.import', compact('produkJadiList', 'bahanList'));
+    }
+
+    public function downloadTemplate(Request $request)
+    {
+        $this->authorize('bom.import');
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="template_resep_bom.csv"',
+        ];
+
+        $callback = function () {
+            $handle = fopen('php://output', 'w');
+            // Header template standar
+            fputcsv($handle, ['sku_produk_jadi', 'sku_bahan', 'qty_per_unit'], ';');
+            // Contoh baris
+            fputcsv($handle, ['PRD-SAMPLE-01', 'BAH-PARFUM-01', '15.5000'], ';');
+            fputcsv($handle, ['PRD-SAMPLE-01', 'BAH-ALKOHOL-01', '35.0000'], ';');
+            fputcsv($handle, ['PRD-SAMPLE-02', 'BAH-PARFUM-01', '20.0000'], ';');
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function importBulk(Request $request): JsonResponse
+    {
+        $this->authorize('bom.import');
+
+        $data = $request->validate([
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.sku_produk_jadi' => ['required', 'string'],
+            'items.*.sku_bahan' => ['required', 'string'],
+            'items.*.qty_per_unit' => ['required', 'numeric', 'gt:0'],
+        ]);
+
+        $imported = 0;
+        $errors = [];
+
+        // Map SKU ke Produk secara efisien
+        $allSkus = collect($data['items'])
+            ->flatMap(fn ($i) => [trim($i['sku_produk_jadi']), trim($i['sku_bahan'])])
+            ->unique()
+            ->filter();
+
+        $allProduk = Produk::whereIn('sku', $allSkus)->get()->keyBy('sku');
+
+        DB::transaction(function () use ($data, $allProduk, &$imported, &$errors) {
+            foreach ($data['items'] as $index => $item) {
+                $rowNum = $index + 1;
+                $skuJadi = trim($item['sku_produk_jadi']);
+                $skuBahan = trim($item['sku_bahan']);
+                $qty = (float) $item['qty_per_unit'];
+
+                $jadi = $allProduk->get($skuJadi);
+                $bahan = $allProduk->get($skuBahan);
+
+                if (! $jadi || $jadi->tipe !== 'produk_jadi') {
+                    $errors[] = "Baris {$rowNum}: SKU Produk Jadi '{$skuJadi}' tidak valid atau bukan produk jadi.";
+                    continue;
+                }
+
+                if (! $bahan || $bahan->tipe === 'produk_jadi') {
+                    $errors[] = "Baris {$rowNum}: SKU Bahan '{$skuBahan}' tidak valid atau bukan bahan baku/kemasan.";
+                    continue;
+                }
+
+                Bom::updateOrCreate(
+                    ['produk_jadi_id' => $jadi->id, 'bahan_id' => $bahan->id],
+                    ['qty_per_unit' => $qty]
+                );
+                $imported++;
+            }
+        });
+
+        if ($imported > 0) {
+            \App\Models\MasterDataAudit::create([
+                'auditable_type' => Bom::class,
+                'auditable_id' => null,
+                'user_id' => auth()->id(),
+                'user_name' => auth()->user()?->name ?? 'Sistem',
+                'item_name' => "Grid Impor Resep BOM ({$imported} formula)",
+                'event' => 'imported',
+                'old_values' => null,
+                'new_values' => ['imported_count' => $imported, 'skipped_count' => count($errors)],
+                'changed_fields' => ['boms'],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => $imported > 0,
+            'message' => "Berhasil menyimpan {$imported} formula resep BOM." . (count($errors) > 0 ? ' (' . count($errors) . ' baris dilewati)' : ''),
+            'imported_count' => $imported,
+            'errors' => $errors,
+        ]);
+    }
+
     public function import(Request $request, \App\Services\StampsBomImporter $importer)
     {
         $this->authorize('bom.import');
@@ -76,10 +183,15 @@ class BomController extends Controller
         $filePath = $request->file('file')->getRealPath();
         $handle = fopen($filePath, 'r');
         if (!$handle) {
-            return redirect()->route('bom.index')->with('error', 'Gagal membaca file CSV.');
+            return redirect()->route('bom.import-page')->with('error', 'Gagal membaca file CSV.');
         }
 
-        $header = fgetcsv($handle, 0, ';', '"', '\\');
+        // Auto-detect delimiter (; or ,)
+        $firstLine = fgets($handle);
+        $delimiter = str_contains($firstLine ?: '', ';') ? ';' : ',';
+        rewind($handle);
+
+        $header = fgetcsv($handle, 0, $delimiter, '"', '\\');
         $headerString = strtolower(implode(';', $header ?: []));
 
         // Format ekspor Stamps POS (Cibinong City Mall)
@@ -88,20 +200,35 @@ class BomController extends Controller
             try {
                 $result = $importer->importFromHandle($handle);
                 $msg = "Impor Stamps berhasil: {$result['boms_imported']} resep BOM diproses ({$result['products_created']} produk baru, {$result['materials_created']} bahan baru).";
+
+                \App\Models\MasterDataAudit::create([
+                    'auditable_type' => Bom::class,
+                    'auditable_id' => null,
+                    'user_id' => auth()->id(),
+                    'user_name' => auth()->user()?->name ?? 'Sistem',
+                    'item_name' => "Impor Format Stamps ({$result['boms_imported']} resep)",
+                    'event' => 'imported',
+                    'old_values' => null,
+                    'new_values' => $result,
+                    'changed_fields' => ['boms_imported', 'products_created', 'materials_created'],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+
                 return redirect()->route('bom.index')->with('success', $msg);
             } catch (\Throwable $e) {
-                return redirect()->route('bom.index')->with('error', 'Gagal memproses file Stamps: ' . $e->getMessage());
+                return redirect()->route('bom.import-page')->with('error', 'Gagal memproses file Stamps: ' . $e->getMessage());
             }
         }
 
-        // Format alternatif sederhana: sku_produk_jadi;sku_bahan;qty_per_unit
+        // Format alternatif standar: sku_produk_jadi;sku_bahan;qty_per_unit
         $skuIndex = array_flip(array_map('trim', $header ?: []));
         $imported = 0;
         $errors = [];
 
-        DB::transaction(function () use ($handle, $skuIndex, &$imported, &$errors) {
+        DB::transaction(function () use ($handle, $delimiter, $skuIndex, &$imported, &$errors) {
             $line = 1;
-            while (($row = fgetcsv($handle, 0, ';', '"', '\\')) !== false) {
+            while (($row = fgetcsv($handle, 0, $delimiter, '"', '\\')) !== false) {
                 $line++;
                 $skuJadi = trim($row[$skuIndex['sku_produk_jadi'] ?? 0] ?? '');
                 $skuBahan = trim($row[$skuIndex['sku_bahan'] ?? 1] ?? '');
@@ -122,11 +249,25 @@ class BomController extends Controller
         });
         fclose($handle);
 
-        $msg = "{$imported} baris BOM diimpor.";
+        $msg = "{$imported} baris formula BOM berhasil diimpor.";
         if ($errors) {
             $msg .= ' ' . count($errors) . ' baris dilewati.';
         }
 
-        return redirect()->route('bom.index')->with($errors ? 'error' : 'success', $msg);
+        \App\Models\MasterDataAudit::create([
+            'auditable_type' => Bom::class,
+            'auditable_id' => null,
+            'user_id' => auth()->id(),
+            'user_name' => auth()->user()?->name ?? 'Sistem',
+            'item_name' => "Batch Impor Resep BOM ({$imported} formula)",
+            'event' => 'imported',
+            'old_values' => null,
+            'new_values' => ['imported' => $imported, 'errors_count' => count($errors)],
+            'changed_fields' => ['boms'],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return redirect()->route('bom.index')->with($errors && $imported === 0 ? 'error' : 'success', $msg);
     }
 }

@@ -92,11 +92,18 @@
                 <p class="px-3 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Stok & Mutasi</p>
 
                 @can('stok.view')
-                <x-nav-item href="{{ route('stok.index') }}" :active="request()->routeIs('stok.*')">
+                <x-nav-item href="{{ route('stok.index') }}" :active="request()->routeIs('stok.index') || request()->routeIs('stok.ledger*') || request()->routeIs('stok.opname*')">
                     <x-slot:icon>
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
                     </x-slot:icon>
                     Stok & Mutasi
+                </x-nav-item>
+
+                <x-nav-item href="{{ route('stok.log-pergerakan') }}" :active="request()->routeIs('stok.log-pergerakan*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </x-slot:icon>
+                    Log Pergerakan Stok
                 </x-nav-item>
                 @endcan
 
@@ -139,11 +146,20 @@
                 @endcan
 
                 @can('bom.view')
-                <x-nav-item href="{{ route('bom.index') }}" :active="request()->routeIs('bom.*')">
+                <x-nav-item href="{{ route('bom.index') }}" :active="request()->routeIs('bom.index') || request()->routeIs('bom.edit')">
                     <x-slot:icon>
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     </x-slot:icon>
                     BOM (Resep)
+                </x-nav-item>
+                @endcan
+
+                @can('bom.import')
+                <x-nav-item href="{{ route('bom.import-page') }}" :active="request()->routeIs('bom.import*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </x-slot:icon>
+                    Impor BOM
                 </x-nav-item>
                 @endcan
 

@@ -72,11 +72,17 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:bom.view')->group(function () {
         Route::get('bom', [BomController::class, 'index'])->name('bom.index');
         Route::get('bom/data', [BomController::class, 'data'])->name('bom.data');
+        Route::get('bom/import', [BomController::class, 'importPage'])
+            ->middleware('can:bom.import')->name('bom.import-page');
+        Route::get('bom/template', [BomController::class, 'downloadTemplate'])
+            ->middleware('can:bom.import')->name('bom.template');
+        Route::post('bom/import', [BomController::class, 'import'])
+            ->middleware('can:bom.import')->name('bom.import');
+        Route::post('bom/import-bulk', [BomController::class, 'importBulk'])
+            ->middleware('can:bom.import')->name('bom.import-bulk');
         Route::get('bom/{produk}/edit', [BomController::class, 'edit'])->name('bom.edit');
         Route::put('bom/{produk}', [BomController::class, 'update'])
             ->middleware('can:bom.manage')->name('bom.update');
-        Route::post('bom/import', [BomController::class, 'import'])
-            ->middleware('can:bom.import')->name('bom.import');
     });
 
     // ===== Stok & Mutasi =====
