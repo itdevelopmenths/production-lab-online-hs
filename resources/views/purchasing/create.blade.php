@@ -64,6 +64,12 @@
                                 <option value="termin">Termin (Pembayaran Bertahap / Cicil)</option>
                             </select>
                         </x-form-group>
+
+                        <div x-show="skemaBayar === 'tempo'" x-cloak>
+                            <x-form-group name="tanggal_tempo" label="Jatuh Tempo Pembayaran (Deadline)" :required="true" help="Batas akhir pelunasan tagihan tempo">
+                                <x-input type="date" name="tanggal_tempo" x-bind:required="skemaBayar === 'tempo'" value="{{ old('tanggal_tempo') }}" />
+                            </x-form-group>
+                        </div>
                     </div>
                 </x-card>
 
@@ -135,6 +141,18 @@
                                                     </div>
                                                 </div>
 
+                                                <template x-if="selectedItem">
+                                                    <div class="mt-1 flex items-center gap-1.5 text-[10px] font-mono">
+                                                        <span class="text-gray-400">HPP Lama:</span>
+                                                        <template x-if="parseFloat(selectedItem.harga_hpp || 0) > 0">
+                                                            <span class="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200" x-text="'Rp ' + formatHpp(selectedItem.harga_hpp) + (selectedItem.satuan ? ' / ' + selectedItem.satuan : '')"></span>
+                                                        </template>
+                                                        <template x-if="!parseFloat(selectedItem.harga_hpp || 0)">
+                                                            <span class="text-gray-400 italic bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">Belum ada HPP</span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+
                                                 <div
                                                     x-show="open"
                                                     x-cloak
@@ -153,7 +171,10 @@
                                                                     <span class="font-mono text-primary-700 font-medium bg-primary-50 px-1 py-0.5 rounded-xs border border-primary-100 text-[10px]" x-text="item.sku"></span>
                                                                     <span class="truncate font-medium text-gray-900" x-text="item.nama"></span>
                                                                 </div>
-                                                                <span class="text-[9px] font-mono text-gray-500 bg-gray-100 px-1 py-0.5 rounded-xs border border-gray-200 pointer-events-none" x-text="item.satuan"></span>
+                                                                <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
+                                                                    <span class="text-[9px] font-mono text-amber-700 bg-amber-50 px-1 py-0.5 rounded-xs border border-amber-200" x-text="'HPP: Rp ' + formatHpp(item.harga_hpp || 0)"></span>
+                                                                    <span class="text-[9px] font-mono text-gray-500 bg-gray-100 px-1 py-0.5 rounded-xs border border-gray-200" x-text="item.satuan"></span>
+                                                                </div>
                                                             </div>
                                                         </template>
                                                         <div x-show="!loading && items.length === 0" class="py-3 text-center text-gray-400">Tidak ada produk cocok.</div>
@@ -201,6 +222,12 @@
                                         <td class="px-4 py-2 text-right bg-primary-50/40">
                                             <div class="font-mono font-bold text-xs text-primary-800" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + (row.satuan ? ' / ' + row.satuan : '')"></div>
                                             <div class="text-[10px] text-gray-500 font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
+                                            <template x-if="row.selectedItem && parseFloat(row.selectedItem.harga_hpp || 0) > 0">
+                                                <div class="text-[10px] font-mono mt-0.5 text-gray-500">
+                                                    <span>HPP Lama: </span>
+                                                    <span class="font-semibold text-gray-700" x-text="'Rp ' + formatHpp(row.selectedItem.harga_hpp)"></span>
+                                                </div>
+                                            </template>
                                             <template x-if="subtotalProduk() > 0 && parseFloat(row.harga) > 0">
                                                 <div class="text-[9px] text-primary-600 font-mono mt-0.5" x-text="'Porsi: ' + (Math.round((parseFloat(row.harga) / subtotalProduk()) * 1000) / 10) + '%'"></div>
                                             </template>
@@ -552,7 +579,17 @@
 
                 formatThousand(val) {
                     if (val === '' || val === null || val === undefined) return '';
-                    const clean = val.toString().replace(/\D/g, '');
+                    if (typeof val === 'number') {
+                        return Math.round(val).toLocaleString('id-ID');
+                    }
+                    const str = val.toString().trim();
+                    if (str.includes('.')) {
+                        const num = parseFloat(str);
+                        if (!isNaN(num)) {
+                            return Math.round(num).toLocaleString('id-ID');
+                        }
+                    }
+                    const clean = str.replace(/\D/g, '');
                     if (!clean) return '';
                     return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                 },

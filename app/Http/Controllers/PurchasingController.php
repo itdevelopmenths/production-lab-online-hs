@@ -31,9 +31,14 @@ class PurchasingController extends Controller
     public function index()
     {
         $this->authorize('purchasing.view');
-        $canSeePrice = auth()->user()->can('purchasing.price.view');
+        $user = auth()->user();
+        $canSeePrice = $user->can('purchasing.price.view');
+        $canSeeApprovalTab = $user->hasAnyRole(['manager', 'purchasing', 'admin_holding', 'super_admin']) || $user->can('purchasing.approve');
+        $pendingApprovalCount = $canSeeApprovalTab
+            ? PurchaseOrder::where('status', 'diajukan')->count()
+            : 0;
 
-        return view('purchasing.index', compact('canSeePrice'));
+        return view('purchasing.index', compact('canSeePrice', 'pendingApprovalCount', 'canSeeApprovalTab'));
     }
 
     public function data(Request $request): JsonResponse
@@ -64,7 +69,7 @@ class PurchasingController extends Controller
         }
 
         return DataTables::eloquent($query)
-            ->addColumn('no_invoice', fn ($po) => $po->no_invoice ?? '—')
+            ->addColumn('no_invoice', fn ($po) => $po->no_invoice ? $po->no_invoice : $po->no_po)
             ->addColumn('supplier_nama', fn ($po) => $po->supplier?->nama ?? '—')
             ->addColumn('gudang_nama', fn ($po) => $po->gudang?->nama ?? '—')
             ->editColumn('tanggal', fn ($po) => $po->tanggal?->format('d/m/Y') ?? '—')
@@ -112,7 +117,7 @@ class PurchasingController extends Controller
         }
 
         return DataTables::eloquent($query)
-            ->addColumn('no_invoice', fn ($po) => $po->no_invoice ?? '—')
+            ->addColumn('no_invoice', fn ($po) => $po->no_invoice ? $po->no_invoice : $po->no_po)
             ->addColumn('supplier_nama', fn ($po) => $po->supplier?->nama ?? '—')
             ->editColumn('tanggal', fn ($po) => $po->tanggal?->format('d/m/Y') ?? '—')
             ->addColumn('skema_bayar', fn ($po) => ucfirst($po->skema_bayar ?? 'cash'))
@@ -120,6 +125,9 @@ class PurchasingController extends Controller
             ->addColumn('total_dibayar', fn ($po) => number_format((float) $po->totalDibayar(), 0, ',', '.'))
             ->addColumn('sisa', fn ($po) => number_format((float) $po->sisaTagihan(), 0, ',', '.'))
             ->addColumn('jatuh_tempo_terdekat', function ($po) {
+                if ($po->skema_bayar === 'tempo' && $po->tanggal_tempo) {
+                    return $po->tanggal_tempo->format('d/m/Y');
+                }
                 $nextTermin = $po->termins->where('status', '!=', 'lunas')->sortBy('tanggal_tempo')->first();
 
                 return $nextTermin ? $nextTermin->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—');
@@ -152,6 +160,7 @@ class PurchasingController extends Controller
             'eta' => ['nullable', 'date'],
             'sumber_dana' => ['nullable', 'string', 'max:50'],
             'skema_bayar' => ['nullable', Rule::in(['cash', 'tempo', 'termin'])],
+            'tanggal_tempo' => ['nullable', 'date', 'required_if:skema_bayar,tempo'],
             'diskon_total' => ['nullable', 'numeric', 'min:0'],
             'ppn_nominal' => ['nullable', 'numeric', 'min:0'],
             'ongkos_kirim' => ['nullable', 'numeric', 'min:0'],
@@ -188,6 +197,7 @@ class PurchasingController extends Controller
                 'eta' => $data['eta'] ?? null,
                 'sumber_dana' => $data['sumber_dana'] ?? null,
                 'skema_bayar' => $data['skema_bayar'] ?? 'cash',
+                'tanggal_tempo' => ($data['skema_bayar'] ?? '') === 'tempo' ? ($data['tanggal_tempo'] ?? null) : null,
                 'subtotal_produk' => $totals['subtotal_produk'],
                 'diskon_total' => $totals['diskon_total'],
                 'ppn_nominal' => $totals['ppn_nominal'],
@@ -227,8 +237,10 @@ class PurchasingController extends Controller
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+        $productIds = $purchaseOrder->items->pluck('produk_id')->filter()->unique()->values()->all();
+        $hppMap = app(\App\Services\StokService::class)->resolveHppMap($productIds);
 
-        return view('purchasing.edit', compact('purchaseOrder', 'suppliers', 'gudang', 'produk'));
+        return view('purchasing.edit', compact('purchaseOrder', 'suppliers', 'gudang', 'produk', 'hppMap'));
     }
 
     public function update(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse
@@ -249,6 +261,7 @@ class PurchasingController extends Controller
             'eta' => ['nullable', 'date'],
             'sumber_dana' => ['nullable', 'string', 'max:50'],
             'skema_bayar' => ['nullable', Rule::in(['cash', 'tempo', 'termin'])],
+            'tanggal_tempo' => ['nullable', 'date', 'required_if:skema_bayar,tempo'],
             'diskon_total' => ['nullable', 'numeric', 'min:0'],
             'ppn_nominal' => ['nullable', 'numeric', 'min:0'],
             'ongkos_kirim' => ['nullable', 'numeric', 'min:0'],
@@ -291,6 +304,7 @@ class PurchasingController extends Controller
                 'eta' => $data['eta'] ?? null,
                 'sumber_dana' => $data['sumber_dana'] ?? null,
                 'skema_bayar' => $data['skema_bayar'] ?? 'cash',
+                'tanggal_tempo' => ($data['skema_bayar'] ?? '') === 'tempo' ? ($data['tanggal_tempo'] ?? null) : null,
                 'subtotal_produk' => $totals['subtotal_produk'],
                 'diskon_total' => $totals['diskon_total'],
                 'ppn_nominal' => $totals['ppn_nominal'],

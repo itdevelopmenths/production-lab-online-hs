@@ -83,87 +83,8 @@ class StokController extends Controller
             }
         }
 
-        // 5. Pre-fetch HPP Map dari Purchase Orders (Prioritaskan PO selesai -> dikirim -> disetujui -> diajukan -> draft)
-        $poItems = DB::table('purchase_order_items as poi')
-            ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
-            ->where('po.status', '!=', 'dibatalkan')
-            ->where(function ($q) {
-                $q->where('poi.hpp_per_satuan', '>', 0)
-                    ->orWhere('poi.harga_total', '>', 0);
-            })
-            ->orderByRaw("CASE 
-                WHEN po.status = 'selesai' THEN 1
-                WHEN po.status = 'dikirim_ke_gudang' THEN 2
-                WHEN po.status = 'disetujui' THEN 3
-                WHEN po.status = 'diajukan' THEN 4
-                ELSE 5 END ASC")
-            ->orderByDesc('po.tanggal')
-            ->orderByDesc('po.created_at')
-            ->orderByDesc('poi.id')
-            ->select('poi.produk_id', 'poi.hpp_per_satuan', 'poi.harga_total', 'poi.qty')
-            ->get();
-
-        $latestPoHpp = [];
-        foreach ($poItems as $pi) {
-            if (! isset($latestPoHpp[$pi->produk_id])) {
-                $hppVal = (float) $pi->hpp_per_satuan;
-                if ($hppVal <= 0 && (float) $pi->qty > 0) {
-                    $hppVal = (float) $pi->harga_total / (float) $pi->qty;
-                }
-                if ($hppVal > 0) {
-                    $latestPoHpp[$pi->produk_id] = $hppVal;
-                }
-            }
-        }
-
-        // Prefetch referensi harga dari analisa stok & master produk sebagai fallback
-        $analisaLokalPrices = DB::table('analisa_lokal_input')
-            ->where('harga_per_satuan', '>', 0)
-            ->pluck('harga_per_satuan', 'produk_id');
-
-        $analisaImporPrices = DB::table('analisa_impor_meta')
-            ->where('harga_per_satuan', '>', 0)
-            ->pluck('harga_per_satuan', 'produk_id');
-
-        $resolveRawMaterialHpp = function ($produkId, $produkHargaHpp = 0) use ($latestPoHpp, $analisaLokalPrices, $analisaImporPrices) {
-            if (isset($latestPoHpp[$produkId]) && (float) $latestPoHpp[$produkId] > 0) {
-                return (float) $latestPoHpp[$produkId];
-            }
-            if ((float) $produkHargaHpp > 0) {
-                return (float) $produkHargaHpp;
-            }
-            if (isset($analisaLokalPrices[$produkId]) && (float) $analisaLokalPrices[$produkId] > 0) {
-                return (float) $analisaLokalPrices[$produkId];
-            }
-            if (isset($analisaImporPrices[$produkId]) && (float) $analisaImporPrices[$produkId] > 0) {
-                return (float) $analisaImporPrices[$produkId];
-            }
-
-            return 0.0;
-        };
-
-        // Hitung HPP produk jadi berbasis resep BOM
-        $bomLines = DB::table('bom')
-            ->select('produk_jadi_id', 'bahan_id', 'qty_per_unit')
-            ->get();
-        $bomHppMap = [];
-        foreach ($bomLines as $line) {
-            $ingHpp = $resolveRawMaterialHpp($line->bahan_id);
-            $bomHppMap[$line->produk_jadi_id] = ($bomHppMap[$line->produk_jadi_id] ?? 0.0) + ((float) $line->qty_per_unit * $ingHpp);
-        }
-
-        $resolveProductHpp = function ($s) use ($resolveRawMaterialHpp, $bomHppMap) {
-            if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true)) {
-                return $resolveRawMaterialHpp($s->produk_id, $s->produk?->harga_hpp);
-            }
-
-            $bomVal = (float) ($bomHppMap[$s->produk_id] ?? 0);
-            if ($bomVal > 0) {
-                return $bomVal;
-            }
-
-            return $resolveRawMaterialHpp($s->produk_id, $s->produk?->harga_hpp);
-        };
+        // 5. Pre-fetch HPP Map dari StokService (identik dengan modal & dropdown purchasing)
+        $hppMap = $this->stok->resolveHppMap();
 
         // Query stok dengan alokasi bahan aktif dan scoping gudang/kategori
         $query = Stok::query()
@@ -256,19 +177,19 @@ class StokController extends Controller
 
                 return '<div class="flex items-center justify-end"><span>' . $val . '</span>' . $badge . '</div>';
             })
-            ->addColumn('hpp', function ($s) use ($resolveProductHpp, $canSeePrice) {
+            ->addColumn('hpp', function ($s) use ($hppMap, $canSeePrice) {
                 if (! $canSeePrice) {
                     return '—';
                 }
-                $hpp = $resolveProductHpp($s);
+                $hpp = (float) ($hppMap[$s->produk_id] ?? 0);
 
                 return $this->formatHpp($hpp);
             })
-            ->addColumn('nilai_stok', function ($s) use ($resolveProductHpp, $canSeePrice) {
+            ->addColumn('nilai_stok', function ($s) use ($hppMap, $canSeePrice) {
                 if (! $canSeePrice) {
                     return '—';
                 }
-                $hpp = $resolveProductHpp($s);
+                $hpp = (float) ($hppMap[$s->produk_id] ?? 0);
                 $nilai = (float) $s->qty_saat_ini * $hpp;
 
                 return $this->formatNilaiStok($nilai);
@@ -408,6 +329,90 @@ class StokController extends Controller
             ->editColumn('qty', fn ($k) => $this->formatQty((float) $k->qty) . ' ' . $produk->satuan)
             ->editColumn('saldo_setelah', fn ($k) => $this->formatQty((float) $k->saldo_setelah) . ' ' . $produk->satuan)
             ->editColumn('referensi_tipe', fn ($k) => ucwords(str_replace('_', ' ', $k->referensi_tipe)))
+            ->toJson();
+    }
+
+    public function pergerakanLog(Request $request)
+    {
+        $this->authorize('stok.view');
+        $user = auth()->user();
+        $gudang = $this->locationScope->getAccessibleGudangs($user);
+
+        return view('stok.pergerakan-log', compact('gudang'));
+    }
+
+    public function pergerakanLogData(Request $request): JsonResponse
+    {
+        $this->authorize('stok.view');
+        $user = auth()->user();
+        $allowedGudangIds = $this->locationScope->getAccessibleWarehouseIds($user);
+
+        $query = KartuStok::query()->select('kartu_stok.*')
+            ->with([
+                'produk:id,sku,nama,satuan,tipe',
+                'gudang:id,nama,kode',
+                'creator:id,name',
+            ])
+            ->when($request->filled('gudang_id'), function ($q) use ($request, $allowedGudangIds) {
+                if ($allowedGudangIds === null || in_array((int) $request->gudang_id, $allowedGudangIds, true)) {
+                    $q->where('kartu_stok.gudang_id', $request->gudang_id);
+                }
+            }, function ($q) use ($allowedGudangIds) {
+                if ($allowedGudangIds !== null) {
+                    $q->whereIn('kartu_stok.gudang_id', $allowedGudangIds);
+                }
+            })
+            ->when($request->filled('tipe'), function ($q) use ($request) {
+                $q->where('kartu_stok.tipe', strtolower($request->tipe));
+            })
+            ->when($request->filled('tanggal_mulai'), function ($q) use ($request) {
+                $q->whereDate('kartu_stok.tanggal', '>=', $request->tanggal_mulai);
+            })
+            ->when($request->filled('tanggal_selesai'), function ($q) use ($request) {
+                $q->whereDate('kartu_stok.tanggal', '<=', $request->tanggal_selesai);
+            });
+
+        return DataTables::eloquent($query)
+            ->editColumn('tipe', function ($k) {
+                $isMasuk = strtolower($k->tipe) === 'in';
+                return $isMasuk
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">MASUK (IN)</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">KELUAR (OUT)</span>';
+            })
+            ->addColumn('item', function ($k) {
+                $sku = e($k->produk?->sku ?? '—');
+                $nama = e($k->produk?->nama ?? '—');
+                $satuan = e($k->produk?->satuan ?? '');
+                return '<div class="font-medium text-gray-900">' . $nama . '</div><div class="text-[10px] font-mono text-gray-500">' . $sku . ' · ' . $satuan . '</div>';
+            })
+            ->addColumn('lokasi_gudang', fn ($k) => e($k->gudang?->nama ?? '—'))
+            ->addColumn('ref', function ($k) {
+                $tipe = ucwords(str_replace('_', ' ', $k->referensi_tipe));
+                $refId = $k->referensi_id ? ' #' . substr($k->referensi_id, 0, 8) : '';
+                $catatan = $k->catatan ? '<div class="text-[10px] text-gray-400 truncate max-w-[200px]" title="' . e($k->catatan) . '">' . e($k->catatan) . '</div>' : '';
+                return '<div class="font-semibold text-gray-700">' . $tipe . '<span class="font-mono text-gray-500 text-[11px]">' . $refId . '</span></div>' . $catatan;
+            })
+            ->editColumn('qty', function ($k) {
+                $isMasuk = strtolower($k->tipe) === 'in';
+                $sign = $isMasuk ? '+' : '-';
+                $color = $isMasuk ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold';
+                $formatted = $this->formatQty((float) $k->qty);
+                $satuan = e($k->produk?->satuan ?? '');
+                return '<span class="font-mono ' . $color . '">' . $sign . ' ' . $formatted . ' ' . $satuan . '</span>';
+            })
+            ->addColumn('sebelum_sesudah', function ($k) {
+                $isMasuk = strtolower($k->tipe) === 'in';
+                $qty = (float) $k->qty;
+                $saldoSesudah = (float) $k->saldo_setelah;
+                $saldoSebelum = $isMasuk ? ($saldoSesudah - $qty) : ($saldoSesudah + $qty);
+                $satuan = e($k->produk?->satuan ?? '');
+                return '<span class="font-mono text-gray-600">' . $this->formatQty($saldoSebelum) . '</span> <span class="text-gray-400">➔</span> <span class="font-mono font-bold text-gray-900">' . $this->formatQty($saldoSesudah) . ' ' . $satuan . '</span>';
+            })
+            ->editColumn('tanggal', fn ($k) => '<span class="font-mono text-xs text-gray-700">' . ($k->created_at ? $k->created_at->format('d/m/Y H:i') : $k->tanggal->format('d/m/Y')) . '</span>')
+            ->addColumn('oleh', function ($k) {
+                return '<span class="text-gray-800 font-medium text-xs">' . e($k->creator?->name ?? 'Sistem') . '</span>';
+            })
+            ->rawColumns(['tipe', 'item', 'ref', 'qty', 'sebelum_sesudah', 'tanggal', 'oleh'])
             ->toJson();
     }
 }

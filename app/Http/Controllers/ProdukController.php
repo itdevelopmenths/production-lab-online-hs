@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Produk;
 use App\Models\Uom;
+use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -36,7 +37,7 @@ class ProdukController extends Controller
             ->toJson();
     }
 
-    public function selectData(Request $request): JsonResponse
+    public function selectData(Request $request, StokService $stokService): JsonResponse
     {
         $query = Produk::query()->active();
 
@@ -64,8 +65,15 @@ class ProdukController extends Controller
         }
 
         $paginated = $query->orderBy('nama')
-            ->select(['id', 'sku', 'nama', 'satuan', 'tipe'])
+            ->select(['id', 'sku', 'nama', 'satuan', 'tipe', 'harga_hpp'])
             ->paginate(10);
+
+        $productIds = collect($paginated->items())->pluck('id')->all();
+        $hppMap = $stokService->resolveHppMap($productIds);
+
+        foreach ($paginated->items() as $item) {
+            $item->harga_hpp = (float) ($hppMap[$item->id] ?? $item->harga_hpp ?? 0);
+        }
 
         return response()->json([
             'items' => $paginated->items(),

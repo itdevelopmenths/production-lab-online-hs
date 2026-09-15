@@ -22,6 +22,7 @@ class KartuStok extends Model
         'referensi_tipe',
         'referensi_id',
         'catatan',
+        'created_by',
     ];
 
     protected $casts = [
@@ -38,5 +39,10 @@ class KartuStok extends Model
     public function gudang(): BelongsTo
     {
         return $this->belongsTo(Gudang::class, 'gudang_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

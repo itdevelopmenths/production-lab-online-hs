@@ -260,4 +260,206 @@ class PurchasingRevampFlowTest extends TestCase
         $resGudang->assertSee($item->nama);
         $resGudang->assertSee('Bocor saat perjalanan ekspedisi');
     }
+
+    public function test_po_tempo_requires_tanggal_tempo_and_detects_overdue(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+        $gudang = Gudang::firstOrFail();
+        $item = Produk::bahan()->firstOrFail();
+
+        $this->actingAs($purchasing);
+
+        // 1. Validation fails if tempo but tanggal_tempo is missing
+        $failRes = $this->post(route('purchasing.store'), [
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudang->id,
+            'tanggal' => now()->toDateString(),
+            'skema_bayar' => 'tempo',
+            // tanggal_tempo missing!
+            'items' => [
+                [
+                    'produk_id' => $item->id,
+                    'qty' => 10,
+                    'harga_total' => 200000,
+                ],
+            ],
+        ]);
+        $failRes->assertSessionHasErrors('tanggal_tempo');
+
+        // 2. Creation succeeds with tanggal_tempo in the future
+        $futureTempo = now()->addDays(30)->toDateString();
+        $passRes = $this->post(route('purchasing.store'), [
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudang->id,
+            'tanggal' => now()->toDateString(),
+            'skema_bayar' => 'tempo',
+            'tanggal_tempo' => $futureTempo,
+            'items' => [
+                [
+                    'produk_id' => $item->id,
+                    'qty' => 10,
+                    'harga_total' => 200000,
+                ],
+            ],
+        ]);
+        $po = PurchaseOrder::latest()->firstOrFail();
+        $passRes->assertRedirect(route('purchasing.show', $po));
+        $this->assertEquals($futureTempo, $po->tanggal_tempo->toDateString());
+        $this->assertEquals('belum_lunas', $po->status_pembayaran);
+
+        // 3. Past tanggal_tempo results in overdue status
+        $po->update(['tanggal_tempo' => now()->subDays(2)->toDateString()]);
+        $po->refreshStatusPembayaran();
+        $po->save();
+        $this->assertEquals('overdue', $po->status_pembayaran);
+
+        // 4. Show page displays deadline and overdue indicator
+        $showRes = $this->get(route('purchasing.show', $po));
+        $showRes->assertOk();
+        $showRes->assertSee('Deadline Tempo');
+        $showRes->assertSee('Overdue');
+    }
+
+    public function test_produk_select_data_returns_harga_hpp(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $item = Produk::bahan()->firstOrFail();
+        $item->update(['harga_hpp' => 45000.50]);
+
+        $this->actingAs($purchasing);
+        $res = $this->getJson(route('produk.select-data', ['q' => $item->sku]));
+        $res->assertOk();
+        $data = $res->json();
+
+        $this->assertNotEmpty($data['items']);
+        $found = collect($data['items'])->firstWhere('id', $item->id);
+        $this->assertNotNull($found);
+        $this->assertArrayHasKey('harga_hpp', $found);
+        $this->assertEquals(45000.5, (float) $found['harga_hpp']);
+    }
+
+    public function test_stok_log_pergerakan_page_and_data_endpoint(): void
+    {
+        $gudangUser = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+        $gudang = Gudang::firstOrFail();
+        $item = Produk::bahan()->firstOrFail();
+
+        $this->actingAs($gudangUser);
+
+        // 1. Record stock in through mutasi manual
+        $this->post(route('stok.mutasi'), [
+            'produk_id' => $item->id,
+            'gudang_id' => $gudang->id,
+            'tipe' => 'in',
+            'qty' => 50,
+            'catatan' => 'Tes Audit Mutasi Lead Architect',
+        ])->assertSessionHas('success');
+
+        // Verify created_by was populated
+        $lastKartu = \App\Models\KartuStok::where('catatan', 'Tes Audit Mutasi Lead Architect')->firstOrFail();
+        $this->assertEquals($gudangUser->id, $lastKartu->created_by);
+        $this->assertEquals($gudangUser->name, $lastKartu->creator->name);
+
+        // 2. View page renders
+        $pageRes = $this->get(route('stok.log-pergerakan'));
+        $pageRes->assertOk();
+        $pageRes->assertSee('Log Pergerakan Stok');
+        $pageRes->assertSee('Buku Audit Mutasi Fisik Barang');
+
+        // 3. DataTables AJAX endpoint returns correct audit columns
+        $dataRes = $this->getJson(route('stok.log-pergerakan.data'));
+        $dataRes->assertOk();
+        $json = $dataRes->json();
+        $this->assertArrayHasKey('data', $json);
+        $this->assertNotEmpty($json['data']);
+
+        $row = collect($json['data'])->first();
+        $this->assertArrayHasKey('tipe', $row);
+        $this->assertArrayHasKey('item', $row);
+        $this->assertArrayHasKey('lokasi_gudang', $row);
+        $this->assertArrayHasKey('ref', $row);
+        $this->assertArrayHasKey('qty', $row);
+        $this->assertArrayHasKey('sebelum_sesudah', $row);
+        $this->assertArrayHasKey('tanggal', $row);
+        $this->assertArrayHasKey('oleh', $row);
+    }
+
+    public function test_produk_select_data_and_stok_index_share_exact_same_hpp(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $item = Produk::bahan()->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+        $gudang = Gudang::firstOrFail();
+
+        // 1. Buat PO dengan HPP spesifik Rp 52.500
+        $po = PurchaseOrder::create([
+            'no_po' => 'PO-TEST-HPP-SYNC',
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudang->id,
+            'tanggal' => now(),
+            'status' => 'selesai',
+            'skema_bayar' => 'cash',
+            'status_pembayaran' => 'lunas',
+            'grand_total' => 525000,
+            'created_by' => $purchasing->id,
+        ]);
+
+        $po->items()->create([
+            'produk_id' => $item->id,
+            'qty' => 10,
+            'harga_total' => 525000,
+            'hpp_per_satuan' => 52500.00,
+        ]);
+
+        $this->actingAs($purchasing);
+
+        // 2. Cek endpoint produk/select-data (dipakai di create & edit PO)
+        $selectRes = $this->getJson(route('produk.select-data', ['q' => $item->sku]));
+        $selectRes->assertOk();
+        $selectItems = $selectRes->json('items');
+        $found = collect($selectItems)->firstWhere('id', $item->id);
+        $this->assertNotNull($found);
+        $this->assertEquals(52500.0, (float) $found['harga_hpp']);
+
+        // 3. Cek endpoint stok/data (kolom HPP di resources/views/stok/index.blade.php)
+        $stokRes = $this->getJson(route('stok.data'));
+        $stokRes->assertOk();
+        $stokRows = $stokRes->json('data');
+        $stokItem = collect($stokRows)->firstWhere('sku', $item->sku);
+        if ($stokItem) {
+            $this->assertStringContainsString('52.500', $stokItem['hpp']);
+        }
+
+        // 4. Verifikasi method StokService::resolveHppMap
+        $stokService = app(\App\Services\StokService::class);
+        $hppMap = $stokService->resolveHppMap([$item->id]);
+        $this->assertEquals(52500.0, (float) $hppMap[$item->id]);
+    }
+
+    public function test_antrean_approval_tab_is_restricted_to_manager_and_purchasing(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $gudangUser = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+
+        // 1. Manager can see Antrean Approval tab
+        $resManager = $this->actingAs($manager)->get(route('purchasing.index'));
+        $resManager->assertOk();
+        $resManager->assertSee('Antrean Approval');
+        $resManager->assertSee('id="tblApproval"', false);
+
+        // 2. Staff Purchasing can see Antrean Approval tab
+        $resPurchasing = $this->actingAs($purchasing)->get(route('purchasing.index'));
+        $resPurchasing->assertOk();
+        $resPurchasing->assertSee('Antrean Approval');
+        $resPurchasing->assertSee('id="tblApproval"', false);
+
+        // 3. Staff Gudang (tanpa role manager/purchasing) CANNOT see Antrean Approval tab
+        $resGudang = $this->actingAs($gudangUser)->get(route('purchasing.index'));
+        $resGudang->assertOk();
+        $resGudang->assertDontSee('Antrean Approval');
+        $resGudang->assertDontSee('id="tblApproval"', false);
+    }
 }
+

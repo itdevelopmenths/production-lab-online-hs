@@ -82,6 +82,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:stok.view')->prefix('stok')->name('stok.')->group(function () {
         Route::get('/', [StokController::class, 'index'])->name('index');
         Route::get('data', [StokController::class, 'data'])->name('data');
+        Route::get('log-pergerakan', [StokController::class, 'pergerakanLog'])->name('log-pergerakan');
+        Route::get('log-pergerakan/data', [StokController::class, 'pergerakanLogData'])->name('log-pergerakan.data');
         Route::post('mutasi', [StokController::class, 'mutasi'])
             ->middleware('can:stok.mutasi')->name('mutasi');
         Route::get('opname', [StokController::class, 'opname'])

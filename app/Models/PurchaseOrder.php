@@ -23,6 +23,7 @@ class PurchaseOrder extends Model
         'dari_analisa',
         'created_by',
         'skema_bayar',
+        'tanggal_tempo',
         'subtotal_produk',
         'diskon_total',
         'ppn_nominal',
@@ -35,6 +36,7 @@ class PurchaseOrder extends Model
     protected $casts = [
         'tanggal' => 'date',
         'eta' => 'date',
+        'tanggal_tempo' => 'date',
         'dari_analisa' => 'boolean',
         'subtotal_produk' => 'decimal:2',
         'diskon_total' => 'decimal:2',
@@ -146,8 +148,14 @@ class PurchaseOrder extends Model
                     ->exists();
             }
 
-            // 2. Cek apakah PO tempo memiliki ETA yang sudah lewat hari ini
-            if (! $hasOverdue && $this->eta && $this->eta->isPast() && ! $this->eta->isToday()) {
+            // 2. Cek apakah PO tempo memiliki tanggal_tempo atau ETA yang sudah lewat hari ini
+            if (! $hasOverdue && $this->skema_bayar === 'tempo') {
+                if ($this->tanggal_tempo && $this->tanggal_tempo->isPast() && ! $this->tanggal_tempo->isToday()) {
+                    $hasOverdue = true;
+                } elseif (! $this->tanggal_tempo && $this->eta && $this->eta->isPast() && ! $this->eta->isToday()) {
+                    $hasOverdue = true;
+                }
+            } elseif (! $hasOverdue && $this->eta && $this->eta->isPast() && ! $this->eta->isToday()) {
                 $hasOverdue = true;
             }
 

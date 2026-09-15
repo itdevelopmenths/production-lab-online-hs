@@ -1067,10 +1067,10 @@ class PurchasingComprehensiveQATest extends TestCase
 
         $this->actingAs($this->purchasing);
 
-        // 1. Verifikasi view index merender kontrol filter
+        // 1. Verifikasi view index merender kontrol filter (filter status AP terpusat di tab AP)
         $this->get(route('purchasing.index'))
             ->assertOk()
-            ->assertSee('id="filter-status-bayar-po"', false)
+            ->assertSee('id="filter-status-po"', false)
             ->assertSee('id="filter-status-bayar-ap"', false)
             ->assertSee('id="btn-reset-po"', false)
             ->assertSee('id="btn-reset-ap"', false);

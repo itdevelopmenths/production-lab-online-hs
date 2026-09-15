@@ -68,7 +68,7 @@
     </div>
 
     <!-- Metadata Singkat PO -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+    <div class="grid grid-cols-2 {{ $po->skema_bayar === 'tempo' ? 'sm:grid-cols-5' : 'sm:grid-cols-4' }} gap-3 mb-5">
         <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs">
             <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">No. Invoice Vendor</span>
             <p class="font-mono font-semibold text-xs text-gray-900 mt-0.5">{{ $po->no_invoice ?? '—' }}</p>
@@ -87,6 +87,17 @@
             <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Skema Bayar</span>
             <p class="font-semibold text-xs text-gray-900 mt-0.5 capitalize">{{ $po->skema_bayar ?? 'cash' }}</p>
         </div>
+        @if($po->skema_bayar === 'tempo')
+        <div class="bg-white p-3 rounded-sm border {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'border-rose-300 bg-rose-50/40' : 'border-gray-200' }} shadow-xs">
+            <span class="text-[10px] uppercase font-bold {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'text-rose-600' : 'text-gray-400' }} tracking-wider">Deadline Tempo</span>
+            <p class="font-mono text-xs {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'text-rose-600 font-bold' : 'text-gray-900 font-semibold' }} mt-0.5">
+                {{ $po->tanggal_tempo ? $po->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—') }}
+                @if($po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas())
+                    <span class="text-[9px] uppercase font-bold text-rose-700 bg-rose-100 px-1 py-0.2 rounded ml-1">Overdue</span>
+                @endif
+            </p>
+        </div>
+        @endif
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -410,6 +421,17 @@
                             @endif
                         </span>
                     </div>
+                    @if($po->skema_bayar === 'tempo')
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-500">Jatuh Tempo Pembayaran</span>
+                        <span class="font-mono font-bold {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'text-rose-600' : 'text-gray-900' }}">
+                            {{ $po->tanggal_tempo ? $po->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—') }}
+                            @if($po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas())
+                                <span class="text-[10px] text-rose-600 font-semibold">(Overdue)</span>
+                            @endif
+                        </span>
+                    </div>
+                    @endif
                     <div class="flex justify-between">
                         <span class="text-gray-500">Total Tagihan</span>
                         <span class="font-bold font-mono text-gray-900">Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}</span>
