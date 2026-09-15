@@ -60,9 +60,9 @@
                 { data: 'jenis' },
                 { data: 'asal', orderable: false, searchable: false },
                 { data: 'tujuan', orderable: false, searchable: false },
-                { data: 'status' },
+                { data: 'status', className: 'text-center' },
                 { data: 'created_at' },
-                { data: 'action', orderable: false, searchable: false, className: 'text-center' }
+                { data: 'action', orderable: false, searchable: false, className: 'text-center whitespace-nowrap' }
             ]
         });
         $('#jenisFilter').on('change', () => t.ajax.reload());

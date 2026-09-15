@@ -201,3 +201,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('roles', RoleController::class)->except(['show']);
     });
 });
+        Route::get('stok-tersedia', [RequestTransferController::class, 'stokTersedia'])->name('stok-tersedia');
+        Route::get('{requestTransfer}/edit', [RequestTransferController::class, 'edit'])
+            ->middleware('can:rt.create')->name('edit');
+        Route::put('{requestTransfer}', [RequestTransferController::class, 'update'])
+            ->middleware('can:rt.create')->name('update');
+        Route::get('{requestTransfer}/surat-jalan', [RequestTransferController::class, 'suratJalan'])->name('surat-jalan');

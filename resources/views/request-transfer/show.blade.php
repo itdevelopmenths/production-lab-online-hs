@@ -38,6 +38,24 @@
         ]"
     >
         <x-slot:actions>
+            @if(in_array($rt->status, ['diproses', 'dikirim', 'selesai'], true))
+            <x-button href="{{ route('rt.surat-jalan', $rt) }}" target="_blank" variant="secondary" size="xs">
+                <x-slot:icon>
+                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                </x-slot:icon>
+                Cetak Surat Jalan
+            </x-button>
+            @endif
+
+            @if($rt->status === 'draft' && auth()->user()->can('rt.create'))
+            <x-button href="{{ route('rt.edit', $rt) }}" variant="warning" size="xs">
+                <x-slot:icon>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </x-slot:icon>
+                Edit Dokumen
+            </x-button>
+            @endif
+
             <x-badge :variant="$rtStatusVariant" :dot="true" size="sm">
                 {{ ucwords(str_replace('_', ' ', $rt->status)) }}
             </x-badge>
@@ -427,18 +445,23 @@
                         @endif
                     @endif
 
-                    @can('rt.cancel')
-                    @if(!in_array($rt->status, ['selesai', 'dibatalkan'], true))
-                    <form method="POST" action="{{ route('rt.transition', $rt) }}" onsubmit="return confirm('Batalkan dokumen transfer ini?');" class="pt-2 border-t border-gray-100" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
+                    @php
+                        $canCancelThis = auth()->user()->can('rt.cancel') || (in_array($rt->status, ['draft', 'diajukan'], true) && (int)$rt->created_by === (int)auth()->id() && auth()->user()->can('rt.create'));
+                    @endphp
+
+                    @if(!in_array($rt->status, ['selesai', 'dibatalkan'], true) && $canCancelThis)
+                    <form method="POST" action="{{ route('rt.transition', $rt) }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan dokumen transfer {{ $rt->no_transaksi }}?');" class="pt-2 border-t border-gray-100" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
                         @csrf
                         <input type="hidden" name="aksi" value="cancel">
-                        <x-button type="submit" variant="link" size="xs" class="w-full text-rose-600 hover:text-rose-800" ::disabled="submitting">
-                            <span x-show="!submitting">Batalkan Dokumen</span>
+                        <x-button type="submit" variant="danger" size="xs" class="w-full" ::disabled="submitting">
+                            <span x-show="!submitting" class="flex items-center justify-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                Batalkan Transfer / Request
+                            </span>
                             <span x-show="submitting" x-cloak>Membatalkan...</span>
                         </x-button>
                     </form>
                     @endif
-                    @endcan
 
                     @if(in_array($rt->status, ['selesai', 'dibatalkan'], true))
                     <div class="py-2.5 px-3 bg-gray-50 rounded-sm text-center text-xs text-gray-500 font-medium">

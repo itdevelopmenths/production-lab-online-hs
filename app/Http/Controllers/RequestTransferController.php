@@ -50,12 +50,36 @@ class RequestTransferController extends Controller
 
         return DataTables::eloquent($query)
             ->editColumn('jenis', fn ($rt) => ucwords(str_replace('_', ' ', $rt->jenis)))
-            ->editColumn('status', fn ($rt) => ucwords(str_replace('_', ' ', $rt->status)))
+            ->editColumn('status', function ($rt) {
+                $variant = match ($rt->status) {
+                    'draft' => 'bg-gray-100 text-gray-700 border-gray-300',
+                    'diajukan' => 'bg-amber-50 text-amber-700 border-amber-300',
+                    'disetujui' => 'bg-blue-50 text-blue-700 border-blue-300',
+                    'diproses' => 'bg-indigo-50 text-indigo-700 border-indigo-300',
+                    'dikirim' => 'bg-purple-50 text-purple-700 border-purple-300',
+                    'selesai' => 'bg-emerald-50 text-emerald-700 border-emerald-300',
+                    'dibatalkan' => 'bg-rose-50 text-rose-700 border-rose-300',
+                    default => 'bg-gray-100 text-gray-700 border-gray-300',
+                };
+                $dotColor = match ($rt->status) {
+                    'draft' => 'bg-gray-400',
+                    'diajukan' => 'bg-amber-500',
+                    'disetujui' => 'bg-blue-500',
+                    'diproses' => 'bg-indigo-500',
+                    'dikirim' => 'bg-purple-500',
+                    'selesai' => 'bg-emerald-500',
+                    'dibatalkan' => 'bg-rose-500',
+                    default => 'bg-gray-400',
+                };
+                $label = ucwords(str_replace('_', ' ', $rt->status));
+
+                return "<span class=\"inline-flex items-center gap-1.5 px-2 py-0.5 rounded-xs text-[11px] font-semibold border {$variant}\"><span class=\"w-1.5 h-1.5 rounded-full {$dotColor}\"></span>{$label}</span>";
+            })
             ->addColumn('asal', fn ($rt) => $rt->gudangAsal?->nama ?? '-')
             ->addColumn('tujuan', fn ($rt) => $rt->gudangTujuan?->nama ?? '-')
             ->editColumn('created_at', fn ($rt) => $rt->created_at?->format('d/m/Y'))
             ->addColumn('action', fn ($rt) => view('request-transfer._actions', ['rt' => $rt])->render())
-            ->rawColumns(['action'])
+            ->rawColumns(['action', 'status'])
             ->toJson();
     }
 
@@ -212,6 +236,138 @@ class RequestTransferController extends Controller
         return redirect()->route('rt.show', $rt)->with('success', "Dokumen {$rt->no_transaksi} dibuat.");
     }
 
+    public function stokTersedia(Request $request): JsonResponse
+    {
+        $gudangId = $request->query('gudang_id');
+        if (! $gudangId) {
+            return response()->json(['stok' => []]);
+        }
+
+        $produkIds = $request->query('produk_ids');
+        if (is_string($produkIds)) {
+            $produkIds = array_filter(explode(',', $produkIds));
+        }
+
+        $query = Stok::where('gudang_id', $gudangId);
+        if (! empty($produkIds)) {
+            $query->whereIn('produk_id', (array) $produkIds);
+        }
+
+        $stokMap = $query->pluck('qty_saat_ini', 'produk_id')
+            ->map(fn ($v) => (float) $v)
+            ->toArray();
+
+        return response()->json([
+            'gudang_id' => (int) $gudangId,
+            'stok' => $stokMap,
+        ]);
+    }
+
+    public function edit(RequestTransfer $requestTransfer)
+    {
+        $this->authorize('rt.create');
+
+        abort_unless($requestTransfer->status === 'draft', 422, 'Hanya dokumen mutasi berstatus Draft yang dapat diedit.');
+
+        $user = auth()->user();
+        $accessibleIds = $this->locationScope->getAccessibleWarehouseIds($user);
+
+        $allGudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
+        $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+
+        $requestTransfer->load(['items.produk:id,sku,nama,satuan']);
+
+        $prefilledRows = [];
+        $productIds = $requestTransfer->items->pluck('produk_id')->all();
+
+        $stokMap = [];
+        if ($requestTransfer->gudang_asal_id && ! empty($productIds)) {
+            $stokMap = Stok::where('gudang_id', $requestTransfer->gudang_asal_id)
+                ->whereIn('produk_id', $productIds)
+                ->pluck('qty_saat_ini', 'produk_id')
+                ->map(fn ($v) => (float) $v)
+                ->toArray();
+        }
+
+        foreach ($requestTransfer->items as $item) {
+            $prod = $item->produk;
+            $prefilledRows[] = [
+                'produk_id' => $item->produk_id,
+                'qty' => (float) $item->qty_diminta,
+                'satuan' => $prod?->satuan ?? '',
+                'selectedItem' => $prod ? [
+                    'id' => $prod->id,
+                    'sku' => $prod->sku,
+                    'nama' => $prod->nama,
+                    'satuan' => $prod->satuan,
+                ] : null,
+            ];
+        }
+
+        return view('request-transfer.edit', [
+            'requestTransfer' => $requestTransfer,
+            'allGudang' => $allGudang,
+            'produk' => $produk,
+            'prefilledRows' => $prefilledRows,
+            'stokMap' => $stokMap,
+            'defaultJenis' => $requestTransfer->jenis,
+            'defaultGudangAsalId' => $requestTransfer->gudang_asal_id,
+            'defaultGudangTujuanId' => $requestTransfer->gudang_tujuan_id,
+            'defaultCatatan' => $requestTransfer->catatan,
+        ]);
+    }
+
+    public function update(Request $request, RequestTransfer $requestTransfer)
+    {
+        $this->authorize('rt.create');
+
+        abort_unless($requestTransfer->status === 'draft', 422, 'Hanya dokumen mutasi berstatus Draft yang dapat diubah.');
+
+        $data = $request->validate([
+            'jenis' => ['required', Rule::in(RequestTransfer::JENIS)],
+            'gudang_asal_id' => ['nullable', 'exists:gudang,id'],
+            'gudang_tujuan_id' => ['nullable', 'exists:gudang,id'],
+            'catatan' => ['nullable', 'string'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.produk_id' => ['required', 'distinct', 'exists:produk,id'],
+            'items.*.qty_diminta' => ['required', 'numeric', 'gt:0'],
+        ]);
+
+        DB::transaction(function () use ($requestTransfer, $data) {
+            $requestTransfer->update([
+                'jenis' => $data['jenis'],
+                'gudang_asal_id' => $data['gudang_asal_id'] ?? null,
+                'gudang_tujuan_id' => $data['gudang_tujuan_id'] ?? null,
+                'catatan' => $data['catatan'] ?? null,
+            ]);
+
+            $requestTransfer->items()->delete();
+
+            foreach ($data['items'] as $row) {
+                $requestTransfer->items()->create([
+                    'produk_id' => $row['produk_id'],
+                    'qty_diminta' => $row['qty_diminta'],
+                ]);
+            }
+        });
+
+        return redirect()->route('rt.show', $requestTransfer)->with('success', "Dokumen {$requestTransfer->no_transaksi} berhasil diperbarui.");
+    }
+
+    public function suratJalan(RequestTransfer $requestTransfer)
+    {
+        $this->authorize('rt.view');
+
+        $requestTransfer->load([
+            'items.produk:id,sku,nama,satuan',
+            'gudangAsal',
+            'gudangTujuan',
+            'creator:id,name',
+        ]);
+
+        return view('request-transfer.surat-jalan', compact('requestTransfer'));
+    }
+
     public function show(RequestTransfer $requestTransfer)
     {
         $this->authorize('rt.view');
@@ -285,13 +441,20 @@ class RequestTransferController extends Controller
         $aksi = $data['aksi'];
 
         $rt = $requestTransfer;
-        $perm = [
-            'submit' => 'rt.submit', 'approve' => 'rt.approve', 'process' => 'rt.process',
-            'ship' => 'rt.ship', 'receive' => 'rt.receive', 'cancel' => 'rt.cancel',
-        ][$aksi];
-        $this->authorize($perm);
-
         $user = auth()->user();
+
+        if ($aksi === 'cancel') {
+            $isCreatorBeforeApproval = in_array($rt->status, ['draft', 'diajukan'], true) && (int) $rt->created_by === (int) $user->id;
+            if (! $user->can('rt.cancel') && ! ($isCreatorBeforeApproval && $user->can('rt.create'))) {
+                $this->authorize('rt.cancel');
+            }
+        } else {
+            $perm = [
+                'submit' => 'rt.submit', 'approve' => 'rt.approve', 'process' => 'rt.process',
+                'ship' => 'rt.ship', 'receive' => 'rt.receive',
+            ][$aksi];
+            $this->authorize($perm);
+        }
 
         // Enforced Separation of Duties (SoD) on Receive
         if ($aksi === 'receive') {
