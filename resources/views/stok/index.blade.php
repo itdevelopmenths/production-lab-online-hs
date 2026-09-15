@@ -23,7 +23,7 @@
         </x-page-header>
 
         <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-sm border border-gray-200">
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3 flex-1">
                 <div>
                     <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Lokasi Gudang</label>
                     <select id="filter-gudang" class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[180px]">
@@ -43,8 +43,17 @@
                         <option value="produk_jadi">Produk Jadi</option>
                     </select>
                 </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Cari SKU / Nama Barang</label>
+                    <div class="relative">
+                        <input type="text" id="filter-search" class="w-full rounded-sm border-gray-300 text-xs py-1.5 pl-8 pr-3 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" placeholder="Ketik SKU atau nama barang...">
+                        <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="text-right">
+            <div class="text-right shrink-0">
                 <span class="text-xs text-gray-400 font-medium">Buku Saldo & Evaluasi Stok</span>
             </div>
         </div>
@@ -129,9 +138,9 @@
     $(function(){
         const canSeePrice = {{ $canSeePrice ? 'true' : 'false' }};
         const cols = [
-            { data: 'sku', orderable: false },
-            { data: 'nama', orderable: false },
-            { data: 'gudang_nama', orderable: false },
+            { data: 'sku', orderable: false, searchable: true },
+            { data: 'nama', orderable: false, searchable: true },
+            { data: 'gudang_nama', orderable: false, searchable: true },
             { data: 'batas_minimum', className: 'text-right font-mono', orderable: false, searchable: false },
             { data: 'kolom_stok', className: 'text-right font-mono', searchable: false },
             { data: 'kolom_rencana', className: 'text-right font-mono', searchable: false }
@@ -159,6 +168,15 @@
 
         $('#filter-gudang, #filter-kategori').on('change', function(){
             tbl.ajax.reload();
+        });
+
+        let searchTimer = null;
+        $('#filter-search').on('input keyup', function(){
+            const val = $(this).val();
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function(){
+                tbl.search(val).draw();
+            }, 300);
         });
     });
     </script>

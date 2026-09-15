@@ -97,6 +97,7 @@ Route::middleware('auth')->group(function () {
             ->middleware('can:stok.opname')->name('opname');
         Route::post('opname', [StokController::class, 'storeOpname'])
             ->middleware('can:stok.opname')->name('opname.store');
+        Route::get('current-stock', [StokController::class, 'currentStock'])->name('current-stock');
         Route::get('{produk}/ledger', [StokController::class, 'ledger'])
             ->middleware('can:stok.ledger.view')->name('ledger');
         Route::get('{produk}/ledger/data', [StokController::class, 'ledgerData'])
@@ -135,11 +136,17 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:rt.view')->prefix('request-transfer')->name('rt.')->group(function () {
         Route::get('/', [RequestTransferController::class, 'index'])->name('index');
         Route::get('data', [RequestTransferController::class, 'data'])->name('data');
+        Route::get('stok-tersedia', [RequestTransferController::class, 'stokTersedia'])->name('stok-tersedia');
         Route::get('create', [RequestTransferController::class, 'create'])
             ->middleware('can:rt.create')->name('create');
         Route::post('/', [RequestTransferController::class, 'store'])
             ->middleware('can:rt.create')->name('store');
         Route::get('{requestTransfer}', [RequestTransferController::class, 'show'])->name('show');
+        Route::get('{requestTransfer}/edit', [RequestTransferController::class, 'edit'])
+            ->middleware('can:rt.create')->name('edit');
+        Route::put('{requestTransfer}', [RequestTransferController::class, 'update'])
+            ->middleware('can:rt.create')->name('update');
+        Route::get('{requestTransfer}/surat-jalan', [RequestTransferController::class, 'suratJalan'])->name('surat-jalan');
         Route::post('{requestTransfer}/transition', [RequestTransferController::class, 'transition'])
             ->name('transition');
     });
@@ -201,9 +208,3 @@ Route::middleware('auth')->group(function () {
         Route::resource('roles', RoleController::class)->except(['show']);
     });
 });
-        Route::get('stok-tersedia', [RequestTransferController::class, 'stokTersedia'])->name('stok-tersedia');
-        Route::get('{requestTransfer}/edit', [RequestTransferController::class, 'edit'])
-            ->middleware('can:rt.create')->name('edit');
-        Route::put('{requestTransfer}', [RequestTransferController::class, 'update'])
-            ->middleware('can:rt.create')->name('update');
-        Route::get('{requestTransfer}/surat-jalan', [RequestTransferController::class, 'suratJalan'])->name('surat-jalan');

@@ -90,6 +90,7 @@ class StokController extends Controller
         $query = Stok::query()
             ->select('stok.*')
             ->join('produk', 'produk.id', '=', 'stok.produk_id')
+            ->leftJoin('gudang', 'gudang.id', '=', 'stok.gudang_id')
             ->with(['produk:id,sku,nama,satuan,tipe,harga_hpp', 'gudang:id,nama'])
             ->selectRaw('(SELECT COALESCE(SUM(ab.qty_dialokasikan),0) FROM alokasi_bahan ab JOIN batch_produksi bp ON bp.id = ab.batch_id WHERE ab.bahan_id = stok.produk_id AND ab.status = \'aktif\' AND (bp.gudang_operasional_id = stok.gudang_id OR bp.gudang_operasional_id IS NULL)) as alokasi_aktif')
             ->when($request->filled('gudang_id'), function ($q) use ($request, $allowedGudangIds) {
@@ -110,6 +111,15 @@ class StokController extends Controller
             });
 
         return DataTables::eloquent($query)
+            ->filterColumn('sku', function ($q, $keyword) {
+                $q->where('produk.sku', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('nama', function ($q, $keyword) {
+                $q->where('produk.nama', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('gudang_nama', function ($q, $keyword) {
+                $q->where('gudang.nama', 'like', "%{$keyword}%");
+            })
             ->addColumn('sku', fn ($s) => $s->produk?->sku)
             ->addColumn('nama', fn ($s) => $s->produk?->nama)
             ->addColumn('gudang_nama', fn ($s) => $s->gudang?->nama)
@@ -195,7 +205,7 @@ class StokController extends Controller
                 return $this->formatNilaiStok($nilai);
             })
             ->addColumn('action', function ($s) {
-                return '<a href="' . route('stok.ledger', $s->produk_id) . '" class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition">Kartu Stok</a>';
+                return '<a href="' . route('stok.ledger', ['produk' => $s->produk_id, 'gudang_id' => $s->gudang_id]) . '" class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition">Kartu Stok</a>';
             })
             ->rawColumns(['kolom_stok', 'kolom_rencana', 'action'])
             ->toJson();
@@ -278,13 +288,42 @@ class StokController extends Controller
         return back()->with('success', 'Mutasi stok dicatat.');
     }
 
-    public function opname()
+    public function opname(Request $request)
     {
         $this->authorize('stok.opname');
         $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'kode', 'nama']);
 
-        return view('stok.opname', compact('produk', 'gudang'));
+        $selectedProdukId = $request->query('produk_id');
+        $selectedGudangId = $request->query('gudang_id');
+
+        return view('stok.opname', compact('produk', 'gudang', 'selectedProdukId', 'selectedGudangId'));
+    }
+
+    public function currentStock(Request $request): JsonResponse
+    {
+        $this->authorize('stok.view');
+
+        $produkId = $request->query('produk_id');
+        $gudangId = $request->query('gudang_id');
+
+        if (! $produkId || ! $gudangId) {
+            return response()->json([
+                'produk_id' => $produkId ? (int) $produkId : null,
+                'gudang_id' => $gudangId ? (int) $gudangId : null,
+                'qty' => 0,
+            ]);
+        }
+
+        $stok = Stok::where('produk_id', $produkId)
+            ->where('gudang_id', $gudangId)
+            ->first();
+
+        return response()->json([
+            'produk_id' => (int) $produkId,
+            'gudang_id' => (int) $gudangId,
+            'qty' => (float) ($stok?->qty_saat_ini ?? 0),
+        ]);
     }
 
     public function storeOpname(Request $request)
@@ -308,19 +347,28 @@ class StokController extends Controller
         return back()->with('success', 'Opname stok dicatat.');
     }
 
-    public function ledger(Produk $produk)
+    public function ledger(Request $request, Produk $produk)
     {
         $this->authorize('stok.ledger.view');
+        $user = auth()->user();
+        $gudangs = $this->locationScope->getAccessibleGudangs($user);
+        $selectedGudangId = $request->query('gudang_id');
+        $selectedGudang = $selectedGudangId ? Gudang::find($selectedGudangId) : null;
 
-        return view('stok.ledger', compact('produk'));
+        return view('stok.ledger', compact('produk', 'gudangs', 'selectedGudangId', 'selectedGudang'));
     }
 
-    public function ledgerData(Produk $produk): JsonResponse
+    public function ledgerData(Request $request, Produk $produk): JsonResponse
     {
         $this->authorize('stok.ledger.view');
 
         $query = KartuStok::query()->where('produk_id', $produk->id)
-            ->select('kartu_stok.*')->with('gudang:id,nama')->orderByDesc('id');
+            ->select('kartu_stok.*')
+            ->with('gudang:id,nama')
+            ->when($request->filled('gudang_id'), function ($q) use ($request) {
+                $q->where('kartu_stok.gudang_id', $request->gudang_id);
+            })
+            ->orderByDesc('id');
 
         return DataTables::eloquent($query)
             ->editColumn('tanggal', fn ($k) => $k->tanggal->format('d/m/Y'))
