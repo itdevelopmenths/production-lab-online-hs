@@ -45,7 +45,7 @@
                         <x-form-group name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
                             <x-select name="supplier_id" placeholder="— Pilih Supplier Rekanan —" :required="true">
                                 @foreach($suppliers as $s)
-                                    <option value="{{ $s->id }}" @selected(old('supplier_id') == $s->id)>
+                                    <option value="{{ $s->id }}" @selected(old('supplier_id', $defaultSupplierId ?? '') == $s->id)>
                                         {{ $s->nama }} ({{ ucfirst($s->kategori) }})
                                     </option>
                                 @endforeach

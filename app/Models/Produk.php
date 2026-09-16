@@ -17,6 +17,7 @@ class Produk extends Model
     protected $fillable = [
         'kategori_id',
         'varian_id',
+        'supplier_id',
         'sku',
         'nama',
         'nama_produk',
@@ -78,6 +79,11 @@ class Produk extends Model
     public function varian(): BelongsTo
     {
         return $this->belongsTo(Varian::class, 'varian_id');
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id');
     }
 
     /** Relasi master UOM berdasarkan kolom kode satuan. */

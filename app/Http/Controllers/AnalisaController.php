@@ -50,7 +50,13 @@ class AnalisaController extends Controller
             $this->analisa->generateLokal(null, auth()->id());
         }
 
-        $rekomendasi = RekomendasiOrderLokal::with(['produk:id,sku,nama,satuan,faktor_konversi,satuan_order_moq,harga_hpp', 'generator:id,name'])->get();
+        $rekomendasi = RekomendasiOrderLokal::with([
+            'produk' => function ($q) {
+                $q->select('id', 'sku', 'nama', 'satuan', 'faktor_konversi', 'satuan_order_moq', 'harga_hpp', 'supplier_id')
+                    ->with('supplier:id,nama,kategori');
+            },
+            'generator:id,name'
+        ])->get();
         $analisa = AnalisaLokal::with(['produk:id,sku,nama,satuan', 'generator:id,name'])->get()->keyBy('produk_id');
         $leadTime = LeadTimeLokal::with('produk:id,sku,nama')->get()->keyBy('produk_id');
         $stages = LeadTimeLokalStage::with('produk:id,sku,nama')->get()->groupBy('produk_id');
@@ -66,6 +72,9 @@ class AnalisaController extends Controller
                 'sku' => $rek->produk?->sku,
                 'nama' => $rek->produk?->nama,
                 'satuan' => $rek->produk?->satuan,
+                'supplier_id' => $rek->produk?->supplier_id,
+                'supplier_nama' => $rek->produk?->supplier?->nama ?? '-',
+                'supplier_kategori' => $rek->produk?->supplier?->kategori ?? '-',
                 'faktor_konversi' => (float) ($rek->produk?->faktor_konversi ?: 1),
                 'total_avg_lead_time' => (int) ($lt?->total_average_lead_time ?? $al?->total_average_lead_time ?? 0),
                 'total_max_lead_time' => (int) ($lt?->total_max_lead_time ?? 0),
@@ -236,7 +245,13 @@ class AnalisaController extends Controller
             $this->analisa->generateImpor(null, auth()->id());
         }
 
-        $imporList = AnalisaImpor::with(['produk:id,sku,nama,satuan,satuan_order_moq,faktor_konversi', 'generator:id,name'])->get();
+        $imporList = AnalisaImpor::with([
+            'produk' => function ($q) {
+                $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'supplier_id')
+                    ->with('supplier:id,nama,kategori');
+            },
+            'generator:id,name'
+        ])->get();
         $ltMap = LeadTimeImpor::all()->keyBy('produk_id');
         $lastGenerated = $imporList->sortByDesc('generated_at')->first();
 
@@ -249,6 +264,9 @@ class AnalisaController extends Controller
                 'sku' => $ai->produk?->sku,
                 'nama' => $ai->produk?->nama,
                 'satuan' => $ai->produk?->satuan,
+                'supplier_id' => $ai->produk?->supplier_id,
+                'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
+                'supplier_kategori' => $ai->produk?->supplier?->kategori ?? '-',
                 'satuan_order_moq' => $ai->produk?->satuan_order_moq,
                 'faktor_konversi' => (float) ($ai->produk?->faktor_konversi ?: 1),
                 'punya_varian' => (bool) $ai->punya_varian,
@@ -435,7 +453,8 @@ class AnalisaController extends Controller
         }
 
         $query = RekomendasiOrderLokal::with(['produk' => function ($q) {
-            $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp');
+            $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
+                ->with('supplier:id,nama');
         }]);
 
         if (! empty($ids)) {
@@ -449,7 +468,10 @@ class AnalisaController extends Controller
 
         // Fallback jika id yang dikirim adalah produk_id
         if ($rekomendasiList->isEmpty() && ! empty($ids)) {
-            $rekomendasiList = RekomendasiOrderLokal::with('produk')->whereIn('produk_id', $ids)->get();
+            $rekomendasiList = RekomendasiOrderLokal::with(['produk' => function ($q) {
+                $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
+                    ->with('supplier:id,nama');
+            }])->whereIn('produk_id', $ids)->get();
         }
 
         // Susun item awal untuk form Alpine.js
@@ -466,6 +488,8 @@ class AnalisaController extends Controller
                 'produk_id' => $r->produk_id,
                 'sku' => $r->produk?->sku ?? '-',
                 'nama' => $r->produk?->nama ?? '-',
+                'supplier_id' => $r->produk?->supplier_id,
+                'supplier_nama' => $r->produk?->supplier?->nama ?? '-',
                 'satuan_dasar' => $r->produk?->satuan ?? 'pcs',
                 'satuan_beli' => $satuanBeli,
                 'qty_satuan_beli' => $qtySatuanBeli,
@@ -478,7 +502,10 @@ class AnalisaController extends Controller
 
         // Dukung juga item dari AnalisaImpor jika ada $ids yang cocok atau jika rekomendasi lokal kosong
         if (! empty($ids)) {
-            $imporItems = AnalisaImpor::with('produk')
+            $imporItems = AnalisaImpor::with(['produk' => function ($q) {
+                $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
+                    ->with('supplier:id,nama');
+            }])
                 ->where(function ($q) use ($ids) {
                     $q->whereIn('id', $ids)->orWhereIn('produk_id', $ids);
                 })
@@ -498,6 +525,8 @@ class AnalisaController extends Controller
                     'produk_id' => $ai->produk_id,
                     'sku' => $ai->produk?->sku ?? '-',
                     'nama' => $ai->produk?->nama ?? '-',
+                    'supplier_id' => $ai->produk?->supplier_id,
+                    'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
                     'satuan_dasar' => $ai->produk?->satuan ?? 'pcs',
                     'satuan_beli' => $satuanBeli,
                     'qty_satuan_beli' => $qtySatuanBeli,
@@ -511,9 +540,17 @@ class AnalisaController extends Controller
             $prefilledItems = $prefilledItems->concat($prefilledImpor);
         }
 
+        $defaultSupplierId = $request->filled('supplier_id') ? (int) $request->input('supplier_id') : null;
+        if (! $defaultSupplierId) {
+            $supIds = $prefilledItems->pluck('supplier_id')->filter()->unique();
+            if ($supIds->count() === 1) {
+                $defaultSupplierId = $supIds->first();
+            }
+        }
+
         $allProduk = Produk::active()->bahan()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp']);
 
-        return view('analisa.create-po', compact('suppliers', 'gudang', 'prefilledItems', 'allProduk'));
+        return view('analisa.create-po', compact('suppliers', 'gudang', 'prefilledItems', 'allProduk', 'defaultSupplierId'));
     }
 
     /** Buat draft PO dari hasil analisa (ditandai "Dari Analisa"). */

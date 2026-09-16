@@ -114,7 +114,7 @@
                         type="text" 
                         x-model.debounce.250ms="searchQuery" 
                         @input="page = 1; if(tab !== 'lokal') renderTable();"
-                        placeholder="Cari SKU, nama bahan / item..."
+                        placeholder="Cari SKU, nama bahan, supplier..."
                         class="w-full pl-8 pr-7 py-1.5 text-xs rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
                     >
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400">
@@ -135,6 +135,16 @@
                             <option value="all">Semua Status</option>
                             <option value="order">Hanya Perlu Order</option>
                             <option value="aman">Hanya Status Aman</option>
+                        </select>
+                        <select 
+                            x-model="supplierFilter" 
+                            @change="page = 1"
+                            class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                        >
+                            <option value="all">Semua Supplier</option>
+                            @foreach($suppliers as $s)
+                                <option value="{{ $s->id }}">{{ $s->nama }} ({{ ucfirst($s->kategori) }})</option>
+                            @endforeach
                         </select>
                     </div>
                 </template>
@@ -232,6 +242,14 @@
                                         <td class="py-2.5 px-3">
                                             <div class="font-bold text-gray-900" x-text="r.nama"></div>
                                             <div class="font-mono text-[10px] text-gray-400" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
+                                            <template x-if="r.supplier_nama && r.supplier_nama !== '-'">
+                                                <div class="mt-1 flex items-center gap-1">
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                                        <svg class="w-2.5 h-2.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                                        <span x-text="r.supplier_nama"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
                                         </td>
                                         <td class="py-2.5 px-3 text-right font-mono" x-text="formatNumber(r.batas_minimum)"></td>
                                         <td class="py-2.5 px-3 text-right font-mono" x-text="formatNumber(r.target_stock)"></td>
@@ -646,6 +664,14 @@
                                                     <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">Multi-Varian</span>
                                                 </template>
                                             </div>
+                                            <template x-if="r.supplier_nama && r.supplier_nama !== '-'">
+                                                <div class="mt-1 flex items-center gap-1">
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                        <svg class="w-2.5 h-2.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                                        <span x-text="r.supplier_nama"></span>
+                                                    </span>
+                                                </div>
+                                            </template>
                                         </td>
                                         <td class="py-2.5 px-2 text-center font-mono">
                                             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase" :class="abcBadgeClass(r.klasifikasi_abc)" x-text="r.klasifikasi_abc"></span>
@@ -1010,6 +1036,7 @@
         perPage: 15,
         searchQuery: '',
         statusFilter: 'all',
+        supplierFilter: 'all',
         tabs: [
           { key: 'lokal', label: 'Bahan Baku Lokal' },
           { key: 'impor', label: 'Bahan Baku Impor' },
@@ -1120,6 +1147,7 @@
             list = list.filter(r => 
               (r.nama && r.nama.toLowerCase().includes(q)) || 
               (r.sku && r.sku.toLowerCase().includes(q)) ||
+              (r.supplier_nama && r.supplier_nama.toLowerCase().includes(q)) ||
               (r.item_label && r.item_label.toLowerCase().includes(q)) ||
               (r.session_id && r.session_id.toLowerCase().includes(q)) ||
               (r.tipe && r.tipe.toLowerCase().includes(q))
@@ -1133,6 +1161,10 @@
                 if (this.statusFilter === 'aman') return s === 'aman' || s === 'tidak';
                 return true;
               });
+            }
+            if (this.supplierFilter !== 'all') {
+              const sf = String(this.supplierFilter);
+              list = list.filter(r => String(r.supplier_id) === sf);
             }
           }
           return list;
@@ -1283,7 +1315,13 @@
             });
             return;
           }
-          const url = '{{ route('analisa.create-po') }}?ids=' + encodeURIComponent(this.selectedItemIds.join(','));
+          let url = '{{ route('analisa.create-po') }}?ids=' + encodeURIComponent(this.selectedItemIds.join(','));
+          const selectedItems = this.getSelectedItems();
+          const supIds = selectedItems.map(r => r.supplier_id).filter(Boolean);
+          const uniqueSupIds = Array.from(new Set(supIds));
+          if (uniqueSupIds.length === 1) {
+            url += '&supplier_id=' + encodeURIComponent(uniqueSupIds[0]);
+          }
           window.location.href = url;
         },
         abcBadgeClass(abc){

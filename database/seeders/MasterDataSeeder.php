@@ -25,14 +25,14 @@ class MasterDataSeeder extends Seeder
         $ffSolo = Gudang::firstOrCreate(['kode' => 'FF-SOLO'], ['nama' => 'Fulfillment Solo', 'tipe' => 'fulfillment', 'is_pusat' => false, 'status' => 'aktif', 'parent_gudang_id' => $ffPusat->id]);
 
         // ===== Supplier =====
-        Supplier::firstOrCreate(['nama' => 'PT Alkohol Nusantara'], ['kategori' => 'lokal', 'kontak' => '081234500001', 'alamat' => 'Sidoarjo', 'termin_default' => 'termin']);
-        Supplier::firstOrCreate(['nama' => 'Glass Bottle Import Co.'], ['kategori' => 'impor', 'kontak' => '081234500002', 'termin_default' => 'tempo']);
+        $sLokal = Supplier::firstOrCreate(['nama' => 'PT Alkohol Nusantara'], ['kategori' => 'lokal', 'kontak' => '081234500001', 'alamat' => 'Sidoarjo', 'termin_default' => 'termin']);
+        $sImpor = Supplier::firstOrCreate(['nama' => 'Glass Bottle Import Co.'], ['kategori' => 'impor', 'kontak' => '081234500002', 'termin_default' => 'tempo']);
 
         // ===== Produk (bahan, kemas, produk jadi) =====
-        $alk = Produk::firstOrCreate(['sku' => 'ALK-01'], ['nama' => 'Alkohol 96%', 'tipe' => 'bahan', 'satuan' => 'ml', 'satuan_order_moq' => 5000, 'profil_analisa' => 'lokal']);
-        $oil = Produk::firstOrCreate(['sku' => 'OIL-GOH'], ['nama' => 'Oil Concentrate GOH', 'tipe' => 'bahan', 'satuan' => 'ml', 'satuan_order_moq' => 100, 'profil_analisa' => 'lokal']);
-        $btl = Produk::firstOrCreate(['sku' => 'BTL-P50'], ['nama' => 'Botol 50ml', 'tipe' => 'kemas', 'satuan' => 'pcs', 'satuan_order_moq' => 1000, 'profil_analisa' => 'impor']);
-        $cap = Produk::firstOrCreate(['sku' => 'CAP-01'], ['nama' => 'Tutup Botol', 'tipe' => 'kemas', 'satuan' => 'pcs', 'satuan_order_moq' => 1000, 'profil_analisa' => 'impor']);
+        $alk = Produk::firstOrCreate(['sku' => 'ALK-01'], ['nama' => 'Alkohol 96%', 'tipe' => 'bahan', 'satuan' => 'ml', 'satuan_order_moq' => 5000, 'profil_analisa' => 'lokal', 'supplier_id' => $sLokal->id]);
+        $oil = Produk::firstOrCreate(['sku' => 'OIL-GOH'], ['nama' => 'Oil Concentrate GOH', 'tipe' => 'bahan', 'satuan' => 'ml', 'satuan_order_moq' => 100, 'profil_analisa' => 'lokal', 'supplier_id' => $sLokal->id]);
+        $btl = Produk::firstOrCreate(['sku' => 'BTL-P50'], ['nama' => 'Botol 50ml', 'tipe' => 'kemas', 'satuan' => 'pcs', 'satuan_order_moq' => 1000, 'profil_analisa' => 'impor', 'supplier_id' => $sImpor->id]);
+        $cap = Produk::firstOrCreate(['sku' => 'CAP-01'], ['nama' => 'Tutup Botol', 'tipe' => 'kemas', 'satuan' => 'pcs', 'satuan_order_moq' => 1000, 'profil_analisa' => 'impor', 'supplier_id' => $sImpor->id]);
         $goh = Produk::firstOrCreate(['sku' => 'GOH-P50'], ['nama' => 'Parfum GOH 50ml', 'tipe' => 'produk_jadi', 'satuan' => 'pcs', 'satuan_order_moq' => 12]);
 
         // ===== BOM Parfum GOH 50ml =====
