@@ -143,7 +143,7 @@ class PurchasingController extends Controller
         $this->authorize('purchasing.create');
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
-        $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+        $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'nama_produk', 'satuan', 'faktor_konversi']);
 
         return view('purchasing.create', compact('suppliers', 'gudang', 'produk'));
     }
@@ -168,6 +168,9 @@ class PurchasingController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.produk_id' => ['required', 'distinct', 'exists:produk,id'],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
+            'items.*.qty_satuan_beli' => ['nullable', 'numeric', 'gt:0'],
+            'items.*.satuan_beli' => ['nullable', 'string', 'max:20'],
+            'items.*.faktor_konversi' => ['nullable', 'numeric', 'gt:0'],
             'items.*.harga_total' => ['required', 'numeric', 'min:0'],
             'items.*.diskon' => ['nullable', 'numeric', 'min:0'],
             'items.*.ppn' => ['nullable', 'numeric', 'min:0'],
@@ -236,7 +239,7 @@ class PurchasingController extends Controller
         $purchaseOrder->load(['items.produk', 'termins']);
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
-        $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+        $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'nama_produk', 'satuan', 'faktor_konversi']);
         $productIds = $purchaseOrder->items->pluck('produk_id')->filter()->unique()->values()->all();
         $hppMap = app(\App\Services\StokService::class)->resolveHppMap($productIds);
 
@@ -269,6 +272,9 @@ class PurchasingController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.produk_id' => ['required', 'distinct', 'exists:produk,id'],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
+            'items.*.qty_satuan_beli' => ['nullable', 'numeric', 'gt:0'],
+            'items.*.satuan_beli' => ['nullable', 'string', 'max:20'],
+            'items.*.faktor_konversi' => ['nullable', 'numeric', 'gt:0'],
             'items.*.harga_total' => ['required', 'numeric', 'min:0'],
             'items.*.diskon' => ['nullable', 'numeric', 'min:0'],
             'items.*.ppn' => ['nullable', 'numeric', 'min:0'],

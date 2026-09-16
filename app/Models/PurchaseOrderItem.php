@@ -15,6 +15,9 @@ class PurchaseOrderItem extends Model
         'po_id',
         'produk_id',
         'qty',
+        'qty_satuan_beli',
+        'satuan_beli',
+        'faktor_konversi',
         'harga_total',
         'diskon',
         'ppn',
@@ -25,6 +28,8 @@ class PurchaseOrderItem extends Model
 
     protected $casts = [
         'qty' => 'decimal:2',
+        'qty_satuan_beli' => 'decimal:2',
+        'faktor_konversi' => 'decimal:4',
         'harga_total' => 'decimal:2',
         'diskon' => 'decimal:2',
         'ppn' => 'decimal:2',
@@ -32,6 +37,29 @@ class PurchaseOrderItem extends Model
         'adjustment' => 'decimal:2',
         'hpp_per_satuan' => 'decimal:4',
     ];
+
+    public function satuanBeliLabel(): string
+    {
+        return $this->satuan_beli ?: ($this->produk?->satuan ?? 'pcs');
+    }
+
+    public function faktorKonversi(): float
+    {
+        return (float) ($this->faktor_konversi ?: 1.0000);
+    }
+
+    public function displayQtyPurchased(): string
+    {
+        $baseQtyFormatted = rtrim(rtrim(number_format((float) $this->qty, 2, ',', '.'), '0'), ',');
+        $baseSatuan = $this->produk?->satuan ?? '';
+
+        if ($this->qty_satuan_beli && $this->satuan_beli && strtolower($this->satuan_beli) !== strtolower($baseSatuan)) {
+            $beliQtyFormatted = rtrim(rtrim(number_format((float) $this->qty_satuan_beli, 2, ',', '.'), '0'), ',');
+            return "{$beliQtyFormatted} {$this->satuan_beli} ({$baseQtyFormatted} {$baseSatuan})";
+        }
+
+        return "{$baseQtyFormatted} {$baseSatuan}";
+    }
 
     public function purchaseOrder(): BelongsTo
     {

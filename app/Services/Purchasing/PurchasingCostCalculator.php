@@ -93,7 +93,23 @@ class PurchasingCostCalculator
         $count = count($items);
 
         foreach ($items as $index => $item) {
-            $qty = (float) ($item['qty'] ?? 0);
+            $faktor = (float) ($item['faktor_konversi'] ?? 1.0000);
+            if ($faktor <= 0) {
+                $faktor = 1.0000;
+            }
+
+            $qtySatuanBeli = isset($item['qty_satuan_beli']) && $item['qty_satuan_beli'] !== null && $item['qty_satuan_beli'] !== ''
+                ? (float) $item['qty_satuan_beli']
+                : null;
+
+            // Jika qty_satuan_beli diisi, kuantitas dasar adalah qty_satuan_beli * faktor
+            // Jika tidak, gunakan item['qty']
+            if ($qtySatuanBeli !== null) {
+                $qty = round($qtySatuanBeli * $faktor, 2);
+            } else {
+                $qty = (float) ($item['qty'] ?? 0);
+            }
+
             $hargaTotal = (float) ($item['harga_total'] ?? 0);
 
             // Item-level components
@@ -122,6 +138,9 @@ class PurchasingCostCalculator
             $processedItems[] = [
                 'produk_id' => $item['produk_id'],
                 'qty' => $qty,
+                'qty_satuan_beli' => $qtySatuanBeli,
+                'satuan_beli' => $item['satuan_beli'] ?? null,
+                'faktor_konversi' => $faktor,
                 'harga_total' => round($hargaTotal, 2),
                 'diskon' => round($d, 2),
                 'ppn' => round($p, 2),

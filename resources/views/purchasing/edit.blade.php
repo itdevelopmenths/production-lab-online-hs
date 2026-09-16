@@ -9,9 +9,16 @@
             foreach ($oldItems as $item) {
                 $p = \App\Models\Produk::find($item['produk_id'] ?? null);
                 $hppLama = $p ? (float) ($hppMap[$p->id] ?? $p->harga_hpp ?? 0) : 0;
+                $qtySatuanBeli = $item['qty_satuan_beli'] ?? $item['qty'] ?? '';
+                $satuanBeli = $item['satuan_beli'] ?? ($p?->satuan ?? 'UNIT');
+                $faktorKonversi = (float) ($item['faktor_konversi'] ?? 1);
+                $baseQty = (float) ($item['qty'] ?? (($qtySatuanBeli !== '' ? (float)$qtySatuanBeli : 0) * $faktorKonversi));
                 $rows[] = [
                     'produk_id' => $item['produk_id'] ?? '',
-                    'qty' => $item['qty'] ?? '',
+                    'qty_satuan_beli' => $qtySatuanBeli,
+                    'satuan_beli' => $satuanBeli,
+                    'faktor_konversi' => $faktorKonversi,
+                    'qty' => $baseQty,
                     'harga' => $item['harga_total'] ?? '',
                     'satuan' => $p?->satuan ?? 'UNIT',
                     'harga_hpp_lama' => $hppLama,
@@ -29,6 +36,9 @@
                 $hppLama = (float) ($hppMap[$item->produk_id] ?? $item->produk?->harga_hpp ?? 0);
                 return [
                     'produk_id' => $item->produk_id,
+                    'qty_satuan_beli' => (float) ($item->qty_satuan_beli ?? $item->qty),
+                    'satuan_beli' => $item->satuan_beli ?? ($item->produk?->satuan ?? 'UNIT'),
+                    'faktor_konversi' => (float) ($item->faktor_konversi ?? 1),
                     'qty' => (float) $item->qty,
                     'harga' => (float) $item->harga_total,
                     'satuan' => $item->produk?->satuan ?? 'UNIT',
@@ -164,10 +174,10 @@
                         <table class="w-full text-xs">
                             <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold uppercase text-[11px] tracking-wider">
                                 <tr>
-                                    <th class="px-4 py-2.5 text-left w-[42%]">Bahan Baku <span class="text-rose-500">*</span></th>
-                                    <th class="px-3 py-2.5 text-right w-44">Qty <span class="text-rose-500">*</span></th>
-                                    <th class="px-3 py-2.5 text-right w-48">Total Harga <span class="text-rose-500">*</span></th>
-                                    <th class="px-4 py-2.5 text-right w-52 bg-primary-50/50 text-primary-900">HPP / Unit</th>
+                                    <th class="px-4 py-2.5 text-left w-[36%]">Bahan Baku <span class="text-rose-500">*</span></th>
+                                    <th class="px-3 py-2.5 text-left w-56">Qty Satuan Beli & Konversi <span class="text-rose-500">*</span></th>
+                                    <th class="px-3 py-2.5 text-right w-44">Total Harga <span class="text-rose-500">*</span></th>
+                                    <th class="px-4 py-2.5 text-right w-52 bg-primary-50/50 text-primary-900">HPP / Satuan Dasar</th>
                                     <th class="px-2 py-2.5 text-center w-12">Aksi</th>
                                 </tr>
                             </thead>
@@ -178,7 +188,7 @@
                                         :style="'position: relative; z-index: ' + (activeRow === i ? 200 : (100 - i))"
                                         @hs-dropdown-opened.window="if ($event.detail === `items[${i}][produk_id]`) activeRow = i"
                                         @hs-dropdown-closed.window="if ($event.detail === `items[${i}][produk_id]` && activeRow === i) activeRow = null"
-                                        @product-selected="if($event.detail) { row.produk_id = $event.detail.id; row.satuan = $event.detail.satuan; row.selectedItem = $event.detail; } else { row.produk_id = ''; row.satuan = ''; row.selectedItem = null; }"
+                                        @product-selected="onProductSelected(row, $event.detail)"
                                     >
                                         {{-- Kolom 1: Produk Search Select --}}
                                         <td class="px-3 py-2" :style="activeRow === i ? 'position: relative; z-index: 200;' : ''">
@@ -268,21 +278,73 @@
                                             </div>
                                         </td>
 
-                                        {{-- Kolom 2: Qty --}}
+                                        {{-- Kolom 2: Qty Satuan Beli & Konversi --}}
                                         <td class="px-3 py-2">
-                                            <div class="relative flex rounded-sm shadow-2xs">
-                                                <input
-                                                    type="number"
-                                                    step="any"
-                                                    min="0.001"
-                                                    :name="`items[${i}][qty]`"
-                                                    x-model.number="row.qty"
-                                                    @input="recalcAll()"
-                                                    placeholder="0"
-                                                    required
-                                                    class="w-full rounded-l-sm border-gray-300 text-xs py-1.5 px-2 font-mono text-right focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                                                />
-                                                <span class="inline-flex items-center px-2 py-1 text-[10px] font-mono font-bold text-gray-600 bg-gray-100 border border-l-0 border-gray-300 rounded-r-sm shrink-0 uppercase select-none min-w-[40px] justify-center" x-text="row.satuan || 'UNIT'"></span>
+                                            <div class="space-y-1">
+                                                <div class="flex items-center gap-1.5">
+                                                    {{-- Input Qty Satuan Beli --}}
+                                                    <input
+                                                        type="number"
+                                                        step="any"
+                                                        min="0.001"
+                                                        :name="`items[${i}][qty_satuan_beli]`"
+                                                        x-model.number="row.qty_satuan_beli"
+                                                        @input="updateRowQty(row)"
+                                                        placeholder="Qty"
+                                                        required
+                                                        class="w-24 rounded-sm border-gray-300 text-xs py-1.5 px-2 font-mono text-right focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                    />
+
+                                                    {{-- Dropdown Satuan Beli --}}
+                                                    <select
+                                                        :name="`items[${i}][satuan_beli]`"
+                                                        x-model="row.satuan_beli"
+                                                        @change="onSatuanBeliChange(row)"
+                                                        class="flex-1 rounded-sm border-gray-300 text-xs py-1.5 px-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                    >
+                                                        <template x-for="opt in getUomOptions(row.satuan)" :key="opt.code">
+                                                            <option :value="opt.code" x-text="opt.label" :selected="opt.code === row.satuan_beli"></option>
+                                                        </template>
+                                                    </select>
+                                                </div>
+
+                                                {{-- Custom Factor Input --}}
+                                                <template x-if="row.satuan_beli === 'custom'">
+                                                    <div class="flex items-center gap-1 mt-1 text-[10px] bg-amber-50 p-1 rounded-xs border border-amber-200">
+                                                        <span class="text-amber-800 font-medium">1 unit =</span>
+                                                        <input
+                                                            type="number"
+                                                            step="any"
+                                                            min="0.0001"
+                                                            :name="`items[${i}][faktor_konversi]`"
+                                                            x-model.number="row.faktor_konversi"
+                                                            @input="updateRowQty(row)"
+                                                            class="w-16 text-right py-0.5 px-1 text-xs rounded border-amber-300 font-mono"
+                                                            placeholder="Faktor"
+                                                            required
+                                                        />
+                                                        <span class="text-amber-800 font-mono" x-text="row.satuan"></span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="row.satuan_beli !== 'custom'">
+                                                    <input type="hidden" :name="`items[${i}][faktor_konversi]`" :value="row.faktor_konversi">
+                                                </template>
+
+                                                {{-- Hidden Base Qty Input Sent to Backend --}}
+                                                <input type="hidden" :name="`items[${i}][qty]`" :value="row.qty">
+
+                                                {{-- Live Conversion Preview Badge --}}
+                                                <div class="text-[10px] font-mono leading-tight">
+                                                    <template x-if="parseFloat(row.qty_satuan_beli) > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
+                                                        <span class="inline-flex items-center gap-1 text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded-xs border border-primary-200">
+                                                            <svg class="w-3 h-3 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                                                            <span>Konversi: <strong x-text="formatQty(row.qty)"></strong> <span x-text="row.satuan"></span></span>
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="parseFloat(row.qty_satuan_beli) > 0 && (!row.satuan_beli || row.satuan_beli.toLowerCase() === (row.satuan || '').toLowerCase())">
+                                                        <span class="text-gray-400" x-text="formatQty(row.qty) + ' ' + (row.satuan || 'unit')"></span>
+                                                    </template>
+                                                </div>
                                             </div>
                                         </td>
 
@@ -303,18 +365,28 @@
                                             </div>
                                         </td>
 
-                                        {{-- Kolom 4: Live HPP / Unit (Hasil Alokasi Biaya Global) --}}
+                                        {{-- Kolom 4: Live HPP / Satuan Dasar (Hasil Alokasi Biaya Global) --}}
                                         <td class="px-4 py-2 text-right bg-primary-50/40">
-                                            <div class="font-mono font-bold text-xs text-primary-800" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + (row.satuan ? ' / ' + row.satuan : '')"></div>
-                                            <div class="text-[10px] text-gray-500 font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
-                                            <template x-if="row.selectedItem && parseFloat(row.selectedItem.harga_hpp || 0) > 0">
-                                                <div class="text-[10px] font-mono mt-0.5 text-gray-500">
-                                                    <span>HPP Lama: </span>
-                                                    <span class="font-semibold text-gray-700" x-text="'Rp ' + formatHpp(row.selectedItem.harga_hpp)"></span>
+                                            <template x-if="calculateRowHpp(row) > 0">
+                                                <div>
+                                                    <div class="font-mono font-bold text-xs text-primary-900" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + ' / ' + (row.satuan || 'unit')"></div>
+                                                    <div class="text-[10px] text-gray-500 font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
+                                                    <template x-if="row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase() && calculateRowHppPerSatuanBeli(row) > 0">
+                                                        <div class="text-[9px] font-mono text-primary-600 font-medium mt-0.5" x-text="'(setara Rp ' + formatThousand(calculateRowHppPerSatuanBeli(row)) + ' / ' + row.satuan_beli + ')'"></div>
+                                                    </template>
+                                                    <template x-if="row.selectedItem && parseFloat(row.selectedItem.harga_hpp || 0) > 0">
+                                                        <div class="text-[10px] font-mono mt-0.5 text-gray-500">
+                                                            <span>HPP Lama: </span>
+                                                            <span class="font-semibold text-gray-700" x-text="'Rp ' + formatHpp(row.selectedItem.harga_hpp)"></span>
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="subtotalProduk() > 0 && parseFloat(row.harga) > 0">
+                                                        <div class="text-[9px] text-primary-600 font-mono mt-0.5" x-text="'Porsi: ' + (Math.round((parseFloat(row.harga) / subtotalProduk()) * 1000) / 10) + '%'"></div>
+                                                    </template>
                                                 </div>
                                             </template>
-                                            <template x-if="subtotalProduk() > 0 && parseFloat(row.harga) > 0">
-                                                <div class="text-[9px] text-primary-600 font-mono mt-0.5" x-text="'Porsi: ' + (Math.round((parseFloat(row.harga) / subtotalProduk()) * 1000) / 10) + '%'"></div>
+                                            <template x-if="!calculateRowHpp(row) || calculateRowHpp(row) <= 0">
+                                                <span class="text-gray-400 italic text-[11px]">—</span>
                                             </template>
                                         </td>
 
@@ -589,6 +661,9 @@
                 rows: (initial.rows && initial.rows.length > 0) ? initial.rows : [
                     {
                         produk_id: '',
+                        qty_satuan_beli: '',
+                        satuan_beli: '',
+                        faktor_konversi: 1,
                         qty: '',
                         harga: '',
                         satuan: '',
@@ -604,9 +679,97 @@
                     this.recalcAll();
                 },
 
+                getUomOptions(baseSatuan) {
+                    const s = (baseSatuan || '').toLowerCase().trim();
+                    if (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter') {
+                        return [
+                            { code: 'Liter', label: 'Liter (L) [×1.000]', factor: 1000 },
+                            { code: 'ml', label: 'Mililiter (ml) [×1]', factor: 1 },
+                            { code: 'Jerigen 5L', label: 'Jerigen (5 L) [×5.000]', factor: 5000 },
+                            { code: 'Jerigen 1L', label: 'Jerigen (1 L) [×1.000]', factor: 1000 },
+                            { code: 'Galon 19L', label: 'Galon (19 L) [×19.000]', factor: 19000 },
+                            { code: 'Drum 200L', label: 'Drum (200 L) [×200.000]', factor: 200000 },
+                            { code: 'custom', label: 'Kustom / Input Faktor...', factor: null },
+                        ];
+                    } else if (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg' || s === 'kilogram') {
+                        return [
+                            { code: 'Kilogram', label: 'Kilogram (kg) [×1.000]', factor: 1000 },
+                            { code: 'Gram', label: 'Gram (gr) [×1]', factor: 1 },
+                            { code: 'Sak 25kg', label: 'Sak (25 kg) [×25.000]', factor: 25000 },
+                            { code: 'Sak 50kg', label: 'Sak (50 kg) [×50.000]', factor: 50000 },
+                            { code: 'Ton', label: 'Ton [×1.000.000]', factor: 1000000 },
+                            { code: 'custom', label: 'Kustom / Input Faktor...', factor: null },
+                        ];
+                    } else {
+                        return [
+                            { code: 'Pieces', label: 'Pieces (pcs) [×1]', factor: 1 },
+                            { code: 'Dus (100)', label: 'Dus / Box (100 pcs) [×100]', factor: 100 },
+                            { code: 'Pack (10)', label: 'Pack (10 pcs) [×10]', factor: 10 },
+                            { code: 'custom', label: 'Kustom / Input Faktor...', factor: null },
+                        ];
+                    }
+                },
+
+                onProductSelected(row, product) {
+                    if (product) {
+                        row.produk_id = product.id;
+                        row.satuan = product.satuan;
+                        row.selectedItem = product;
+                        const options = this.getUomOptions(product.satuan);
+                        const first = options[0];
+                        row.satuan_beli = first ? first.code : product.satuan;
+                        row.faktor_konversi = first ? (first.factor || 1) : 1;
+                        this.updateRowQty(row);
+                    } else {
+                        row.produk_id = '';
+                        row.satuan = '';
+                        row.selectedItem = null;
+                        row.satuan_beli = '';
+                        row.faktor_konversi = 1;
+                        row.qty = 0;
+                        row.qty_satuan_beli = '';
+                        this.recalcAll();
+                    }
+                },
+
+                onSatuanBeliChange(row) {
+                    const options = this.getUomOptions(row.satuan);
+                    const opt = options.find(o => o.code === row.satuan_beli);
+                    if (opt && opt.factor !== null) {
+                        row.faktor_konversi = opt.factor;
+                    }
+                    this.updateRowQty(row);
+                },
+
+                updateRowQty(row) {
+                    const qtyBeli = parseFloat(row.qty_satuan_beli) || 0;
+                    const factor = parseFloat(row.faktor_konversi) || 1;
+                    row.qty = Math.round(qtyBeli * factor * 100) / 100;
+                    this.recalcAll();
+                },
+
+                calculateRowHppPerSatuanBeli(row) {
+                    const qBeli = parseFloat(row.qty_satuan_beli) || 0;
+                    if (qBeli <= 0) return 0;
+                    const net = this.calculateRowNet(row);
+                    return Math.round((net / qBeli) * 100) / 100;
+                },
+
+                formatQty(val) {
+                    if (val === '' || val === null || val === undefined || isNaN(val)) return '0';
+                    const num = Number(val);
+                    if (Math.abs(num - Math.round(num)) < 0.00001) {
+                        return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    }
+                    return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                },
+
                 addRow() {
                     this.rows.push({
                         produk_id: '',
+                        qty_satuan_beli: '',
+                        satuan_beli: '',
+                        faktor_konversi: 1,
                         qty: '',
                         harga: '',
                         satuan: '',

@@ -134,8 +134,20 @@
                                     <div class="font-mono text-[11px] text-gray-400">{{ $it->produk->sku }}</div>
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-mono font-medium text-gray-900">
-                                    {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }}
-                                    <span class="text-gray-400 font-normal text-[10px]">{{ $it->produk->satuan }}</span>
+                                    @if($it->qty_satuan_beli && $it->satuan_beli && strcasecmp($it->satuan_beli, $it->produk?->satuan ?? '') !== 0)
+                                        <div class="text-gray-900 font-semibold">
+                                            {{ rtrim(rtrim(number_format($it->qty_satuan_beli, 2, ',', '.'), '0'), ',') }}
+                                            <span class="text-xs font-normal text-gray-600">{{ $it->satuan_beli }}</span>
+                                        </div>
+                                        <div class="text-[10px] text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 inline-block mt-0.5">
+                                            = {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk?->satuan }}
+                                        </div>
+                                    @else
+                                        <div>
+                                            {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }}
+                                            <span class="text-gray-400 font-normal text-[10px]">{{ $it->produk?->satuan }}</span>
+                                        </div>
+                                    @endif
                                 </td>
                                 @if($canSeePrice)
                                     <td class="py-2.5 px-3 text-right font-mono text-gray-700">
@@ -153,8 +165,16 @@
                                     <td class="py-2.5 px-3 text-right font-mono font-semibold text-gray-900">
                                         Rp {{ number_format($it->netTotal(), abs($it->netTotal() - round($it->netTotal())) < 0.00001 ? 0 : 2, ',', '.') }}
                                     </td>
-                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-primary-800 bg-primary-50/30" title="HPP / Unit: {{ $it->formattedHpp() }}">
-                                        {{ $it->formattedHpp() }}
+                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-primary-800 bg-primary-50/30" title="HPP / Satuan Dasar ({{ $it->produk?->satuan }}): {{ $it->formattedHpp() }}">
+                                        <div>{{ $it->formattedHpp() }}</div>
+                                        @if($it->qty_satuan_beli && $it->satuan_beli && strcasecmp($it->satuan_beli, $it->produk?->satuan ?? '') !== 0 && (float)$it->qty_satuan_beli > 0)
+                                            @php
+                                                $hppPerSatuanBeli = $it->netTotal() / (float)$it->qty_satuan_beli;
+                                            @endphp
+                                            <div class="text-[9px] font-normal text-primary-600">
+                                                (Rp {{ number_format($hppPerSatuanBeli, 0, ',', '.') }} / {{ $it->satuan_beli }})
+                                            </div>
+                                        @endif
                                     </td>
                                 @endif
                                 <td class="py-2.5 px-3.5 text-right font-mono font-medium {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-emerald-700 font-bold' : 'text-gray-700' }}">
@@ -280,14 +300,27 @@
                     </div>
 
                     <div class="border-t border-gray-100 pt-3 space-y-3">
-                        <p class="text-xs font-bold text-gray-700 uppercase tracking-wider">Kuantitas Diterima & Pengecekan Selisih:</p>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <p class="text-xs font-bold text-gray-700 uppercase tracking-wider">Kuantitas Diterima & Pengecekan Selisih:</p>
+                            <span class="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                                Penerimaan gudang dicatat dalam satuan dasar (ml / gr / pcs)
+                            </span>
+                        </div>
                         
                         @foreach($po->items as $i => $it)
                         <div class="p-3 bg-gray-50 border border-gray-200 rounded-sm text-xs space-y-2">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div>
                                     <span class="font-bold text-gray-900">{{ $it->produk->nama }}</span>
-                                    <span class="font-mono text-gray-500 text-[11px]">({{ $it->produk->sku }}) · Order: {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk->satuan }}</span>
+                                    <span class="font-mono text-gray-500 text-[11px]">
+                                        ({{ $it->produk->sku }}) · Order: 
+                                        @if($it->qty_satuan_beli && $it->satuan_beli && strcasecmp($it->satuan_beli, $it->produk?->satuan ?? '') !== 0)
+                                            <span class="font-semibold text-gray-700">{{ rtrim(rtrim(number_format($it->qty_satuan_beli, 2, ',', '.'), '0'), ',') }} {{ $it->satuan_beli }}</span>
+                                            ({{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk->satuan }})
+                                        @else
+                                            {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk->satuan }}
+                                        @endif
+                                    </span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <input type="hidden" name="items[{{ $i }}][po_item_id]" value="{{ $it->id }}">
