@@ -128,6 +128,16 @@ class Produk extends Model
         return $this->hasOne(RekomendasiOrderLokal::class, 'produk_id');
     }
 
+    public function leadTimeImpor(): HasOne
+    {
+        return $this->hasOne(LeadTimeImpor::class, 'produk_id');
+    }
+
+    public function analisaImpor(): HasOne
+    {
+        return $this->hasOne(AnalisaImpor::class, 'produk_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

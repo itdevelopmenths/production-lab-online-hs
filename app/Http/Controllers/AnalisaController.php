@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\AnalisaFulfillmentInput;
+use App\Models\AnalisaImpor;
 use App\Models\AnalisaImporMeta;
 use App\Models\AnalisaLokal;
 use App\Models\AnalisaLokalInput;
 use App\Models\Gudang;
+use App\Models\LeadTimeImpor;
 use App\Models\LeadTimeLokal;
 use App\Models\LeadTimeLokalStage;
 use App\Models\Produk;
@@ -229,26 +231,78 @@ class AnalisaController extends Controller
     {
         $this->authorize('analisa.view');
 
-        $rows = AnalisaImporMeta::with(['produk:id,sku,nama,satuan,satuan_order_moq', 'varian'])->get()
-            ->map(function ($meta) {
-                $hasil = $this->analisa->impor($meta);
+        // Pastikan tabel data kerja impor sudah terisi; jika belum, generate otomatis
+        if (! AnalisaImpor::exists()) {
+            $this->analisa->generateImpor(null, auth()->id());
+        }
 
-                return [
-                    'produk_id' => $meta->produk_id,
-                    'sku' => $meta->produk?->sku,
-                    'nama' => $meta->produk?->nama,
-                    'punya_varian' => $meta->punya_varian,
-                    'klasifikasi_abc' => $meta->klasifikasi_abc,
-                    'buffer_days' => $hasil['buffer_days'],
-                    'total_qty_order' => $hasil['total_qty_order'],
-                    'total_selisih' => $hasil['total_selisih'],
-                    'status' => $hasil['status'],
-                    'total_nominal_order' => $hasil['total_nominal_order'],
-                    'varian' => $hasil['varian'],
-                ];
-            });
+        $imporList = AnalisaImpor::with(['produk:id,sku,nama,satuan,satuan_order_moq,faktor_konversi', 'generator:id,name'])->get();
+        $ltMap = LeadTimeImpor::all()->keyBy('produk_id');
+        $lastGenerated = $imporList->sortByDesc('generated_at')->first();
 
-        return response()->json(['data' => $rows]);
+        $rows = $imporList->map(function ($ai) use ($ltMap) {
+            $lt = $ltMap->get($ai->produk_id);
+
+            return [
+                'id' => $ai->id,
+                'produk_id' => $ai->produk_id,
+                'sku' => $ai->produk?->sku,
+                'nama' => $ai->produk?->nama,
+                'satuan' => $ai->produk?->satuan,
+                'satuan_order_moq' => $ai->produk?->satuan_order_moq,
+                'faktor_konversi' => (float) ($ai->produk?->faktor_konversi ?: 1),
+                'punya_varian' => (bool) $ai->punya_varian,
+                'klasifikasi_abc' => $ai->klasifikasi_abc,
+                'lead_time_average' => (float) ($lt?->lead_time_average ?? $ai->lead_time),
+                'lead_time_max' => (float) ($lt?->lead_time_max ?? 0),
+                'buffer_days' => (float) $ai->buffer_days,
+                'safety_stock' => (float) $ai->safety_stock,
+                'minimum_stock' => (float) $ai->minimum_stock,
+                'target_stock' => (float) $ai->target_stock,
+                'stok_saat_ini' => (float) $ai->stok_saat_ini,
+                'inbound_before_eta' => (float) $ai->inbound_before_eta,
+                'proyeksi' => (float) $ai->proyeksi,
+                'qty_order' => (float) $ai->qty_order,
+                'po' => (float) $ai->po,
+                'total_qty_order' => (float) ($ai->po ?: $ai->qty_order),
+                'total_selisih' => (float) ($ai->proyeksi - $ai->target_stock),
+                'status' => $ai->status,
+                'harga_per_satuan' => (float) $ai->harga_per_satuan,
+                'total_nominal_order' => (float) $ai->total_nominal_order,
+                'varian' => $ai->varian_detail ?? [],
+                'generated_at' => $ai->generated_at?->format('d/m/Y H:i'),
+                'generated_by' => $ai->generator?->name ?? 'Sistem',
+            ];
+        })->values();
+
+        return response()->json([
+            'data' => $rows,
+            'meta' => [
+                'last_generated_at' => $lastGenerated?->generated_at?->format('d/m/Y H:i'),
+                'last_generated_by' => $lastGenerated?->generator?->name ?? 'Sistem',
+            ],
+        ]);
+    }
+
+    /**
+     * Trigger eksekusi Generate Analisa Impor
+     */
+    public function generateImpor(Request $request)
+    {
+        $this->authorize('analisa.manage');
+
+        $produkId = $request->input('produk_id') ? (int) $request->input('produk_id') : null;
+        $result = $this->analisa->generateImpor($produkId, auth()->id());
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil men-generate analisa impor ({$result['generated_count']} produk).",
+                'data' => $result,
+            ]);
+        }
+
+        return back()->with('success', "Berhasil men-generate analisa impor ({$result['generated_count']} produk).");
     }
 
     public function fulfillmentData(): JsonResponse
@@ -278,17 +332,49 @@ class AnalisaController extends Controller
 
         $rows = RiwayatAnalisa::with('pencatat:id,name')->latest()->limit(500)->get()
             ->map(fn ($r) => [
+                'id' => $r->id,
+                'session_id' => $r->session_id ?? '-',
                 'tanggal' => $r->tanggal->format('d/m/Y'),
                 'tipe' => ucwords(str_replace('_', ' ', $r->tipe)),
+                'tipe_raw' => $r->tipe,
                 'item_label' => $r->item_label,
                 'batas_minimum' => (float) $r->batas_minimum,
                 'target_stock' => (float) $r->target_stock,
                 'status' => $r->status,
                 'qty_order' => (float) $r->qty_order,
-                'pencatat' => $r->pencatat?->name,
+                'is_locked' => (bool) $r->is_locked,
+                'pencatat' => $r->pencatat?->name ?? 'Sistem',
+                'detail' => $r->detail_payload ?? [],
             ]);
 
         return response()->json(['data' => $rows]);
+    }
+
+    /**
+     * Workflow Finalisasi Analisa: Kunci working data aktif ke riwayat_analisa
+     */
+    public function finalisasi(Request $request)
+    {
+        $this->authorize('analisa.snapshot');
+
+        $data = $request->validate([
+            'tipe' => ['nullable', 'string', 'in:bahan_lokal,bahan_impor,produk_jadi_fulfillment,all'],
+        ]);
+        $tipe = $data['tipe'] ?? 'all';
+
+        $result = $this->analisa->finalisasi($tipe, auth()->id());
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Analisa berhasil difinalisasi ke Riwayat ({$result['count']} baris, Sesi: {$result['session_id']}).",
+                'session_id' => $result['session_id'],
+                'count' => $result['count'],
+                'data' => $result,
+            ]);
+        }
+
+        return back()->with('success', "Analisa berhasil difinalisasi ke Riwayat ({$result['count']} baris, Sesi: {$result['session_id']}).");
     }
 
     /** Simpan snapshot hasil analisa saat ini ke tab Riwayat. */
@@ -330,6 +416,106 @@ class AnalisaController extends Controller
         return back()->with('success', "Snapshot tersimpan ({$count} baris).");
     }
 
+    /**
+     * Formulir pembuatan Draft PO dari hasil analisa stok (halaman tersendiri)
+     */
+    public function createPoForm(Request $request)
+    {
+        $this->authorize('analisa.create_po');
+
+        $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
+        $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
+
+        // Ambil ID rekomendasi jika dikirim spesifik lewat query / POST
+        $ids = $request->input('ids');
+        if (is_string($ids)) {
+            $ids = array_filter(array_map('intval', explode(',', $ids)));
+        } elseif (is_array($ids)) {
+            $ids = array_filter(array_map('intval', $ids));
+        }
+
+        $query = RekomendasiOrderLokal::with(['produk' => function ($q) {
+            $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp');
+        }]);
+
+        if (! empty($ids)) {
+            $query->whereIn('id', $ids);
+        } else {
+            // Default: muat seluruh item yang statusnya perlu order ('order' atau 'po')
+            $query->whereIn('status', ['order', 'po']);
+        }
+
+        $rekomendasiList = $query->get();
+
+        // Fallback jika id yang dikirim adalah produk_id
+        if ($rekomendasiList->isEmpty() && ! empty($ids)) {
+            $rekomendasiList = RekomendasiOrderLokal::with('produk')->whereIn('produk_id', $ids)->get();
+        }
+
+        // Susun item awal untuk form Alpine.js
+        $prefilledItems = $rekomendasiList->map(function ($r) {
+            $faktor = (float) ($r->produk?->faktor_konversi ?: 1);
+            $qtySatuanBeli = (float) $r->rekomendasi_order;
+            $qtyDasar = (float) $r->rumus_moq;
+            $satuanBeli = $r->produk?->satuan_order_moq ?: $r->produk?->satuan ?: 'pcs';
+            $hargaSatuan = (float) $r->harga_ml_pcs;
+            $hargaTotal = (float) $r->total_nominal_order;
+
+            return [
+                'id' => $r->id,
+                'produk_id' => $r->produk_id,
+                'sku' => $r->produk?->sku ?? '-',
+                'nama' => $r->produk?->nama ?? '-',
+                'satuan_dasar' => $r->produk?->satuan ?? 'pcs',
+                'satuan_beli' => $satuanBeli,
+                'qty_satuan_beli' => $qtySatuanBeli,
+                'faktor_konversi' => $faktor,
+                'qty' => $qtyDasar,
+                'harga_satuan' => $hargaSatuan,
+                'harga_total' => $hargaTotal,
+            ];
+        })->values();
+
+        // Dukung juga item dari AnalisaImpor jika ada $ids yang cocok atau jika rekomendasi lokal kosong
+        if (! empty($ids)) {
+            $imporItems = AnalisaImpor::with('produk')
+                ->where(function ($q) use ($ids) {
+                    $q->whereIn('id', $ids)->orWhereIn('produk_id', $ids);
+                })
+                ->whereNotIn('produk_id', $prefilledItems->pluck('produk_id'))
+                ->get();
+
+            $prefilledImpor = $imporItems->map(function ($ai) {
+                $faktor = (float) ($ai->produk?->faktor_konversi ?: 1);
+                $qtySatuanBeli = (float) ($ai->po ?: $ai->qty_order);
+                $qtyDasar = $qtySatuanBeli * $faktor;
+                $satuanBeli = $ai->produk?->satuan_order_moq ?: $ai->produk?->satuan ?: 'pcs';
+                $hargaSatuan = (float) $ai->harga_per_satuan;
+                $hargaTotal = (float) $ai->total_nominal_order;
+
+                return [
+                    'id' => 'impor_'.$ai->id,
+                    'produk_id' => $ai->produk_id,
+                    'sku' => $ai->produk?->sku ?? '-',
+                    'nama' => $ai->produk?->nama ?? '-',
+                    'satuan_dasar' => $ai->produk?->satuan ?? 'pcs',
+                    'satuan_beli' => $satuanBeli,
+                    'qty_satuan_beli' => $qtySatuanBeli,
+                    'faktor_konversi' => $faktor,
+                    'qty' => $qtyDasar,
+                    'harga_satuan' => $hargaSatuan,
+                    'harga_total' => $hargaTotal,
+                ];
+            });
+
+            $prefilledItems = $prefilledItems->concat($prefilledImpor);
+        }
+
+        $allProduk = Produk::active()->bahan()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp']);
+
+        return view('analisa.create-po', compact('suppliers', 'gudang', 'prefilledItems', 'allProduk'));
+    }
+
     /** Buat draft PO dari hasil analisa (ditandai "Dari Analisa"). */
     public function createPo(Request $request)
     {
@@ -338,12 +524,20 @@ class AnalisaController extends Controller
         $data = $request->validate([
             'supplier_id' => ['required', 'exists:supplier,id'],
             'gudang_id' => ['nullable', 'exists:gudang,id'],
+            'tanggal' => ['nullable', 'date'],
+            'eta' => ['nullable', 'date'],
+            'no_invoice' => ['nullable', 'string', 'max:100'],
+            'catatan' => ['nullable', 'string', 'max:1000'],
+            'sumber_dana' => ['nullable', 'string', 'max:100'],
+            'skema_bayar' => ['nullable', 'string', 'in:cash,tempo,termin'],
+            'tanggal_tempo' => ['nullable', 'date'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.produk_id' => ['required', 'distinct', 'exists:produk,id'],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
             'items.*.qty_satuan_beli' => ['nullable', 'numeric', 'gt:0'],
             'items.*.satuan_beli' => ['nullable', 'string', 'max:50'],
             'items.*.faktor_konversi' => ['nullable', 'numeric', 'gt:0'],
+            'items.*.harga_satuan' => ['nullable', 'numeric', 'min:0'],
             'items.*.harga_total' => ['required', 'numeric', 'min:0'],
         ]);
 
@@ -355,7 +549,13 @@ class AnalisaController extends Controller
                 'no_po' => $no,
                 'supplier_id' => $data['supplier_id'],
                 'gudang_id' => $data['gudang_id'] ?? null,
-                'tanggal' => now()->toDateString(),
+                'no_invoice' => $data['no_invoice'] ?? null,
+                'tanggal' => $data['tanggal'] ?? now()->toDateString(),
+                'eta' => $data['eta'] ?? null,
+                'catatan' => $data['catatan'] ?? null,
+                'sumber_dana' => $data['sumber_dana'] ?? null,
+                'skema_bayar' => $data['skema_bayar'] ?? 'cash',
+                'tanggal_tempo' => $data['tanggal_tempo'] ?? null,
                 'status' => 'draft',
                 'dari_analisa' => true,
                 'subtotal_produk' => $subtotal,
@@ -363,7 +563,15 @@ class AnalisaController extends Controller
                 'created_by' => auth()->id(),
             ]);
             foreach ($data['items'] as $row) {
-                $po->items()->create($row);
+                $po->items()->create([
+                    'produk_id' => $row['produk_id'],
+                    'qty' => $row['qty'],
+                    'qty_satuan_beli' => $row['qty_satuan_beli'] ?? null,
+                    'satuan_beli' => $row['satuan_beli'] ?? null,
+                    'faktor_konversi' => $row['faktor_konversi'] ?? 1,
+                    'harga_satuan' => $row['harga_satuan'] ?? (($row['qty'] > 0) ? ($row['harga_total'] / $row['qty']) : 0),
+                    'harga_total' => $row['harga_total'],
+                ]);
             }
 
             return $po;

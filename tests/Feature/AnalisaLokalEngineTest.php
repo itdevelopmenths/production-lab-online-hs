@@ -285,4 +285,28 @@ class AnalisaLokalEngineTest extends TestCase
             'harga_total' => 13150000,
         ]);
     }
+
+    public function test_get_create_po_page_renders_with_prefilled_items(): void
+    {
+        $this->actingAs($this->purchasing);
+
+        $service = app(AnalisaService::class);
+        $service->generateLokal($this->alkohol->id, $this->purchasing->id);
+
+        $rek = RekomendasiOrderLokal::where('produk_id', $this->alkohol->id)->firstOrFail();
+
+        // 1. Akses tanpa filter ids (default status order)
+        $response = $this->get(route('analisa.create-po'));
+        $response->assertOk();
+        $response->assertViewIs('analisa.create-po');
+        $response->assertViewHas(['suppliers', 'gudang', 'prefilledItems']);
+
+        // 2. Akses dengan query ids spesifik
+        $responseFiltered = $this->get(route('analisa.create-po', ['ids' => $rek->id]));
+        $responseFiltered->assertOk();
+        $responseFiltered->assertViewHas('prefilledItems', function ($items) use ($rek) {
+            return count($items) === 1 && $items[0]['id'] === $rek->id;
+        });
+    }
 }
+

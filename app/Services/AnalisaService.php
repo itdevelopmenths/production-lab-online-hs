@@ -3,18 +3,23 @@
 namespace App\Services;
 
 use App\Models\AnalisaFulfillmentInput;
+use App\Models\AnalisaImpor;
 use App\Models\AnalisaImporMeta;
+use App\Models\AnalisaImporVarian;
 use App\Models\AnalisaLokal;
 use App\Models\AnalisaLokalInput;
+use App\Models\LeadTimeImpor;
 use App\Models\LeadTimeLokal;
 use App\Models\LeadTimeLokalStage;
 use App\Models\LeadTimeStage;
 use App\Models\Produk;
 use App\Models\PurchaseOrderItem;
 use App\Models\RekomendasiOrderLokal;
+use App\Models\RiwayatAnalisa;
 use App\Models\Stok;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 /**
  * Replikasi rumus Analisa Stok dari 3 file Excel acuan (PRD Bab 6):
@@ -311,6 +316,318 @@ class AnalisaService
     }
 
     /**
+     * Engine Generate Analisa Impor:
+     * Menghitung dan menyimpan hasil ke 2 tabel data kerja:
+     * 1. lead_time_impor (lead_time_average, lead_time_max)
+     * 2. analisa_impor (working data: out, adu_base, adu_eta, buffer_days, safety_stock, minimum_stock, target_stock, proyeksi, qty_order, po, status, nominal, varian_detail)
+     *
+     * @param  int|null  $produkId  Jika null, generate untuk seluruh produk bahan impor
+     * @param  int|null  $userId    User ID pembuat generate
+     * @return array{generated_count: int, timestamp: string, items: array}
+     */
+    public function generateImpor(?int $produkId = null, ?int $userId = null): array
+    {
+        $query = Produk::query()->where('is_active', true);
+        if ($produkId) {
+            $query->where('id', $produkId);
+        } else {
+            $query->where(function ($q) {
+                $q->where('profil_analisa', 'bahan_impor')
+                  ->orWhereHas('leadTimeImpor')
+                  ->orWhereHas('analisaImpor')
+                  ->orWhereIn('id', AnalisaImporMeta::pluck('produk_id'));
+            });
+        }
+
+        $products = $query->orderBy('nama')->get();
+        if ($products->isEmpty() && ! $produkId) {
+            $metaProdIds = AnalisaImporMeta::pluck('produk_id');
+            if ($metaProdIds->isNotEmpty()) {
+                $products = Produk::whereIn('id', $metaProdIds)->orderBy('nama')->get();
+            }
+        }
+
+        $generated = [];
+        $now = now();
+        $abcBonusMap = ['wajib_a' => 4, 'a' => 4, 'b' => 2, 'c' => 0];
+
+        foreach ($products as $p) {
+            $meta = AnalisaImporMeta::where('produk_id', $p->id)->first();
+            $ltImpor = LeadTimeImpor::firstOrNew(['produk_id' => $p->id]);
+            $existingAnalisa = AnalisaImpor::where('produk_id', $p->id)->first();
+
+            $ltAvg = (float) ($ltImpor->exists ? $ltImpor->lead_time_average : ($meta?->lead_time_average ?? 45));
+            $ltMax = (float) ($ltImpor->exists ? $ltImpor->lead_time_max : ($meta?->lead_time_max ?? 60));
+            $reviewPeriod = (int) ($existingAnalisa?->review_period ?? $meta?->review_period ?? 30);
+            if ($reviewPeriod <= 0) {
+                $reviewPeriod = 30;
+            }
+
+            $klasifikasiAbc = strtolower((string) ($existingAnalisa?->klasifikasi_abc ?? $meta?->klasifikasi_abc ?? 'c'));
+            $tambahanHari = $abcBonusMap[$klasifikasiAbc] ?? 0;
+            $bufferDays = max(0, $ltMax - $ltAvg) + $tambahanHari;
+
+            // 1. Simpan LeadTimeImpor
+            $ltImpor->fill([
+                'lead_time_average' => $ltAvg,
+                'lead_time_max' => $ltMax,
+            ])->save();
+
+            // 2. Data Out & Harga
+            $out = (float) ($existingAnalisa?->out ?? $meta?->out_total_4bulan ?? 0);
+            $harga = (float) ($existingAnalisa?->harga_per_satuan ?? $meta?->harga_per_satuan ?? $p->harga_hpp ?? 0);
+            $moq = (float) ($p->satuan_order_moq ?: 1);
+
+            $varians = $meta ? AnalisaImporVarian::where('analisa_impor_meta_id', $meta->id)->get() : collect();
+            $punyaVarian = (bool) ($meta?->punya_varian || $varians->isNotEmpty());
+
+            $totalStok = 0.0;
+            $totalInbound = 0.0;
+            $totalSafetyStock = 0.0;
+            $totalMinStock = 0.0;
+            $totalTargetStock = 0.0;
+            $totalProyeksi = 0.0;
+            $totalQtyOrder = 0.0;
+            $totalPo = 0.0;
+            $varianDetails = [];
+
+            if ($varians->isNotEmpty()) {
+                foreach ($varians as $v) {
+                    $vOut = (float) $v->persentase_distribusi * $out;
+                    $vAduBase = $vOut / 122;
+                    $vAduEta = $punyaVarian
+                        ? $vAduBase + ($vAduBase * $ltAvg / 30)
+                        : $vAduBase + ($reviewPeriod > 0 ? $ltAvg / $reviewPeriod : 0);
+
+                    $vSafety = $vAduEta * $bufferDays;
+                    $vMin = $vAduEta * $ltAvg;
+                    $vTarget = $vAduEta * ($ltAvg + $reviewPeriod) + $vSafety;
+                    $vStok = (float) $v->stok_saat_ini;
+                    $vInbound = (float) $v->inbound_before_eta;
+                    $vProyeksi = $vStok + $vInbound - ($vAduEta * $ltAvg);
+                    $vSelisih = $vProyeksi - $vTarget;
+                    $isPo = $vSelisih < 0;
+                    $vQtyOrder = $isPo ? $this->bulatkanMoq(abs($vSelisih), $moq) : 0;
+
+                    $totalStok += $vStok;
+                    $totalInbound += $vInbound;
+                    $totalSafetyStock += $vSafety;
+                    $totalMinStock += $vMin;
+                    $totalTargetStock += $vTarget;
+                    $totalProyeksi += $vProyeksi;
+                    $totalQtyOrder += $vQtyOrder;
+                    $totalPo += $vQtyOrder;
+
+                    $varianDetails[] = [
+                        'nama_varian' => $v->nama_varian,
+                        'persentase' => (float) $v->persentase_distribusi,
+                        'out' => round($vOut, 2),
+                        'adu_base' => round($vAduBase, 4),
+                        'adu_eta' => round($vAduEta, 4),
+                        'buffer_days' => round($bufferDays, 2),
+                        'safety_stock' => round($vSafety, 2),
+                        'minimum_stock' => round($vMin, 2),
+                        'target_stock' => round($vTarget, 2),
+                        'stok_saat_ini' => round($vStok, 2),
+                        'inbound' => round($vInbound, 2),
+                        'proyeksi' => round($vProyeksi, 2),
+                        'selisih' => round($vSelisih, 2),
+                        'status' => $isPo ? 'po' : 'tidak',
+                        'qty_order' => round($vQtyOrder, 2),
+                    ];
+                }
+                $aduBase = $out / 122;
+                $aduEta = $punyaVarian
+                    ? $aduBase + ($aduBase * $ltAvg / 30)
+                    : $aduBase + ($reviewPeriod > 0 ? $ltAvg / $reviewPeriod : 0);
+            } else {
+                $aduBase = $out / 122;
+                $aduEta = $aduBase + ($reviewPeriod > 0 ? $ltAvg / $reviewPeriod : 0);
+                $totalSafetyStock = $aduEta * $bufferDays;
+                $totalMinStock = $aduEta * $ltAvg;
+                $totalTargetStock = $aduEta * ($ltAvg + $reviewPeriod) + $totalSafetyStock;
+
+                $stokDb = (float) Stok::where('produk_id', $p->id)->sum('qty_saat_ini');
+                $totalStok = $existingAnalisa ? (float) $existingAnalisa->stok_saat_ini : $stokDb;
+
+                $akanDatangDb = (float) PurchaseOrderItem::where('produk_id', $p->id)
+                    ->whereHas('purchaseOrder', function ($q) {
+                        $q->whereIn('status', ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']);
+                    })->sum('qty');
+                $totalInbound = $existingAnalisa ? (float) $existingAnalisa->inbound_before_eta : $akanDatangDb;
+
+                $totalProyeksi = $totalStok + $totalInbound - ($aduEta * $ltAvg);
+                $selisih = $totalProyeksi - $totalTargetStock;
+                $isPo = $selisih < 0;
+                $totalQtyOrder = $isPo ? abs($selisih) : 0;
+                $totalPo = $isPo ? $this->bulatkanMoq($totalQtyOrder, $moq) : 0;
+            }
+
+            $status = $totalPo > 0 ? 'po' : 'tidak';
+            $totalNominal = $totalPo * $harga;
+
+            $analisaImpor = AnalisaImpor::updateOrCreate(
+                ['produk_id' => $p->id],
+                [
+                    'out' => round($out, 2),
+                    'adu_base' => round($aduBase, 4),
+                    'adu_eta' => round($aduEta, 4),
+                    'lead_time' => $ltAvg,
+                    'review_period' => $reviewPeriod,
+                    'klasifikasi_abc' => $klasifikasiAbc,
+                    'tambahan_buffer_hari' => $tambahanHari,
+                    'buffer_days' => round($bufferDays, 2),
+                    'safety_stock' => round($totalSafetyStock, 2),
+                    'minimum_stock' => round($totalMinStock, 2),
+                    'target_stock' => round($totalTargetStock, 2),
+                    'stok_saat_ini' => round($totalStok, 2),
+                    'inbound_before_eta' => round($totalInbound, 2),
+                    'proyeksi' => round($totalProyeksi, 2),
+                    'qty_order' => round($totalQtyOrder, 2),
+                    'po' => round($totalPo, 2),
+                    'status' => $status,
+                    'harga_per_satuan' => round($harga, 2),
+                    'total_nominal_order' => round($totalNominal, 2),
+                    'punya_varian' => $punyaVarian,
+                    'varian_detail' => $varianDetails,
+                    'generated_at' => $now,
+                    'generated_by' => $userId ?? auth()->id(),
+                ]
+            );
+
+            $generated[] = [
+                'produk_id' => $p->id,
+                'sku' => $p->sku,
+                'nama' => $p->nama,
+                'po' => $totalPo,
+                'status' => $status,
+                'total_nominal' => $totalNominal,
+            ];
+        }
+
+        return [
+            'generated_count' => count($generated),
+            'timestamp' => $now->format('d/m/Y H:i'),
+            'items' => $generated,
+        ];
+    }
+
+    /**
+     * Finalisasi (Locking) Data Kerja Analisa ke Tabel Riwayat Analisa
+     * Mengunci salinan snapshot dengan batch session ID unik.
+     *
+     * @param  string  $tipe  'bahan_lokal' | 'bahan_impor' | 'produk_jadi_fulfillment' | 'all'
+     * @param  int|null  $userId  User ID yang memfinalisasi
+     * @return array{session_id: string, count: int, tipe: string}
+     */
+    public function finalisasi(string $tipe, ?int $userId = null): array
+    {
+        $sessionId = sprintf('SNAP-%s-%s', date('Ymd-His'), strtoupper(Str::random(4)));
+        $count = 0;
+        $actorId = $userId ?? auth()->id();
+        $today = now()->toDateString();
+
+        DB::transaction(function () use ($tipe, $sessionId, $actorId, $today, &$count) {
+            // 1. Finalisasi Bahan Lokal
+            if ($tipe === 'bahan_lokal' || $tipe === 'all') {
+                $rekomendasiList = RekomendasiOrderLokal::with('produk')->get();
+                foreach ($rekomendasiList as $rek) {
+                    RiwayatAnalisa::create([
+                        'session_id' => $sessionId,
+                        'tanggal' => $today,
+                        'tipe' => 'bahan_lokal',
+                        'item_label' => $rek->produk?->sku ?? '-',
+                        'batas_minimum' => (float) $rek->batas_minimum,
+                        'target_stock' => (float) $rek->target_stock,
+                        'status' => $rek->status,
+                        'qty_order' => (float) ($rek->rekomendasi_order ?: $rek->rumus_moq),
+                        'dicatat_oleh' => $actorId,
+                        'is_locked' => true,
+                        'detail_payload' => [
+                            'nama' => $rek->produk?->nama,
+                            'satuan' => $rek->produk?->satuan,
+                            'stok_saat_ini' => (float) $rek->stok_saat_ini,
+                            'akan_datang' => (float) $rek->akan_datang,
+                            'selisih' => (float) $rek->selisih,
+                            'rumus_moq' => (float) $rek->rumus_moq,
+                            'rekomendasi_order' => (float) $rek->rekomendasi_order,
+                            'harga_per_satuan' => (float) $rek->harga_ml_pcs,
+                            'total_nominal' => (float) $rek->total_nominal_order,
+                        ],
+                    ]);
+                    $count++;
+                }
+            }
+
+            // 2. Finalisasi Bahan Impor
+            if ($tipe === 'bahan_impor' || $tipe === 'all') {
+                $analisaImporList = AnalisaImpor::with('produk')->get();
+                foreach ($analisaImporList as $ai) {
+                    RiwayatAnalisa::create([
+                        'session_id' => $sessionId,
+                        'tanggal' => $today,
+                        'tipe' => 'bahan_impor',
+                        'item_label' => $ai->produk?->sku ?? '-',
+                        'batas_minimum' => (float) $ai->minimum_stock,
+                        'target_stock' => (float) $ai->target_stock,
+                        'status' => $ai->status,
+                        'qty_order' => (float) ($ai->po ?: $ai->qty_order),
+                        'dicatat_oleh' => $actorId,
+                        'is_locked' => true,
+                        'detail_payload' => [
+                            'nama' => $ai->produk?->nama,
+                            'klasifikasi_abc' => $ai->klasifikasi_abc,
+                            'buffer_days' => (float) $ai->buffer_days,
+                            'safety_stock' => (float) $ai->safety_stock,
+                            'stok_saat_ini' => (float) $ai->stok_saat_ini,
+                            'inbound' => (float) $ai->inbound_before_eta,
+                            'proyeksi' => (float) $ai->proyeksi,
+                            'po' => (float) $ai->po,
+                            'total_nominal' => (float) $ai->total_nominal_order,
+                            'varian_detail' => $ai->varian_detail,
+                        ],
+                    ]);
+                    $count++;
+                }
+            }
+
+            // 3. Finalisasi Produk Jadi Fulfillment
+            if ($tipe === 'produk_jadi_fulfillment' || $tipe === 'all') {
+                $grouped = AnalisaFulfillmentInput::with(['produk', 'gudang'])->get()->groupBy('produk_id');
+                foreach ($grouped as $rows) {
+                    $produk = $rows->first()->produk;
+                    $h = $this->fulfillment($rows, (float) ($produk?->satuan_order_moq ?? 1));
+                    RiwayatAnalisa::create([
+                        'session_id' => $sessionId,
+                        'tanggal' => $today,
+                        'tipe' => 'produk_jadi_fulfillment',
+                        'item_label' => $produk?->sku ?? '-',
+                        'batas_minimum' => (float) $h['batas_minimum_total'],
+                        'target_stock' => (float) $h['target_stock_total'],
+                        'status' => $h['status'],
+                        'qty_order' => (float) $h['qty_order'],
+                        'dicatat_oleh' => $actorId,
+                        'is_locked' => true,
+                        'detail_payload' => [
+                            'nama' => $produk?->nama,
+                            'stok_total' => (float) $h['stok_total'],
+                            'akan_datang' => (float) $h['akan_datang'],
+                            'per_gudang' => $h['per_gudang'],
+                        ],
+                    ]);
+                    $count++;
+                }
+            }
+        });
+
+        return [
+            'session_id' => $sessionId,
+            'count' => $count,
+            'tipe' => $tipe,
+        ];
+    }
+
+    /**
      * Profil Produk Jadi (Fulfillment) — per gudang lalu agregasi level ALL.
      *
      * @param  \Illuminate\Support\Collection<int,AnalisaFulfillmentInput>  $rows  baris per gudang untuk satu produk jadi
@@ -400,14 +717,20 @@ class AnalisaService
         }
 
         // 2. Profil Bahan Impor
-        $imporMetas = AnalisaImporMeta::with(['produk', 'varian'])->get();
-        foreach ($imporMetas as $meta) {
-            $hasil = $this->impor($meta);
-            $minTotal = 0.0;
-            foreach ($hasil['varian'] as $v) {
-                $minTotal += (float) ($v['minimum_stock'] ?? 0);
+        if (AnalisaImpor::exists()) {
+            foreach (AnalisaImpor::all() as $ai) {
+                $byProduct[$ai->produk_id] = (float) $ai->minimum_stock;
             }
-            $byProduct[$meta->produk_id] = $minTotal;
+        } else {
+            $imporMetas = AnalisaImporMeta::with(['produk', 'varian'])->get();
+            foreach ($imporMetas as $meta) {
+                $hasil = $this->impor($meta);
+                $minTotal = 0.0;
+                foreach ($hasil['varian'] as $v) {
+                    $minTotal += (float) ($v['minimum_stock'] ?? 0);
+                }
+                $byProduct[$meta->produk_id] = $minTotal;
+            }
         }
 
         // 3. Profil Produk Jadi (Fulfillment)
@@ -454,9 +777,12 @@ class AnalisaService
                 ->count();
         }
 
-        $imporOrder = AnalisaImporMeta::with(['produk', 'varian'])->get()
-            ->filter(fn ($m) => $this->impor($m)['status'] === 'po')
-            ->count();
+        $imporOrder = AnalisaImpor::where('status', 'po')->count();
+        if ($imporOrder === 0 && AnalisaImporMeta::exists()) {
+            $imporOrder = AnalisaImporMeta::with(['produk', 'varian'])->get()
+                ->filter(fn ($m) => $this->impor($m)['status'] === 'po')
+                ->count();
+        }
 
         $ffOrder = AnalisaFulfillmentInput::with(['gudang', 'produk'])->get()
             ->groupBy('produk_id')

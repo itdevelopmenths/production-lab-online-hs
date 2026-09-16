@@ -169,12 +169,18 @@ Route::middleware('auth')->group(function () {
         Route::get('riwayat/data', [AnalisaController::class, 'riwayatData'])->name('riwayat.data');
         Route::post('generate-lokal', [AnalisaController::class, 'generateLokal'])
             ->middleware('can:analisa.manage')->name('generate-lokal');
+        Route::post('generate-impor', [AnalisaController::class, 'generateImpor'])
+            ->middleware('can:analisa.manage')->name('generate-impor');
         Route::post('stages-lokal', [AnalisaController::class, 'updateLeadTimeStages'])
             ->middleware('can:analisa.manage')->name('stages-lokal.update');
         Route::post('snapshot', [AnalisaController::class, 'snapshot'])
             ->middleware('can:analisa.snapshot')->name('snapshot');
-        Route::post('create-po', [AnalisaController::class, 'createPo'])
+        Route::post('finalisasi', [AnalisaController::class, 'finalisasi'])
+            ->middleware('can:analisa.snapshot')->name('finalisasi');
+        Route::get('create-po', [AnalisaController::class, 'createPoForm'])
             ->middleware('can:analisa.create_po')->name('create-po');
+        Route::post('create-po', [AnalisaController::class, 'createPo'])
+            ->middleware('can:analisa.create_po')->name('create-po.store');
     });
 
     // ===== Produksi (Batch) =====

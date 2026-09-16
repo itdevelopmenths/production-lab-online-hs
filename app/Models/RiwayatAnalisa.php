@@ -13,6 +13,7 @@ class RiwayatAnalisa extends Model
     protected $table = 'riwayat_analisa';
 
     protected $fillable = [
+        'session_id',
         'tanggal',
         'tipe',
         'item_label',
@@ -21,6 +22,8 @@ class RiwayatAnalisa extends Model
         'status',
         'qty_order',
         'dicatat_oleh',
+        'is_locked',
+        'detail_payload',
     ];
 
     protected $casts = [
@@ -28,6 +31,8 @@ class RiwayatAnalisa extends Model
         'batas_minimum' => 'decimal:2',
         'target_stock' => 'decimal:2',
         'qty_order' => 'decimal:2',
+        'is_locked' => 'boolean',
+        'detail_payload' => 'array',
     ];
 
     public function pencatat(): BelongsTo
