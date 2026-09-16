@@ -57,13 +57,29 @@ class StokEnhancementTest extends TestCase
         $this->assertNotNull($alkScopedRow);
         $this->assertStringContainsString('gudang_id=' . $gOps->id, $alkScopedRow['action']);
 
-        // Search by Product Name
+        // Search by Product Name (case-insensitive lowercase)
         $resName = $this->getJson(route('stok.data', [
-            'search' => ['value' => substr($bahan->nama, 0, 4)],
+            'search' => ['value' => strtolower(substr($bahan->nama, 0, 4))],
         ]));
         $resName->assertOk();
         $dataName = collect($resName->json('data'));
         $this->assertTrue($dataName->contains(fn ($row) => $row['sku'] === 'ALK-01'));
+
+        // Search by Warehouse Name (case-insensitive lowercase)
+        $resGudang = $this->getJson(route('stok.data', [
+            'search' => ['value' => strtolower($gOps->nama)],
+        ]));
+        $resGudang->assertOk();
+        $dataGudang = collect($resGudang->json('data'));
+        $this->assertTrue($dataGudang->every(fn ($row) => str_contains(strtolower($row['gudang_nama']), strtolower($gOps->nama))));
+
+        // Multi-word search (Product Name + Warehouse Name)
+        $resMulti = $this->getJson(route('stok.data', [
+            'search' => ['value' => 'alkohol ' . strtolower($gOps->nama)],
+        ]));
+        $resMulti->assertOk();
+        $dataMulti = collect($resMulti->json('data'));
+        $this->assertTrue($dataMulti->contains(fn ($row) => $row['sku'] === 'ALK-01' && str_contains(strtolower($row['gudang_nama']), strtolower($gOps->nama))));
     }
 
     public function test_kartu_stok_ledger_scoped_by_gudang_id(): void
@@ -156,8 +172,9 @@ class StokEnhancementTest extends TestCase
 
         // 1. Stok Index
         $resIndex = $this->get(route('stok.index'));
-        $resIndex->assertOk();
-        $resIndex->assertSee('filter-search');
+        $resIndex->assertSee('Filter Lokasi Gudang');
+        $resIndex->assertSee('Filter Kategori Barang');
+        $resIndex->assertDontSee('id="filter-search"', false);
 
         // 2. Stok Ledger with gudang_id
         $resLedger = $this->get(route('stok.ledger', [

@@ -111,14 +111,32 @@ class StokController extends Controller
             });
 
         return DataTables::eloquent($query)
+            ->filter(function ($q) use ($request) {
+                $searchVal = trim((string) $request->input('search.value'));
+                if ($searchVal !== '') {
+                    $words = array_filter(explode(' ', strtolower($searchVal)));
+                    if (! empty($words)) {
+                        $q->where(function ($parentQuery) use ($words) {
+                            foreach ($words as $word) {
+                                $parentQuery->where(function ($sub) use ($word) {
+                                    $sub->whereRaw('LOWER(produk.sku) LIKE ?', ["%{$word}%"])
+                                        ->orWhereRaw('LOWER(produk.nama) LIKE ?', ["%{$word}%"])
+                                        ->orWhereRaw('LOWER(gudang.nama) LIKE ?', ["%{$word}%"])
+                                        ->orWhereRaw('LOWER(gudang.kode) LIKE ?', ["%{$word}%"]);
+                                });
+                            }
+                        });
+                    }
+                }
+            })
             ->filterColumn('sku', function ($q, $keyword) {
-                $q->where('produk.sku', 'like', "%{$keyword}%");
+                $q->whereRaw('LOWER(produk.sku) LIKE ?', ['%' . strtolower(trim($keyword)) . '%']);
             })
             ->filterColumn('nama', function ($q, $keyword) {
-                $q->where('produk.nama', 'like', "%{$keyword}%");
+                $q->whereRaw('LOWER(produk.nama) LIKE ?', ['%' . strtolower(trim($keyword)) . '%']);
             })
             ->filterColumn('gudang_nama', function ($q, $keyword) {
-                $q->where('gudang.nama', 'like', "%{$keyword}%");
+                $q->whereRaw('LOWER(gudang.nama) LIKE ?', ['%' . strtolower(trim($keyword)) . '%']);
             })
             ->addColumn('sku', fn ($s) => $s->produk?->sku)
             ->addColumn('nama', fn ($s) => $s->produk?->nama)
