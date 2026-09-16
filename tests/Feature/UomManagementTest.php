@@ -120,12 +120,16 @@ class UomManagementTest extends TestCase
     {
         $this->actingAs($this->manager);
 
+        $kategori = \App\Models\Kategori::firstOrCreate(['nama' => 'Bahan Baku']);
+
         // Invalid UOM should fail validation
         $response = $this->post(route('produk.store'), [
             'sku' => 'TEST-SKU-001',
-            'nama' => 'Produk Uji UOM',
+            'kategori_id' => $kategori->id,
+            'nama_produk' => 'Produk Uji UOM',
             'tipe' => 'bahan',
             'satuan' => 'satuan_tidak_ada',
+            'faktor_konversi' => 1.0000,
             'satuan_order_moq' => 10,
             'is_active' => 1,
         ]);
@@ -135,9 +139,11 @@ class UomManagementTest extends TestCase
         // Valid UOM should succeed
         $validResponse = $this->post(route('produk.store'), [
             'sku' => 'TEST-SKU-001',
-            'nama' => 'Produk Uji UOM',
+            'kategori_id' => $kategori->id,
+            'nama_produk' => 'Produk Uji UOM',
             'tipe' => 'bahan',
             'satuan' => 'ml',
+            'faktor_konversi' => 1.0000,
             'satuan_order_moq' => 10,
             'is_active' => 1,
         ]);

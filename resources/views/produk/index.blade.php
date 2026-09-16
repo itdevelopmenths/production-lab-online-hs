@@ -73,20 +73,38 @@
         </div>
 
         <div x-show="currentTab !== 'audit'">
+            <!-- Filter Bar -->
+            <div class="mb-4 bg-white p-3 rounded-md border border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-2">
+                    <label for="filter-kategori" class="font-medium text-gray-700">Filter Kategori:</label>
+                    <select id="filter-kategori" class="rounded border-gray-300 text-xs py-1.5 px-2.5 focus:border-primary-500 focus:ring-primary-500">
+                        <option value="">Semua Kategori</option>
+                        @foreach($kategoriList as $k)
+                            <option value="{{ $k->id }}">{{ $k->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
             <x-card title="Katalog Produk & Bahan Baku" :noPadding="true">
-                <table id="tbl" class="w-full text-xs">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-3 text-left">SKU</th>
-                            <th class="px-4 py-3 text-left">Nama</th>
-                            <th class="px-4 py-3 text-left">Tipe</th>
-                            <th class="px-4 py-3 text-left">Satuan</th>
-                            <th class="px-4 py-3 text-left">MOQ</th>
-                            <th class="px-4 py-3 text-left">Status</th>
-                            <th class="px-4 py-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                </table>
+                <div class="overflow-x-auto">
+                    <table id="tbl" class="w-full text-xs">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 text-left w-28">SKU</th>
+                                <th class="px-4 py-3 text-left">Nama Produk</th>
+                                <th class="px-4 py-3 text-left w-32">Kategori</th>
+                                <th class="px-4 py-3 text-left w-32">Varian</th>
+                                <th class="px-4 py-3 text-left w-24">Tipe</th>
+                                <th class="px-4 py-3 text-left w-16">Satuan</th>
+                                <th class="px-4 py-3 text-left w-20">Faktor</th>
+                                <th class="px-4 py-3 text-left w-20">MOQ</th>
+                                <th class="px-4 py-3 text-left w-20">Status</th>
+                                <th class="px-4 py-3 text-center w-28">Aksi</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
             </x-card>
         </div>
 
@@ -110,6 +128,7 @@
     function hapus(url){
         Swal.fire({
             title: 'Hapus data produk ini?',
+            text: 'Data produk yang memiliki histori transaksi stok tidak dapat dihapus.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
@@ -121,10 +140,17 @@
                     method: 'DELETE',
                     headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
                 })
-                .then(res => res.json())
-                .then(d => {
-                    Swal.fire('Terhapus', d.message, 'success');
-                    $('#tbl').DataTable().ajax.reload();
+                .then(async res => {
+                    const d = await res.json();
+                    if (res.ok) {
+                        Swal.fire('Terhapus', d.message, 'success');
+                        $('#tbl').DataTable().ajax.reload();
+                    } else {
+                        Swal.fire('Gagal Menghapus', d.message || 'Terjadi kesalahan.', 'error');
+                    }
+                })
+                .catch(() => {
+                    Swal.fire('Kesalahan Sistem', 'Tidak dapat terhubung ke server.', 'error');
                 });
             }
         });
@@ -138,17 +164,25 @@
                 url: '{{ route("produk.data") }}',
                 data: function(d) {
                     d.tipe = activeTipe;
+                    d.kategori_id = $('#filter-kategori').val();
                 }
             },
             columns: [
                 { data: 'sku' },
                 { data: 'nama' },
+                { data: 'kategori_nama' },
+                { data: 'varian_nama' },
                 { data: 'tipe' },
                 { data: 'satuan' },
+                { data: 'faktor_konversi' },
                 { data: 'satuan_order_moq', name: 'satuan_order_moq' },
                 { data: 'is_active', name: 'is_active' },
                 { data: 'action', orderable: false, searchable: false, className: 'text-center' }
             ]
+        });
+
+        $('#filter-kategori').on('change', function() {
+            table.ajax.reload();
         });
     });
     </script>

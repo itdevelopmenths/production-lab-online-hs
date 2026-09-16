@@ -17,6 +17,8 @@ class MasterDataAuditController extends Controller
 {
     private const MODEL_MAP = [
         'produk' => Produk::class,
+        'kategori' => \App\Models\Kategori::class,
+        'varian' => \App\Models\Varian::class,
         'gudang' => Gudang::class,
         'supplier' => Supplier::class,
         'uom' => Uom::class,
@@ -34,7 +36,7 @@ class MasterDataAuditController extends Controller
         }
 
         // Cek izin akses sesuai modul terkait
-        $permissionKey = "{$entity}.view";
+        $permissionKey = in_array($entity, ['kategori', 'varian']) ? 'produk.view' : "{$entity}.view";
         if (auth()->check() && ! auth()->user()->can($permissionKey)) {
             abort(403, 'Akses tidak diizinkan.');
         }

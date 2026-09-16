@@ -8,8 +8,10 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\GudangController;
 use App\Http\Controllers\AnalisaController;
+use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PurchasingController;
+use App\Http\Controllers\VarianController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RequestTransferController;
 use App\Http\Controllers\StokController;
@@ -41,12 +43,19 @@ Route::middleware('auth')->group(function () {
 
     // API / Search Endpoints
     Route::get('produk/select-data', [ProdukController::class, 'selectData'])->name('produk.select-data');
+    Route::get('varian/by-kategori/{kategoriId}', [VarianController::class, 'byKategori'])->name('varian.by-kategori');
     Route::get('master-data-audit/data', [\App\Http\Controllers\MasterDataAuditController::class, 'data'])->name('master-audit.data');
 
     // ===== Master Data =====
     Route::middleware('can:produk.view')->group(function () {
         Route::get('produk/data', [ProdukController::class, 'data'])->name('produk.data');
         Route::resource('produk', ProdukController::class)->except(['show']);
+
+        Route::get('kategori/data', [KategoriController::class, 'data'])->name('kategori.data');
+        Route::resource('kategori', KategoriController::class)->except(['show']);
+
+        Route::get('varian/data', [VarianController::class, 'data'])->name('varian.data');
+        Route::resource('varian', VarianController::class)->except(['show']);
     });
 
     Route::middleware('can:gudang.view')->group(function () {

@@ -2,21 +2,26 @@
 
 namespace App\Models;
 
+use App\Traits\AuditableMasterData;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Produk extends Model
 {
-    use \App\Traits\AuditableMasterData;
+    use AuditableMasterData;
 
     protected $table = 'produk';
 
     protected $fillable = [
+        'kategori_id',
+        'varian_id',
         'sku',
         'nama',
+        'nama_produk',
         'tipe',
         'satuan',
+        'faktor_konversi',
         'satuan_order_moq',
         'harga_hpp',
         'profil_analisa',
@@ -26,10 +31,53 @@ class Produk extends Model
     protected $casts = [
         'satuan_order_moq' => 'decimal:2',
         'harga_hpp' => 'decimal:4',
+        'faktor_konversi' => 'decimal:4',
         'is_active' => 'boolean',
     ];
 
     public const TIPE = ['bahan', 'kemas', 'produk_jadi'];
+
+    protected static function booted(): void
+    {
+        static::saving(function ($produk) {
+            // Keep nama column in sync if nama_produk is provided
+            if (!empty($produk->nama_produk)) {
+                $varianNama = '';
+                if (!empty($produk->varian_id)) {
+                    $varian = $produk->relationLoaded('varian') ? $produk->varian : Varian::find($produk->varian_id);
+                    if ($varian) {
+                        $varianNama = ' ' . $varian->nama;
+                    }
+                }
+                $produk->nama = trim($produk->nama_produk . $varianNama);
+            }
+        });
+    }
+
+    public function getNamaAttribute(?string $value): string
+    {
+        if (!empty($this->attributes['nama_produk'])) {
+            if ($this->relationLoaded('varian') && $this->varian) {
+                return "{$this->attributes['nama_produk']} {$this->varian->nama}";
+            }
+            if (!empty($this->attributes['varian_id'])) {
+                $varian = $this->varian;
+                return $varian ? "{$this->attributes['nama_produk']} {$varian->nama}" : $this->attributes['nama_produk'];
+            }
+            return $this->attributes['nama_produk'];
+        }
+        return $value ?? '';
+    }
+
+    public function kategori(): BelongsTo
+    {
+        return $this->belongsTo(Kategori::class, 'kategori_id');
+    }
+
+    public function varian(): BelongsTo
+    {
+        return $this->belongsTo(Varian::class, 'varian_id');
+    }
 
     /** Relasi master UOM berdasarkan kolom kode satuan. */
     public function uom(): BelongsTo
