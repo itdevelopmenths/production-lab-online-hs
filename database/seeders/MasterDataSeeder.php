@@ -58,6 +58,7 @@ class MasterDataSeeder extends Seeder
             LeadTimeStage::firstOrCreate(['produk_id' => $alk->id, 'skenario' => 'average', 'tahap' => $tahap], ['jumlah_hari' => $avg]);
             LeadTimeStage::firstOrCreate(['produk_id' => $alk->id, 'skenario' => 'max', 'tahap' => $tahap], ['jumlah_hari' => $max, 'tambahan_buffer_hari' => $tahap === 'input' ? 2 : null]);
         }
+        app(\App\Services\AnalisaService::class)->generateLokal($alk->id);
 
         // ===== Analisa Impor (BTL-P50) + varian =====
         $meta = AnalisaImporMeta::firstOrCreate(['produk_id' => $btl->id], [

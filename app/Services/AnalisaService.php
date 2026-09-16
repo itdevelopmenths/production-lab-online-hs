@@ -4,8 +4,17 @@ namespace App\Services;
 
 use App\Models\AnalisaFulfillmentInput;
 use App\Models\AnalisaImporMeta;
+use App\Models\AnalisaLokal;
 use App\Models\AnalisaLokalInput;
+use App\Models\LeadTimeLokal;
+use App\Models\LeadTimeLokalStage;
 use App\Models\LeadTimeStage;
+use App\Models\Produk;
+use App\Models\PurchaseOrderItem;
+use App\Models\RekomendasiOrderLokal;
+use App\Models\Stok;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Replikasi rumus Analisa Stok dari 3 file Excel acuan (PRD Bab 6):
@@ -15,7 +24,185 @@ use App\Models\LeadTimeStage;
 class AnalisaService
 {
     /**
-     * Profil Bahan Lokal — hitung satu baris analisa untuk satu produk.
+     * Engine Generate Analisa Lokal:
+     * Menghitung dan menyimpan hasil ke 4 tabel data kerja:
+     * 1. lead_time_lokal_stage (rincian 9 tahap lead time per skenario)
+     * 2. lead_time_lokal (ringkasan total avg, max, buffer, safety stock)
+     * 3. analisa_lokal (working data: adu, batas min, target stock)
+     * 4. rekomendasi_order_lokal (working data: stok saat ini, akan datang, selisih, rumus moq, rekomendasi order dalam satuan beli, nominal)
+     *
+     * @param  int|null  $produkId  Jika null, generate untuk seluruh produk bahan lokal aktif
+     * @param  int|null  $userId    User ID pembuat generate
+     * @return array{generated_count: int, timestamp: string, items: array}
+     */
+    public function generateLokal(?int $produkId = null, ?int $userId = null): array
+    {
+        $query = Produk::query()->where('is_active', true);
+        if ($produkId) {
+            $query->where('id', $produkId);
+        } else {
+            $query->whereIn('tipe', ['bahan', 'kemas'])
+                ->where(function ($q) {
+                    $q->where('profil_analisa', 'lokal')
+                      ->orWhereNull('profil_analisa');
+                });
+        }
+
+        $products = $query->orderBy('nama')->get();
+        $generated = [];
+        $now = now();
+
+        foreach ($products as $p) {
+            // 1. Stage Lead Time (9 stages per scenario)
+            $avgStage = LeadTimeLokalStage::where('produk_id', $p->id)->where('skenario', 'average')->first();
+            $maxStage = LeadTimeLokalStage::where('produk_id', $p->id)->where('skenario', 'max')->first();
+
+            // Jika belum ada di tabel baru, cek fallback dari lead_time_stage lama
+            if (! $avgStage && ! $maxStage && Schema::hasTable('lead_time_stage')) {
+                $oldAvg = LeadTimeStage::where('produk_id', $p->id)->where('skenario', 'average')->get()->keyBy('tahap');
+                $oldMax = LeadTimeStage::where('produk_id', $p->id)->where('skenario', 'max')->get()->keyBy('tahap');
+                if ($oldAvg->isNotEmpty() || $oldMax->isNotEmpty()) {
+                    $avgStage = LeadTimeLokalStage::create([
+                        'produk_id' => $p->id,
+                        'skenario' => 'average',
+                        'perencanaan' => (int) ($oldAvg['perencanaan']->jumlah_hari ?? 0),
+                        'approval' => (int) ($oldAvg['approval']->jumlah_hari ?? 0),
+                        'supplier_confirm' => (int) ($oldAvg['supplier_confirm']->jumlah_hari ?? 0),
+                        'payment' => (int) ($oldAvg['payment']->jumlah_hari ?? 0),
+                        'po' => (int) ($oldAvg['po']->jumlah_hari ?? 0),
+                        'pengemasan' => (int) ($oldAvg['pengemasan']->jumlah_hari ?? 0),
+                        'pengiriman' => (int) ($oldAvg['pengiriman']->jumlah_hari ?? 0),
+                        'unloading' => (int) ($oldAvg['unloading']->jumlah_hari ?? 0),
+                        'input' => (int) ($oldAvg['input']->jumlah_hari ?? 0),
+                    ]);
+                    $maxStage = LeadTimeLokalStage::create([
+                        'produk_id' => $p->id,
+                        'skenario' => 'max',
+                        'perencanaan' => (int) ($oldMax['perencanaan']->jumlah_hari ?? 0),
+                        'approval' => (int) ($oldMax['approval']->jumlah_hari ?? 0),
+                        'supplier_confirm' => (int) ($oldMax['supplier_confirm']->jumlah_hari ?? 0),
+                        'payment' => (int) ($oldMax['payment']->jumlah_hari ?? 0),
+                        'po' => (int) ($oldMax['po']->jumlah_hari ?? 0),
+                        'pengemasan' => (int) ($oldMax['pengemasan']->jumlah_hari ?? 0),
+                        'pengiriman' => (int) ($oldMax['pengiriman']->jumlah_hari ?? 0),
+                        'unloading' => (int) ($oldMax['unloading']->jumlah_hari ?? 0),
+                        'input' => (int) ($oldMax['input']->jumlah_hari ?? 0),
+                    ]);
+                }
+            }
+
+            $totalAvg = $avgStage ? $avgStage->totalHari() : 0;
+            $totalMax = $maxStage ? $maxStage->totalHari() : 0;
+
+            // 2. Summary Lead Time & Safety Stock
+            $ltLokal = LeadTimeLokal::firstOrNew(['produk_id' => $p->id]);
+            $buffer = $ltLokal->exists
+                ? (int) ($ltLokal->tambahan_buffer_hari ?? 0)
+                : (int) (DB::table('lead_time_stage')->where('produk_id', $p->id)->sum('tambahan_buffer_hari') ?? 0);
+            $safetyStock = max(0, $totalMax - $totalAvg) + $buffer;
+
+            $ltLokal->fill([
+                'total_average_lead_time' => $totalAvg,
+                'total_max_lead_time' => $totalMax,
+                'tambahan_buffer_hari' => $buffer,
+                'safety_stock' => $safetyStock,
+            ])->save();
+
+            // 3. Analisa Lokal (Working Table)
+            $existingAnalisa = AnalisaLokal::where('produk_id', $p->id)->first();
+            $existingInput = AnalisaLokalInput::where('produk_id', $p->id)->first();
+
+            $terjual = (float) ($existingAnalisa?->terjual_rata_rata_4bulan ?? $existingInput?->terjual_rata_rata_4bulan ?? 0);
+            $reviewPeriod = (int) ($existingAnalisa?->review_period ?? $existingInput?->review_period ?? 15);
+            if ($reviewPeriod <= 0) {
+                $reviewPeriod = 15;
+            }
+
+            $adu = $terjual / 30;
+            $batasMinimum = round($adu * ($totalAvg + $safetyStock), 2);
+            $targetStock = round($adu * ($totalAvg + $safetyStock + $reviewPeriod), 2);
+
+            $analisaLokal = AnalisaLokal::updateOrCreate(
+                ['produk_id' => $p->id],
+                [
+                    'total_average_lead_time' => $totalAvg,
+                    'safety_stock' => $safetyStock,
+                    'terjual_rata_rata_4bulan' => $terjual,
+                    'adu' => round($adu, 4),
+                    'review_period' => $reviewPeriod,
+                    'batas_minimum' => $batasMinimum,
+                    'target_stock' => $targetStock,
+                    'generated_at' => $now,
+                    'generated_by' => $userId ?? auth()->id(),
+                ]
+            );
+
+            // 4. Rekomendasi Order Lokal
+            $stokDb = (float) Stok::where('produk_id', $p->id)->sum('qty_saat_ini');
+            $stokSaatIni = ($existingInput && $existingInput->stok_saat_ini !== null)
+                ? (float) $existingInput->stok_saat_ini
+                : $stokDb;
+
+            $akanDatangDb = (float) PurchaseOrderItem::where('produk_id', $p->id)
+                ->whereHas('purchaseOrder', function ($q) {
+                    $q->whereIn('status', ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']);
+                })->sum('qty');
+            $akanDatang = ($existingInput && $existingInput->akan_datang !== null)
+                ? (float) $existingInput->akan_datang
+                : $akanDatangDb;
+
+            $tersedia = $stokSaatIni + $akanDatang;
+            $isOrder = $tersedia <= $batasMinimum;
+            $selisih = round($tersedia - $batasMinimum, 2);
+            $status = $isOrder ? 'order' : 'tidak';
+
+            $moq = (float) ($p->satuan_order_moq ?: 1);
+            $rumusMoq = $isOrder ? $this->bulatkanMoq(abs($selisih), $moq) : 0.0;
+
+            $faktor = (float) ($p->faktor_konversi ?: 1);
+            $rekomendasiOrder = ($faktor > 0) ? round($rumusMoq / $faktor, 2) : $rumusMoq;
+
+            $hargaSatuan = (float) ($existingInput?->harga_per_satuan ?: ($p->harga_hpp ?: 0));
+            $totalNominal = round($rumusMoq * $hargaSatuan, 2);
+
+            $rekLokal = RekomendasiOrderLokal::updateOrCreate(
+                ['produk_id' => $p->id],
+                [
+                    'batas_minimum' => $batasMinimum,
+                    'target_stock' => $targetStock,
+                    'stok_saat_ini' => $stokSaatIni,
+                    'akan_datang' => $akanDatang,
+                    'selisih' => $selisih,
+                    'rumus_moq' => $rumusMoq,
+                    'status' => $status,
+                    'rekomendasi_order' => $rekomendasiOrder,
+                    'harga_ml_pcs' => $hargaSatuan,
+                    'total_nominal_order' => $totalNominal,
+                    'generated_at' => $now,
+                    'generated_by' => $userId ?? auth()->id(),
+                ]
+            );
+
+            $generated[] = [
+                'produk_id' => $p->id,
+                'sku' => $p->sku,
+                'nama' => $p->nama,
+                'satuan' => $p->satuan,
+                'lead_time' => $ltLokal,
+                'analisa' => $analisaLokal,
+                'rekomendasi' => $rekLokal,
+            ];
+        }
+
+        return [
+            'generated_count' => count($generated),
+            'timestamp' => $now->toIso8601String(),
+            'items' => $generated,
+        ];
+    }
+
+    /**
+     * Profil Bahan Lokal — hitung satu baris analisa untuk satu produk (kompatibilitas lama).
      *
      * @return array<string,mixed>
      */
@@ -23,15 +210,20 @@ class AnalisaService
     {
         $moq = (float) ($input->produk->satuan_order_moq ?? 1);
 
-        $totalAvg = (float) LeadTimeStage::where('produk_id', $input->produk_id)
-            ->where('skenario', 'average')->sum('jumlah_hari');
-        $totalMax = (float) LeadTimeStage::where('produk_id', $input->produk_id)
-            ->where('skenario', 'max')->sum('jumlah_hari');
-        $tambahanBuffer = (float) LeadTimeStage::where('produk_id', $input->produk_id)
-            ->sum('tambahan_buffer_hari');
-
-        // Safety Stock dalam satuan HARI (identik Total Buffer).
-        $safetyStockHari = max(0, $totalMax - $totalAvg) + $tambahanBuffer;
+        $ltLokal = LeadTimeLokal::where('produk_id', $input->produk_id)->first();
+        if ($ltLokal) {
+            $totalAvg = (float) $ltLokal->total_average_lead_time;
+            $totalMax = (float) $ltLokal->total_max_lead_time;
+            $safetyStockHari = (float) $ltLokal->safety_stock;
+        } else {
+            $totalAvg = (float) LeadTimeStage::where('produk_id', $input->produk_id)
+                ->where('skenario', 'average')->sum('jumlah_hari');
+            $totalMax = (float) LeadTimeStage::where('produk_id', $input->produk_id)
+                ->where('skenario', 'max')->sum('jumlah_hari');
+            $tambahanBuffer = (float) LeadTimeStage::where('produk_id', $input->produk_id)
+                ->sum('tambahan_buffer_hari');
+            $safetyStockHari = max(0, $totalMax - $totalAvg) + $tambahanBuffer;
+        }
 
         $adu = (float) $input->terjual_rata_rata_4bulan / 30;
         $batasMinimum = $adu * ($totalAvg + $safetyStockHari);
@@ -192,12 +384,19 @@ class AnalisaService
         $byProduct = [];
         $byProductGudang = [];
 
-        // 1. Profil Bahan Lokal
-        $lokalInputs = AnalisaLokalInput::with('produk')->get();
-        foreach ($lokalInputs as $input) {
-            $hasil = $this->lokal($input);
-            $min = (float) ($hasil['batas_minimum'] ?? 0);
-            $byProduct[$input->produk_id] = $min;
+        // 1. Profil Bahan Lokal (prioritaskan tabel analisa_lokal tersimpan)
+        $analisaLokalList = AnalisaLokal::all();
+        if ($analisaLokalList->isNotEmpty()) {
+            foreach ($analisaLokalList as $al) {
+                $byProduct[$al->produk_id] = (float) $al->batas_minimum;
+            }
+        } else {
+            $lokalInputs = AnalisaLokalInput::with('produk')->get();
+            foreach ($lokalInputs as $input) {
+                $hasil = $this->lokal($input);
+                $min = (float) ($hasil['batas_minimum'] ?? 0);
+                $byProduct[$input->produk_id] = $min;
+            }
         }
 
         // 2. Profil Bahan Impor
@@ -248,9 +447,12 @@ class AnalisaService
      */
     public function getItemPerluOrderSummary(): array
     {
-        $lokalOrder = AnalisaLokalInput::with('produk')->get()
-            ->filter(fn ($i) => $this->lokal($i)['status'] === 'order')
-            ->count();
+        $lokalOrder = RekomendasiOrderLokal::where('status', 'order')->count();
+        if ($lokalOrder === 0 && AnalisaLokalInput::exists()) {
+            $lokalOrder = AnalisaLokalInput::with('produk')->get()
+                ->filter(fn ($i) => $this->lokal($i)['status'] === 'order')
+                ->count();
+        }
 
         $imporOrder = AnalisaImporMeta::with(['produk', 'varian'])->get()
             ->filter(fn ($m) => $this->impor($m)['status'] === 'po')

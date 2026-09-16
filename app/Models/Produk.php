@@ -6,6 +6,7 @@ use App\Traits\AuditableMasterData;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Produk extends Model
 {
@@ -105,6 +106,26 @@ class Produk extends Model
     public function kartuStok(): HasMany
     {
         return $this->hasMany(KartuStok::class, 'produk_id');
+    }
+
+    public function leadTimeLokalStages(): HasMany
+    {
+        return $this->hasMany(LeadTimeLokalStage::class, 'produk_id');
+    }
+
+    public function leadTimeLokal(): HasOne
+    {
+        return $this->hasOne(LeadTimeLokal::class, 'produk_id');
+    }
+
+    public function analisaLokal(): HasOne
+    {
+        return $this->hasOne(AnalisaLokal::class, 'produk_id');
+    }
+
+    public function rekomendasiOrderLokal(): HasOne
+    {
+        return $this->hasOne(RekomendasiOrderLokal::class, 'produk_id');
     }
 
     public function scopeActive($query)
