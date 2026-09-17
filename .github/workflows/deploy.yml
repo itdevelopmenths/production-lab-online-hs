@@ -68,6 +68,13 @@ jobs:
 
             cd /var/www/production-lab-online-hs
 
+            # Kembalikan ownership storage/bootstrap-cache ke user deploy sebelum
+            # git ops — deploy sebelumnya men-chown direktori ini ke www-data lewat
+            # docker exec, dan karena storage/bootstrap-cache di-mount dari host,
+            # itu ikut mengubah ownership host sehingga git checkout -f gagal
+            # unlink file .gitignore yang tracked di dalamnya (Permission denied).
+            sudo -n chown -R "$(id -u):$(id -g)" /var/www/production-lab-online-hs/storage /var/www/production-lab-online-hs/bootstrap/cache
+
             # Checkout commit yang persis dibangun (kode PHP dibaca dari host).
             git fetch origin
             git checkout -f "$GIT_SHA"
