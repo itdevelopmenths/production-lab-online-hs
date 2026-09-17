@@ -10,10 +10,17 @@
                     <template x-if="tab === 'lokal'">
                         <div class="flex items-center gap-2">
                             @can('analisa.manage')
-                            <button type="button" @click="generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-primary-800 disabled:opacity-50 text-white text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer">
+                            <!-- Fase 1: Generate -->
+                            <button type="button" @click="generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-primary-800 disabled:opacity-50 text-white text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer" title="Generate working data analisa dari master">
                                 <svg x-show="!generating" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 <svg x-show="generating" class="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                <span x-text="generating ? 'Menghitung Engine...' : 'Generate Analisa Lokal'"></span>
+                                <span x-text="generating ? 'Menghitung Engine...' : 'Generate Analisa'"></span>
+                            </button>
+
+                            <!-- Fase 2: Checking (Generate Ulang) -->
+                            <button type="button" @click="checkingLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 hover:bg-sky-100 disabled:opacity-50 text-sky-800 border border-sky-300 text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO berjalan saat ini">
+                                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                <span>Checking (Generate Ulang)</span>
                             </button>
                             @endcan
 
@@ -29,10 +36,17 @@
                     <template x-if="tab === 'impor'">
                         <div class="flex items-center gap-2">
                             @can('analisa.manage')
-                            <button type="button" @click="generateImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-primary-800 disabled:opacity-50 text-white text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer">
+                            <!-- Fase 1: Generate -->
+                            <button type="button" @click="generateImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-primary-800 disabled:opacity-50 text-white text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer" title="Generate working data analisa impor">
                                 <svg x-show="!generating" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 <svg x-show="generating" class="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 <span x-text="generating ? 'Menghitung Engine Impor...' : 'Generate Analisa Impor'"></span>
+                            </button>
+
+                            <!-- Fase 2: Checking (Generate Ulang) -->
+                            <button type="button" @click="checkingImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 hover:bg-sky-100 disabled:opacity-50 text-sky-800 border border-sky-300 text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO impor saat ini">
+                                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                <span>Checking (Generate Ulang)</span>
                             </button>
                             @endcan
 
@@ -46,8 +60,9 @@
                     </template>
 
                     @can('analisa.snapshot')
-                    <button type="button" @click="confirmFinalisasi()" x-show="tab !== 'riwayat'" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-900 text-white text-xs font-medium rounded-sm shadow-xs transition cursor-pointer">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <!-- Fase 3: Finalisasi -->
+                    <button type="button" @click="confirmFinalisasi()" x-show="tab !== 'riwayat'" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-900 text-white text-xs font-medium rounded-sm shadow-xs transition cursor-pointer" title="Kunci data working analisa aktif ke riwayat snapshot">
+                        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         <span>Finalisasi ke Riwayat</span>
                     </button>
                     @endcan
@@ -125,17 +140,19 @@
                     </button>
                 </div>
 
-                <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || tab === 'impor'">
+                <template x-if="tab === 'lokal' || tab === 'impor'">
                     <div class="flex items-center gap-1.5">
-                        <select 
-                            x-model="statusFilter" 
-                            @change="page = 1"
-                            class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                        >
-                            <option value="all">Semua Status</option>
-                            <option value="order">Hanya Perlu Order</option>
-                            <option value="aman">Hanya Status Aman</option>
-                        </select>
+                        <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || tab === 'impor'">
+                            <select 
+                                x-model="statusFilter" 
+                                @change="page = 1"
+                                class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                            >
+                                <option value="all">Semua Status</option>
+                                <option value="order">Hanya Perlu Order</option>
+                                <option value="aman">Hanya Status Aman</option>
+                            </select>
+                        </template>
                         <select 
                             x-model="supplierFilter" 
                             @change="page = 1"
@@ -221,6 +238,7 @@
                                         <input type="checkbox" @change="toggleSelectCurrentPage($event)" :checked="isCurrentPageAllSelected()" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer">
                                     </th>
                                     <th class="py-2.5 px-3">Bahan Baku</th>
+                                    <th class="py-2.5 px-3">Supplier</th>
                                     <th class="py-2.5 px-3 text-right">Batas Min</th>
                                     <th class="py-2.5 px-3 text-right">Target</th>
                                     <th class="py-2.5 px-3 text-right">Stok Fisik</th>
@@ -231,6 +249,7 @@
                                     <th class="py-2.5 px-3 text-right bg-primary-50/50 text-primary-900 font-bold">Rekomendasi Order</th>
                                     <th class="py-2.5 px-3 text-right">Harga Satuan</th>
                                     <th class="py-2.5 px-3 text-right">Estimasi Nominal</th>
+                                    <th class="py-2.5 px-2 text-center w-24">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
@@ -242,14 +261,9 @@
                                         <td class="py-2.5 px-3">
                                             <div class="font-bold text-gray-900" x-text="r.nama"></div>
                                             <div class="font-mono text-[10px] text-gray-400" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
-                                            <template x-if="r.supplier_nama && r.supplier_nama !== '-'">
-                                                <div class="mt-1 flex items-center gap-1">
-                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                                        <svg class="w-2.5 h-2.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                                                        <span x-text="r.supplier_nama"></span>
-                                                    </span>
-                                                </div>
-                                            </template>
+                                        </td>
+                                        <td class="py-2.5 px-3">
+                                            <div class="font-medium text-gray-800" x-text="r.supplier_nama || '-'"></div>
                                         </td>
                                         <td class="py-2.5 px-3 text-right font-mono" x-text="formatNumber(r.batas_minimum)"></td>
                                         <td class="py-2.5 px-3 text-right font-mono" x-text="formatNumber(r.target_stock)"></td>
@@ -266,11 +280,16 @@
                                         </td>
                                         <td class="py-2.5 px-3 text-right font-mono text-gray-600" x-text="'Rp ' + formatNumber(r.harga_per_satuan)"></td>
                                         <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-900" x-text="'Rp ' + formatNumber(r.total_nominal_order)"></td>
+                                        <td class="py-2.5 px-2 text-center">
+                                            <button type="button" @click="openManualLokalModal(r)" class="px-2 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded border border-primary-200 text-[10px] font-medium transition cursor-pointer" title="Edit Data Input Manual">
+                                                Edit Input
+                                            </button>
+                                        </td>
                                     </tr>
                                 </template>
                                 <template x-if="paginatedRows().length === 0">
                                     <tr>
-                                        <td colspan="12" class="py-8 text-center text-gray-400 text-xs">
+                                        <td colspan="14" class="py-8 text-center text-gray-400 text-xs">
                                             Tidak ada item bahan lokal yang cocok dengan pencarian atau filter.
                                         </td>
                                     </tr>
@@ -340,6 +359,7 @@
                             <thead class="bg-gray-100 text-gray-700 text-[11px] uppercase font-semibold border-b border-gray-200">
                                 <tr>
                                     <th class="py-2.5 px-3">Bahan Baku</th>
+                                    <th class="py-2.5 px-3">Supplier</th>
                                     <th class="py-2.5 px-3 text-right">Avg Lead Time (Hari)</th>
                                     <th class="py-2.5 px-3 text-right">Safety Stock (Hari)</th>
                                     <th class="py-2.5 px-3 text-right">Terjual 4 Bulan</th>
@@ -348,12 +368,19 @@
                                     <th class="py-2.5 px-3 text-right bg-primary-50/50 text-primary-900 font-bold">Batas Minimum</th>
                                     <th class="py-2.5 px-3 text-right font-bold">Target Stock</th>
                                     <th class="py-2.5 px-3 text-right">Generated At</th>
+                                    <th class="py-2.5 px-2 text-center w-24">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 <template x-for="r in paginatedRows()" :key="r.id">
                                     <tr class="hover:bg-gray-50 transition">
-                                        <td class="py-2.5 px-3 font-medium text-gray-900" x-text="r.nama + ' (' + r.sku + ')'"></td>
+                                        <td class="py-2.5 px-3">
+                                            <div class="font-bold text-gray-900" x-text="r.nama"></div>
+                                            <div class="font-mono text-[10px] text-gray-400" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
+                                        </td>
+                                        <td class="py-2.5 px-3">
+                                            <div class="font-medium text-gray-800" x-text="r.supplier_nama || '-'"></div>
+                                        </td>
                                         <td class="py-2.5 px-3 text-right font-mono" x-text="r.total_avg_lead_time"></td>
                                         <td class="py-2.5 px-3 text-right font-mono" x-text="r.safety_stock"></td>
                                         <td class="py-2.5 px-3 text-right font-mono" x-text="formatNumber(r.terjual_rata_rata_4bulan)"></td>
@@ -362,11 +389,16 @@
                                         <td class="py-2.5 px-3 text-right font-mono font-bold text-primary-800 bg-primary-50/30" x-text="formatNumber(r.batas_minimum) + ' ' + r.satuan"></td>
                                         <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-900" x-text="formatNumber(r.target_stock) + ' ' + r.satuan"></td>
                                         <td class="py-2.5 px-3 text-right font-mono text-[11px] text-gray-400" x-text="r.generated_at"></td>
+                                        <td class="py-2.5 px-2 text-center">
+                                            <button type="button" @click="openManualLokalModal(r)" class="px-2 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded border border-primary-200 text-[10px] font-medium transition cursor-pointer" title="Edit Terjual 4 Bulan & Review Period">
+                                                Edit Input
+                                            </button>
+                                        </td>
                                     </tr>
                                 </template>
                                 <template x-if="paginatedRows().length === 0">
                                     <tr>
-                                        <td colspan="9" class="py-8 text-center text-gray-400 text-xs">
+                                        <td colspan="11" class="py-8 text-center text-gray-400 text-xs">
                                             Tidak ada data working analisa yang cocok.
                                         </td>
                                     </tr>
@@ -431,25 +463,43 @@
                             <thead class="bg-gray-100 text-gray-700 text-[11px] uppercase font-semibold border-b border-gray-200">
                                 <tr>
                                     <th class="py-2.5 px-3">Bahan Baku</th>
+                                    <th class="py-2.5 px-3">Supplier</th>
                                     <th class="py-2.5 px-3 text-right">Total Avg Lead Time</th>
                                     <th class="py-2.5 px-3 text-right">Total Max Lead Time</th>
                                     <th class="py-2.5 px-3 text-right">Tambahan Buffer</th>
                                     <th class="py-2.5 px-3 text-right bg-emerald-50/50 text-emerald-900 font-bold">Safety Stock (Hari)</th>
+                                    <th class="py-2.5 px-2 text-center w-28">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
                                 <template x-for="r in paginatedRows()" :key="r.id">
                                     <tr class="hover:bg-gray-50 transition">
-                                        <td class="py-2.5 px-3 font-medium text-gray-900" x-text="r.nama + ' (' + r.sku + ')'"></td>
+                                        <td class="py-2.5 px-3">
+                                            <div class="font-bold text-gray-900" x-text="r.nama"></div>
+                                            <div class="font-mono text-[10px] text-gray-400" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
+                                        </td>
+                                        <td class="py-2.5 px-3">
+                                            <div class="font-medium text-gray-800" x-text="r.supplier_nama || '-'"></div>
+                                        </td>
                                         <td class="py-2.5 px-3 text-right font-mono" x-text="r.total_avg_lead_time + ' Hari'"></td>
                                         <td class="py-2.5 px-3 text-right font-mono" x-text="r.total_max_lead_time + ' Hari'"></td>
-                                        <td class="py-2.5 px-3 text-right font-mono text-gray-500" x-text="(r.safety_stock - (r.total_max_lead_time - r.total_avg_lead_time)) + ' Hari'"></td>
+                                        <td class="py-2.5 px-3 text-right font-mono text-gray-700" x-text="r.tambahan_buffer_hari + ' Hari'"></td>
                                         <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-800 bg-emerald-50/30" x-text="r.safety_stock + ' Hari'"></td>
+                                        <td class="py-2.5 px-2 text-center">
+                                            <div class="flex items-center justify-center gap-1">
+                                                <button type="button" @click="openManualLokalModal(r)" class="px-2 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded border border-primary-200 text-[10px] font-medium transition cursor-pointer" title="Edit Tambahan Buffer">
+                                                    Buffer
+                                                </button>
+                                                <button type="button" @click="openStageModal(r)" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded border border-amber-200 text-[10px] font-medium transition cursor-pointer" title="Edit 9 Tahap Lead Time">
+                                                    9 Tahap
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 </template>
                                 <template x-if="paginatedRows().length === 0">
                                     <tr>
-                                        <td colspan="5" class="py-8 text-center text-gray-400 text-xs">
+                                        <td colspan="7" class="py-8 text-center text-gray-400 text-xs">
                                             Tidak ada data ringkasan lead time yang cocok.
                                         </td>
                                     </tr>
@@ -504,102 +554,187 @@
                 </div>
 
                 <!-- TABEL 4: Rincian 9 Tahap Lead Time (lead_time_lokal_stage) -->
-                <div x-show="lokalSubTab === 'stages'" class="bg-white rounded-sm border border-gray-200 shadow-xs overflow-hidden">
-                    <div class="p-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                        <div>
-                            <h3 class="text-xs font-bold text-gray-900">Tabel Rincian 9 Tahap Lead Time (lead_time_lokal_stage)</h3>
-                            <p class="text-[11px] text-gray-500">Perencanaan, Approval, Supplier Confirm, Payment, PO, Pengemasan, Pengiriman, Unloading, dan Input</p>
+                <div x-show="lokalSubTab === 'stages'" class="space-y-3">
+                    <!-- Highlight Summary: Lead Time Terlama (Average & Max) - AdminLTE Card Outline Style -->
+                    <template x-if="longestAvgStage() || longestMaxStage()">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- AdminLTE Card Outline: Average Lead Time -->
+                            <div class="bg-white rounded-sm border border-gray-200 shadow-xs">
+                                <div class="px-3.5 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">Lead Time Terlama (Average)</h4>
+                                    </div>
+                                    <span class="px-2 py-0.5 text-xs font-bold font-mono bg-primary-700 text-white rounded-xs shadow-2xs" x-text="(longestAvgStage()?.days || 0) + ' Hari'"></span>
+                                </div>
+                                <div class="p-3 bg-white text-xs">
+                                    <table class="w-full text-left">
+                                        <tbody class="divide-y divide-gray-100">
+                                            <tr>
+                                                <td class="py-1.5 text-gray-500 font-medium w-24">Bahan Baku</td>
+                                                <td class="py-1.5 text-gray-900 text-right">
+                                                    <span class="font-bold text-gray-900" x-text="longestAvgStage()?.nama || '-'"></span>
+                                                    <template x-if="longestAvgStage()?.sku">
+                                                        <span class="font-mono text-gray-400 text-[11px] ml-1" x-text="'(' + longestAvgStage().sku + ')'"></span>
+                                                    </template>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="py-1.5 text-gray-500 font-medium w-24">Supplier</td>
+                                                <td class="py-1.5 text-gray-800 font-semibold text-right" x-text="longestAvgStage()?.supplier_nama || '-'"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- AdminLTE Card Outline: Max Lead Time -->
+                            <div class="bg-white rounded-sm border border-gray-200 shadow-xs">
+                                <div class="px-3.5 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">Lead Time Terlama (Max Skenario)</h4>
+                                    </div>
+                                    <span class="px-2 py-0.5 text-xs font-bold font-mono bg-amber-600 text-white rounded-xs shadow-2xs" x-text="(longestMaxStage()?.days || 0) + ' Hari'"></span>
+                                </div>
+                                <div class="p-3 bg-white text-xs">
+                                    <table class="w-full text-left">
+                                        <tbody class="divide-y divide-gray-100">
+                                            <tr>
+                                                <td class="py-1.5 text-gray-500 font-medium w-24">Bahan Baku</td>
+                                                <td class="py-1.5 text-gray-900 text-right">
+                                                    <span class="font-bold text-gray-900" x-text="longestMaxStage()?.nama || '-'"></span>
+                                                    <template x-if="longestMaxStage()?.sku">
+                                                        <span class="font-mono text-gray-400 text-[11px] ml-1" x-text="'(' + longestMaxStage().sku + ')'"></span>
+                                                    </template>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="py-1.5 text-gray-500 font-medium w-24">Supplier</td>
+                                                <td class="py-1.5 text-gray-800 font-semibold text-right" x-text="longestMaxStage()?.supplier_nama || '-'"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-xs text-left">
-                            <thead class="bg-gray-100 text-gray-700 text-[10px] uppercase font-semibold border-b border-gray-200">
-                                <tr>
-                                    <th class="py-2.5 px-2">Bahan</th>
-                                    <th class="py-2.5 px-2">Skenario</th>
-                                    <th class="py-2.5 px-1.5 text-right">Rencana</th>
-                                    <th class="py-2.5 px-1.5 text-right">Apprv</th>
-                                    <th class="py-2.5 px-1.5 text-right">Confirm</th>
-                                    <th class="py-2.5 px-1.5 text-right">Bayar</th>
-                                    <th class="py-2.5 px-1.5 text-right">PO</th>
-                                    <th class="py-2.5 px-1.5 text-right">Kemas</th>
-                                    <th class="py-2.5 px-1.5 text-right">Kirim</th>
-                                    <th class="py-2.5 px-1.5 text-right">Unload</th>
-                                    <th class="py-2.5 px-1.5 text-right">Input</th>
-                                    <th class="py-2.5 px-2 text-right bg-primary-50/50 font-bold">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                <template x-for="stg in paginatedStages()" :key="stg.produk_id">
-                                    <template x-for="type in ['average', 'max']" :key="type">
-                                        <tr class="hover:bg-gray-50 transition" :class="type === 'max' ? 'border-b-2 border-gray-200' : ''">
-                                            <td class="py-2 px-2 font-medium text-gray-900" x-show="type === 'average'" rowspan="2" x-text="stg.nama"></td>
-                                            <td class="py-2 px-2 font-mono uppercase text-[10px] font-bold" :class="type === 'average' ? 'text-blue-700' : 'text-amber-700'" x-text="type"></td>
-                                            <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].perencanaan : 0"></td>
-                                            <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].approval : 0"></td>
-                                            <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].supplier_confirm : 0"></td>
-                                            <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].payment : 0"></td>
-                                            <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].po : 0"></td>
-                                            <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].pengemasan : 0"></td>
-                                            <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].pengiriman : 0"></td>
-                                            <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].unloading : 0"></td>
-                                            <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].input : 0"></td>
-                                            <td class="py-2 px-2 text-right font-mono font-bold text-primary-900 bg-primary-50/30" x-text="(stg[type] ? stg[type].total : 0) + ' Hari'"></td>
+                    </template>
+
+                    <div class="bg-white rounded-sm border border-gray-200 shadow-xs overflow-hidden">
+                        <div class="p-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-xs font-bold text-gray-900">Tabel Rincian 9 Tahap Lead Time (lead_time_lokal_stage)</h3>
+                                <p class="text-[11px] text-gray-500">Perencanaan, Approval, Supplier Confirm, Payment, PO, Pengemasan, Pengiriman, Unloading, dan Input</p>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-gray-100 text-gray-700 text-[10px] uppercase font-semibold border-b border-gray-200">
+                                    <tr>
+                                        <th class="py-2.5 px-2">Bahan</th>
+                                        <th class="py-2.5 px-2">Supplier</th>
+                                        <th class="py-2.5 px-2">Skenario</th>
+                                        <th class="py-2.5 px-1.5 text-right">Rencana</th>
+                                        <th class="py-2.5 px-1.5 text-right">Apprv</th>
+                                        <th class="py-2.5 px-1.5 text-right">Confirm</th>
+                                        <th class="py-2.5 px-1.5 text-right">Bayar</th>
+                                        <th class="py-2.5 px-1.5 text-right">PO</th>
+                                        <th class="py-2.5 px-1.5 text-right">Kemas</th>
+                                        <th class="py-2.5 px-1.5 text-right">Kirim</th>
+                                        <th class="py-2.5 px-1.5 text-right">Unload</th>
+                                        <th class="py-2.5 px-1.5 text-right">Input</th>
+                                        <th class="py-2.5 px-2 text-right bg-primary-50/50 font-bold">Total</th>
+                                        <th class="py-2.5 px-2 text-center w-20">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    <template x-for="stg in paginatedStages()" :key="stg.produk_id">
+                                        <template x-for="type in ['average', 'max']" :key="type">
+                                            <tr class="hover:bg-gray-50 transition" :class="type === 'max' ? 'border-b-2 border-gray-200' : ''">
+                                                <td class="py-2 px-2" x-show="type === 'average'" rowspan="2">
+                                                    <div class="font-bold text-gray-900 text-xs" x-text="stg.nama"></div>
+                                                    <div class="font-mono text-[10px] text-gray-400" x-text="stg.sku"></div>
+                                                </td>
+                                                <td class="py-2 px-2" x-show="type === 'average'" rowspan="2">
+                                                    <div class="font-medium text-gray-800 text-xs" x-text="stg.supplier_nama || '-'"></div>
+                                                </td>
+                                                <td class="py-2 px-2 font-mono uppercase text-[10px] font-bold" :class="type === 'average' ? 'text-blue-700' : 'text-amber-700'" x-text="type"></td>
+                                                <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].perencanaan : 0"></td>
+                                                <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].approval : 0"></td>
+                                                <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].supplier_confirm : 0"></td>
+                                                <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].payment : 0"></td>
+                                                <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].po : 0"></td>
+                                                <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].pengemasan : 0"></td>
+                                                <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].pengiriman : 0"></td>
+                                                <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].unloading : 0"></td>
+                                                <td class="py-2 px-1.5 text-right font-mono" x-text="stg[type] ? stg[type].input : 0"></td>
+                                                <td class="py-2 px-2 text-right font-mono font-bold text-primary-900 bg-primary-50/30" x-text="(stg[type] ? stg[type].total : 0) + ' Hari'"></td>
+                                                <td class="py-2 px-2 text-center" x-show="type === 'average'" rowspan="2">
+                                                    <button type="button" @click="openStageModal(stg)" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded border border-primary-600 bg-primary-50 text-primary-700 hover:bg-primary-100 transition cursor-pointer" title="Edit Rincian 9 Tahap Lead Time">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                        Edit
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                    <template x-if="paginatedStages().length === 0">
+                                        <tr>
+                                            <td colspan="14" class="py-8 text-center text-gray-400 text-xs">
+                                                Tidak ada rincian tahap lead time yang cocok.
+                                            </td>
                                         </tr>
                                     </template>
-                                </template>
-                                <template x-if="paginatedStages().length === 0">
-                                    <tr>
-                                        <td colspan="12" class="py-8 text-center text-gray-400 text-xs">
-                                            Tidak ada rincian tahap lead time yang cocok.
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination Bar -->
-                    <div class="p-3 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-600">
-                        <div class="flex items-center gap-2 font-mono text-[11px]">
-                            <span>Menampilkan <strong x-text="startItem()"></strong> - <strong x-text="endItem()"></strong> dari <strong x-text="currentDataLength()"></strong> item</span>
+                                </tbody>
+                            </table>
                         </div>
 
-                        <div class="flex items-center gap-1" x-show="totalPages() > 1">
-                            <button 
-                                type="button" 
-                                @click="gotoPage(page - 1)" 
-                                :disabled="page <= 1"
-                                class="px-2.5 py-1 text-xs rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                            >
-                                &laquo; Prev
-                            </button>
+                        <!-- Pagination Bar -->
+                        <div class="p-3 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-600">
+                            <div class="flex items-center gap-2 font-mono text-[11px]">
+                                <span>Menampilkan <strong x-text="startItem()"></strong> - <strong x-text="endItem()"></strong> dari <strong x-text="currentDataLength()"></strong> item</span>
+                            </div>
 
-                            <template x-for="p in pagesList()" :key="p">
-                                <div>
-                                    <template x-if="p === '...'">
-                                        <span class="px-2 py-1 text-gray-400">...</span>
-                                    </template>
-                                    <template x-if="p !== '...'">
-                                        <button 
-                                            type="button" 
-                                            @click="gotoPage(p)"
-                                            :class="page === p ? 'bg-primary-700 text-white font-bold border-primary-700' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'"
-                                            class="min-w-[28px] px-2 py-1 text-xs rounded border transition cursor-pointer"
-                                            x-text="p"
-                                        ></button>
-                                    </template>
-                                </div>
-                            </template>
+                            <div class="flex items-center gap-1" x-show="totalPages() > 1">
+                                <button 
+                                    type="button" 
+                                    @click="gotoPage(page - 1)" 
+                                    :disabled="page <= 1"
+                                    class="px-2.5 py-1 text-xs rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                                >
+                                    &laquo; Prev
+                                </button>
 
-                            <button 
-                                type="button" 
-                                @click="gotoPage(page + 1)" 
-                                :disabled="page >= totalPages()"
-                                class="px-2.5 py-1 text-xs rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                            >
-                                Next &raquo;
-                            </button>
+                                <template x-for="p in pagesList()" :key="p">
+                                    <div>
+                                        <template x-if="p === '...'">
+                                            <span class="px-2 py-1 text-gray-400">...</span>
+                                        </template>
+                                        <template x-if="p !== '...'">
+                                            <button 
+                                                type="button" 
+                                                @click="gotoPage(p)"
+                                                :class="page === p ? 'bg-primary-700 text-white font-bold border-primary-700' : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'"
+                                                class="min-w-[28px] px-2 py-1 text-xs rounded border transition cursor-pointer"
+                                                x-text="p"
+                                            ></button>
+                                        </template>
+                                    </div>
+                                </template>
+
+                                <button 
+                                    type="button" 
+                                    @click="gotoPage(page + 1)" 
+                                    :disabled="page >= totalPages()"
+                                    class="px-2.5 py-1 text-xs rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                                >
+                                    Next &raquo;
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -634,10 +769,12 @@
                                         <input type="checkbox" @change="toggleSelectCurrentPage($event)" :checked="isCurrentPageAllSelected()" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer">
                                     </th>
                                     <th class="py-2.5 px-3">Bahan Baku Impor</th>
+                                    <th class="py-2.5 px-3">Supplier</th>
                                     <th class="py-2.5 px-2 text-center">ABC</th>
                                     <th class="py-2.5 px-3 text-center">Lead Time (Avg/Max)</th>
                                     <th class="py-2.5 px-3 text-right">Buffer</th>
                                     <th class="py-2.5 px-3 text-right">Safety Stock</th>
+                                    <th class="py-2.5 px-3 text-right">Min Stock</th>
                                     <th class="py-2.5 px-3 text-right">Target</th>
                                     <th class="py-2.5 px-3 text-right">Stok Fisik</th>
                                     <th class="py-2.5 px-3 text-right">Inbound ETA</th>
@@ -645,7 +782,7 @@
                                     <th class="py-2.5 px-3 text-center">Status</th>
                                     <th class="py-2.5 px-3 text-right bg-primary-50/50 text-primary-900 font-bold">Rekomendasi Order</th>
                                     <th class="py-2.5 px-3 text-right">Estimasi Nominal</th>
-                                    <th class="py-2.5 px-2 text-center w-16">Aksi</th>
+                                    <th class="py-2.5 px-2 text-center w-28">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
@@ -664,13 +801,11 @@
                                                     <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">Multi-Varian</span>
                                                 </template>
                                             </div>
-                                            <template x-if="r.supplier_nama && r.supplier_nama !== '-'">
-                                                <div class="mt-1 flex items-center gap-1">
-                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                                        <svg class="w-2.5 h-2.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                                                        <span x-text="r.supplier_nama"></span>
-                                                    </span>
-                                                </div>
+                                        </td>
+                                        <td class="py-2.5 px-3">
+                                            <div class="font-medium text-gray-800" x-text="r.supplier_nama || '-'"></div>
+                                            <template x-if="r.supplier_kategori && r.supplier_kategori !== '-'">
+                                                <div class="text-[10px] text-gray-400 font-mono" x-text="r.supplier_kategori"></div>
                                             </template>
                                         </td>
                                         <td class="py-2.5 px-2 text-center font-mono">
@@ -679,6 +814,7 @@
                                         <td class="py-2.5 px-3 text-center font-mono text-gray-700" x-text="formatNumber(r.lead_time_average) + ' / ' + formatNumber(r.lead_time_max) + ' hr'"></td>
                                         <td class="py-2.5 px-3 text-right font-mono text-gray-600" x-text="formatNumber(r.buffer_days) + ' hr'"></td>
                                         <td class="py-2.5 px-3 text-right font-mono text-gray-700" x-text="formatNumber(r.safety_stock)"></td>
+                                        <td class="py-2.5 px-3 text-right font-mono text-gray-700" x-text="formatNumber(r.minimum_stock)"></td>
                                         <td class="py-2.5 px-3 text-right font-mono font-medium text-gray-900" x-text="formatNumber(r.target_stock)"></td>
                                         <td class="py-2.5 px-3 text-right font-mono text-gray-900" x-text="formatNumber(r.stok_saat_ini)"></td>
                                         <td class="py-2.5 px-3 text-right font-mono text-gray-600" x-text="'+' + formatNumber(r.inbound_before_eta)"></td>
@@ -692,20 +828,22 @@
                                         </td>
                                         <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-900" x-text="'Rp ' + formatNumber(r.total_nominal_order)"></td>
                                         <td class="py-2.5 px-2 text-center">
-                                            <template x-if="r.punya_varian && r.varian && r.varian.length > 0">
-                                                <button type="button" @click="openVarianModal(r)" class="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded border border-purple-200 text-[10px] font-medium transition cursor-pointer" title="Lihat Rincian Varian">
-                                                    Varian (<span x-text="r.varian.length"></span>)
+                                            <div class="flex items-center justify-center gap-1">
+                                                <button type="button" @click="openManualImporModal(r)" class="px-2 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded border border-primary-200 text-[10px] font-medium transition cursor-pointer" title="Edit Data Input Manual Impor">
+                                                    Edit Input
                                                 </button>
-                                            </template>
-                                            <template x-if="!r.punya_varian || !r.varian || r.varian.length === 0">
-                                                <span class="text-gray-300">-</span>
-                                            </template>
+                                                <template x-if="r.punya_varian && r.varian && r.varian.length > 0">
+                                                    <button type="button" @click="openVarianModal(r)" class="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded border border-purple-200 text-[10px] font-medium transition cursor-pointer" title="Lihat Rincian Varian">
+                                                        Varian (<span x-text="r.varian.length"></span>)
+                                                    </button>
+                                                </template>
+                                            </div>
                                         </td>
                                     </tr>
                                 </template>
                                 <template x-if="paginatedRows().length === 0">
                                     <tr>
-                                        <td colspan="14" class="py-8 text-center text-gray-400 text-xs">
+                                        <td colspan="16" class="py-8 text-center text-gray-400 text-xs">
                                             Tidak ada item bahan impor yang cocok dengan pencarian atau filter.
                                         </td>
                                     </tr>
@@ -920,92 +1058,12 @@
                 </div>
             </div>
         </div>
-
-        <!-- Modal Detail Varian Impor -->
-        <div x-show="showVarianModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <div x-show="showVarianModal" @click="showVarianModal = false" class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity"></div>
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                <div x-show="showVarianModal" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-bold text-gray-900" x-text="'Distribusi Varian: ' + (activeVarianProduct ? activeVarianProduct.nama : '')"></h3>
-                            <p class="text-xs text-gray-500 font-mono" x-text="activeVarianProduct ? activeVarianProduct.sku : ''"></p>
-                        </div>
-                        <button type="button" @click="showVarianModal = false" class="text-gray-400 hover:text-gray-500 cursor-pointer">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-                    <div class="p-4 max-h-[60vh] overflow-y-auto">
-                        <table class="w-full text-xs text-left">
-                            <thead class="bg-gray-100 text-gray-700 font-semibold border-b border-gray-200">
-                                <tr>
-                                    <th class="py-2 px-3">Varian</th>
-                                    <th class="py-2 px-3 text-right">ADU</th>
-                                    <th class="py-2 px-3 text-right">Stok Fisik</th>
-                                    <th class="py-2 px-3 text-right">Proyeksi</th>
-                                    <th class="py-2 px-3 text-right font-bold text-primary-900">Rekomendasi Qty</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                <template x-if="activeVarianProduct && activeVarianProduct.varian">
-                                    <template x-for="v in activeVarianProduct.varian" :key="v.nama_varian || v.sku_varian || Math.random()">
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="py-2 px-3 font-medium text-gray-900" x-text="v.nama_varian || v.nama || v.sku_varian || '-'"></td>
-                                            <td class="py-2 px-3 text-right font-mono text-gray-600" x-text="formatNumber(v.adu)"></td>
-                                            <td class="py-2 px-3 text-right font-mono text-gray-700" x-text="formatNumber(v.stok)"></td>
-                                            <td class="py-2 px-3 text-right font-mono text-gray-700" x-text="formatNumber(v.proyeksi)"></td>
-                                            <td class="py-2 px-3 text-right font-mono font-bold text-primary-800 bg-primary-50/40" x-text="formatNumber(v.rekomendasi_order || v.qty_order || 0)"></td>
-                                        </tr>
-                                    </template>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="bg-gray-50 px-4 py-2.5 border-t border-gray-200 flex justify-end">
-                        <button type="button" @click="showVarianModal = false" class="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 cursor-pointer">
-                            Tutup
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Detail Snapshot Riwayat -->
-        <div x-show="showSnapshotModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                <div x-show="showSnapshotModal" @click="showSnapshotModal = false" class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity"></div>
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                <div x-show="showSnapshotModal" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-xl sm:w-full">
-                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                        <div>
-                            <h3 class="text-sm font-bold text-gray-900">Detail Snapshot Riwayat</h3>
-                            <p class="text-xs text-gray-500 font-mono" x-text="activeSnapshot ? activeSnapshot.session_id + ' · ' + activeSnapshot.item_label : ''"></p>
-                        </div>
-                        <button type="button" @click="showSnapshotModal = false" class="text-gray-400 hover:text-gray-500 cursor-pointer">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-                    <div class="p-4 max-h-[60vh] overflow-y-auto">
-                        <dl class="grid grid-cols-2 gap-3 text-xs">
-                            <template x-if="activeSnapshot && activeSnapshot.detail">
-                                <template x-for="[key, val] in Object.entries(activeSnapshot.detail).filter(([k]) => k !== 'varian_detail')" :key="key">
-                                    <div class="bg-gray-50 p-2 rounded border border-gray-100">
-                                        <dt class="text-[10px] uppercase font-semibold text-gray-500 tracking-wider" x-text="key.replace(/_/g, ' ')"></dt>
-                                        <dd class="mt-0.5 font-mono text-gray-900 font-medium" x-text="typeof val === 'number' ? formatNumber(val) : (val ?? '-')"></dd>
-                                    </div>
-                                </template>
-                            </template>
-                        </dl>
-                    </div>
-                    <div class="bg-gray-50 px-4 py-2.5 border-t border-gray-200 flex justify-end">
-                        <button type="button" @click="showSnapshotModal = false" class="px-3 py-1.5 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 cursor-pointer">
-                            Tutup
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Modal Partials -->
+        @include('analisa.partials.modal-varian')
+        @include('analisa.partials.modal-snapshot')
+        @include('analisa.partials.modal-stage-lead-time')
+        @include('analisa.partials.modal-manual-lokal')
+        @include('analisa.partials.modal-manual-impor')
     </div>
 
     @push('scripts')
@@ -1030,6 +1088,74 @@
         activeVarianProduct: null,
         showSnapshotModal: false,
         activeSnapshot: null,
+        showStageModal: false,
+        savingStage: false,
+        stageForm: {
+          produk_id: null,
+          nama: '',
+          sku: '',
+          supplier_nama: '',
+          tambahan_buffer_hari: 0,
+          average: {
+            id: null,
+            perencanaan: 0,
+            approval: 0,
+            supplier_confirm: 0,
+            payment: 0,
+            po: 0,
+            pengemasan: 0,
+            pengiriman: 0,
+            unloading: 0,
+            input: 0
+          },
+          max: {
+            id: null,
+            perencanaan: 0,
+            approval: 0,
+            supplier_confirm: 0,
+            payment: 0,
+            po: 0,
+            pengemasan: 0,
+            pengiriman: 0,
+            unloading: 0,
+            input: 0
+          }
+        },
+        showManualLokalModal: false,
+        savingManualLokal: false,
+        manualLokalForm: {
+          produk_id: null,
+          nama: '',
+          sku: '',
+          satuan: '',
+          supplier_nama: '',
+          terjual_rata_rata_4bulan: 0,
+          review_period: 15,
+          tambahan_buffer_hari: 0,
+          stok_saat_ini: 0,
+          harga_ml_pcs: 0,
+          total_avg_lead_time: 0,
+          total_max_lead_time: 0,
+          safety_stock: 0,
+          akan_datang: 0
+        },
+        showManualImporModal: false,
+        savingManualImpor: false,
+        manualImporForm: {
+          produk_id: null,
+          nama: '',
+          sku: '',
+          satuan: '',
+          supplier_nama: '',
+          lead_time_average: 0,
+          lead_time_max: 0,
+          out: 0,
+          review_period: 30,
+          klasifikasi_abc: 'b',
+          stok_saat_ini: 0,
+          inbound_before_eta: 0,
+          harga_per_satuan: 0
+        },
         loading: false,
         generating: false,
         page: 1,
@@ -1047,6 +1173,7 @@
           lokal: [
             ['sku', 'SKU', 'text-left'],
             ['nama', 'Nama Bahan', 'text-left'],
+            ['supplier_nama', 'Supplier', 'text-left'],
             ['adu', 'ADU', 'text-right'],
             ['batas_minimum', 'Batas Min', 'text-right'],
             ['target_stock', 'Target', 'text-right'],
@@ -1058,6 +1185,7 @@
           impor: [
             ['sku', 'SKU', 'text-left'],
             ['nama', 'Nama Bahan', 'text-left'],
+            ['supplier_nama', 'Supplier', 'text-left'],
             ['klasifikasi_abc', 'ABC', 'text-center'],
             ['buffer_days', 'Buffer Hari', 'text-right'],
             ['total_selisih', 'Selisih', 'text-right'],
@@ -1153,8 +1281,8 @@
               (r.tipe && r.tipe.toLowerCase().includes(q))
             );
           }
-          if ((this.tab === 'lokal' && this.lokalSubTab === 'rekomendasi') || this.tab === 'impor') {
-            if (this.statusFilter !== 'all') {
+          if (this.tab === 'lokal' || this.tab === 'impor') {
+            if (this.statusFilter !== 'all' && ((this.tab === 'lokal' && this.lokalSubTab === 'rekomendasi') || this.tab === 'impor')) {
               list = list.filter(r => {
                 const s = String(r.status || '').toLowerCase();
                 if (this.statusFilter === 'order') return s === 'order' || s === 'po';
@@ -1182,8 +1310,13 @@
             const q = this.searchQuery.toLowerCase().trim();
             list = list.filter(s => 
               (s.nama && s.nama.toLowerCase().includes(q)) || 
-              (s.sku && s.sku.toLowerCase().includes(q))
+              (s.sku && s.sku.toLowerCase().includes(q)) ||
+              (s.supplier_nama && s.supplier_nama.toLowerCase().includes(q))
             );
+          }
+          if (this.supplierFilter !== 'all') {
+            const sf = String(this.supplierFilter);
+            list = list.filter(s => String(s.supplier_id) === sf);
           }
           return list;
         },
@@ -1193,6 +1326,44 @@
           const pp = Number(this.perPage) || 15;
           const start = (this.page - 1) * pp;
           return list.slice(start, start + pp);
+        },
+        longestAvgStage(){
+          const list = this.filteredStages();
+          if (!list || !list.length) return null;
+          let longest = null;
+          let maxDays = -1;
+          for (const s of list) {
+            const days = Number(s.average?.total ?? s.total_average_lead_time ?? 0);
+            if (days > maxDays) {
+              maxDays = days;
+              longest = {
+                nama: s.nama,
+                sku: s.sku,
+                supplier_nama: s.supplier_nama || '-',
+                days: days
+              };
+            }
+          }
+          return longest;
+        },
+        longestMaxStage(){
+          const list = this.filteredStages();
+          if (!list || !list.length) return null;
+          let longest = null;
+          let maxDays = -1;
+          for (const s of list) {
+            const days = Number(s.max?.total ?? s.total_max_lead_time ?? 0);
+            if (days > maxDays) {
+              maxDays = days;
+              longest = {
+                nama: s.nama,
+                sku: s.sku,
+                supplier_nama: s.supplier_nama || '-',
+                days: days
+              };
+            }
+          }
+          return longest;
         },
         currentDataLength(){
           if (this.tab === 'lokal' && this.lokalSubTab === 'stages') {
@@ -1338,6 +1509,342 @@
           this.activeSnapshot = item;
           this.showSnapshotModal = true;
         },
+        openStageModal(item){
+          let stg = null;
+          if (item.average || item.max) {
+            stg = item;
+          } else if (this.tables && this.tables.stages) {
+            stg = this.tables.stages.find(s => s.produk_id === item.produk_id);
+          }
+          const avg = (stg && stg.average) ? stg.average : {};
+          const max = (stg && stg.max) ? stg.max : {};
+
+          this.stageForm = {
+            produk_id: item.produk_id,
+            nama: item.nama,
+            sku: item.sku,
+            supplier_nama: item.supplier_nama,
+            tambahan_buffer_hari: item.tambahan_buffer_hari ?? (stg ? stg.tambahan_buffer_hari : 0),
+            average: {
+              id: avg.id || null,
+              perencanaan: avg.perencanaan ?? 0,
+              approval: avg.approval ?? 0,
+              supplier_confirm: avg.supplier_confirm ?? 0,
+              payment: avg.payment ?? 0,
+              po: avg.po ?? 0,
+              pengemasan: avg.pengemasan ?? 0,
+              pengiriman: avg.pengiriman ?? 0,
+              unloading: avg.unloading ?? 0,
+              input: avg.input ?? 0,
+            },
+            max: {
+              id: max.id || null,
+              perencanaan: max.perencanaan ?? 0,
+              approval: max.approval ?? 0,
+              supplier_confirm: max.supplier_confirm ?? 0,
+              payment: max.payment ?? 0,
+              po: max.po ?? 0,
+              pengemasan: max.pengemasan ?? 0,
+              pengiriman: max.pengiriman ?? 0,
+              unloading: max.unloading ?? 0,
+              input: max.input ?? 0,
+            }
+          };
+          this.showStageModal = true;
+        },
+        stageSum(type){
+          const s = this.stageForm[type] || {};
+          return (Number(s.perencanaan) || 0) +
+                 (Number(s.approval) || 0) +
+                 (Number(s.supplier_confirm) || 0) +
+                 (Number(s.payment) || 0) +
+                 (Number(s.po) || 0) +
+                 (Number(s.pengemasan) || 0) +
+                 (Number(s.pengiriman) || 0) +
+                 (Number(s.unloading) || 0) +
+                 (Number(s.input) || 0);
+        },
+        stageSafetyStock(){
+          const max = this.stageSum('max');
+          const avg = this.stageSum('average');
+          const diff = Math.max(0, max - avg);
+          return diff + (Number(this.stageForm.tambahan_buffer_hari) || 0);
+        },
+        async saveStages(){
+          this.savingStage = true;
+          try {
+            const payload = {
+              produk_id: this.stageForm.produk_id,
+              tambahan_buffer_hari: Number(this.stageForm.tambahan_buffer_hari) || 0,
+              stages: [
+                {
+                  id: this.stageForm.average.id || null,
+                  skenario: 'average',
+                  perencanaan: Number(this.stageForm.average.perencanaan) || 0,
+                  approval: Number(this.stageForm.average.approval) || 0,
+                  supplier_confirm: Number(this.stageForm.average.supplier_confirm) || 0,
+                  payment: Number(this.stageForm.average.payment) || 0,
+                  po: Number(this.stageForm.average.po) || 0,
+                  pengemasan: Number(this.stageForm.average.pengemasan) || 0,
+                  pengiriman: Number(this.stageForm.average.pengiriman) || 0,
+                  unloading: Number(this.stageForm.average.unloading) || 0,
+                  input: Number(this.stageForm.average.input) || 0,
+                },
+                {
+                  id: this.stageForm.max.id || null,
+                  skenario: 'max',
+                  perencanaan: Number(this.stageForm.max.perencanaan) || 0,
+                  approval: Number(this.stageForm.max.approval) || 0,
+                  supplier_confirm: Number(this.stageForm.max.supplier_confirm) || 0,
+                  payment: Number(this.stageForm.max.payment) || 0,
+                  po: Number(this.stageForm.max.po) || 0,
+                  pengemasan: Number(this.stageForm.max.pengemasan) || 0,
+                  pengiriman: Number(this.stageForm.max.pengiriman) || 0,
+                  unloading: Number(this.stageForm.max.unloading) || 0,
+                  input: Number(this.stageForm.max.input) || 0,
+                }
+              ]
+            };
+            const res = await fetch('{{ route('analisa.stages-lokal.update') }}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+              },
+              body: JSON.stringify(payload)
+            });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              this.showStageModal = false;
+              Swal.fire({
+                icon: 'success',
+                title: 'Tahap Lead Time Disimpan',
+                text: 'Perubahan 9 tahap lead time berhasil disimpan & analisa dihitung ulang.',
+                confirmButtonColor: '#0284c7'
+              });
+              await this.load();
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal Menyimpan',
+                text: j.message || 'Terjadi kesalahan saat menyimpan data tahap.',
+                confirmButtonColor: '#0284c7'
+              });
+            }
+          } catch(e) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: 'Tidak dapat terhubung ke server.',
+              confirmButtonColor: '#0284c7'
+            });
+          } finally {
+            this.savingStage = false;
+          }
+        },
+
+        openManualLokalModal(item){
+          this.manualLokalForm = {
+            produk_id: item.produk_id,
+            nama: item.nama,
+            sku: item.sku,
+            satuan: item.satuan,
+            supplier_nama: item.supplier_nama,
+            terjual_rata_rata_4bulan: item.terjual_rata_rata_4bulan || 0,
+            review_period: item.review_period || 15,
+            tambahan_buffer_hari: item.tambahan_buffer_hari || 0,
+            stok_saat_ini: item.stok_saat_ini || 0,
+            harga_ml_pcs: item.harga_per_satuan || 0,
+            total_avg_lead_time: item.total_avg_lead_time || 0,
+            total_max_lead_time: item.total_max_lead_time || 0,
+            safety_stock: item.safety_stock || 0,
+            akan_datang: item.akan_datang || 0,
+          };
+          this.showManualLokalModal = true;
+        },
+        simulasiLokalAdu(){
+          return ((Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30).toFixed(4);
+        },
+        simulasiLokalBatasMin(){
+          const adu = (Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30;
+          const avgLt = Number(this.manualLokalForm.total_avg_lead_time) || 0;
+          const ss = (Number(this.manualLokalForm.safety_stock) || 0) + (Number(this.manualLokalForm.tambahan_buffer_hari) || 0);
+          return this.formatNumber(adu * (avgLt + ss));
+        },
+        simulasiLokalTarget(){
+          const adu = (Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30;
+          const avgLt = Number(this.manualLokalForm.total_avg_lead_time) || 0;
+          const ss = (Number(this.manualLokalForm.safety_stock) || 0) + (Number(this.manualLokalForm.tambahan_buffer_hari) || 0);
+          const rp = Number(this.manualLokalForm.review_period) || 15;
+          const batasMin = adu * (avgLt + ss);
+          return this.formatNumber(batasMin + (adu * rp));
+        },
+        simulasiLokalOrder(){
+          const adu = (Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30;
+          const avgLt = Number(this.manualLokalForm.total_avg_lead_time) || 0;
+          const ss = (Number(this.manualLokalForm.safety_stock) || 0) + (Number(this.manualLokalForm.tambahan_buffer_hari) || 0);
+          const rp = Number(this.manualLokalForm.review_period) || 15;
+          const target = (adu * (avgLt + ss)) + (adu * rp);
+          const stok = Number(this.manualLokalForm.stok_saat_ini) || 0;
+          const akanDatang = Number(this.manualLokalForm.akan_datang) || 0;
+          const ord = Math.max(0, target - stok - akanDatang);
+          return this.formatNumber(ord) + ' ' + (this.manualLokalForm.satuan || '');
+        },
+        async saveManualLokal(){
+          this.savingManualLokal = true;
+          try {
+            const payload = {
+              produk_id: this.manualLokalForm.produk_id,
+              terjual_rata_rata_4bulan: Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0,
+              review_period: Number(this.manualLokalForm.review_period) || 15,
+              tambahan_buffer_hari: Number(this.manualLokalForm.tambahan_buffer_hari) || 0,
+              stok_saat_ini: Number(this.manualLokalForm.stok_saat_ini) || 0,
+              harga_ml_pcs: Number(this.manualLokalForm.harga_ml_pcs) || 0,
+            };
+            const res = await fetch('{{ route('analisa.update-manual-lokal') }}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+              },
+              body: JSON.stringify(payload)
+            });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              this.showManualLokalModal = false;
+              Swal.fire({
+                icon: 'success',
+                title: 'Data Manual Tersimpan',
+                text: 'Parameter manual bahan lokal berhasil diperbarui & analisa dihitung ulang.',
+                confirmButtonColor: '#0284c7'
+              });
+              await this.load();
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal Menyimpan',
+                text: j.message || 'Terjadi kesalahan saat menyimpan data manual.',
+                confirmButtonColor: '#0284c7'
+              });
+            }
+          } catch(e) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: 'Tidak dapat terhubung ke server.',
+              confirmButtonColor: '#0284c7'
+            });
+          } finally {
+            this.savingManualLokal = false;
+          }
+        },
+
+        openManualImporModal(item){
+          this.manualImporForm = {
+            produk_id: item.produk_id,
+            nama: item.nama,
+            sku: item.sku,
+            satuan: item.satuan,
+            supplier_nama: item.supplier_nama,
+            lead_time_average: item.lead_time_average || 0,
+            lead_time_max: item.lead_time_max || 0,
+            out: item.out || 0,
+            review_period: item.review_period || 30,
+            klasifikasi_abc: item.klasifikasi_abc || 'b',
+            stok_saat_ini: item.stok_saat_ini || 0,
+            inbound_before_eta: item.inbound_before_eta || 0,
+            harga_per_satuan: item.harga_per_satuan || 0,
+          };
+          this.showManualImporModal = true;
+        },
+        simulasiImporAdu(){
+          return ((Number(this.manualImporForm.out) || 0) / 120).toFixed(4);
+        },
+        simulasiImporSafetyStock(){
+          const adu = (Number(this.manualImporForm.out) || 0) / 120;
+          const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
+          const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
+          const bufferDays = Math.max(0, maxLt - avgLt);
+          return this.formatNumber(bufferDays * adu);
+        },
+        simulasiImporTarget(){
+          const adu = (Number(this.manualImporForm.out) || 0) / 120;
+          const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
+          const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
+          const bufferDays = Math.max(0, maxLt - avgLt);
+          const ss = bufferDays * adu;
+          const minStock = ss + (adu * avgLt);
+          const rp = Number(this.manualImporForm.review_period) || 30;
+          return this.formatNumber(minStock + (adu * rp));
+        },
+        simulasiImporOrder(){
+          const adu = (Number(this.manualImporForm.out) || 0) / 120;
+          const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
+          const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
+          const bufferDays = Math.max(0, maxLt - avgLt);
+          const ss = bufferDays * adu;
+          const minStock = ss + (adu * avgLt);
+          const rp = Number(this.manualImporForm.review_period) || 30;
+          const target = minStock + (adu * rp);
+          const stok = Number(this.manualImporForm.stok_saat_ini) || 0;
+          const inbound = Number(this.manualImporForm.inbound_before_eta) || 0;
+          const ord = Math.max(0, target - stok - inbound);
+          return this.formatNumber(ord) + ' ' + (this.manualImporForm.satuan || '');
+        },
+        async saveManualImpor(){
+          this.savingManualImpor = true;
+          try {
+            const payload = {
+              produk_id: this.manualImporForm.produk_id,
+              lead_time_average: Number(this.manualImporForm.lead_time_average) || 0,
+              lead_time_max: Number(this.manualImporForm.lead_time_max) || 0,
+              out: Number(this.manualImporForm.out) || 0,
+              review_period: Number(this.manualImporForm.review_period) || 30,
+              klasifikasi_abc: this.manualImporForm.klasifikasi_abc || 'b',
+              stok_saat_ini: Number(this.manualImporForm.stok_saat_ini) || 0,
+              inbound_before_eta: Number(this.manualImporForm.inbound_before_eta) || 0,
+              harga_per_satuan: Number(this.manualImporForm.harga_per_satuan) || 0,
+            };
+            const res = await fetch('{{ route('analisa.update-manual-impor') }}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+              },
+              body: JSON.stringify(payload)
+            });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              this.showManualImporModal = false;
+              Swal.fire({
+                icon: 'success',
+                title: 'Data Manual Tersimpan',
+                text: 'Parameter manual bahan impor berhasil diperbarui & analisa dihitung ulang.',
+                confirmButtonColor: '#0284c7'
+              });
+              await this.load();
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Gagal Menyimpan',
+                text: j.message || 'Terjadi kesalahan saat menyimpan data manual.',
+                confirmButtonColor: '#0284c7'
+              });
+            }
+          } catch(e) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: 'Tidak dapat terhubung ke server.',
+              confirmButtonColor: '#0284c7'
+            });
+          } finally {
+            this.savingManualImpor = false;
+          }
+        },
         async generateLokal(){
           this.generating = true;
           try {
@@ -1400,6 +1907,82 @@
                 icon: 'error',
                 title: 'Generate Gagal',
                 text: j.message || 'Terjadi kesalahan saat memproses data.',
+                confirmButtonColor: '#0284c7'
+              });
+            }
+          } catch(e) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: 'Tidak dapat terhubung ke server.',
+              confirmButtonColor: '#0284c7'
+            });
+          } finally {
+            this.generating = false;
+          }
+        },
+        async checkingLokal(){
+          this.generating = true;
+          try {
+            const fd = new FormData();
+            fd.append('_token', '{{ csrf_token() }}');
+            const res = await fetch('{{ route('analisa.generate-lokal') }}', {
+              method: 'POST',
+              body: fd,
+              headers: { 'Accept': 'application/json' }
+            });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Checking & Sinkronisasi Selesai',
+                text: 'Data stok fisik real-time, outstanding PO berjalan, dan batas stok berhasil diperbarui.',
+                confirmButtonColor: '#0284c7'
+              });
+              await this.load();
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Checking Gagal',
+                text: j.message || 'Terjadi kesalahan saat memeriksa data.',
+                confirmButtonColor: '#0284c7'
+              });
+            }
+          } catch(e) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Kesalahan Sistem',
+              text: 'Tidak dapat terhubung ke server.',
+              confirmButtonColor: '#0284c7'
+            });
+          } finally {
+            this.generating = false;
+          }
+        },
+        async checkingImpor(){
+          this.generating = true;
+          try {
+            const fd = new FormData();
+            fd.append('_token', '{{ csrf_token() }}');
+            const res = await fetch('{{ route('analisa.generate-impor') }}', {
+              method: 'POST',
+              body: fd,
+              headers: { 'Accept': 'application/json' }
+            });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Checking Impor Selesai',
+                text: 'Data stok fisik, inbound ETA berjalan, dan rekomendasi order impor berhasil diperbarui.',
+                confirmButtonColor: '#0284c7'
+              });
+              await this.load();
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Checking Gagal',
+                text: j.message || 'Terjadi kesalahan saat memeriksa data.',
                 confirmButtonColor: '#0284c7'
               });
             }

@@ -117,8 +117,8 @@ class AnalisaService
             $existingAnalisa = AnalisaLokal::where('produk_id', $p->id)->first();
             $existingInput = AnalisaLokalInput::where('produk_id', $p->id)->first();
 
-            $terjual = (float) ($existingAnalisa?->terjual_rata_rata_4bulan ?? $existingInput?->terjual_rata_rata_4bulan ?? 0);
-            $reviewPeriod = (int) ($existingAnalisa?->review_period ?? $existingInput?->review_period ?? 15);
+            $terjual = (float) ($existingInput?->terjual_rata_rata_4bulan ?? $existingAnalisa?->terjual_rata_rata_4bulan ?? 0);
+            $reviewPeriod = (int) ($existingInput?->review_period ?? $existingAnalisa?->review_period ?? 15);
             if ($reviewPeriod <= 0) {
                 $reviewPeriod = 15;
             }
@@ -530,7 +530,7 @@ class AnalisaService
         DB::transaction(function () use ($tipe, $sessionId, $actorId, $today, &$count) {
             // 1. Finalisasi Bahan Lokal
             if ($tipe === 'bahan_lokal' || $tipe === 'all') {
-                $rekomendasiList = RekomendasiOrderLokal::with('produk')->get();
+                $rekomendasiList = RekomendasiOrderLokal::with('produk.supplier')->get();
                 foreach ($rekomendasiList as $rek) {
                     RiwayatAnalisa::create([
                         'session_id' => $sessionId,
@@ -546,6 +546,8 @@ class AnalisaService
                         'detail_payload' => [
                             'nama' => $rek->produk?->nama,
                             'satuan' => $rek->produk?->satuan,
+                            'supplier_id' => $rek->produk?->supplier_id,
+                            'supplier_nama' => $rek->produk?->supplier?->nama ?? '-',
                             'stok_saat_ini' => (float) $rek->stok_saat_ini,
                             'akan_datang' => (float) $rek->akan_datang,
                             'selisih' => (float) $rek->selisih,
@@ -561,7 +563,7 @@ class AnalisaService
 
             // 2. Finalisasi Bahan Impor
             if ($tipe === 'bahan_impor' || $tipe === 'all') {
-                $analisaImporList = AnalisaImpor::with('produk')->get();
+                $analisaImporList = AnalisaImpor::with('produk.supplier')->get();
                 foreach ($analisaImporList as $ai) {
                     RiwayatAnalisa::create([
                         'session_id' => $sessionId,
@@ -576,6 +578,8 @@ class AnalisaService
                         'is_locked' => true,
                         'detail_payload' => [
                             'nama' => $ai->produk?->nama,
+                            'supplier_id' => $ai->produk?->supplier_id,
+                            'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
                             'klasifikasi_abc' => $ai->klasifikasi_abc,
                             'buffer_days' => (float) $ai->buffer_days,
                             'safety_stock' => (float) $ai->safety_stock,

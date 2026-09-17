@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AnalisaFulfillmentInput;
 use App\Models\AnalisaImpor;
 use App\Models\AnalisaImporMeta;
+use App\Models\AnalisaImporVarian;
 use App\Models\AnalisaLokal;
 use App\Models\AnalisaLokalInput;
 use App\Models\Gudang;
@@ -57,9 +58,22 @@ class AnalisaController extends Controller
             },
             'generator:id,name'
         ])->get();
-        $analisa = AnalisaLokal::with(['produk:id,sku,nama,satuan', 'generator:id,name'])->get()->keyBy('produk_id');
-        $leadTime = LeadTimeLokal::with('produk:id,sku,nama')->get()->keyBy('produk_id');
-        $stages = LeadTimeLokalStage::with('produk:id,sku,nama')->get()->groupBy('produk_id');
+        $analisa = AnalisaLokal::with([
+            'produk' => function ($q) {
+                $q->select('id', 'sku', 'nama', 'satuan', 'supplier_id')->with('supplier:id,nama,kategori');
+            },
+            'generator:id,name'
+        ])->get()->keyBy('produk_id');
+        $leadTime = LeadTimeLokal::with([
+            'produk' => function ($q) {
+                $q->select('id', 'sku', 'nama', 'satuan', 'supplier_id')->with('supplier:id,nama,kategori');
+            }
+        ])->get()->keyBy('produk_id');
+        $stages = LeadTimeLokalStage::with([
+            'produk' => function ($q) {
+                $q->select('id', 'sku', 'nama', 'satuan', 'supplier_id')->with('supplier:id,nama,kategori');
+            }
+        ])->get()->groupBy('produk_id');
         $lastGenerated = AnalisaLokal::latest('generated_at')->with('generator:id,name')->first();
 
         $rows = $rekomendasi->map(function ($rek) use ($analisa, $leadTime) {
@@ -78,6 +92,7 @@ class AnalisaController extends Controller
                 'faktor_konversi' => (float) ($rek->produk?->faktor_konversi ?: 1),
                 'total_avg_lead_time' => (int) ($lt?->total_average_lead_time ?? $al?->total_average_lead_time ?? 0),
                 'total_max_lead_time' => (int) ($lt?->total_max_lead_time ?? 0),
+                'tambahan_buffer_hari' => (int) ($lt?->tambahan_buffer_hari ?? 0),
                 'safety_stock' => (int) ($lt?->safety_stock ?? $al?->safety_stock ?? 0),
                 'safety_stock_hari' => (int) ($lt?->safety_stock ?? $al?->safety_stock ?? 0),
                 'terjual_rata_rata_4bulan' => (float) ($al?->terjual_rata_rata_4bulan ?? 0),
@@ -106,10 +121,18 @@ class AnalisaController extends Controller
             $p = $stgList->first()->produk;
             $avg = $stgList->firstWhere('skenario', 'average');
             $max = $stgList->firstWhere('skenario', 'max');
+            $lt = $leadTime->get($prodId);
             $formattedStages[] = [
                 'produk_id' => $prodId,
                 'sku' => $p?->sku,
                 'nama' => $p?->nama,
+                'satuan' => $p?->satuan,
+                'supplier_id' => $p?->supplier_id,
+                'supplier_nama' => $p?->supplier?->nama ?? '-',
+                'tambahan_buffer_hari' => (int) ($lt?->tambahan_buffer_hari ?? 0),
+                'safety_stock' => (int) ($lt?->safety_stock ?? 0),
+                'total_average_lead_time' => (int) ($lt?->total_average_lead_time ?? 0),
+                'total_max_lead_time' => (int) ($lt?->total_max_lead_time ?? 0),
                 'average' => $avg ? [
                     'id' => $avg->id,
                     'perencanaan' => $avg->perencanaan,
@@ -184,7 +207,8 @@ class AnalisaController extends Controller
 
         $data = $request->validate([
             'stages' => ['required', 'array'],
-            'stages.*.id' => ['required', 'exists:lead_time_lokal_stage,id'],
+            'stages.*.id' => ['nullable', 'integer'],
+            'stages.*.skenario' => ['nullable', 'in:average,max'],
             'stages.*.perencanaan' => ['nullable', 'integer', 'min:0'],
             'stages.*.approval' => ['nullable', 'integer', 'min:0'],
             'stages.*.supplier_confirm' => ['nullable', 'integer', 'min:0'],
@@ -200,7 +224,7 @@ class AnalisaController extends Controller
 
         DB::transaction(function () use ($data) {
             foreach ($data['stages'] as $stg) {
-                LeadTimeLokalStage::where('id', $stg['id'])->update([
+                $payload = [
                     'perencanaan' => (int) ($stg['perencanaan'] ?? 0),
                     'approval' => (int) ($stg['approval'] ?? 0),
                     'supplier_confirm' => (int) ($stg['supplier_confirm'] ?? 0),
@@ -210,14 +234,23 @@ class AnalisaController extends Controller
                     'pengiriman' => (int) ($stg['pengiriman'] ?? 0),
                     'unloading' => (int) ($stg['unloading'] ?? 0),
                     'input' => (int) ($stg['input'] ?? 0),
-                ]);
+                ];
+                if (! empty($stg['id'])) {
+                    LeadTimeLokalStage::where('id', $stg['id'])->update($payload);
+                } elseif (! empty($data['produk_id']) && ! empty($stg['skenario'])) {
+                    LeadTimeLokalStage::updateOrCreate(
+                        ['produk_id' => $data['produk_id'], 'skenario' => $stg['skenario']],
+                        $payload
+                    );
+                }
             }
 
             if (! empty($data['produk_id'])) {
                 if (isset($data['tambahan_buffer_hari'])) {
-                    LeadTimeLokal::where('produk_id', $data['produk_id'])->update([
-                        'tambahan_buffer_hari' => (int) $data['tambahan_buffer_hari'],
-                    ]);
+                    LeadTimeLokal::updateOrCreate(
+                        ['produk_id' => $data['produk_id']],
+                        ['tambahan_buffer_hari' => (int) $data['tambahan_buffer_hari']]
+                    );
                 }
                 $this->analisa->generateLokal((int) $data['produk_id'], auth()->id());
             }
@@ -234,6 +267,140 @@ class AnalisaController extends Controller
         }
 
         return back()->with('success', 'Tahap lead time berhasil diperbarui & analisa dihitung ulang.');
+    }
+
+    /**
+     * Update data manual bahan lokal (ADU / Terjual 4 bulan, Review Period, Buffer, Stok Saat Ini, Harga Satuan)
+     */
+    public function updateManualLokal(Request $request): JsonResponse
+    {
+        $this->authorize('analisa.manage');
+
+        $data = $request->validate([
+            'produk_id' => ['required', 'exists:produk,id'],
+            'terjual_rata_rata_4bulan' => ['nullable', 'numeric', 'min:0'],
+            'review_period' => ['nullable', 'integer', 'min:1'],
+            'tambahan_buffer_hari' => ['nullable', 'integer', 'min:0'],
+            'stok_saat_ini' => ['nullable', 'numeric', 'min:0'],
+            'harga_ml_pcs' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $prodId = (int) $data['produk_id'];
+
+        DB::transaction(function () use ($prodId, $data) {
+            // Update / simpan ke AnalisaLokalInput agar konsisten saat re-generate
+            $input = AnalisaLokalInput::firstOrNew(['produk_id' => $prodId]);
+            if (array_key_exists('terjual_rata_rata_4bulan', $data) && $data['terjual_rata_rata_4bulan'] !== null) {
+                $input->terjual_rata_rata_4bulan = $data['terjual_rata_rata_4bulan'];
+            }
+            if (array_key_exists('review_period', $data) && $data['review_period'] !== null) {
+                $input->review_period = (int) $data['review_period'];
+            }
+            if (array_key_exists('stok_saat_ini', $data) && $data['stok_saat_ini'] !== null) {
+                $input->stok_saat_ini = $data['stok_saat_ini'];
+            }
+            if (array_key_exists('harga_ml_pcs', $data) && $data['harga_ml_pcs'] !== null) {
+                $input->harga_per_satuan = $data['harga_ml_pcs'];
+            }
+            $input->save();
+
+            // Update tambahan buffer jika dikirim
+            if (array_key_exists('tambahan_buffer_hari', $data) && $data['tambahan_buffer_hari'] !== null) {
+                LeadTimeLokal::updateOrCreate(
+                    ['produk_id' => $prodId],
+                    ['tambahan_buffer_hari' => (int) $data['tambahan_buffer_hari']]
+                );
+            }
+
+            // Hitung ulang analisa lokal produk ini
+            $this->analisa->generateLokal($prodId, auth()->id());
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data input manual bahan lokal berhasil disimpan & analisa dihitung ulang.',
+        ]);
+    }
+
+    /**
+     * Update data manual bahan impor (Lead Time Avg/Max, Out 4 bulan, Review Period, ABC, Stok, Inbound, Harga)
+     */
+    public function updateManualImpor(Request $request): JsonResponse
+    {
+        $this->authorize('analisa.manage');
+
+        $data = $request->validate([
+            'produk_id' => ['required', 'exists:produk,id'],
+            'lead_time_average' => ['nullable', 'numeric', 'min:0'],
+            'lead_time_max' => ['nullable', 'numeric', 'min:0'],
+            'out' => ['nullable', 'numeric', 'min:0'],
+            'review_period' => ['nullable', 'integer', 'min:1'],
+            'klasifikasi_abc' => ['nullable', 'in:wajib_a,a,b,c'],
+            'stok_saat_ini' => ['nullable', 'numeric', 'min:0'],
+            'inbound_before_eta' => ['nullable', 'numeric', 'min:0'],
+            'harga_per_satuan' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $prodId = (int) $data['produk_id'];
+
+        DB::transaction(function () use ($prodId, $data) {
+            // Update Lead Time Impor
+            $lt = LeadTimeImpor::firstOrNew(['produk_id' => $prodId]);
+            if (array_key_exists('lead_time_average', $data) && $data['lead_time_average'] !== null) {
+                $lt->lead_time_average = $data['lead_time_average'];
+            }
+            if (array_key_exists('lead_time_max', $data) && $data['lead_time_max'] !== null) {
+                $lt->lead_time_max = $data['lead_time_max'];
+            }
+            $lt->save();
+
+            // Update Analisa Impor
+            $ai = AnalisaImpor::firstOrNew(['produk_id' => $prodId]);
+            if (array_key_exists('out', $data) && $data['out'] !== null) {
+                $ai->out = $data['out'];
+            }
+            if (array_key_exists('review_period', $data) && $data['review_period'] !== null) {
+                $ai->review_period = (int) $data['review_period'];
+            }
+            if (array_key_exists('klasifikasi_abc', $data) && $data['klasifikasi_abc'] !== null) {
+                $ai->klasifikasi_abc = $data['klasifikasi_abc'];
+            }
+            if (array_key_exists('stok_saat_ini', $data) && $data['stok_saat_ini'] !== null) {
+                $ai->stok_saat_ini = $data['stok_saat_ini'];
+            }
+            if (array_key_exists('inbound_before_eta', $data) && $data['inbound_before_eta'] !== null) {
+                $ai->inbound_before_eta = $data['inbound_before_eta'];
+            }
+            if (array_key_exists('harga_per_satuan', $data) && $data['harga_per_satuan'] !== null) {
+                $ai->harga_per_satuan = $data['harga_per_satuan'];
+            }
+            $ai->save();
+
+            // Jika produk memiliki varian di AnalisaImporMeta, sinkronkan stok & inbound varian secara proporsional
+            $meta = AnalisaImporMeta::where('produk_id', $prodId)->first();
+            if ($meta) {
+                $metaVarians = AnalisaImporVarian::where('analisa_impor_meta_id', $meta->id)->get();
+                if ($metaVarians->isNotEmpty()) {
+                    foreach ($metaVarians as $mv) {
+                        if (array_key_exists('stok_saat_ini', $data) && $data['stok_saat_ini'] !== null) {
+                            $mv->stok_saat_ini = round((float) $mv->persentase_distribusi * (float) $data['stok_saat_ini'], 2);
+                        }
+                        if (array_key_exists('inbound_before_eta', $data) && $data['inbound_before_eta'] !== null) {
+                            $mv->inbound_before_eta = round((float) $mv->persentase_distribusi * (float) $data['inbound_before_eta'], 2);
+                        }
+                        $mv->save();
+                    }
+                }
+            }
+
+            // Hitung ulang analisa impor produk ini
+            $this->analisa->generateImpor($prodId, auth()->id());
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data input manual bahan impor berhasil disimpan & analisa dihitung ulang.',
+        ]);
     }
 
     public function imporData(): JsonResponse
@@ -271,6 +438,8 @@ class AnalisaController extends Controller
                 'faktor_konversi' => (float) ($ai->produk?->faktor_konversi ?: 1),
                 'punya_varian' => (bool) $ai->punya_varian,
                 'klasifikasi_abc' => $ai->klasifikasi_abc,
+                'out' => (float) $ai->out,
+                'review_period' => (int) ($ai->review_period ?: 30),
                 'lead_time_average' => (float) ($lt?->lead_time_average ?? $ai->lead_time),
                 'lead_time_max' => (float) ($lt?->lead_time_max ?? 0),
                 'buffer_days' => (float) $ai->buffer_days,

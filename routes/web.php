@@ -173,6 +173,10 @@ Route::middleware('auth')->group(function () {
             ->middleware('can:analisa.manage')->name('generate-impor');
         Route::post('stages-lokal', [AnalisaController::class, 'updateLeadTimeStages'])
             ->middleware('can:analisa.manage')->name('stages-lokal.update');
+        Route::post('update-manual-lokal', [AnalisaController::class, 'updateManualLokal'])
+            ->middleware('can:analisa.manage')->name('update-manual-lokal');
+        Route::post('update-manual-impor', [AnalisaController::class, 'updateManualImpor'])
+            ->middleware('can:analisa.manage')->name('update-manual-impor');
         Route::post('snapshot', [AnalisaController::class, 'snapshot'])
             ->middleware('can:analisa.snapshot')->name('snapshot');
         Route::post('finalisasi', [AnalisaController::class, 'finalisasi'])
