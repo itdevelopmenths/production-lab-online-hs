@@ -237,19 +237,6 @@
 
                                                 {{-- Hidden Base Qty Input Sent to Backend --}}
                                                 <input type="hidden" :name="`items[${i}][qty]`" :value="row.qty">
-
-                                                {{-- Live Conversion Preview Badge --}}
-                                                <div class="text-[10px] font-mono leading-tight">
-                                                    <template x-if="parseFloat(row.qty_satuan_beli) > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
-                                                        <span class="inline-flex items-center gap-1 text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded-xs border border-primary-200">
-                                                            <svg class="w-3 h-3 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                                                            <span>Konversi: <strong x-text="formatQty(row.qty)"></strong> <span x-text="row.satuan"></span></span>
-                                                        </span>
-                                                    </template>
-                                                    <template x-if="parseFloat(row.qty_satuan_beli) > 0 && (!row.satuan_beli || row.satuan_beli.toLowerCase() === (row.satuan || '').toLowerCase())">
-                                                        <span class="text-gray-400" x-text="formatQty(row.qty) + ' ' + (row.satuan || 'unit')"></span>
-                                                    </template>
-                                                </div>
                                             </div>
                                         </td>
 
@@ -276,9 +263,6 @@
                                                 <div>
                                                     <div class="font-mono font-bold text-xs text-primary-900" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + ' / ' + (row.satuan || 'unit')"></div>
                                                     <div class="text-[10px] text-gray-500 font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
-                                                    <template x-if="row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase() && calculateRowHppPerSatuanBeli(row) > 0">
-                                                        <div class="text-[9px] font-mono text-primary-600 font-medium mt-0.5" x-text="'(setara Rp ' + formatThousand(calculateRowHppPerSatuanBeli(row)) + ' / ' + row.satuan_beli + ')'"></div>
-                                                    </template>
                                                 </div>
                                             </template>
                                             <template x-if="!calculateRowHpp(row) || calculateRowHpp(row) <= 0">
@@ -575,28 +559,28 @@
                     const s = (baseSatuan || '').toLowerCase().trim();
                     if (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter') {
                         return [
-                            { code: 'Liter', label: 'Liter (L) [×1.000]', factor: 1000 },
-                            { code: 'ml', label: 'Mililiter (ml) [×1]', factor: 1 },
-                            { code: 'Jerigen 5L', label: 'Jerigen (5 L) [×5.000]', factor: 5000 },
-                            { code: 'Jerigen 1L', label: 'Jerigen (1 L) [×1.000]', factor: 1000 },
-                            { code: 'Galon 19L', label: 'Galon (19 L) [×19.000]', factor: 19000 },
-                            { code: 'Drum 200L', label: 'Drum (200 L) [×200.000]', factor: 200000 },
+                            { code: 'Liter', label: 'Liter (L)', factor: 1000 },
+                            { code: 'ml', label: 'Mililiter (ml)', factor: 1 },
+                            { code: 'Jerigen 5L', label: 'Jerigen (5 L)', factor: 5000 },
+                            { code: 'Jerigen 1L', label: 'Jerigen (1 L)', factor: 1000 },
+                            { code: 'Galon 19L', label: 'Galon (19 L)', factor: 19000 },
+                            { code: 'Drum 200L', label: 'Drum (200 L)', factor: 200000 },
                             { code: 'custom', label: 'Kustom / Input Faktor...', factor: null },
                         ];
                     } else if (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg' || s === 'kilogram') {
                         return [
-                            { code: 'Kilogram', label: 'Kilogram (kg) [×1.000]', factor: 1000 },
-                            { code: 'Gram', label: 'Gram (gr) [×1]', factor: 1 },
-                            { code: 'Sak 25kg', label: 'Sak (25 kg) [×25.000]', factor: 25000 },
-                            { code: 'Sak 50kg', label: 'Sak (50 kg) [×50.000]', factor: 50000 },
-                            { code: 'Ton', label: 'Ton [×1.000.000]', factor: 1000000 },
+                            { code: 'Kilogram', label: 'Kilogram (kg)', factor: 1000 },
+                            { code: 'Gram', label: 'Gram (gr)', factor: 1 },
+                            { code: 'Sak 25kg', label: 'Sak (25 kg)', factor: 25000 },
+                            { code: 'Sak 50kg', label: 'Sak (50 kg)', factor: 50000 },
+                            { code: 'Ton', label: 'Ton', factor: 1000000 },
                             { code: 'custom', label: 'Kustom / Input Faktor...', factor: null },
                         ];
                     } else {
                         return [
-                            { code: 'Pieces', label: 'Pieces (pcs) [×1]', factor: 1 },
-                            { code: 'Dus (100)', label: 'Dus / Box (100 pcs) [×100]', factor: 100 },
-                            { code: 'Pack (10)', label: 'Pack (10 pcs) [×10]', factor: 10 },
+                            { code: 'Pieces', label: 'Pieces (pcs)', factor: 1 },
+                            { code: 'Dus (100)', label: 'Dus / Box (100 pcs)', factor: 100 },
+                            { code: 'Pack (10)', label: 'Pack (10 pcs)', factor: 10 },
                             { code: 'custom', label: 'Kustom / Input Faktor...', factor: null },
                         ];
                     }
