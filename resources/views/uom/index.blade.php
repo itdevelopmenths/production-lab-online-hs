@@ -30,6 +30,7 @@
                     Master Satuan UOM
                 </button>
 
+                @canany(['uom.audit', 'audit.view'])
                 <button
                     type="button"
                     @click="currentTab = 'audit'; $nextTick(() => { if (window.tblAuditUom) window.tblAuditUom.columns.adjust().draw(false); })"
@@ -39,6 +40,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Riwayat Audit
                 </button>
+                @endcanany
             </nav>
         </div>
 
@@ -62,9 +64,12 @@
             </x-card>
         </div>
 
+        <!-- TAB 2: Riwayat Audit UOM -->
+        @canany(['uom.audit', 'audit.view'])
         <div x-show="currentTab === 'audit'" x-cloak>
             <x-master-audit-tab entity="uom" />
         </div>
+        @endcanany
     </div>
 
     @push('scripts')

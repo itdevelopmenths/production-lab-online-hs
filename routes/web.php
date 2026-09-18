@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::get('produk/select-data', [ProdukController::class, 'selectData'])->name('produk.select-data');
     Route::get('varian/by-kategori/{kategoriId}', [VarianController::class, 'byKategori'])->name('varian.by-kategori');
     Route::get('master-data-audit/data', [\App\Http\Controllers\MasterDataAuditController::class, 'data'])->name('master-audit.data');
+    Route::get('operational-audit/data', [\App\Http\Controllers\OperationalAuditController::class, 'data'])->name('operational-audit.data');
 
     // ===== Master Data =====
     Route::middleware('can:produk.view')->group(function () {

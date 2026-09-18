@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\AuditableOperation;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BatchProduksi extends Model
 {
-    use HasUuids;
+    use HasUuids, AuditableOperation;
 
     protected $table = 'batch_produksi';
 

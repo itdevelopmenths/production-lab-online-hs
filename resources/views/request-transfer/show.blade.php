@@ -496,4 +496,11 @@
             </x-card>
         </div>
     </div>
+
+    <!-- Log & Jejak Riwayat Audit Dokumen Mutasi & Transfer -->
+    @canany(['rt.audit', 'audit.view'])
+    <div class="mt-6">
+        <x-operational-audit-history :auditable="$rt" title="Jejak Riwayat Audit Dokumen {{ $rt->no_transaksi }}" />
+    </div>
+    @endcanany
 </x-app-layout>

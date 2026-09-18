@@ -482,6 +482,18 @@ class PurchasingController extends Controller
                 $updateData['gudang_id'] = $targetGudangId;
             }
             $purchaseOrder->update($updateData);
+
+            $targetGudang = Gudang::find($targetGudangId);
+            $purchaseOrder->recordAudit(
+                event: 'received',
+                actionTitle: "Penerimaan fisik barang PO {$purchaseOrder->no_po} di " . ($targetGudang?->nama ?? 'Gudang') . " (Kondisi: " . ucwords(str_replace('_', ' ', $data['kondisi'])) . ")",
+                customChanges: ['status' => ['dikirim_ke_gudang', 'selesai']],
+                metadata: [
+                    'tanggal_terima' => $data['tanggal_terima'],
+                    'kondisi' => $data['kondisi'],
+                    'total_item' => count($data['items']),
+                ]
+            );
         });
 
         return back()->with('success', 'Barang datang dicatat & stok bertambah sesuai lokasi PO.');
@@ -498,7 +510,20 @@ class PurchasingController extends Controller
             'termin_id' => ['nullable', 'exists:purchase_order_termins,id'],
         ]);
 
+        $oldStatusBayar = $purchaseOrder->status_pembayaran;
         $this->paymentService->recordPayment($purchaseOrder, $data);
+        $freshPo = $purchaseOrder->fresh();
+
+        $purchaseOrder->recordAudit(
+            event: 'paid',
+            actionTitle: "Pencatatan pembayaran " . ucfirst($data['skema']) . " senilai Rp " . number_format($data['nominal'], 0, ',', '.') . " untuk PO {$purchaseOrder->no_po}",
+            customChanges: ['status_pembayaran' => [$oldStatusBayar, $freshPo?->status_pembayaran ?? $oldStatusBayar]],
+            metadata: [
+                'skema' => $data['skema'],
+                'nominal' => (float) $data['nominal'],
+                'tanggal_bayar' => $data['tanggal_bayar'],
+            ]
+        );
 
         return back()->with('success', 'Pembayaran dicatat.');
     }

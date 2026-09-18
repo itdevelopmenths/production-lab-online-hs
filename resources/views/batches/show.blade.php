@@ -647,4 +647,11 @@
             </x-card>
         </div>
     </div>
+
+    <!-- Log & Jejak Riwayat Audit Dokumen Batch -->
+    @canany(['batch.audit', 'audit.view'])
+    <div class="mt-6">
+        <x-operational-audit-history :auditable="$batch" title="Jejak Riwayat Audit Dokumen Batch {{ $batch->no_batch }}" />
+    </div>
+    @endcanany
 </x-app-layout>

@@ -22,6 +22,7 @@ class PermissionCatalogService
                         'produk.create' => 'Tambah Produk Baru',
                         'produk.edit' => 'Ubah Data Produk',
                         'produk.delete' => 'Hapus Data Produk',
+                        'produk.audit' => 'Lihat Riwayat Audit Produk & Varian',
                     ],
                 ],
                 'gudang' => [
@@ -32,6 +33,7 @@ class PermissionCatalogService
                         'gudang.create' => 'Tambah Gudang Baru',
                         'gudang.edit' => 'Ubah Data Gudang',
                         'gudang.delete' => 'Hapus Gudang',
+                        'gudang.audit' => 'Lihat Riwayat Audit Fasilitas Gudang',
                     ],
                 ],
                 'supplier' => [
@@ -42,6 +44,7 @@ class PermissionCatalogService
                         'supplier.create' => 'Tambah Supplier Baru',
                         'supplier.edit' => 'Ubah Data Supplier',
                         'supplier.delete' => 'Hapus Data Supplier',
+                        'supplier.audit' => 'Lihat Riwayat Audit Supplier / Vendor',
                     ],
                 ],
                 'uom' => [
@@ -52,6 +55,7 @@ class PermissionCatalogService
                         'uom.create' => 'Tambah Satuan Baru',
                         'uom.edit' => 'Ubah Satuan',
                         'uom.delete' => 'Hapus Satuan',
+                        'uom.audit' => 'Lihat Riwayat Audit Satuan Ukur (UOM)',
                     ],
                 ],
                 'bom' => [
@@ -61,6 +65,7 @@ class PermissionCatalogService
                         'bom.view' => 'Lihat Formula Resep Produk',
                         'bom.manage' => 'Atur & Ubah Komposisi BOM',
                         'bom.import' => 'Impor Data BOM (CSV Stamps POS)',
+                        'bom.audit' => 'Lihat Riwayat Audit Formula Resep (BOM)',
                     ],
                 ],
                 'divisi' => [
@@ -71,6 +76,7 @@ class PermissionCatalogService
                         'divisi.create' => 'Tambah Divisi Baru',
                         'divisi.edit' => 'Ubah Data Divisi',
                         'divisi.delete' => 'Hapus Divisi',
+                        'divisi.audit' => 'Lihat Riwayat Audit Divisi',
                     ],
                 ],
             ],
@@ -89,6 +95,7 @@ class PermissionCatalogService
                         'purchasing.receive' => 'Terima Barang Datang (Gudang)',
                         'purchasing.pay' => 'Catat Pembayaran & Pelunasan',
                         'purchasing.cancel' => 'Batalkan Dokumen PO',
+                        'purchasing.audit' => 'Lihat Riwayat Audit Purchasing (PO)',
                     ],
                 ],
                 'batch' => [
@@ -101,6 +108,7 @@ class PermissionCatalogService
                         'batch.complete' => 'Selesaikan Batch (Hasil Jadi & QC)',
                         'batch.cancel' => 'Batalkan Rencana Batch',
                         'batch.opname' => 'Stock Opname Selisih Batch',
+                        'batch.audit' => 'Lihat Riwayat Audit Batch Produksi',
                     ],
                 ],
                 'rt' => [
@@ -115,6 +123,7 @@ class PermissionCatalogService
                         'rt.ship' => 'Kirim Barang (Status In Transit)',
                         'rt.receive' => 'Terima Alokasi Barang di Tujuan',
                         'rt.cancel' => 'Batalkan Dokumen Transfer',
+                        'rt.audit' => 'Lihat Riwayat Audit Request & Transfer',
                     ],
                 ],
             ],
@@ -147,6 +156,7 @@ class PermissionCatalogService
                     'actions' => [
                         'report.view' => 'Lihat Ringkasan & Laporan',
                         'report.export' => 'Ekspor Laporan ke Excel/CSV',
+                        'audit.view' => 'Akses Seluruh Log Audit Sistem (Global)',
                     ],
                 ],
             ],
@@ -211,6 +221,10 @@ class PermissionCatalogService
             'delete', 'cancel' => [
                 'bg' => 'bg-rose-50 text-rose-700 border-rose-200',
                 'label' => 'DELETE',
+            ],
+            'audit' => [
+                'bg' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                'label' => 'AUDIT',
             ],
             default => [
                 'bg' => 'bg-sky-50 text-sky-700 border-sky-200',

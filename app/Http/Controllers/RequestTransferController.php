@@ -593,6 +593,18 @@ class RequestTransferController extends Controller
             }
         }
         $rt->update(['status' => 'selesai']);
+
+        $rt->loadMissing(['gudangAsal', 'gudangTujuan']);
+        $rt->recordAudit(
+            event: 'received',
+            actionTitle: "Penerimaan mutasi {$rt->no_transaksi} di " . ($rt->gudangTujuan?->nama ?? 'Gudang Tujuan') . " (Status: Selesai)",
+            customChanges: ['status' => ['diproses', 'selesai']],
+            metadata: [
+                'total_item' => $rt->items->count(),
+                'gudang_asal' => $rt->gudangAsal?->nama,
+                'gudang_tujuan' => $rt->gudangTujuan?->nama,
+            ]
+        );
     }
 
     private function doCancel(RequestTransfer $rt): void

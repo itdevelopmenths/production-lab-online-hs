@@ -603,6 +603,13 @@
         </div>
     </div>
 
+    <!-- Log & Jejak Riwayat Audit Dokumen PO -->
+    @canany(['purchasing.audit', 'audit.view'])
+    <div class="mt-6">
+        <x-operational-audit-history :auditable="$po" title="Jejak Riwayat Audit Dokumen PO {{ $po->no_po }}" />
+    </div>
+    @endcanany
+
     @push('scripts')
     <script>
         function bardatForm() {

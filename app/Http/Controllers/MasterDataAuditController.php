@@ -35,10 +35,13 @@ class MasterDataAuditController extends Controller
             return response()->json(['data' => []]);
         }
 
-        // Cek izin akses sesuai modul terkait
-        $permissionKey = in_array($entity, ['kategori', 'varian']) ? 'produk.view' : "{$entity}.view";
-        if (auth()->check() && ! auth()->user()->can($permissionKey)) {
-            abort(403, 'Akses tidak diizinkan.');
+        // Cek izin akses wewenang audit modul terkait
+        $auditPerm = in_array($entity, ['kategori', 'varian']) ? 'produk.audit' : "{$entity}.audit";
+        if (auth()->check()) {
+            $user = auth()->user();
+            if (! ($user->can($auditPerm) || $user->can('audit.view'))) {
+                abort(403, 'Anda tidak memiliki wewenang untuk melihat log audit data master ini.');
+            }
         }
 
         $query = MasterDataAudit::query()
