@@ -238,3 +238,18 @@ aside nav::-webkit-scrollbar-thumb:hover,
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(156, 163, 175, 0.5);
 }
+
+/* Cross-Document View Transitions for Persistent Sidebar State */
+@media (prefers-reduced-motion: no-preference) {
+    @view-transition {
+        navigation: auto;
+    }
+}
+
+aside.app-sidebar {
+    view-transition-name: app-sidebar;
+}
+
+header.app-header {
+    view-transition-name: app-header;
+}

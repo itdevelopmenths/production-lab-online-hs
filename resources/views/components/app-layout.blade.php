@@ -13,7 +13,20 @@
     <style>[x-cloak]{display:none!important}</style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body class="min-h-screen font-sans antialiased text-gray-800 bg-[#f4f6f9] flex flex-col" x-data="{ sidebarOpen: window.innerWidth >= 1024 }">
+<body class="min-h-screen font-sans antialiased text-gray-800 bg-[#f4f6f9] flex flex-col"
+      x-data="{
+          sidebarOpen: (function() {
+              try {
+                  const saved = localStorage.getItem('hs_sidebar_open');
+                  if (saved !== null) return saved === 'true';
+              } catch(e) {}
+              return window.innerWidth >= 1024;
+          })(),
+          toggleSidebar() {
+              this.sidebarOpen = !this.sidebarOpen;
+              try { localStorage.setItem('hs_sidebar_open', this.sidebarOpen); } catch(e) {}
+          }
+      }">
     <div class="min-h-screen flex flex-1">
         {{-- Sidebar Overlay (mobile) --}}
         <div x-show="sidebarOpen" x-cloak
@@ -21,7 +34,7 @@
              x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
              x-transition:leave="transition-opacity ease-linear duration-200"
              x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-             @click="sidebarOpen = false"
+             @click="sidebarOpen = false; try { localStorage.setItem('hs_sidebar_open', 'false'); } catch(e) {}"
              class="fixed inset-0 z-40 bg-black/50 lg:hidden"></div>
 
         {{-- Desktop Spacer (lg:w-60 = SSR default so content doesn't flash full-width before Alpine hydrates) --}}
@@ -29,7 +42,7 @@
 
         {{-- Dark Sidebar (AdminLTE 4 Style) --}}
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-               class="fixed inset-y-0 left-0 z-50 w-60 bg-[#1f2937] border-r border-gray-800 transform transition-transform duration-200 ease-in-out flex flex-col h-screen select-none">
+               class="app-sidebar fixed inset-y-0 left-0 z-50 w-60 bg-[#1f2937] border-r border-gray-800 transform transition-transform duration-200 ease-in-out flex flex-col h-screen select-none">
             
             {{-- Brand Header --}}
             <div class="flex items-center gap-2.5 h-14 px-4 bg-[#111827] border-b border-gray-800 shrink-0">
@@ -43,7 +56,7 @@
             </div>
 
             {{-- Navigation Items --}}
-            <nav class="p-2 space-y-0.5 overflow-y-auto flex-1 text-xs sidebar-scroll">
+            <nav id="app-sidebar-nav" class="p-2 space-y-0.5 overflow-y-auto flex-1 text-xs sidebar-scroll">
                 <x-nav-item href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
                     <x-slot:icon>
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -218,14 +231,35 @@
                 </x-nav-item>
                 @endcan
             </nav>
+            <script>
+                (function() {
+                    try {
+                        const nav = document.getElementById('app-sidebar-nav');
+                        if (nav) {
+                            const savedScroll = sessionStorage.getItem('hs_sidebar_scroll');
+                            if (savedScroll !== null) {
+                                nav.scrollTop = parseInt(savedScroll, 10);
+                            } else {
+                                const activeEl = nav.querySelector('[data-nav-active="true"]');
+                                if (activeEl) {
+                                    activeEl.scrollIntoView({ block: 'nearest' });
+                                }
+                            }
+                            nav.addEventListener('scroll', function() {
+                                sessionStorage.setItem('hs_sidebar_scroll', nav.scrollTop);
+                            }, { passive: true });
+                        }
+                    } catch(e) {}
+                })();
+            </script>
         </aside>
 
         {{-- Main Canvas --}}
         <div class="flex-1 flex flex-col min-w-0 min-h-screen">
             {{-- Top Navbar (AdminLTE 4 White Header) --}}
-            <header class="sticky top-0 z-30 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-2xs">
+            <header class="app-header sticky top-0 z-30 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-2xs">
                 <div class="flex items-center gap-3">
-                    <button @click="sidebarOpen = !sidebarOpen" class="p-1.5 rounded-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition cursor-pointer" title="Toggle Sidebar">
+                    <button @click="toggleSidebar()" class="p-1.5 rounded-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition cursor-pointer" title="Toggle Sidebar">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
                     <span class="hidden sm:inline-block text-xs font-semibold text-gray-700 uppercase tracking-wider">
