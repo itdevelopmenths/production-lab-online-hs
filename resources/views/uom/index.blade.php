@@ -50,7 +50,8 @@
                             <tr>
                                 <th class="px-4 py-3 text-left w-32">Kode Satuan</th>
                                 <th class="px-4 py-3 text-left">Nama Satuan</th>
-                                <th class="px-4 py-3 text-left w-40">Kategori Dimensi</th>
+                                <th class="px-4 py-3 text-left w-36">Kategori Dimensi</th>
+                                <th class="px-4 py-3 text-left w-48">Konversi Acuan</th>
                                 <th class="px-4 py-3 text-left w-36">Penggunaan Katalog</th>
                                 <th class="px-4 py-3 text-center w-28">Status</th>
                                 <th class="px-4 py-3 text-center w-28">Aksi</th>
@@ -123,6 +124,7 @@
                 { data: 'kode' },
                 { data: 'nama' },
                 { data: 'kategori' },
+                { data: 'konversi' },
                 { data: 'produk_count', orderable: false, searchable: false },
                 { data: 'is_active', className: 'text-center' },
                 { data: 'action', orderable: false, searchable: false, className: 'text-center' }

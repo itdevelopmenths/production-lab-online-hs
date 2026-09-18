@@ -27,13 +27,22 @@ class UomController extends Controller
         return DataTables::eloquent($query)
             ->editColumn('kode', fn ($u) => '<span class="font-mono font-medium text-primary-700 bg-primary-50/60 px-1.5 py-0.5 rounded-sm border border-primary-100">' . e($u->kode) . '</span>')
             ->editColumn('kategori', fn ($u) => $u->kategori ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">' . e($u->kategori) . '</span>' : '<span class="text-gray-400">—</span>')
+            ->addColumn('konversi', function ($u) {
+                if (! $u->satuan_dasar || $u->satuan_dasar === $u->kode) {
+                    return '<span class="text-gray-400 text-xs font-mono">Satuan Pokok</span>';
+                }
+                $f = (float) ($u->faktor_konversi ?: 1);
+                $fFormatted = ($f == (int) $f) ? number_format($f, 0, ',', '.') : rtrim(rtrim(number_format($f, 4, ',', '.'), '0'), ',');
+
+                return '<span class="font-mono text-xs text-primary-700 bg-primary-50 px-2 py-0.5 rounded-xs border border-primary-200 font-semibold">1 ' . e($u->kode) . ' = ' . $fFormatted . ' ' . e($u->satuan_dasar) . '</span>';
+            })
             ->addColumn('produk_count', fn ($u) => '<span class="font-mono text-xs text-gray-700">' . number_format($u->produk_count) . ' SKU</span>')
             ->editColumn('is_active', fn ($u) => $u->is_active
                 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>'
                 : '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">Nonaktif</span>'
             )
             ->addColumn('action', fn ($u) => view('uom._actions', ['u' => $u])->render())
-            ->rawColumns(['kode', 'kategori', 'produk_count', 'is_active', 'action'])
+            ->rawColumns(['kode', 'kategori', 'konversi', 'produk_count', 'is_active', 'action'])
             ->toJson();
     }
 
@@ -109,12 +118,16 @@ class UomController extends Controller
             ],
             'nama' => ['required', 'string', 'max:100'],
             'kategori' => ['nullable', 'string', 'max:50'],
+            'satuan_dasar' => ['nullable', 'string', 'max:15'],
+            'faktor_konversi' => ['nullable', 'numeric', 'min:0.0001'],
             'deskripsi' => ['nullable', 'string', 'max:500'],
             'is_active' => ['boolean'],
         ], [], [
             'kode' => 'Kode Satuan',
             'nama' => 'Nama Satuan',
             'kategori' => 'Kategori Dimensi',
+            'satuan_dasar' => 'Satuan Pokok Acuan',
+            'faktor_konversi' => 'Faktor Konversi Bawaan',
             'deskripsi' => 'Deskripsi',
             'is_active' => 'Status Aktif',
         ]);

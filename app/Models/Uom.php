@@ -15,11 +15,14 @@ class Uom extends Model
         'kode',
         'nama',
         'kategori',
+        'satuan_dasar',
+        'faktor_konversi',
         'deskripsi',
         'is_active',
     ];
 
     protected $casts = [
+        'faktor_konversi' => 'decimal:4',
         'is_active' => 'boolean',
     ];
 

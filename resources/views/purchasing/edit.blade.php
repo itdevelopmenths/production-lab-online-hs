@@ -330,6 +330,12 @@
                                                     <input type="hidden" :name="`items[${i}][faktor_konversi]`" :value="row.faktor_konversi">
                                                 </template>
 
+                                                {{-- Live Indicator Kuantitas Fisik Masuk Gudang --}}
+                                                <div class="text-[10px] font-mono text-primary-700 bg-primary-50/70 px-1.5 py-0.5 rounded-xs border border-primary-100 flex items-center justify-between mt-1 select-none" x-show="row.qty > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
+                                                    <span class="text-gray-500">Masuk fisik:</span>
+                                                    <span class="font-bold text-primary-800" x-text="formatQty(row.qty) + ' ' + (row.satuan || '')"></span>
+                                                </div>
+
                                                 {{-- Hidden Base Qty Input Sent to Backend --}}
                                                 <input type="hidden" :name="`items[${i}][qty]`" :value="row.qty">
                                             </div>
@@ -631,6 +637,7 @@
     <script>
         function poForm(initial = {}) {
             return {
+                uomList: @json($uomList ?? []),
                 skemaBayar: initial.skemaBayar || 'cash',
                 headerDiskonMode: 'nominal',
                 headerDiskonVal: 0,
@@ -665,33 +672,89 @@
 
                 getUomOptions(baseSatuan) {
                     const s = (baseSatuan || '').toLowerCase().trim();
-                    if (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter') {
-                        return [
-                            { code: 'Liter', label: 'Liter (L)', factor: 1000 },
-                            { code: 'ml', label: 'Mililiter (ml)', factor: 1 },
-                            { code: 'Jerigen 5L', label: 'Jerigen (5 L)', factor: 5000 },
-                            { code: 'Jerigen 1L', label: 'Jerigen (1 L)', factor: 1000 },
-                            { code: 'Galon 19L', label: 'Galon (19 L)', factor: 19000 },
-                            { code: 'Drum 200L', label: 'Drum (200 L)', factor: 200000 },
-                            { code: 'custom', label: 'Kustom / Input Faktor...', factor: null },
-                        ];
-                    } else if (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg' || s === 'kilogram') {
-                        return [
-                            { code: 'Kilogram', label: 'Kilogram (kg)', factor: 1000 },
-                            { code: 'Gram', label: 'Gram (gr)', factor: 1 },
-                            { code: 'Sak 25kg', label: 'Sak (25 kg)', factor: 25000 },
-                            { code: 'Sak 50kg', label: 'Sak (50 kg)', factor: 50000 },
-                            { code: 'Ton', label: 'Ton', factor: 1000000 },
-                            { code: 'custom', label: 'Kustom / Input Faktor...', factor: null },
-                        ];
-                    } else {
-                        return [
-                            { code: 'Pieces', label: 'Pieces (pcs)', factor: 1 },
-                            { code: 'Dus (100)', label: 'Dus / Box (100 pcs)', factor: 100 },
-                            { code: 'Pack (10)', label: 'Pack (10 pcs)', factor: 10 },
-                            { code: 'custom', label: 'Kustom / Input Faktor...', factor: null },
-                        ];
+                    const options = [];
+                    const seen = new Set();
+
+                    // 1. Ambil dari database Master UOM yang cocok dengan satuan dasar produk
+                    if (Array.isArray(this.uomList)) {
+                        this.uomList.forEach(u => {
+                            const uKode = (u.kode || '').toLowerCase().trim();
+                            const uBasis = (u.satuan_dasar || '').toLowerCase().trim();
+                            const uKat = (u.kategori || '').toLowerCase().trim();
+                            const factor = parseFloat(u.faktor_konversi) || 1;
+
+                            // Cocokkan jika:
+                            // a) satuan_dasar sama dengan baseSatuan produk
+                            // b) kodenya persis sama dengan baseSatuan
+                            // c) kategori Volume jika produk ml/l/liter
+                            // d) kategori Massa jika produk gr/g/kg
+                            let isMatch = (uBasis === s) || (uKode === s);
+                            if (!isMatch && (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter')) {
+                                isMatch = (uBasis === 'ml' || uBasis === 'l' || uKat === 'volume' || uKode === 'galon' || uKode === 'drum');
+                            } else if (!isMatch && (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg' || s === 'kilogram')) {
+                                isMatch = (uBasis === 'gr' || uBasis === 'kg' || uKat === 'massa');
+                            } else if (!isMatch && (s === 'pcs' || s === 'unit' || s === 'botol' || s === 'box')) {
+                                isMatch = (uBasis === 'pcs' || uKat === 'satuan hitung' || uKat === 'kemasan');
+                            }
+
+                            if (isMatch && !seen.has(uKode)) {
+                                seen.add(uKode);
+                                const factorDisplay = (factor == parseInt(factor) ? parseInt(factor) : factor).toLocaleString('id-ID');
+                                const label = factor > 1 
+                                    ? `${u.nama} (${factorDisplay} ${baseSatuan})`
+                                    : `${u.nama} (${u.kode})`;
+                                options.push({
+                                    code: u.kode,
+                                    label: label,
+                                    factor: factor
+                                });
+                            }
+                        });
                     }
+
+                    // 2. Fallback kemasan standar industri jika belum ada di database
+                    const presets = [];
+                    if (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter') {
+                        presets.push(
+                            { code: 'Liter', label: 'Liter (1.000 ml)', factor: 1000 },
+                            { code: 'Jerigen 5L', label: 'Jerigen 5L (5.000 ml)', factor: 5000 },
+                            { code: 'Galon 19L', label: 'Galon 19L (19.000 ml)', factor: 19000 },
+                            { code: 'Drum 200L', label: 'Drum 200L (200.000 ml)', factor: 200000 },
+                            { code: 'ml', label: 'Mililiter (ml)', factor: 1 }
+                        );
+                    } else if (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg' || s === 'kilogram') {
+                        presets.push(
+                            { code: 'Kilogram', label: 'Kilogram (1.000 gr)', factor: 1000 },
+                            { code: 'Sak 25kg', label: 'Sak 25kg (25.000 gr)', factor: 25000 },
+                            { code: 'Sak 50kg', label: 'Sak 50kg (50.000 gr)', factor: 50000 },
+                            { code: 'Ton', label: 'Ton (1.000.000 gr)', factor: 1000000 },
+                            { code: 'Gram', label: 'Gram (gr)', factor: 1 }
+                        );
+                    } else {
+                        presets.push(
+                            { code: 'Pieces', label: 'Pieces (pcs)', factor: 1 },
+                            { code: 'Pack (10)', label: 'Pack (10 pcs)', factor: 10 },
+                            { code: 'Dus (100)', label: 'Dus / Box (100 pcs)', factor: 100 }
+                        );
+                    }
+
+                    presets.forEach(p => {
+                        const pKey = p.code.toLowerCase().trim();
+                        if (!seen.has(pKey)) {
+                            seen.add(pKey);
+                            options.push(p);
+                        }
+                    });
+
+                    // 3. Pastikan satuan dasar produk selalu ada di opsi pertama jika belum ada
+                    if (!seen.has(s) && baseSatuan) {
+                        options.unshift({ code: baseSatuan, label: `${baseSatuan} (Satuan Dasar)`, factor: 1 });
+                    }
+
+                    // 4. Selalu sertakan opsi manual/kustom
+                    options.push({ code: 'custom', label: 'Kustom / Input Faktor Manual...', factor: null });
+
+                    return options;
                 },
 
                 onProductSelected(row, product) {

@@ -8,6 +8,7 @@ use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
+use App\Models\Uom;
 use App\Services\Purchasing\PurchasingCostCalculator;
 use App\Services\Purchasing\PurchasingPaymentService;
 use App\Services\StokService;
@@ -144,8 +145,9 @@ class PurchasingController extends Controller
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'nama_produk', 'satuan', 'faktor_konversi']);
+        $uomList = Uom::active()->orderBy('nama')->get(['id', 'kode', 'nama', 'kategori', 'satuan_dasar', 'faktor_konversi']);
 
-        return view('purchasing.create', compact('suppliers', 'gudang', 'produk'));
+        return view('purchasing.create', compact('suppliers', 'gudang', 'produk', 'uomList'));
     }
 
     public function store(Request $request)
@@ -240,10 +242,11 @@ class PurchasingController extends Controller
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'nama_produk', 'satuan', 'faktor_konversi']);
+        $uomList = Uom::active()->orderBy('nama')->get(['id', 'kode', 'nama', 'kategori', 'satuan_dasar', 'faktor_konversi']);
         $productIds = $purchaseOrder->items->pluck('produk_id')->filter()->unique()->values()->all();
         $hppMap = app(\App\Services\StokService::class)->resolveHppMap($productIds);
 
-        return view('purchasing.edit', compact('purchaseOrder', 'suppliers', 'gudang', 'produk', 'hppMap'));
+        return view('purchasing.edit', compact('purchaseOrder', 'suppliers', 'gudang', 'produk', 'uomList', 'hppMap'));
     }
 
     public function update(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse
