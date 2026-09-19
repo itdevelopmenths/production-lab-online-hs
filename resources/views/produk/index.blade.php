@@ -60,21 +60,10 @@
                     Produk Jadi
                 </button>
 
-                @canany(['produk.audit', 'audit.view'])
-                <button
-                    type="button"
-                    @click="currentTab = 'audit'; $nextTick(() => { if (window.tblAuditProduk) window.tblAuditProduk.columns.adjust().draw(false); })"
-                    :class="currentTab === 'audit' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Riwayat Audit
-                </button>
-                @endcanany
             </nav>
         </div>
 
-        <div x-show="currentTab !== 'audit'">
+        <div>
             <!-- Filter Bar -->
             <div class="mb-4 bg-white p-3 rounded-md border border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs">
                 <div class="flex items-center gap-2">
@@ -109,12 +98,6 @@
                 </div>
             </x-card>
         </div>
-
-        @canany(['produk.audit', 'audit.view'])
-        <div x-show="currentTab === 'audit'" x-cloak>
-            <x-master-audit-tab entity="produk" />
-        </div>
-        @endcanany
     </div>
 
     @push('scripts')

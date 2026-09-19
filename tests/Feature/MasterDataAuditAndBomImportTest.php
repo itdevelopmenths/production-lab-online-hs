@@ -126,29 +126,7 @@ class MasterDataAuditAndBomImportTest extends TestCase
         $this->assertNotNull($divisiAudit);
     }
 
-    public function test_audit_datatable_endpoint_returns_json_per_model(): void
-    {
-        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
-        $this->actingAs($manager);
 
-        // Create a product to generate an audit log
-        Produk::create([
-            'sku' => 'TEST-DT-AUDIT',
-            'nama' => 'Produk DT Audit',
-            'tipe' => 'bahan',
-            'satuan' => 'gr',
-            'is_active' => true,
-        ]);
-
-        $entities = ['produk', 'gudang', 'supplier', 'uom', 'bom', 'divisi'];
-
-        foreach ($entities as $entity) {
-            $res = $this->getJson(route('master-audit.data', ['entity' => $entity]));
-            $res->assertOk();
-            $data = $res->json();
-            $this->assertArrayHasKey('data', $data);
-        }
-    }
 
     public function test_bom_import_page_renders_and_template_downloads(): void
     {

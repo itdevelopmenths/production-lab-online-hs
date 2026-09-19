@@ -281,11 +281,24 @@ class BatchController extends Controller
 
         try {
             DB::transaction(function () use ($batch) {
+                $totalAlokasi = 0;
                 foreach ($batch->alokasi()->where('status', 'aktif')->get() as $alok) {
                     $this->stok->keluar($alok->bahan_id, $batch->gudang_operasional_id, (float) $alok->qty_dialokasikan, 'batch_produksi', $batch->id, "Issue {$batch->no_batch}");
                     $alok->update(['status' => 'dilepas']);
+                    $totalAlokasi++;
                 }
                 $batch->update(['status' => 'release']);
+
+                $batch->loadMissing('gudangOperasional');
+                $batch->recordAudit(
+                    event: 'release',
+                    actionTitle: "Pelepasan & Issue bahan baku Batch {$batch->no_batch} dari " . ($batch->gudangOperasional?->nama ?? 'Gudang Operasional'),
+                    customChanges: ['status' => ['rencana', 'release']],
+                    metadata: [
+                        'total_bahan_diissue' => $totalAlokasi,
+                        'gudang_operasional' => $batch->gudangOperasional?->nama,
+                    ]
+                );
             });
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
@@ -400,6 +413,19 @@ class BatchController extends Controller
                     );
                 }
             }
+
+            $finalBaik = $batch->qty_baik;
+            $finalRusak = $batch->qty_rusak;
+            $batch->recordAudit(
+                event: 'complete',
+                actionTitle: "Penyelesaian Batch {$batch->no_batch} (Qty Baik: {$finalBaik}, Qty Rusak: {$finalRusak})",
+                customChanges: ['status' => ['release', 'selesai']],
+                metadata: [
+                    'qty_baik' => (float) $finalBaik,
+                    'qty_rusak' => (float) $finalRusak,
+                    'yield' => $batch->yield(),
+                ]
+            );
         });
 
         return back()->with('success', 'Batch selesai, produk jadi masuk stok.');
@@ -413,6 +439,12 @@ class BatchController extends Controller
         DB::transaction(function () use ($batch) {
             $batch->alokasi()->where('status', 'aktif')->update(['status' => 'dibatalkan']);
             $batch->update(['status' => 'dibatalkan']);
+
+            $batch->recordAudit(
+                event: 'cancelled',
+                actionTitle: "Pembatalan Rencana Batch {$batch->no_batch} & pelepasan alokasi",
+                customChanges: ['status' => ['rencana', 'dibatalkan']]
+            );
         });
 
         return back()->with('success', 'Batch dibatalkan, alokasi dilepas.');
@@ -441,6 +473,12 @@ class BatchController extends Controller
                     'keterangan' => $row['keterangan'] ?? null,
                 ]);
             }
+
+            $batch->recordAudit(
+                event: 'opname',
+                actionTitle: "Pencatatan Stock Opname aktual Batch {$batch->no_batch}",
+                metadata: ['total_bahan_diopname' => count($data['items'])]
+            );
         });
 
         return back()->with('success', 'Stock opname batch dicatat.');
@@ -491,6 +529,16 @@ class BatchController extends Controller
                     'qty_diminta' => $batch->qty_baik,
                 ]);
             }
+
+            $batch->recordAudit(
+                event: 'kirim',
+                actionTitle: "Pengajuan Pengiriman Produk Jadi Batch {$batch->no_batch} ke Fulfillment ({$rt->no_transaksi})",
+                metadata: [
+                    'rt_id' => $rt->id,
+                    'no_transaksi' => $rt->no_transaksi,
+                    'qty_dikirim' => (float) $batch->qty_baik,
+                ]
+            );
 
             return $rt;
         });

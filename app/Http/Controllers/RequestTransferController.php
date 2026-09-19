@@ -506,12 +506,30 @@ class RequestTransferController extends Controller
     {
         abort_unless($rt->pakaiApproval() && $rt->status === 'draft', 422, 'Transisi tidak valid.');
         $rt->update(['status' => 'diajukan']);
+
+        $rt->recordAudit(
+            event: 'submitted',
+            actionTitle: "Pengajuan dokumen {$rt->no_transaksi} ke Manager",
+            customChanges: ['status' => ['draft', 'diajukan']],
+            metadata: [
+                'total_item' => $rt->items()->count(),
+            ]
+        );
     }
 
     private function doApprove(RequestTransfer $rt): void
     {
         abort_unless($rt->pakaiApproval() && $rt->status === 'diajukan', 422, 'Transisi tidak valid.');
         $rt->update(['status' => 'disetujui']);
+
+        $rt->recordAudit(
+            event: 'approved',
+            actionTitle: "Persetujuan dokumen {$rt->no_transaksi} oleh Manager",
+            customChanges: ['status' => ['diajukan', 'disetujui']],
+            metadata: [
+                'approved_by' => auth()->user()->name,
+            ]
+        );
     }
 
     /** Proses (approval pipeline) / kirim langsung (direct pipeline): stok keluar dari gudang asal. */
@@ -523,6 +541,7 @@ class RequestTransferController extends Controller
             abort_if($rt->pakaiApproval(), 422, 'Transfer langsung tidak memakai aksi ini.');
         }
         abort_unless(in_array($rt->status, $allowed, true), 422, 'Transisi tidak valid.');
+        $oldStatus = $rt->status;
 
         foreach ($rt->items as $item) {
             $qty = (float) ($qtyMap[$item->id]['qty'] ?? $item->qty_diminta);
@@ -532,6 +551,17 @@ class RequestTransferController extends Controller
             }
         }
         $rt->update(['status' => $statusBaru]);
+
+        $rt->loadMissing('gudangAsal');
+        $rt->recordAudit(
+            event: $statusBaru === 'diproses' ? 'processed' : 'shipped',
+            actionTitle: ($statusBaru === 'diproses' ? "Pemrosesan & pengeluaran bahan dokumen {$rt->no_transaksi} dari " : "Pengiriman surat jalan dokumen {$rt->no_transaksi} dari ") . ($rt->gudangAsal?->nama ?? 'Gudang Asal'),
+            customChanges: ['status' => [$oldStatus, $statusBaru]],
+            metadata: [
+                'total_item' => $rt->items->count(),
+                'gudang_asal' => $rt->gudangAsal?->nama,
+            ]
+        );
     }
 
     /** Terima: stok masuk ke gudang tujuan, dokumen selesai. */
@@ -610,7 +640,14 @@ class RequestTransferController extends Controller
     private function doCancel(RequestTransfer $rt): void
     {
         abort_if(in_array($rt->status, ['selesai', 'dibatalkan'], true), 422, 'Dokumen tidak dapat dibatalkan.');
+        $oldStatus = $rt->status;
         $rt->update(['status' => 'dibatalkan']);
+
+        $rt->recordAudit(
+            event: 'cancelled',
+            actionTitle: "Pembatalan dokumen {$rt->no_transaksi}",
+            customChanges: ['status' => [$oldStatus, 'dibatalkan']]
+        );
     }
 
     private function nextNo(): string

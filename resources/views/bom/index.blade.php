@@ -19,61 +19,24 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div x-data="{ currentTab: 'bom' }">
-        <!-- Tab Navigation -->
-        <div class="border-b border-gray-200 mb-5 flex items-center justify-between">
-            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                <button
-                    type="button"
-                    @click="currentTab = 'bom'"
-                    :class="currentTab === 'bom' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Daftar Formula BOM
-                </button>
-
-                @canany(['bom.audit', 'audit.view'])
-                <button
-                    type="button"
-                    @click="currentTab = 'audit'; $nextTick(() => { if (window.tblAuditBom) window.tblAuditBom.columns.adjust().draw(false); })"
-                    :class="currentTab === 'audit' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Riwayat Audit
-                </button>
-                @endcanany
-            </nav>
-        </div>
-
-        <div x-show="currentTab === 'bom'">
-            <div class="mb-4">
-                <x-alert type="info" :icon="true">
-                    <span>Format formula resep per unit produk jadi. Untuk memperbarui resep secara massal, gunakan menu <strong><a href="{{ route('bom.import-page') }}" class="underline font-bold">Impor Formula BOM</a></strong> atau unduh template CSV resmi.</span>
-                </x-alert>
-            </div>
-
-            <x-card title="Daftar Resep Produk Jadi (BOM)" :noPadding="true">
-                <table id="tbl" class="w-full text-xs">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-3 text-left">SKU Produk</th>
-                            <th class="px-4 py-3 text-left">Nama Produk Jadi</th>
-                            <th class="px-4 py-3 text-right">Jumlah Komponen Bahan</th>
-                            <th class="px-4 py-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                </table>
-            </x-card>
-        </div>
-
-        @canany(['bom.audit', 'audit.view'])
-        <div x-show="currentTab === 'audit'" x-cloak>
-            <x-master-audit-tab entity="bom" />
-        </div>
-        @endcanany
+    <div class="mb-4">
+        <x-alert type="info" :icon="true">
+            <span>Format formula resep per unit produk jadi. Untuk memperbarui resep secara massal, gunakan menu <strong><a href="{{ route('bom.import-page') }}" class="underline font-bold">Impor Formula BOM</a></strong> atau unduh template CSV resmi.</span>
+        </x-alert>
     </div>
+
+    <x-card title="Daftar Resep Produk Jadi (BOM)" :noPadding="true">
+        <table id="tbl" class="w-full text-xs">
+            <thead>
+                <tr>
+                    <th class="px-4 py-3 text-left">SKU Produk</th>
+                    <th class="px-4 py-3 text-left">Nama Produk Jadi</th>
+                    <th class="px-4 py-3 text-right">Jumlah Komponen Bahan</th>
+                    <th class="px-4 py-3 text-center">Aksi</th>
+                </tr>
+            </thead>
+        </table>
+    </x-card>
 
     @push('scripts')
     <script>

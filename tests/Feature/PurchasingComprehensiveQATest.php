@@ -1468,7 +1468,7 @@ class PurchasingComprehensiveQATest extends TestCase
             'hpp_per_satuan' => 526.35,
         ]);
 
-        // Item 2: HPP mikro dengan 4 desimal (Rp 106.666,6667)
+        // Item 2: HPP mikro dibatasi maksimal 2 desimal (Rp 106.666,67)
         $po->items()->create([
             'produk_id' => $item2->id,
             'qty' => 3,
@@ -1487,9 +1487,9 @@ class PurchasingComprehensiveQATest extends TestCase
         $res = $this->actingAs($this->purchasing)->get(route('purchasing.show', $po));
         $res->assertOk();
 
-        // Pastikan HPP tertera dengan format angka desimal yang benar
+        // Pastikan HPP tertera dengan format angka desimal yang benar (maksimal 2 desimal)
         $res->assertSee('Rp 526,35');
-        $res->assertSee('Rp 106.666,6667');
+        $res->assertSee('Rp 106.666,67');
         $res->assertSee('Rp 15.000');
         $res->assertDontSee('Rp 15.000,00');
     }

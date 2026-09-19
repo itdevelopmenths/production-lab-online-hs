@@ -16,57 +16,20 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div x-data="{ currentTab: 'gudang' }">
-        <!-- Tab Navigation -->
-        <div class="border-b border-gray-200 mb-5 flex items-center justify-between">
-            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                <button
-                    type="button"
-                    @click="currentTab = 'gudang'"
-                    :class="currentTab === 'gudang' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                    Daftar Lokasi Gudang
-                </button>
-
-                @canany(['gudang.audit', 'audit.view'])
-                <button
-                    type="button"
-                    @click="currentTab = 'audit'; $nextTick(() => { if (window.tblAuditGudang) window.tblAuditGudang.columns.adjust().draw(false); })"
-                    :class="currentTab === 'audit' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Riwayat Audit
-                </button>
-                @endcanany
-            </nav>
-        </div>
-
-        <div x-show="currentTab === 'gudang'">
-            <x-card title="Daftar Lokasi Gudang" :noPadding="true">
-                <table id="tbl" class="w-full text-xs">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-3 text-left">Kode</th>
-                            <th class="px-4 py-3 text-left">Nama Gudang</th>
-                            <th class="px-4 py-3 text-left">Tipe</th>
-                            <th class="px-4 py-3 text-left">Induk Gudang</th>
-                            <th class="px-4 py-3 text-left">Status</th>
-                            <th class="px-4 py-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                </table>
-            </x-card>
-        </div>
-
-        @canany(['gudang.audit', 'audit.view'])
-        <div x-show="currentTab === 'audit'" x-cloak>
-            <x-master-audit-tab entity="gudang" />
-        </div>
-        @endcanany
-    </div>
+    <x-card title="Daftar Lokasi Gudang" :noPadding="true">
+        <table id="tbl" class="w-full text-xs">
+            <thead>
+                <tr>
+                    <th class="px-4 py-3 text-left">Kode</th>
+                    <th class="px-4 py-3 text-left">Nama Gudang</th>
+                    <th class="px-4 py-3 text-left">Tipe</th>
+                    <th class="px-4 py-3 text-left">Induk Gudang</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                    <th class="px-4 py-3 text-center">Aksi</th>
+                </tr>
+            </thead>
+        </table>
+    </x-card>
 
     @push('scripts')
     <script>

@@ -240,16 +240,11 @@ class StokController extends Controller
             return 'Rp ' . number_format(round($val), 0, ',', '.');
         }
 
-        // Cek apakah ada digit pecahan signifikan setelah 2 desimal (hingga 4 desimal)
-        $rounded2 = round($val, 2);
-        if (abs($val - $rounded2) > 0.00001) {
-            $formatted = number_format($val, 4, ',', '.');
+        // Maksimal 2 digit desimal, hilangkan trailing zero
+        $valRounded = round($val, 2);
+        $formatted = number_format($valRounded, 2, ',', '.');
 
-            return 'Rp ' . rtrim(rtrim($formatted, '0'), ',');
-        }
-
-        // 1 atau 2 digit desimal standar (misal Rp 526,35 atau Rp 1.000,50)
-        return 'Rp ' . number_format($val, 2, ',', '.');
+        return 'Rp ' . rtrim(rtrim($formatted, '0'), ',');
     }
 
     private function formatNilaiStok(float $val): string
@@ -436,9 +431,14 @@ class StokController extends Controller
             })
             ->when($request->filled('tanggal_selesai'), function ($q) use ($request) {
                 $q->whereDate('kartu_stok.tanggal', '<=', $request->tanggal_selesai);
-            });
+            })
+            ->orderByDesc('kartu_stok.created_at')
+            ->orderByDesc('kartu_stok.id');
 
         return DataTables::eloquent($query)
+            ->orderColumn('tanggal', function ($q, $order) {
+                $q->orderBy('kartu_stok.created_at', $order)->orderBy('kartu_stok.id', $order);
+            })
             ->editColumn('tipe', function ($k) {
                 $isMasuk = strtolower($k->tipe) === 'in';
                 return $isMasuk

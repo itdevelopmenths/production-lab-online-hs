@@ -791,10 +791,9 @@
                     if (Math.abs(num - Math.round(num)) < 0.00001) {
                         return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                     }
-                    const hasMicroDecimals = Math.abs(num - Math.round(num * 100) / 100) > 0.00001;
                     return num.toLocaleString('id-ID', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: hasMicroDecimals ? 4 : 2
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
                     });
                 },
 

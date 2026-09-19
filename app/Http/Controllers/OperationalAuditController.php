@@ -61,6 +61,13 @@ class OperationalAuditController extends Controller
             }
         }
 
+        if ($request->filled('date_start')) {
+            $query->whereDate('created_at', '>=', $request->get('date_start'));
+        }
+        if ($request->filled('date_end')) {
+            $query->whereDate('created_at', '<=', $request->get('date_end'));
+        }
+
         return DataTables::eloquent($query)
             ->addColumn('waktu', fn ($a) => $a->created_at ? $a->created_at->format('d/m/Y H:i:s') : '—')
             ->addColumn('nomor_referensi', function ($a) {

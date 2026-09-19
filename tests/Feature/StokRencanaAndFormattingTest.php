@@ -188,7 +188,7 @@ class StokRencanaAndFormattingTest extends TestCase
 
         $row2 = $data->firstWhere('sku', 'DEC-TEST-02');
         $this->assertNotNull($row2);
-        $this->assertEquals('Rp 106.666,6667', $row2['hpp']);
+        $this->assertEquals('Rp 106.666,67', $row2['hpp']);
 
         $row3 = $data->firstWhere('sku', 'DEC-TEST-03');
         $this->assertNotNull($row3);

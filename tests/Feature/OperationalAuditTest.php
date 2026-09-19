@@ -31,12 +31,12 @@ class OperationalAuditTest extends TestCase
             'purchasing.view', 'purchasing.create', 'purchasing.approve', 'purchasing.audit',
             'batch.view', 'batch.create', 'batch.audit',
             'rt.view', 'rt.create', 'rt.audit',
-            'produk.view', 'produk.audit',
-            'uom.view', 'uom.audit',
-            'supplier.view', 'supplier.audit',
-            'gudang.view', 'gudang.audit',
-            'bom.view', 'bom.audit',
-            'divisi.view', 'divisi.audit',
+            'produk.view',
+            'uom.view',
+            'supplier.view',
+            'gudang.view',
+            'bom.view',
+            'divisi.view',
             'audit.view',
         ];
         foreach ($perms as $perm) {
@@ -147,6 +147,67 @@ class OperationalAuditTest extends TestCase
         $this->assertEquals('created', $audit->event);
     }
 
+    public function test_batch_produksi_release_and_complete_records_audit(): void
+    {
+        $this->actingAs($this->adminUser);
+
+        $gudang = Gudang::create([
+            'kode' => 'GD-LAB-2',
+            'nama' => 'Gudang Lab 2',
+            'tipe' => 'operasional',
+            'status' => 'aktif',
+        ]);
+
+        $produk = Produk::create([
+            'sku' => 'PRD-TEST-02',
+            'nama' => 'Parfum Mawar 50ml',
+            'tipe' => 'produk_jadi',
+            'satuan' => 'pcs',
+            'status' => 'aktif',
+        ]);
+
+        $batch = BatchProduksi::create([
+            'no_batch' => 'BATCH-TEST-0002',
+            'produk_id' => $produk->id,
+            'qty_rencana' => 50,
+            'gudang_operasional_id' => $gudang->id,
+            'status' => 'rencana',
+            'tanggal' => now(),
+            'created_by' => $this->adminUser->id,
+        ]);
+
+        $batch->recordAudit(
+            event: 'release',
+            actionTitle: "Pelepasan & Issue bahan baku Batch {$batch->no_batch} dari Gudang Lab 2",
+            customChanges: ['status' => ['rencana', 'release']]
+        );
+
+        $releaseAudit = OperationalAudit::where('auditable_type', BatchProduksi::class)
+            ->where('auditable_id', $batch->id)
+            ->where('event', 'release')
+            ->first();
+
+        $this->assertNotNull($releaseAudit);
+        $this->assertEquals('release', $releaseAudit->event);
+        $this->assertStringContainsString('Pelepasan & Issue', $releaseAudit->action_title);
+
+        $batch->recordAudit(
+            event: 'complete',
+            actionTitle: "Penyelesaian Batch {$batch->no_batch} (Qty Baik: 50, Qty Rusak: 0)",
+            customChanges: ['status' => ['release', 'selesai']],
+            metadata: ['qty_baik' => 50, 'qty_rusak' => 0]
+        );
+
+        $completeAudit = OperationalAudit::where('auditable_type', BatchProduksi::class)
+            ->where('auditable_id', $batch->id)
+            ->where('event', 'complete')
+            ->first();
+
+        $this->assertNotNull($completeAudit);
+        $this->assertEquals('complete', $completeAudit->event);
+        $this->assertEquals(50, $completeAudit->metadata['qty_baik']);
+    }
+
     public function test_request_transfer_creation_triggers_operational_audit(): void
     {
         $this->actingAs($this->adminUser);
@@ -207,6 +268,48 @@ class OperationalAuditTest extends TestCase
         ]);
     }
 
+    public function test_operational_audit_date_filtering(): void
+    {
+        $this->actingAs($this->adminUser);
+
+        $supplier = Supplier::create([
+            'nama' => 'PT Supplier Date Filter',
+            'kode' => 'SUP-DATE',
+            'kategori' => 'lokal',
+            'is_active' => true,
+        ]);
+
+        PurchaseOrder::create([
+            'no_po' => 'PO-TEST-DATE-FILTER',
+            'supplier_id' => $supplier->id,
+            'tanggal' => now(),
+            'status' => 'draft',
+            'created_by' => $this->adminUser->id,
+        ]);
+
+        $today = now()->format('Y-m-d');
+        $yesterday = now()->subDays(2)->format('Y-m-d');
+        $twoDaysAgo = now()->subDays(3)->format('Y-m-d');
+
+        // Test matching today
+        $response = $this->getJson(route('operational-audit.data', [
+            'module' => 'purchasing',
+            'date_start' => $today,
+            'date_end' => $today,
+        ]));
+        $response->assertStatus(200);
+        $this->assertGreaterThanOrEqual(1, $response->json('recordsTotal'));
+
+        // Test non-matching past dates
+        $responsePast = $this->getJson(route('operational-audit.data', [
+            'module' => 'purchasing',
+            'date_start' => $twoDaysAgo,
+            'date_end' => $yesterday,
+        ]));
+        $responsePast->assertStatus(200);
+        $this->assertEquals(0, $responsePast->json('recordsTotal'));
+    }
+
     public function test_user_without_audit_permission_is_forbidden_to_access_audit_data(): void
     {
         // User yang hanya memiliki izin view, tapi tidak memiliki izin audit
@@ -227,28 +330,5 @@ class OperationalAuditTest extends TestCase
 
         $responseRt = $this->getJson(route('operational-audit.data', ['module' => 'request_transfer']));
         $responseRt->assertStatus(403);
-    }
-
-    public function test_master_data_audit_endpoint_enforces_audit_permission(): void
-    {
-        $noAuditRole = Role::firstOrCreate(['name' => 'no_audit_staff', 'guard_name' => 'web']);
-        $noAuditRole->syncPermissions(['produk.view', 'uom.view', 'supplier.view']);
-
-        $staffUser = User::factory()->create(['name' => 'Staff Master Biasa']);
-        $staffUser->assignRole($noAuditRole);
-
-        $this->actingAs($staffUser);
-
-        // Akses audit master data ditolak jika tidak punya *.audit
-        $responseProduk = $this->getJson(route('master-audit.data', ['entity' => 'produk']));
-        $responseProduk->assertStatus(403);
-
-        $responseUom = $this->getJson(route('master-audit.data', ['entity' => 'uom']));
-        $responseUom->assertStatus(403);
-
-        // Setelah diberi izin uom.audit, akses diizinkan
-        $noAuditRole->givePermissionTo('uom.audit');
-        $responseUomAllowed = $this->getJson(route('master-audit.data', ['entity' => 'uom']));
-        $responseUomAllowed->assertStatus(200);
     }
 }

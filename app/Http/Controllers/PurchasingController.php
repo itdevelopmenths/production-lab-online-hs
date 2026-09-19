@@ -405,6 +405,16 @@ class PurchasingController extends Controller
         $this->ensureStatus($purchaseOrder, ['draft']);
         $purchaseOrder->update(['status' => 'diajukan']);
 
+        $purchaseOrder->recordAudit(
+            event: 'submitted',
+            actionTitle: "Pengajuan PO {$purchaseOrder->no_po} ke Manager untuk persetujuan",
+            customChanges: ['status' => ['draft', 'diajukan']],
+            metadata: [
+                'total_item' => $purchaseOrder->items()->count(),
+                'grand_total' => (float) $purchaseOrder->grand_total,
+            ]
+        );
+
         return back()->with('success', 'PO diajukan ke Manager.');
     }
 
@@ -413,6 +423,16 @@ class PurchasingController extends Controller
         $this->authorize('purchasing.approve');
         $this->ensureStatus($purchaseOrder, ['diajukan']);
         $purchaseOrder->update(['status' => 'dikirim_ke_gudang']);
+
+        $purchaseOrder->recordAudit(
+            event: 'approved',
+            actionTitle: "Persetujuan PO {$purchaseOrder->no_po} oleh Manager & dikirim ke Gudang",
+            customChanges: ['status' => ['diajukan', 'dikirim_ke_gudang']],
+            metadata: [
+                'approved_by' => auth()->user()->name,
+                'grand_total' => (float) $purchaseOrder->grand_total,
+            ]
+        );
 
         return back()->with('success', 'PO disetujui & dikirim ke Gudang.');
     }
@@ -532,7 +552,14 @@ class PurchasingController extends Controller
     {
         $this->authorize('purchasing.cancel');
         $this->ensureStatus($purchaseOrder, ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']);
+        $oldStatus = $purchaseOrder->status;
         $purchaseOrder->update(['status' => 'dibatalkan']);
+
+        $purchaseOrder->recordAudit(
+            event: 'cancelled',
+            actionTitle: "Pembatalan Dokumen PO {$purchaseOrder->no_po}",
+            customChanges: ['status' => [$oldStatus, 'dibatalkan']]
+        );
 
         return back()->with('success', 'PO dibatalkan.');
     }

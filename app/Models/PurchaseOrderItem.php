@@ -104,10 +104,9 @@ class PurchaseOrderItem extends Model
     }
 
     /**
-     * Format nilai HPP per satuan dengan presisi desimal cerdas:
+     * Format nilai HPP per satuan dengan presisi desimal maksimal 2 digit:
      * - Bulat murni: Rp 15.000
-     * - Pecahan standar (<= 2 desimal): Rp 526,35
-     * - Pecahan mikro (> 2 desimal, hingga 4 desimal): Rp 106.666,6667
+     * - Pecahan (maksimal 2 desimal): Rp 526,35 atau Rp 1.000,5
      */
     public function formattedHpp(): string
     {
@@ -121,16 +120,11 @@ class PurchaseOrderItem extends Model
             return 'Rp ' . number_format(round($val), 0, ',', '.');
         }
 
-        // Cek apakah ada digit pecahan signifikan setelah 2 desimal (hingga 4 desimal)
-        $rounded2 = round($val, 2);
-        if (abs($val - $rounded2) > 0.00001) {
-            $formatted = number_format($val, 4, ',', '.');
+        // Maksimal 2 digit desimal, hilangkan trailing zero
+        $valRounded = round($val, 2);
+        $formatted = number_format($valRounded, 2, ',', '.');
 
-            return 'Rp ' . rtrim(rtrim($formatted, '0'), ',');
-        }
-
-        // 1 atau 2 digit desimal standar (misal Rp 526,35 atau Rp 1.000,50)
-        return 'Rp ' . number_format($val, 2, ',', '.');
+        return 'Rp ' . rtrim(rtrim($formatted, '0'), ',');
     }
 
     public function qtyDiterima(): float
