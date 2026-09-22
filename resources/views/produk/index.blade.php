@@ -88,7 +88,6 @@
                                 <th class="px-4 py-3 text-left w-32">Varian</th>
                                 <th class="px-4 py-3 text-left w-24">Tipe</th>
                                 <th class="px-4 py-3 text-left w-16">Satuan</th>
-                                <th class="px-4 py-3 text-left w-20">Faktor</th>
                                 <th class="px-4 py-3 text-left w-20">MOQ</th>
                                 <th class="px-4 py-3 text-left w-20">Status</th>
                                 <th class="px-4 py-3 text-center w-28">Aksi</th>
@@ -155,15 +154,14 @@
                 }
             },
             columns: [
-                { data: 'sku' },
-                { data: 'nama' },
-                { data: 'kategori_nama' },
-                { data: 'varian_nama' },
-                { data: 'tipe' },
-                { data: 'satuan' },
-                { data: 'faktor_konversi' },
-                { data: 'satuan_order_moq', name: 'satuan_order_moq' },
-                { data: 'is_active', name: 'is_active' },
+                { data: 'sku', name: 'sku', searchable: true },
+                { data: 'nama', name: 'nama', searchable: true },
+                { data: 'kategori_nama', name: 'kategori_nama', orderable: false, searchable: false },
+                { data: 'varian_nama', name: 'varian_nama', orderable: false, searchable: false },
+                { data: 'tipe', name: 'tipe', searchable: false },
+                { data: 'satuan', name: 'satuan', searchable: false },
+                { data: 'satuan_order_moq', name: 'satuan_order_moq', searchable: false },
+                { data: 'is_active', name: 'is_active', searchable: false },
                 { data: 'action', orderable: false, searchable: false, className: 'text-center' }
             ]
         });

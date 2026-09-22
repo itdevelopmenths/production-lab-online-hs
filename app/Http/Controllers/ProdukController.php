@@ -38,6 +38,25 @@ class ProdukController extends Controller
             });
 
         return DataTables::eloquent($query)
+            ->filter(function ($q) use ($request) {
+                if ($search = $request->input('search.value')) {
+                    $keywords = array_filter(explode(' ', strtolower(trim($search))));
+                    if (!empty($keywords)) {
+                        $q->where(function ($query) use ($keywords) {
+                            foreach ($keywords as $word) {
+                                $query->where(function ($sub) use ($word) {
+                                    $sub->whereRaw('LOWER(CAST(produk.sku AS TEXT)) LIKE ?', ["%{$word}%"])
+                                        ->orWhereRaw('LOWER(CAST(produk.nama AS TEXT)) LIKE ?', ["%{$word}%"])
+                                        ->orWhereRaw('LOWER(CAST(produk.nama_produk AS TEXT)) LIKE ?', ["%{$word}%"])
+                                        ->orWhereHas('varian', function ($v) use ($word) {
+                                            $v->whereRaw('LOWER(CAST(nama AS TEXT)) LIKE ?', ["%{$word}%"]);
+                                        });
+                                });
+                            }
+                        });
+                    }
+                }
+            })
             ->editColumn('kategori_nama', fn ($p) => $p->kategori
                 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">' . e($p->kategori->nama) . '</span>'
                 : '<span class="text-gray-400">—</span>'
@@ -46,12 +65,11 @@ class ProdukController extends Controller
                 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">' . e($p->varian->nama) . '</span>'
                 : '<span class="text-gray-400">—</span>'
             )
-            ->editColumn('faktor_konversi', fn ($p) => '<span class="font-mono text-xs text-gray-700">' . rtrim(rtrim(number_format((float) ($p->faktor_konversi ?? 1), 4, ',', '.'), '0'), ',') . '</span>')
             ->editColumn('tipe', fn ($p) => ucfirst(str_replace('_', ' ', $p->tipe)))
             ->editColumn('satuan_order_moq', fn ($p) => rtrim(rtrim(number_format((float) $p->satuan_order_moq, 2, ',', '.'), '0'), ','))
             ->editColumn('is_active', fn ($p) => $p->is_active ? 'Aktif' : 'Nonaktif')
             ->addColumn('action', fn ($p) => view('produk._actions', ['p' => $p])->render())
-            ->rawColumns(['kategori_nama', 'varian_nama', 'faktor_konversi', 'action'])
+            ->rawColumns(['kategori_nama', 'varian_nama', 'action'])
             ->toJson();
     }
 
@@ -166,7 +184,7 @@ class ProdukController extends Controller
             'nama_produk' => ['required', 'string', 'max:150'],
             'tipe' => ['required', Rule::in(Produk::TIPE)],
             'satuan' => ['required', 'string', 'max:15', 'exists:uom,kode'],
-            'faktor_konversi' => ['required', 'numeric', 'min:0.0001'],
+            'faktor_konversi' => ['nullable', 'numeric', 'min:0.0001'],
             'satuan_order_moq' => ['required', 'numeric', 'min:0'],
             'profil_analisa' => ['nullable', Rule::in(['lokal', 'impor'])],
             'is_active' => ['boolean'],
@@ -194,6 +212,7 @@ class ProdukController extends Controller
                 $varianNama = ' ' . $varian->nama;
             }
         }
+        $validated['faktor_konversi'] = (float) ($validated['faktor_konversi'] ?? 1);
         $validated['nama'] = trim($validated['nama_produk'] . $varianNama);
 
         return $validated;

@@ -26,9 +26,6 @@ window.productSearchSelect = function(config) {
             if (this.selectedItem && !this.selectedId) {
                 this.selectedId = this.selectedItem.id;
             }
-            if (this.selectedItem) {
-                this.$dispatch('product-selected', this.selectedItem);
-            }
         },
 
         async toggle() {

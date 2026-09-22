@@ -1,9 +1,6 @@
 @php
     $p = $produk ?? null;
     $categories = $kategoriList ?? \App\Models\Kategori::with(['varians' => fn($q) => $q->orderBy('nama')])->orderBy('nama')->get();
-    $rawFaktor = old('faktor_konversi', $p?->faktor_konversi ?? 1);
-    $floatFaktor = ($rawFaktor !== null && $rawFaktor !== '') ? (float) $rawFaktor : 1;
-    $displayFaktor = ($floatFaktor == (int) $floatFaktor) ? (int) $floatFaktor : rtrim(rtrim(number_format($floatFaktor, 4, '.', ''), '0'), '.');
 
     $rawMoq = old('satuan_order_moq', $p?->satuan_order_moq ?? 1);
     $floatMoq = ($rawMoq !== null && $rawMoq !== '') ? (float) $rawMoq : 1;
@@ -126,10 +123,8 @@
             </x-select>
         </x-form-group>
 
-        {{-- Faktor Konversi --}}
-        <x-form-group name="faktor_konversi" label="Faktor Konversi Satuan" :required="true" help="Pengali dari satuan beli ke satuan dasar stok (default 1. Contoh: 1 Jerigen = 5000 ml, maka isi 5000)">
-            <x-input type="number" step="any" min="0.0001" name="faktor_konversi" value="{{ $displayFaktor }}" :required="true" />
-        </x-form-group>
+        {{-- Faktor Konversi Bawaan Sistem (Default 1) --}}
+        <input type="hidden" name="faktor_konversi" value="{{ old('faktor_konversi', $p?->faktor_konversi ?? 1) }}">
 
         {{-- MOQ --}}
         <x-form-group name="satuan_order_moq" label="Minimum Order Quantity (MOQ)" :required="true" help="Batas minimum kelipatan pemesanan">

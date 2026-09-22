@@ -1,4 +1,56 @@
 <x-app-layout title="Buat Purchase Order">
+    @php
+        $oldItems = old('items');
+        $oldTermins = old('termins');
+        $rows = [];
+        if (is_array($oldItems)) {
+            foreach ($oldItems as $item) {
+                $p = \App\Models\Produk::find($item['produk_id'] ?? null);
+                $qtySatuanBeli = $item['qty_satuan_beli'] ?? $item['qty'] ?? '';
+                $satuanBeli = $item['satuan_beli'] ?? ($p?->satuan ?? '');
+                $faktorKonversi = (float) ($item['faktor_konversi'] ?? 1);
+                $baseQty = (float) ($item['qty'] ?? (($qtySatuanBeli !== '' ? (float)$qtySatuanBeli : 0) * $faktorKonversi));
+                $rows[] = [
+                    'produk_id' => $item['produk_id'] ?? '',
+                    'qty_satuan_beli' => $qtySatuanBeli,
+                    'satuan_beli' => $satuanBeli,
+                    'faktor_konversi' => $faktorKonversi,
+                    'qty' => $baseQty,
+                    'harga' => $item['harga_total'] ?? '',
+                    'satuan' => $p?->satuan ?? '',
+                    'selectedItem' => $p ? [
+                        'id' => $p->id,
+                        'sku' => $p->sku,
+                        'nama' => $p->nama,
+                        'satuan' => $p->satuan,
+                        'harga_hpp' => (float) $p->harga_hpp,
+                    ] : null,
+                ];
+            }
+        }
+
+        $termins = [];
+        if (is_array($oldTermins)) {
+            foreach ($oldTermins as $tm) {
+                $termins[] = [
+                    'tanggal_tempo' => $tm['tanggal_tempo'] ?? '',
+                    'nominal_tagihan' => (float) ($tm['nominal_tagihan'] ?? 0),
+                    'keterangan' => $tm['keterangan'] ?? '',
+                ];
+            }
+        }
+
+        $initialData = [
+            'skemaBayar' => old('skema_bayar', 'cash'),
+            'headerDiskon' => (float) old('diskon_total', 0),
+            'headerPpn' => (float) old('ppn_nominal', 0),
+            'headerOngkir' => (float) old('ongkos_kirim', 0),
+            'headerAdj' => (float) old('adjustment', 0),
+            'rows' => $rows,
+            'termins' => $termins,
+        ];
+    @endphp
+
     <div class="max-w-6xl mx-auto">
         <x-page-header
             title="Buat Purchase Order"
@@ -12,7 +64,7 @@
             </x-slot:actions>
         </x-page-header>
 
-        <div x-data="poForm()">
+        <div x-data="poForm({{ Js::from($initialData) }})" x-init="init()">
             <form method="POST" action="{{ route('purchasing.store') }}">
             @csrf
             <div class="space-y-5">
@@ -207,8 +259,8 @@
                                                         @change="onSatuanBeliChange(row)"
                                                         class="flex-1 rounded-sm border-gray-300 text-xs py-1.5 px-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
                                                     >
-                                                        <template x-for="opt in getUomOptions(row.satuan)" :key="opt.code">
-                                                            <option :value="opt.code" x-text="opt.label" :selected="opt.code === row.satuan_beli"></option>
+                                                        <template x-for="opt in getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi)" :key="opt.code">
+                                                            <option :value="opt.code" x-text="opt.label" :selected="opt.code === row.satuan_beli || opt.code.toLowerCase() === (row.satuan_beli || '').toLowerCase()"></option>
                                                         </template>
                                                     </select>
                                                 </div>
@@ -531,39 +583,86 @@
 
     @push('scripts')
     <script>
-        function poForm() {
+        function poForm(initial = {}) {
+            const rawRows = (initial.rows && initial.rows.length > 0) ? initial.rows : [
+                {
+                    produk_id: '',
+                    qty_satuan_beli: '',
+                    satuan_beli: '',
+                    faktor_konversi: 1,
+                    qty: '',
+                    harga: '',
+                    satuan: '',
+                    selectedItem: null
+                }
+            ];
+
+            const rows = rawRows.map(r => ({
+                ...r,
+                _lockedSatuanBeli: r.satuan_beli || '',
+                _lockedFaktorKonversi: (r.faktor_konversi !== undefined && r.faktor_konversi !== null && r.faktor_konversi !== '') ? r.faktor_konversi : 1,
+                _lockedQtySatuanBeli: (r.qty_satuan_beli !== undefined && r.qty_satuan_beli !== null) ? r.qty_satuan_beli : '',
+                _lockedQty: (r.qty !== undefined && r.qty !== null) ? r.qty : '',
+                _isInitialized: false,
+            }));
+
             return {
                 uomList: @json($uomList ?? []),
-                skemaBayar: 'cash',
+                skemaBayar: initial.skemaBayar || 'cash',
                 headerDiskonMode: 'nominal',
                 headerDiskonVal: 0,
-                headerDiskon: 0,
+                headerDiskon: initial.headerDiskon || 0,
 
                 headerPpnMode: 'nominal',
                 headerPpnVal: 0,
-                headerPpn: 0,
+                headerPpn: initial.headerPpn || 0,
 
-                headerOngkir: 0,
-                headerAdj: 0,
-                rows: [
-                    {
-                        produk_id: '',
-                        qty_satuan_beli: '',
-                        satuan_beli: '',
-                        faktor_konversi: 1,
-                        qty: '',
-                        harga: '',
-                        satuan: '',
-                        selectedItem: null
-                    }
-                ],
-                termins: [
+                headerOngkir: initial.headerOngkir || 0,
+                headerAdj: initial.headerAdj || 0,
+                rows: rows,
+                termins: (initial.termins && initial.termins.length > 0) ? initial.termins : [
                     { tanggal_tempo: '', nominal_tagihan: 0, keterangan: 'Termin 1' }
                 ],
                 activeRow: null,
 
-                getUomOptions(baseSatuan) {
+                init() {
+                    this.$nextTick(() => {
+                        this.rows.forEach(row => {
+                            const targetSatuanBeli = row._lockedSatuanBeli || row.satuan_beli;
+                            const targetFaktor = row._lockedFaktorKonversi !== undefined ? row._lockedFaktorKonversi : row.faktor_konversi;
+
+                            if (targetSatuanBeli && row.satuan) {
+                                const options = this.getUomOptions(row.satuan, targetSatuanBeli, targetFaktor);
+                                const match = options.find(o => o.code === targetSatuanBeli || o.code.toLowerCase() === targetSatuanBeli.toLowerCase());
+                                if (match) {
+                                    row.satuan_beli = match.code;
+                                    row.faktor_konversi = (targetFaktor !== undefined && targetFaktor !== null && targetFaktor !== '')
+                                        ? targetFaktor
+                                        : (match.factor || 1);
+                                } else {
+                                    row.satuan_beli = targetSatuanBeli;
+                                    row.faktor_konversi = targetFaktor || 1;
+                                }
+                            }
+
+                            if (row._lockedQtySatuanBeli !== '' && row._lockedQtySatuanBeli !== null && row._lockedQtySatuanBeli !== undefined) {
+                                row.qty_satuan_beli = row._lockedQtySatuanBeli;
+                            }
+                            if (row._lockedQty !== '' && row._lockedQty !== null && row._lockedQty !== undefined) {
+                                row.qty = row._lockedQty;
+                            } else {
+                                this.updateRowQty(row);
+                            }
+
+                            row._isInitialized = true;
+                        });
+                        this.recalcAll();
+                    });
+                },
+
+                getUomOptions(baseSatuan, currentSatuanBeli = null, currentFactor = null) {
                     const s = (baseSatuan || '').toLowerCase().trim();
+                    const curKey = (currentSatuanBeli || '').toLowerCase().trim();
                     const options = [];
                     const seen = new Set();
 
@@ -593,12 +692,13 @@
                                 seen.add(uKode);
                                 const factorDisplay = (factor == parseInt(factor) ? parseInt(factor) : factor).toLocaleString('id-ID');
                                 const label = factor > 1 
-                                    ? `${u.nama} (${factorDisplay} ${baseSatuan})`
-                                    : `${u.nama} (${u.kode})`;
+                                    ? `${u.nama} (${factorDisplay} ${baseSatuan || ''})`
+                                    : (uBasis === s || uKode === s ? `${u.nama} (${u.kode} - Satuan Dasar)` : `${u.nama} (${u.kode})`);
                                 options.push({
                                     code: u.kode,
                                     label: label,
-                                    factor: factor
+                                    factor: factor,
+                                    isBase: (uKode === s || (uBasis === s && factor === 1))
                                 });
                             }
                         });
@@ -608,23 +708,23 @@
                     const presets = [];
                     if (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter') {
                         presets.push(
+                            { code: 'ml', label: 'Mililiter (ml - Satuan Dasar)', factor: 1, isBase: true },
                             { code: 'Liter', label: 'Liter (1.000 ml)', factor: 1000 },
                             { code: 'Jerigen 5L', label: 'Jerigen 5L (5.000 ml)', factor: 5000 },
                             { code: 'Galon 19L', label: 'Galon 19L (19.000 ml)', factor: 19000 },
-                            { code: 'Drum 200L', label: 'Drum 200L (200.000 ml)', factor: 200000 },
-                            { code: 'ml', label: 'Mililiter (ml)', factor: 1 }
+                            { code: 'Drum 200L', label: 'Drum 200L (200.000 ml)', factor: 200000 }
                         );
                     } else if (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg' || s === 'kilogram') {
                         presets.push(
+                            { code: 'Gram', label: 'Gram (gr - Satuan Dasar)', factor: 1, isBase: true },
                             { code: 'Kilogram', label: 'Kilogram (1.000 gr)', factor: 1000 },
                             { code: 'Sak 25kg', label: 'Sak 25kg (25.000 gr)', factor: 25000 },
                             { code: 'Sak 50kg', label: 'Sak 50kg (50.000 gr)', factor: 50000 },
-                            { code: 'Ton', label: 'Ton (1.000.000 gr)', factor: 1000000 },
-                            { code: 'Gram', label: 'Gram (gr)', factor: 1 }
+                            { code: 'Ton', label: 'Ton (1.000.000 gr)', factor: 1000000 }
                         );
                     } else {
                         presets.push(
-                            { code: 'Pieces', label: 'Pieces (pcs)', factor: 1 },
+                            { code: 'Pieces', label: 'Pieces (pcs - Satuan Dasar)', factor: 1, isBase: true },
                             { code: 'Pack (10)', label: 'Pack (10 pcs)', factor: 10 },
                             { code: 'Dus (100)', label: 'Dus / Box (100 pcs)', factor: 100 }
                         );
@@ -638,12 +738,37 @@
                         }
                     });
 
-                    // 3. Pastikan satuan dasar produk selalu ada di opsi pertama jika belum ada
+                    // 3. Pastikan satuan dasar produk selalu ada di opsi jika belum ada
                     if (!seen.has(s) && baseSatuan) {
-                        options.unshift({ code: baseSatuan, label: `${baseSatuan} (Satuan Dasar)`, factor: 1 });
+                        seen.add(s);
+                        options.unshift({ code: baseSatuan, label: `${baseSatuan} (Satuan Dasar)`, factor: 1, isBase: true });
                     }
 
-                    // 4. Selalu sertakan opsi manual/kustom
+                    // 4. Pastikan jika ada currentSatuanBeli yang belum tercantum, masukkan ke options
+                    if (curKey && curKey !== 'custom') {
+                        const found = options.some(o => o.code.toLowerCase().trim() === curKey);
+                        if (!found) {
+                            seen.add(curKey);
+                            const factorNum = parseFloat(currentFactor) || 1;
+                            const factorDisplay = (factorNum == parseInt(factorNum) ? parseInt(factorNum) : factorNum).toLocaleString('id-ID');
+                            options.push({
+                                code: currentSatuanBeli,
+                                label: `${currentSatuanBeli} (${factorDisplay} ${baseSatuan || ''})`,
+                                factor: factorNum
+                            });
+                        }
+                    }
+
+                    // Urutkan opsi: Satuan dasar di paling atas, lalu urut faktor terkecil ke terbesar
+                    options.sort((a, b) => {
+                        const aIsBase = a.isBase || (a.code.toLowerCase().trim() === s);
+                        const bIsBase = b.isBase || (b.code.toLowerCase().trim() === s);
+                        if (aIsBase && !bIsBase) return -1;
+                        if (!aIsBase && bIsBase) return 1;
+                        return (parseFloat(a.factor) || 0) - (parseFloat(b.factor) || 0);
+                    });
+
+                    // 5. Selalu sertakan opsi manual/kustom di paling akhir
                     options.push({ code: 'custom', label: 'Kustom / Input Faktor Manual...', factor: null });
 
                     return options;
@@ -651,14 +776,26 @@
 
                 onProductSelected(row, product) {
                     if (product) {
+                        const isSameProduct = (row.produk_id && String(row.produk_id) === String(product.id));
                         row.produk_id = product.id;
                         row.satuan = product.satuan;
                         row.selectedItem = product;
-                        const options = this.getUomOptions(product.satuan);
-                        const first = options[0];
-                        row.satuan_beli = first ? first.code : product.satuan;
-                        row.faktor_konversi = first ? (first.factor || 1) : 1;
-                        this.updateRowQty(row);
+
+                        // Hanya inisialisasi satuan beli baru jika row sudah diinisialisasi DAN produk berbeda,
+                        // atau jika satuan_beli pada row masih kosong
+                        if (row._isInitialized && !isSameProduct) {
+                            row.satuan_beli = product.satuan || 'UNIT';
+                            row.faktor_konversi = 1;
+                            row._lockedSatuanBeli = row.satuan_beli;
+                            row._lockedFaktorKonversi = 1;
+                            this.updateRowQty(row);
+                        } else if (!row.satuan_beli) {
+                            row.satuan_beli = product.satuan || 'UNIT';
+                            row.faktor_konversi = 1;
+                            row._lockedSatuanBeli = row.satuan_beli;
+                            row._lockedFaktorKonversi = 1;
+                            this.updateRowQty(row);
+                        }
                     } else {
                         row.produk_id = '';
                         row.satuan = '';
@@ -667,16 +804,20 @@
                         row.faktor_konversi = 1;
                         row.qty = 0;
                         row.qty_satuan_beli = '';
+                        row._lockedSatuanBeli = '';
+                        row._lockedFaktorKonversi = 1;
                         this.recalcAll();
                     }
                 },
 
                 onSatuanBeliChange(row) {
-                    const options = this.getUomOptions(row.satuan);
-                    const opt = options.find(o => o.code === row.satuan_beli);
-                    if (opt && opt.factor !== null) {
+                    const options = this.getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi);
+                    const opt = options.find(o => o.code === row.satuan_beli || o.code.toLowerCase() === (row.satuan_beli || '').toLowerCase());
+                    if (opt && opt.factor !== null && opt.factor !== undefined) {
                         row.faktor_konversi = opt.factor;
                     }
+                    row._lockedSatuanBeli = row.satuan_beli;
+                    row._lockedFaktorKonversi = row.faktor_konversi;
                     this.updateRowQty(row);
                 },
 
@@ -712,7 +853,12 @@
                         qty: '',
                         harga: '',
                         satuan: '',
-                        selectedItem: null
+                        selectedItem: null,
+                        _lockedSatuanBeli: '',
+                        _lockedFaktorKonversi: 1,
+                        _lockedQtySatuanBeli: '',
+                        _lockedQty: '',
+                        _isInitialized: true
                     });
                 },
 
