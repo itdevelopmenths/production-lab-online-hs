@@ -163,7 +163,7 @@
                                 <th class="py-2.5 px-3 text-right">Avg Lead Time (Hari)</th>
                                 <th class="py-2.5 px-3 text-right">Safety Stock (Hari)</th>
                                 <th class="py-2.5 px-3 text-right">Terjual 4 Bulan</th>
-                                <th class="py-2.5 px-3 text-right bg-amber-50/50 text-amber-900">ADU (Harian)</th>
+                                <th class="py-2.5 px-3 text-right bg-amber-50/50 text-amber-900">ADU</th>
                                 <th class="py-2.5 px-3 text-right">Review Period</th>
                                 <th class="py-2.5 px-3 text-right bg-primary-50/50 text-primary-900 font-bold">Batas Minimum</th>
                                 <th class="py-2.5 px-3 text-right font-bold">Target Stock</th>
@@ -292,10 +292,10 @@
                                     <td class="py-2.5 px-2 text-center">
                                         <div class="flex items-center justify-center gap-1">
                                             <button type="button" @click="openManualLokalModal(r)" class="px-2 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded border border-primary-200 text-[10px] font-medium transition cursor-pointer" title="Edit Tambahan Buffer">
-                                                Buffer
+                                                analisa
                                             </button>
                                             <button type="button" @click="openStageModal(r)" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded border border-amber-200 text-[10px] font-medium transition cursor-pointer" title="Edit 9 Tahap Lead Time">
-                                                9 Tahap
+                                                LT
                                             </button>
                                         </div>
                                     </td>

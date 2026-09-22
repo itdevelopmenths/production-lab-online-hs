@@ -25,22 +25,48 @@
     </x-slot:header>
 
     <form @submit.prevent="saveStages()" class="space-y-4 max-h-[75vh] overflow-y-auto">
-        {{-- Tabel Matriks Input Tahapan Lead Time (Hanya Tahapan Manual yang Perlu Diinput) --}}
+        {{-- Tabel Matriks Input Tahapan Lead Time (9 Tahapan) --}}
         <div class="overflow-x-auto border border-gray-200 rounded-sm shadow-2xs">
             <table class="w-full text-xs text-left border-collapse">
                 <thead class="bg-gray-100 text-gray-700 text-[10px] uppercase font-semibold border-b border-gray-200">
                     <tr>
-                        <th class="py-2.5 px-3">Tahapan Lead Time</th>
+                        <th class="py-2.5 px-3">Tahapan Lead Time (9 Tahap)</th>
                         <th class="py-2.5 px-3 text-center w-36 font-semibold">Skenario Average (Hari)</th>
                         <th class="py-2.5 px-3 text-center w-36 font-semibold">Skenario Max (Hari)</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 font-mono bg-white">
-                    <!-- 1. Supplier Confirm -->
+                    <!-- 1. Perencanaan Kebutuhan -->
                     <tr class="hover:bg-gray-50/80 transition">
                         <td class="py-2.5 px-3 font-sans">
-                            <div class="font-semibold text-gray-900">Supplier Confirm</div>
-                            <div class="text-[10px] text-gray-500 font-normal">Konfirmasi kesanggupan supplier</div>
+                            <div class="font-semibold text-gray-900">1. Perencanaan Kebutuhan</div>
+                            <div class="text-[10px] text-gray-500 font-normal">Analisa kebutuhan & perencanaan internal</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.average.perencanaan" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.max.perencanaan" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                    </tr>
+                    <!-- 2. Approval / Persetujuan -->
+                    <tr class="hover:bg-gray-50/80 transition">
+                        <td class="py-2.5 px-3 font-sans">
+                            <div class="font-semibold text-gray-900">2. Approval / Persetujuan</div>
+                            <div class="text-[10px] text-gray-500 font-normal">Waktu persetujuan approval order/PR internal</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.average.approval" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.max.approval" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                    </tr>
+                    <!-- 3. Supplier Confirm -->
+                    <tr class="hover:bg-gray-50/80 transition">
+                        <td class="py-2.5 px-3 font-sans">
+                            <div class="font-semibold text-gray-900">3. Supplier Confirm</div>
+                            <div class="text-[10px] text-gray-500 font-normal">Konfirmasi kesanggupan & ketersediaan supplier</div>
                         </td>
                         <td class="py-2.5 px-3 text-center">
                             <input type="number" min="0" x-model.number="stageForm.average.supplier_confirm" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
@@ -49,10 +75,23 @@
                             <input type="number" min="0" x-model.number="stageForm.max.supplier_confirm" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
                         </td>
                     </tr>
-                    <!-- 2. Terbit PO Resmi -->
+                    <!-- 4. Payment / Pembayaran -->
                     <tr class="hover:bg-gray-50/80 transition">
                         <td class="py-2.5 px-3 font-sans">
-                            <div class="font-semibold text-gray-900">PO (Terbit PO Resmi)</div>
+                            <div class="font-semibold text-gray-900">4. Payment / Pembayaran</div>
+                            <div class="text-[10px] text-gray-500 font-normal">Proses DP / termin pembayaran supplier</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.average.payment" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.max.payment" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                    </tr>
+                    <!-- 5. PO (Terbit PO Resmi) -->
+                    <tr class="hover:bg-gray-50/80 transition">
+                        <td class="py-2.5 px-3 font-sans">
+                            <div class="font-semibold text-gray-900">5. PO (Terbit PO Resmi)</div>
                             <div class="text-[10px] text-gray-500 font-normal">Tanggal PO resmi terbit ke vendor</div>
                         </td>
                         <td class="py-2.5 px-3 text-center">
@@ -62,10 +101,10 @@
                             <input type="number" min="0" x-model.number="stageForm.max.po" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
                         </td>
                     </tr>
-                    <!-- 3. Pengemasan / Produksi Vendor -->
+                    <!-- 6. Pengemasan / Produksi Vendor -->
                     <tr class="hover:bg-gray-50/80 transition">
                         <td class="py-2.5 px-3 font-sans">
-                            <div class="font-semibold text-gray-900">Pengemasan / Produksi Vendor</div>
+                            <div class="font-semibold text-gray-900">6. Pengemasan / Produksi Vendor</div>
                             <div class="text-[10px] text-gray-500 font-normal">Durasi pabrikasi & packaging vendor</div>
                         </td>
                         <td class="py-2.5 px-3 text-center">
@@ -75,17 +114,43 @@
                             <input type="number" min="0" x-model.number="stageForm.max.pengemasan" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
                         </td>
                     </tr>
-                    <!-- 4. Unloading & Bongkar Muat -->
+                    <!-- 7. Pengiriman / Ekspedisi -->
                     <tr class="hover:bg-gray-50/80 transition">
                         <td class="py-2.5 px-3 font-sans">
-                            <div class="font-semibold text-gray-900">Unloading & Bongkar Muat</div>
-                            <div class="text-[10px] text-gray-500 font-normal">Bongkar muat fisik & QC receiving</div>
+                            <div class="font-semibold text-gray-900">7. Pengiriman / Ekspedisi</div>
+                            <div class="text-[10px] text-gray-500 font-normal">Waktu tempuh transit & ekspedisi pengiriman</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.average.pengiriman" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.max.pengiriman" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                    </tr>
+                    <!-- 8. Unloading & Bongkar Muat -->
+                    <tr class="hover:bg-gray-50/80 transition">
+                        <td class="py-2.5 px-3 font-sans">
+                            <div class="font-semibold text-gray-900">8. Unloading & Bongkar Muat</div>
+                            <div class="text-[10px] text-gray-500 font-normal">Bongkar muat fisik dari armada pengangkut</div>
                         </td>
                         <td class="py-2.5 px-3 text-center">
                             <input type="number" min="0" x-model.number="stageForm.average.unloading" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
                         </td>
                         <td class="py-2.5 px-3 text-center">
                             <input type="number" min="0" x-model.number="stageForm.max.unloading" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                    </tr>
+                    <!-- 9. Input Sistem / QC Receiving -->
+                    <tr class="hover:bg-gray-50/80 transition">
+                        <td class="py-2.5 px-3 font-sans">
+                            <div class="font-semibold text-gray-900">9. Input Sistem / QC Receiving</div>
+                            <div class="text-[10px] text-gray-500 font-normal">Pengecekan QC fisik & input penerimaan ke sistem</div>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.average.input" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <input type="number" min="0" x-model.number="stageForm.max.input" class="w-24 text-center px-2 py-1 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-semibold shadow-xs">
                         </td>
                     </tr>
                     <!-- Subtotal Baris -->

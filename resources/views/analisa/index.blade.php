@@ -817,13 +817,17 @@
         simulasiLokalBatasMin(){
           const adu = (Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30;
           const avgLt = Number(this.manualLokalForm.total_avg_lead_time) || 0;
-          const ss = (Number(this.manualLokalForm.safety_stock) || 0) + (Number(this.manualLokalForm.tambahan_buffer_hari) || 0);
+          const maxLt = Number(this.manualLokalForm.total_max_lead_time) || 0;
+          const buffer = Number(this.manualLokalForm.tambahan_buffer_hari) || 0;
+          const ss = maxLt > 0 ? (Math.max(0, maxLt - avgLt) + buffer) : (Number(this.manualLokalForm.safety_stock) || 0);
           return this.formatNumber(adu * (avgLt + ss));
         },
         simulasiLokalTarget(){
           const adu = (Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30;
           const avgLt = Number(this.manualLokalForm.total_avg_lead_time) || 0;
-          const ss = (Number(this.manualLokalForm.safety_stock) || 0) + (Number(this.manualLokalForm.tambahan_buffer_hari) || 0);
+          const maxLt = Number(this.manualLokalForm.total_max_lead_time) || 0;
+          const buffer = Number(this.manualLokalForm.tambahan_buffer_hari) || 0;
+          const ss = maxLt > 0 ? (Math.max(0, maxLt - avgLt) + buffer) : (Number(this.manualLokalForm.safety_stock) || 0);
           const rp = Number(this.manualLokalForm.review_period) || 15;
           const batasMin = adu * (avgLt + ss);
           return this.formatNumber(batasMin + (adu * rp));
@@ -831,7 +835,9 @@
         simulasiLokalOrder(){
           const adu = (Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30;
           const avgLt = Number(this.manualLokalForm.total_avg_lead_time) || 0;
-          const ss = (Number(this.manualLokalForm.safety_stock) || 0) + (Number(this.manualLokalForm.tambahan_buffer_hari) || 0);
+          const maxLt = Number(this.manualLokalForm.total_max_lead_time) || 0;
+          const buffer = Number(this.manualLokalForm.tambahan_buffer_hari) || 0;
+          const ss = maxLt > 0 ? (Math.max(0, maxLt - avgLt) + buffer) : (Number(this.manualLokalForm.safety_stock) || 0);
           const rp = Number(this.manualLokalForm.review_period) || 15;
           const target = (adu * (avgLt + ss)) + (adu * rp);
           const stok = Number(this.manualLokalForm.stok_saat_ini) || 0;
