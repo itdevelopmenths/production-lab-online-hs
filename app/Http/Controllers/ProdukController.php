@@ -57,6 +57,8 @@ class ProdukController extends Controller
                     }
                 }
             })
+            ->editColumn('sku', fn ($p) => '<span class="font-mono font-medium text-gray-800">' . e($p->sku) . '</span>')
+            ->editColumn('nama', fn ($p) => '<span class="font-semibold text-gray-900">' . e($p->nama) . '</span>')
             ->editColumn('kategori_nama', fn ($p) => $p->kategori
                 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">' . e($p->kategori->nama) . '</span>'
                 : '<span class="text-gray-400">—</span>'
@@ -65,11 +67,19 @@ class ProdukController extends Controller
                 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">' . e($p->varian->nama) . '</span>'
                 : '<span class="text-gray-400">—</span>'
             )
-            ->editColumn('tipe', fn ($p) => ucfirst(str_replace('_', ' ', $p->tipe)))
-            ->editColumn('satuan_order_moq', fn ($p) => rtrim(rtrim(number_format((float) $p->satuan_order_moq, 2, ',', '.'), '0'), ','))
-            ->editColumn('is_active', fn ($p) => $p->is_active ? 'Aktif' : 'Nonaktif')
+            ->editColumn('tipe', fn ($p) => match($p->tipe) {
+                'bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Bahan Baku</span>',
+                'kemas' => '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Kemasan</span>',
+                'produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Produk Jadi</span>',
+                default => '<span class="text-gray-600">' . e(ucfirst(str_replace('_', ' ', $p->tipe))) . '</span>'
+            })
+            ->editColumn('satuan', fn ($p) => '<span class="font-mono text-gray-700 font-medium">' . e($p->satuan) . '</span>')
+            ->editColumn('is_active', fn ($p) => $p->is_active
+                ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>'
+                : '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">Nonaktif</span>'
+            )
             ->addColumn('action', fn ($p) => view('produk._actions', ['p' => $p])->render())
-            ->rawColumns(['kategori_nama', 'varian_nama', 'action'])
+            ->rawColumns(['sku', 'nama', 'kategori_nama', 'varian_nama', 'tipe', 'satuan', 'is_active', 'action'])
             ->toJson();
     }
 

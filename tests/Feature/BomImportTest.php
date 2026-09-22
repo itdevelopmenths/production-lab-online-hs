@@ -245,4 +245,82 @@ class BomImportTest extends TestCase
         $this->assertNotNull($bom);
         $this->assertEquals(12.50, (float) $bom->qty_per_unit);
     }
+
+    public function test_bulk_import_validates_and_skips_already_existing_database_records(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $produk = Produk::create([
+            'sku' => 'PRD-DB-01',
+            'nama_produk' => 'Existing Test Product',
+            'nama' => 'Existing Test Product',
+            'tipe' => 'produk_jadi',
+            'satuan' => 'pcs',
+            'faktor_konversi' => 1,
+            'satuan_order_moq' => 1,
+            'is_active' => true,
+        ]);
+
+        $bahanExisting = Produk::create([
+            'sku' => 'BAH-DB-01',
+            'nama_produk' => 'Existing Material',
+            'nama' => 'Existing Material',
+            'tipe' => 'bahan',
+            'satuan' => 'ml',
+            'faktor_konversi' => 1,
+            'satuan_order_moq' => 10,
+            'is_active' => true,
+        ]);
+
+        $bahanNew = Produk::create([
+            'sku' => 'BAH-DB-02',
+            'nama_produk' => 'New Material',
+            'nama' => 'New Material',
+            'tipe' => 'bahan',
+            'satuan' => 'ml',
+            'faktor_konversi' => 1,
+            'satuan_order_moq' => 10,
+            'is_active' => true,
+        ]);
+
+        // Resep awal sudah ada di database
+        Bom::create([
+            'produk_jadi_id' => $produk->id,
+            'bahan_id' => $bahanExisting->id,
+            'qty_per_unit' => 5.0,
+        ]);
+
+        // Verifikasi endpoint importPage menyertakan key map existingBoms
+        $pageResponse = $this->get(route('bom.import-page'));
+        $pageResponse->assertOk();
+        $pageResponse->assertViewHas('existingBoms', function ($existingBoms) {
+            return isset($existingBoms['PRD-DB-01|BAH-DB-01']) && $existingBoms['PRD-DB-01|BAH-DB-01'] == 5.0;
+        });
+
+        // Kirim request bulk import yang memuat kombinasi existing dan kombinasi baru
+        $response = $this->postJson(route('bom.import-bulk'), [
+            'items' => [
+                ['sku_produk_jadi' => 'PRD-DB-01', 'sku_bahan' => 'BAH-DB-01', 'qty_per_unit' => 15.0], // ALREADY EXISTS
+                ['sku_produk_jadi' => 'PRD-DB-01', 'sku_bahan' => 'BAH-DB-02', 'qty_per_unit' => 20.0], // BARU
+            ],
+        ]);
+
+        $response->assertOk();
+        $response->assertJson([
+            'success' => true,
+            'imported_count' => 1,
+            'already_exists_count' => 1,
+        ]);
+
+        // Record yang sudah ada tidak ter-overwrite (tetap 5.0)
+        $bomExisting = Bom::where('produk_jadi_id', $produk->id)->where('bahan_id', $bahanExisting->id)->first();
+        $this->assertNotNull($bomExisting);
+        $this->assertEquals(5.0, (float) $bomExisting->qty_per_unit);
+
+        // Record baru berhasil tersimpan (20.0)
+        $bomNew = Bom::where('produk_jadi_id', $produk->id)->where('bahan_id', $bahanNew->id)->first();
+        $this->assertNotNull($bomNew);
+        $this->assertEquals(20.0, (float) $bomNew->qty_per_unit);
+    }
 }

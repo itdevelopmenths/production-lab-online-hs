@@ -63,9 +63,9 @@
             </div>
 
             <!-- Kartu Status & Petunjuk Cepat -->
-            <div class="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div class="p-2.5 bg-gray-50 rounded-sm border border-gray-200 flex items-center justify-between">
-                    <span class="text-xs text-gray-600">Total Baris Resep:</span>
+                    <span class="text-xs text-gray-600">Total Baris:</span>
                     <span class="font-mono text-sm font-bold text-gray-900" x-text="rows.length"></span>
                 </div>
                 <div class="p-2.5 bg-emerald-50 rounded-sm border border-emerald-200 flex items-center justify-between">
@@ -73,12 +73,16 @@
                     <span class="font-mono text-sm font-bold text-emerald-700" x-text="validRowsCount"></span>
                 </div>
                 <div class="p-2.5 rounded-sm border flex items-center justify-between transition" :class="duplicateRowsCount > 0 ? 'bg-purple-50 border-purple-300' : 'bg-gray-50 border-gray-200'">
-                    <span class="text-xs" :class="duplicateRowsCount > 0 ? 'text-purple-800 font-semibold' : 'text-gray-600'">Duplikat Terdeteksi:</span>
+                    <span class="text-xs" :class="duplicateRowsCount > 0 ? 'text-purple-800 font-semibold' : 'text-gray-600'">Duplikat di Grid:</span>
                     <span class="font-mono text-sm font-bold" :class="duplicateRowsCount > 0 ? 'text-purple-700' : 'text-gray-500'" x-text="duplicateRowsCount"></span>
                 </div>
-                <div class="p-2.5 bg-amber-50 rounded-sm border border-amber-200 flex items-center justify-between">
-                    <span class="text-xs text-amber-800">Perlu Diperiksa:</span>
-                    <span class="font-mono text-sm font-bold text-amber-700" x-text="invalidRowsCount"></span>
+                <div class="p-2.5 rounded-sm border flex items-center justify-between transition" :class="alreadyExistsCount > 0 ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'">
+                    <span class="text-xs" :class="alreadyExistsCount > 0 ? 'text-amber-800 font-semibold' : 'text-gray-600'">Sudah Terdaftar:</span>
+                    <span class="font-mono text-sm font-bold" :class="alreadyExistsCount > 0 ? 'text-amber-700' : 'text-gray-500'" x-text="alreadyExistsCount"></span>
+                </div>
+                <div class="p-2.5 bg-rose-50 rounded-sm border border-rose-200 flex items-center justify-between">
+                    <span class="text-xs text-rose-800">Perlu Diperiksa:</span>
+                    <span class="font-mono text-sm font-bold text-rose-700" x-text="invalidRowsCount"></span>
                 </div>
             </div>
         </div>
@@ -100,6 +104,16 @@
         <x-card title="Grid Formula Resep (Column & Row Inputable)" subtitle="Dapat diketik langsung, diubah nilainya, ditambah baris, atau ditempel langsung (Ctrl+V) dari spreadsheet" :noPadding="true">
             <x-slot:headerActions>
                 <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        @click="removeExisting()"
+                        x-show="alreadyExistsCount > 0"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-sm text-xs font-semibold cursor-pointer transition"
+                        title="Hapus baris bahan yang sudah terdaftar sebelumnya dari tabel"
+                    >
+                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Bersihkan Resep Terdaftar (<span x-text="alreadyExistsCount"></span>)
+                    </button>
                     <button
                         type="button"
                         @click="removeDuplicates()"
@@ -154,7 +168,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         <template x-for="(row, index) in rows" :key="row.id">
-                            <tr :class="row.valid === false ? 'bg-rose-50/50' : 'hover:bg-gray-50/80'">
+                            <tr :class="row.isExisting ? 'bg-amber-50/70' : (row.isDuplicate ? 'bg-purple-50/50' : (row.valid === false ? 'bg-rose-50/50' : 'hover:bg-gray-50/80'))">
                                 <td class="px-3 py-2 text-center font-mono text-gray-500 text-xs" x-text="index + 1"></td>
                                 
                                 {{-- Kolom 1: SKU Produk Jadi (Inputable) --}}
@@ -202,7 +216,12 @@
                                             &check; Siap Disimpan
                                         </span>
                                     </template>
-                                    <template x-if="row.valid === false">
+                                    <template x-if="row.isExisting === true">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300" :title="row.error">
+                                            ⚠️ Resep Sudah Terdaftar
+                                        </span>
+                                    </template>
+                                    <template x-if="row.valid === false && !row.isExisting">
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300" :title="row.error">
                                             &times; <span x-text="row.error || 'Data Tidak Valid'"></span>
                                         </span>
@@ -281,12 +300,14 @@
         return {
             produkJadiMap: {},
             bahanMap: {},
+            existingBomMap: {},
             rows: [],
             isSubmitting: false,
 
             init() {
                 const pjList = @json($produkJadiList);
                 const bhList = @json($bahanList);
+                const existingList = @json($existingBoms ?? []);
 
                 pjList.forEach(item => {
                     this.produkJadiMap[item.sku.trim().toUpperCase()] = item.nama;
@@ -295,6 +316,8 @@
                 bhList.forEach(item => {
                     this.bahanMap[item.sku.trim().toUpperCase()] = `${item.nama} (${item.satuan})`;
                 });
+
+                this.existingBomMap = existingList || {};
 
                 // Tambahkan 3 baris awal sebagai template inputable
                 this.addRow();
@@ -314,6 +337,10 @@
                 return this.rows.filter(r => r.isDuplicate === true).length;
             },
 
+            get alreadyExistsCount() {
+                return this.rows.filter(r => r.isExisting === true).length;
+            },
+
             addRow(skuJadi = '', skuBahan = '', qty = 1.0) {
                 const newRow = {
                     id: Date.now() + Math.random(),
@@ -322,6 +349,7 @@
                     qty_per_unit: qty,
                     valid: null,
                     isDuplicate: false,
+                    isExisting: false,
                     error: ''
                 };
                 this.rows.push(newRow);
@@ -372,6 +400,32 @@
                 }
             },
 
+            removeExisting() {
+                let removed = 0;
+                this.rows = this.rows.filter(r => {
+                    const sJadi = (r.sku_produk_jadi || '').trim().toUpperCase();
+                    const sBahan = (r.sku_bahan || '').trim().toUpperCase();
+                    const key = `${sJadi}|${sBahan}`;
+                    if (this.existingBomMap && this.existingBomMap[key] !== undefined) {
+                        removed++;
+                        return false;
+                    }
+                    return true;
+                });
+
+                this.validateAll();
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Resep Terdaftar Dilewati',
+                        text: `${removed} baris bahan yang sudah terdaftar berhasil dilewati.`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            },
+
             getProdukJadiName(sku) {
                 if (!sku) return '';
                 const clean = sku.trim().toUpperCase();
@@ -401,6 +455,7 @@
 
                 this.rows.forEach(r => {
                     r.isDuplicate = false;
+                    r.isExisting = false;
                     if (!r.sku_produk_jadi && !r.sku_bahan) {
                         r.valid = null;
                         r.error = '';
@@ -433,7 +488,14 @@
                     if (pairCounts[key] > 1) {
                         r.valid = false;
                         r.isDuplicate = true;
-                        r.error = 'Duplikat: kombinasi produk dan bahan ini ada lebih dari 1 kali';
+                        r.error = 'Duplikat di tabel: kombinasi produk dan bahan ini ada lebih dari 1 kali';
+                        return;
+                    }
+
+                    if (this.existingBomMap && this.existingBomMap[key] !== undefined) {
+                        r.valid = false;
+                        r.isExisting = true;
+                        r.error = `Bahan ini sudah terdaftar dalam formula produk ini (Kebutuhan saat ini: ${this.existingBomMap[key]})`;
                         return;
                     }
 
@@ -592,9 +654,17 @@
                     }
                 }
 
+                if (this.alreadyExistsCount > 0) {
+                    if (confirm(`Terdapat ${this.alreadyExistsCount} baris bahan yang sudah terdaftar dalam formula produk sebelumnya. Lewati bahan yang sudah terdaftar dan simpan resep yang baru?`)) {
+                        this.removeExisting();
+                    } else {
+                        return;
+                    }
+                }
+
                 const validRows = this.rows.filter(r => r.valid === true);
                 if (validRows.length === 0) {
-                    alert('Tidak ada baris data valid yang siap disimpan.');
+                    alert('Tidak ada baris resep baru yang dapat disimpan.');
                     return;
                 }
 

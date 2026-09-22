@@ -72,7 +72,15 @@ class BomController extends Controller
         $produkJadiList = Produk::produkJadi()->active()->orderBy('nama')->get(['id', 'sku', 'nama']);
         $bahanList = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
 
-        return view('bom.import', compact('produkJadiList', 'bahanList'));
+        $existingBoms = Bom::join('produk as pj', 'bom.produk_jadi_id', '=', 'pj.id')
+            ->join('produk as bh', 'bom.bahan_id', '=', 'bh.id')
+            ->selectRaw("UPPER(TRIM(pj.sku)) as sku_jadi, UPPER(TRIM(bh.sku)) as sku_bahan, bom.qty_per_unit")
+            ->get()
+            ->mapWithKeys(fn ($b) => [
+                "{$b->sku_jadi}|{$b->sku_bahan}" => (float) $b->qty_per_unit
+            ]);
+
+        return view('bom.import', compact('produkJadiList', 'bahanList', 'existingBoms'));
     }
 
     public function downloadTemplate(Request $request)
@@ -107,12 +115,15 @@ class BomController extends Controller
             'items.*.sku_produk_jadi' => ['required', 'string'],
             'items.*.sku_bahan' => ['required', 'string'],
             'items.*.qty_per_unit' => ['required', 'numeric', 'gt:0'],
+            'allow_overwrite' => ['nullable', 'boolean'],
         ]);
 
         $imported = 0;
         $duplicatesCount = 0;
+        $alreadyExistsCount = 0;
         $errors = [];
         $seenPairs = [];
+        $allowOverwrite = $request->boolean('allow_overwrite', false);
 
         // Map SKU ke Produk secara efisien
         $allSkus = collect($data['items'])
@@ -122,7 +133,7 @@ class BomController extends Controller
 
         $allProduk = Produk::whereIn('sku', $allSkus)->get()->keyBy('sku');
 
-        DB::transaction(function () use ($data, $allProduk, &$imported, &$duplicatesCount, &$errors, &$seenPairs) {
+        DB::transaction(function () use ($data, $allProduk, $allowOverwrite, &$imported, &$duplicatesCount, &$alreadyExistsCount, &$errors, &$seenPairs) {
             foreach ($data['items'] as $index => $item) {
                 $rowNum = $index + 1;
                 $skuJadi = trim($item['sku_produk_jadi']);
@@ -152,6 +163,17 @@ class BomController extends Controller
                     continue;
                 }
 
+                // Validasi data already exist di database
+                $existsInDb = Bom::where('produk_jadi_id', $jadi->id)
+                    ->where('bahan_id', $bahan->id)
+                    ->exists();
+
+                if ($existsInDb && ! $allowOverwrite) {
+                    $alreadyExistsCount++;
+                    $errors[] = "Baris {$rowNum}: Resep sudah terdaftar — formula untuk Produk '{$skuJadi}' dan Bahan '{$skuBahan}' sudah terdaftar di sistem sebelumnya. Baris dilewati.";
+                    continue;
+                }
+
                 Bom::updateOrCreate(
                     ['produk_jadi_id' => $jadi->id, 'bahan_id' => $bahan->id],
                     ['qty_per_unit' => $qty]
@@ -172,6 +194,7 @@ class BomController extends Controller
                 'new_values' => [
                     'imported_count' => $imported,
                     'duplicates_count' => $duplicatesCount,
+                    'already_exists_count' => $alreadyExistsCount,
                     'skipped_count' => count($errors),
                 ],
                 'changed_fields' => ['boms'],
@@ -180,11 +203,17 @@ class BomController extends Controller
             ]);
         }
 
-        $msg = "Berhasil menyimpan {$imported} formula resep BOM.";
+        $msg = $imported > 0
+            ? "Berhasil menyimpan {$imported} formula resep BOM."
+            : "Tidak ada formula baru yang disimpan.";
+
         if ($duplicatesCount > 0) {
             $msg .= " ({$duplicatesCount} baris duplikat dilewati).";
         }
-        if (count($errors) > 0) {
+        if ($alreadyExistsCount > 0) {
+            $msg .= " ({$alreadyExistsCount} baris resep yang sudah terdaftar dilewati).";
+        }
+        if (count($errors) > 0 && $duplicatesCount === 0 && $alreadyExistsCount === 0) {
             $msg .= ' (' . count($errors) . ' baris catatan/dilewati)';
         }
 
@@ -193,6 +222,7 @@ class BomController extends Controller
             'message' => $msg,
             'imported_count' => $imported,
             'duplicates_count' => $duplicatesCount,
+            'already_exists_count' => $alreadyExistsCount,
             'errors' => $errors,
         ]);
     }

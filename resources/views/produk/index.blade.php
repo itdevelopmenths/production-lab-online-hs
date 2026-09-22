@@ -81,16 +81,15 @@
                 <div class="overflow-x-auto">
                     <table id="tbl" class="w-full text-xs">
                         <thead>
-                            <tr>
-                                <th class="px-4 py-3 text-left w-28">SKU</th>
-                                <th class="px-4 py-3 text-left">Nama Produk</th>
-                                <th class="px-4 py-3 text-left w-32">Kategori</th>
-                                <th class="px-4 py-3 text-left w-32">Varian</th>
-                                <th class="px-4 py-3 text-left w-24">Tipe</th>
-                                <th class="px-4 py-3 text-left w-16">Satuan</th>
-                                <th class="px-4 py-3 text-left w-20">MOQ</th>
-                                <th class="px-4 py-3 text-left w-20">Status</th>
-                                <th class="px-4 py-3 text-center w-28">Aksi</th>
+                            <tr class="bg-gray-50 border-b border-gray-200 text-gray-700 text-[11px] uppercase tracking-wider font-semibold">
+                                <th class="px-4 py-3 text-left w-32 font-semibold">SKU</th>
+                                <th class="px-4 py-3 text-left font-semibold">Nama Produk</th>
+                                <th class="px-4 py-3 text-left w-32 font-semibold">Kategori</th>
+                                <th class="px-4 py-3 text-left w-32 font-semibold">Varian</th>
+                                <th class="px-4 py-3 text-left w-28 font-semibold">Tipe</th>
+                                <th class="px-4 py-3 text-center w-20 font-semibold">Satuan</th>
+                                <th class="px-4 py-3 text-center w-24 font-semibold">Status</th>
+                                <th class="px-4 py-3 text-center w-28 font-semibold">Aksi</th>
                             </tr>
                         </thead>
                     </table>
@@ -154,15 +153,14 @@
                 }
             },
             columns: [
-                { data: 'sku', name: 'sku', searchable: true },
-                { data: 'nama', name: 'nama', searchable: true },
-                { data: 'kategori_nama', name: 'kategori_nama', orderable: false, searchable: false },
-                { data: 'varian_nama', name: 'varian_nama', orderable: false, searchable: false },
-                { data: 'tipe', name: 'tipe', searchable: false },
-                { data: 'satuan', name: 'satuan', searchable: false },
-                { data: 'satuan_order_moq', name: 'satuan_order_moq', searchable: false },
-                { data: 'is_active', name: 'is_active', searchable: false },
-                { data: 'action', orderable: false, searchable: false, className: 'text-center' }
+                { data: 'sku', name: 'sku', searchable: true, className: 'px-4 py-3 align-middle text-left font-mono' },
+                { data: 'nama', name: 'nama', searchable: true, className: 'px-4 py-3 align-middle text-left' },
+                { data: 'kategori_nama', name: 'kategori_nama', orderable: false, searchable: false, className: 'px-4 py-3 align-middle text-left' },
+                { data: 'varian_nama', name: 'varian_nama', orderable: false, searchable: false, className: 'px-4 py-3 align-middle text-left' },
+                { data: 'tipe', name: 'tipe', searchable: false, className: 'px-4 py-3 align-middle text-left' },
+                { data: 'satuan', name: 'satuan', searchable: false, className: 'px-4 py-3 align-middle text-center' },
+                { data: 'is_active', name: 'is_active', searchable: false, className: 'px-4 py-3 align-middle text-center' },
+                { data: 'action', orderable: false, searchable: false, className: 'px-4 py-3 align-middle text-center' }
             ]
         });
 
