@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Bom;
+use App\Models\Kategori;
 use App\Models\Produk;
+use App\Models\Varian;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -46,15 +48,19 @@ class StampsBomImporter
         $productsCreated = 0;
         $materialsCreated = 0;
         $bomsImported = 0;
+        $duplicatesSkipped = 0;
         $errors = [];
 
-        DB::transaction(function () use ($handle, &$productsCreated, &$materialsCreated, &$bomsImported, &$errors) {
+        DB::transaction(function () use ($handle, &$productsCreated, &$materialsCreated, &$bomsImported, &$duplicatesSkipped, &$errors) {
             $currentItem = '';
             $currentVariant = '';
             $line = 1;
 
             // Cache produk & bahan untuk performa tinggi
-            $existingProducts = Produk::all()->keyBy(fn ($p) => Str::lower($p->nama));
+            $existingProducts = Produk::with('varian')->get()->keyBy(fn ($p) => Str::lower($p->nama));
+
+            // Set untuk mendeteksi duplikasi formula resep di dalam berkas CSV
+            $seenInFile = [];
 
             while (($row = fgetcsv($handle, 0, ';', '"', '\\')) !== false) {
                 $line++;
@@ -90,6 +96,16 @@ class StampsBomImporter
                     ? $currentItem
                     : "{$currentItem} / {$currentVariant}";
 
+                // Validasi data duplicate di dalam berkas CSV
+                $fileRecipeKey = Str::lower($productName) . '||' . Str::lower($rawIngredient);
+                if (isset($seenInFile[$fileRecipeKey])) {
+                    $duplicatesSkipped++;
+                    $prevLine = $seenInFile[$fileRecipeKey];
+                    $errors[] = "Baris {$line}: Data duplikat di dalam berkas untuk '{$productName}' dan bahan '{$rawIngredient}' (sudah didefinisikan pada baris {$prevLine}). Baris duplikat dilewati.";
+                    continue;
+                }
+                $seenInFile[$fileRecipeKey] = $line;
+
                 $productKey = Str::lower($productName);
 
                 // Dapatkan / Buat Produk Jadi
@@ -97,8 +113,21 @@ class StampsBomImporter
                     $skuPrefix = 'PRD-' . strtoupper(Str::slug(substr($currentItem, 0, 8)));
                     $sku = $this->generateUniqueSku($skuPrefix);
 
+                    $kategori = Kategori::firstOrCreate(['nama' => 'General']);
+                    $varianId = null;
+                    if ($currentVariant !== '' && $currentVariant !== $currentItem) {
+                        $varian = Varian::firstOrCreate([
+                            'kategori_id' => $kategori->id,
+                            'nama' => $currentVariant,
+                        ]);
+                        $varianId = $varian->id;
+                    }
+
                     $product = Produk::create([
                         'sku' => $sku,
+                        'kategori_id' => $kategori->id,
+                        'varian_id' => $varianId,
+                        'nama_produk' => $currentItem,
                         'nama' => $productName,
                         'tipe' => 'produk_jadi',
                         'satuan' => 'pcs',
@@ -110,6 +139,22 @@ class StampsBomImporter
                     $productsCreated++;
                 } else {
                     $product = $existingProducts[$productKey];
+                    if (!$product->kategori_id) {
+                        $kategori = Kategori::firstOrCreate(['nama' => 'General']);
+                        $varianId = null;
+                        if ($currentVariant !== '' && $currentVariant !== $currentItem) {
+                            $varian = Varian::firstOrCreate([
+                                'kategori_id' => $kategori->id,
+                                'nama' => $currentVariant,
+                            ]);
+                            $varianId = $varian->id;
+                        }
+                        DB::table('produk')->where('id', $product->id)->update([
+                            'kategori_id' => $kategori->id,
+                            'varian_id' => $varianId,
+                            'nama_produk' => $currentItem,
+                        ]);
+                    }
                 }
 
                 // 2. Tentukan Bahan / Kemas
@@ -118,6 +163,7 @@ class StampsBomImporter
                     $isLiquid = str_contains(strtolower($rawUnit), 'ml') || str_contains(strtolower($rawUnit), 'milli');
                     $tipe = $isLiquid ? 'bahan' : 'kemas';
                     $satuan = $isLiquid ? 'ml' : 'pcs';
+                    $kategori = Kategori::firstOrCreate(['nama' => $isLiquid ? 'Bahan Baku' : 'Kemasan']);
 
                     $skuPrefix = $isLiquid
                         ? (str_starts_with(strtolower($rawIngredient), 'oil') ? 'OIL-' : 'BAH-')
@@ -126,6 +172,9 @@ class StampsBomImporter
 
                     $material = Produk::create([
                         'sku' => $sku,
+                        'kategori_id' => $kategori->id,
+                        'varian_id' => null,
+                        'nama_produk' => $rawIngredient,
                         'nama' => $rawIngredient,
                         'tipe' => $tipe,
                         'satuan' => $satuan,
@@ -138,6 +187,14 @@ class StampsBomImporter
                     $materialsCreated++;
                 } else {
                     $material = $existingProducts[$ingredientKey];
+                    if (!$material->kategori_id) {
+                        $isLiquid = str_contains(strtolower($rawUnit), 'ml') || str_contains(strtolower($rawUnit), 'milli');
+                        $kategori = Kategori::firstOrCreate(['nama' => $isLiquid ? 'Bahan Baku' : 'Kemasan']);
+                        DB::table('produk')->where('id', $material->id)->update([
+                            'kategori_id' => $kategori->id,
+                            'nama_produk' => $rawIngredient,
+                        ]);
+                    }
                 }
 
                 // 3. Simpan Resep ke Tabel BOM
@@ -161,6 +218,7 @@ class StampsBomImporter
             'products_created' => $productsCreated,
             'materials_created' => $materialsCreated,
             'boms_imported' => $bomsImported,
+            'duplicates_skipped' => $duplicatesSkipped,
             'errors' => $errors,
         ];
     }

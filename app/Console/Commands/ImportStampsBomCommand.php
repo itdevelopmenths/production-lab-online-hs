@@ -35,6 +35,7 @@ class ImportStampsBomCommand extends Command
                     ['Produk Jadi Baru Dibuat', $result['products_created']],
                     ['Bahan / Kemas Baru Dibuat', $result['materials_created']],
                     ['Baris Resep BOM Terimpor', $result['boms_imported']],
+                    ['Baris Duplikat Dilewati', $result['duplicates_skipped'] ?? 0],
                 ]
             );
 

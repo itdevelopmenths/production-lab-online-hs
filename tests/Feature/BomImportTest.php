@@ -118,4 +118,131 @@ class BomImportTest extends TestCase
         $this->assertGreaterThanOrEqual(369, Produk::where('tipe', 'produk_jadi')->count());
         $this->assertGreaterThanOrEqual(1665, Bom::count());
     }
+
+    public function test_stamps_csv_importer_validates_and_skips_duplicate_recipe_lines(): void
+    {
+        $importer = new StampsBomImporter();
+
+        $csvContent = implode("\n", [
+            'Item Name;Variant Name;Ingredient Name;Ingredient Quantity;Ingredient Unit;Ingredient Stock Alert',
+            'Dup Product;Original;Oil Dup;10.00;millilitre (ml);',
+            ';;ALKOHOL;40.00;millilitre (ml);',
+            ';;Oil Dup;25.00;millilitre (ml);', // DUPLIKAT baris 2!
+        ]);
+
+        $stream = fopen('php://memory', 'r+');
+        fwrite($stream, $csvContent);
+        rewind($stream);
+
+        $result = $importer->importFromHandle($stream);
+
+        $this->assertEquals(1, $result['products_created']);
+        $this->assertEquals(2, $result['boms_imported']); // 2 unique recipes: Oil Dup & ALKOHOL
+        $this->assertEquals(1, $result['duplicates_skipped']); // 1 duplicate skipped
+        $this->assertCount(1, $result['errors']);
+        $this->assertStringContainsString('Data duplikat di dalam berkas', $result['errors'][0]);
+
+        $product = Produk::where('nama', 'Dup Product / Original')->firstOrFail();
+        $boms = $product->bom()->with('bahan')->get();
+        $this->assertCount(2, $boms);
+
+        $oil = $boms->firstWhere('bahan.nama', 'Oil Dup');
+        $this->assertNotNull($oil);
+        // Quantity dari baris pertama (10.00) dipertahankan, baris duplikat (25.00) dilewati
+        $this->assertEquals(10.00, (float) $oil->qty_per_unit);
+    }
+
+    public function test_standard_csv_import_validates_and_skips_duplicate_lines(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $produk = Produk::create([
+            'sku' => 'PRD-DUP-01',
+            'nama_produk' => 'Parfum Test Dup',
+            'nama' => 'Parfum Test Dup',
+            'tipe' => 'produk_jadi',
+            'satuan' => 'pcs',
+            'faktor_konversi' => 1,
+            'satuan_order_moq' => 1,
+            'is_active' => true,
+        ]);
+
+        $bahan = Produk::create([
+            'sku' => 'BAH-DUP-01',
+            'nama_produk' => 'Pelarut Dup',
+            'nama' => 'Pelarut Dup',
+            'tipe' => 'bahan',
+            'satuan' => 'ml',
+            'faktor_konversi' => 1,
+            'satuan_order_moq' => 10,
+            'is_active' => true,
+        ]);
+
+        $csvContent = implode("\n", [
+            'sku_produk_jadi;sku_bahan;qty_per_unit',
+            'PRD-DUP-01;BAH-DUP-01;15.00',
+            'PRD-DUP-01;BAH-DUP-01;30.00', // DUPLIKAT!
+        ]);
+
+        $file = UploadedFile::fake()->createWithContent('standard_bom.csv', $csvContent);
+
+        $response = $this->post(route('bom.import'), [
+            'file' => $file,
+        ]);
+
+        $response->assertRedirect(route('bom.index'));
+        $response->assertSessionHas('success');
+
+        // Resep terbuat 1 record dengan kuantitas baris pertama (15.00)
+        $bom = Bom::where('produk_jadi_id', $produk->id)->where('bahan_id', $bahan->id)->first();
+        $this->assertNotNull($bom);
+        $this->assertEquals(15.00, (float) $bom->qty_per_unit);
+    }
+
+    public function test_bulk_import_validates_and_skips_duplicate_items(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $produk = Produk::create([
+            'sku' => 'PRD-GRID-01',
+            'nama_produk' => 'Grid Test Product',
+            'nama' => 'Grid Test Product',
+            'tipe' => 'produk_jadi',
+            'satuan' => 'pcs',
+            'faktor_konversi' => 1,
+            'satuan_order_moq' => 1,
+            'is_active' => true,
+        ]);
+
+        $bahan = Produk::create([
+            'sku' => 'BAH-GRID-01',
+            'nama_produk' => 'Grid Material 1',
+            'nama' => 'Grid Material 1',
+            'tipe' => 'bahan',
+            'satuan' => 'ml',
+            'faktor_konversi' => 1,
+            'satuan_order_moq' => 10,
+            'is_active' => true,
+        ]);
+
+        $response = $this->postJson(route('bom.import-bulk'), [
+            'items' => [
+                ['sku_produk_jadi' => 'PRD-GRID-01', 'sku_bahan' => 'BAH-GRID-01', 'qty_per_unit' => 12.5],
+                ['sku_produk_jadi' => 'PRD-GRID-01', 'sku_bahan' => 'BAH-GRID-01', 'qty_per_unit' => 25.0], // DUPLIKAT!
+            ],
+        ]);
+
+        $response->assertOk();
+        $response->assertJson([
+            'success' => true,
+            'imported_count' => 1,
+            'duplicates_count' => 1,
+        ]);
+
+        $bom = Bom::where('produk_jadi_id', $produk->id)->where('bahan_id', $bahan->id)->first();
+        $this->assertNotNull($bom);
+        $this->assertEquals(12.50, (float) $bom->qty_per_unit);
+    }
 }

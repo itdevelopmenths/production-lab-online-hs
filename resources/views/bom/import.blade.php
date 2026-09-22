@@ -63,17 +63,21 @@
             </div>
 
             <!-- Kartu Status & Petunjuk Cepat -->
-            <div class="mt-4 pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="p-2.5 bg-gray-50 rounded-sm border border-gray-200 flex items-center justify-between">
                     <span class="text-xs text-gray-600">Total Baris Resep:</span>
                     <span class="font-mono text-sm font-bold text-gray-900" x-text="rows.length"></span>
                 </div>
                 <div class="p-2.5 bg-emerald-50 rounded-sm border border-emerald-200 flex items-center justify-between">
-                    <span class="text-xs text-emerald-800">Baris Terverifikasi Valid:</span>
+                    <span class="text-xs text-emerald-800">Baris Valid:</span>
                     <span class="font-mono text-sm font-bold text-emerald-700" x-text="validRowsCount"></span>
                 </div>
+                <div class="p-2.5 rounded-sm border flex items-center justify-between transition" :class="duplicateRowsCount > 0 ? 'bg-purple-50 border-purple-300' : 'bg-gray-50 border-gray-200'">
+                    <span class="text-xs" :class="duplicateRowsCount > 0 ? 'text-purple-800 font-semibold' : 'text-gray-600'">Duplikat Terdeteksi:</span>
+                    <span class="font-mono text-sm font-bold" :class="duplicateRowsCount > 0 ? 'text-purple-700' : 'text-gray-500'" x-text="duplicateRowsCount"></span>
+                </div>
                 <div class="p-2.5 bg-amber-50 rounded-sm border border-amber-200 flex items-center justify-between">
-                    <span class="text-xs text-amber-800">Perlu Diperiksa (Invalid):</span>
+                    <span class="text-xs text-amber-800">Perlu Diperiksa:</span>
                     <span class="font-mono text-sm font-bold text-amber-700" x-text="invalidRowsCount"></span>
                 </div>
             </div>
@@ -96,6 +100,16 @@
         <x-card title="Grid Formula Resep (Column & Row Inputable)" subtitle="Dapat diketik langsung, diubah nilainya, ditambah baris, atau ditempel langsung (Ctrl+V) dari spreadsheet" :noPadding="true">
             <x-slot:headerActions>
                 <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        @click="removeDuplicates()"
+                        x-show="duplicateRowsCount > 0"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-300 rounded-sm text-xs font-semibold cursor-pointer transition"
+                        title="Hapus baris duplikat secara otomatis dan pertahankan baris pertama"
+                    >
+                        <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Bersihkan Duplikat (<span x-text="duplicateRowsCount"></span>)
+                    </button>
                     <button
                         type="button"
                         @click="addRow()"
@@ -296,6 +310,10 @@
                 return this.rows.filter(r => r.valid === false).length;
             },
 
+            get duplicateRowsCount() {
+                return this.rows.filter(r => r.isDuplicate === true).length;
+            },
+
             addRow(skuJadi = '', skuBahan = '', qty = 1.0) {
                 const newRow = {
                     id: Date.now() + Math.random(),
@@ -303,19 +321,54 @@
                     sku_bahan: skuBahan,
                     qty_per_unit: qty,
                     valid: null,
+                    isDuplicate: false,
                     error: ''
                 };
-                this.validateRow(newRow);
                 this.rows.push(newRow);
+                this.validateAll();
             },
 
             removeRow(index) {
                 this.rows.splice(index, 1);
+                this.validateAll();
             },
 
             clearAllRows() {
                 if (confirm('Kosongkan semua baris pada grid tabel?')) {
                     this.rows = [];
+                }
+            },
+
+            removeDuplicates() {
+                const seen = new Set();
+                const uniqueRows = [];
+                let removed = 0;
+
+                this.rows.forEach(r => {
+                    const sJadi = (r.sku_produk_jadi || '').trim().toUpperCase();
+                    const sBahan = (r.sku_bahan || '').trim().toUpperCase();
+                    if (sJadi && sBahan) {
+                        const key = `${sJadi}|${sBahan}`;
+                        if (seen.has(key)) {
+                            removed++;
+                            return;
+                        }
+                        seen.add(key);
+                    }
+                    uniqueRows.push(r);
+                });
+
+                this.rows = uniqueRows;
+                this.validateAll();
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Duplikat Dibersihkan',
+                        text: `${removed} baris duplikat berhasil dibersihkan dari grid.`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
                 }
             },
 
@@ -332,40 +385,61 @@
             },
 
             validateRow(row) {
-                if (!row.sku_produk_jadi && !row.sku_bahan) {
-                    row.valid = null;
-                    row.error = '';
-                    return;
-                }
-
-                const sJadi = (row.sku_produk_jadi || '').trim().toUpperCase();
-                const sBahan = (row.sku_bahan || '').trim().toUpperCase();
-                const qty = parseFloat(row.qty_per_unit);
-
-                if (!sJadi || !this.produkJadiMap[sJadi]) {
-                    row.valid = false;
-                    row.error = 'SKU Produk Jadi tidak valid';
-                    return;
-                }
-
-                if (!sBahan || !this.bahanMap[sBahan]) {
-                    row.valid = false;
-                    row.error = 'SKU Bahan tidak valid';
-                    return;
-                }
-
-                if (isNaN(qty) || qty <= 0) {
-                    row.valid = false;
-                    row.error = 'Qty harus > 0';
-                    return;
-                }
-
-                row.valid = true;
-                row.error = '';
+                this.validateAll();
             },
 
             validateAll() {
-                this.rows.forEach(r => this.validateRow(r));
+                const pairCounts = {};
+                this.rows.forEach(r => {
+                    const sJadi = (r.sku_produk_jadi || '').trim().toUpperCase();
+                    const sBahan = (r.sku_bahan || '').trim().toUpperCase();
+                    if (sJadi && sBahan) {
+                        const key = `${sJadi}|${sBahan}`;
+                        pairCounts[key] = (pairCounts[key] || 0) + 1;
+                    }
+                });
+
+                this.rows.forEach(r => {
+                    r.isDuplicate = false;
+                    if (!r.sku_produk_jadi && !r.sku_bahan) {
+                        r.valid = null;
+                        r.error = '';
+                        return;
+                    }
+
+                    const sJadi = (r.sku_produk_jadi || '').trim().toUpperCase();
+                    const sBahan = (r.sku_bahan || '').trim().toUpperCase();
+                    const qty = parseFloat(r.qty_per_unit);
+
+                    if (!sJadi || !this.produkJadiMap[sJadi]) {
+                        r.valid = false;
+                        r.error = 'SKU Produk Jadi tidak valid';
+                        return;
+                    }
+
+                    if (!sBahan || !this.bahanMap[sBahan]) {
+                        r.valid = false;
+                        r.error = 'SKU Bahan tidak valid';
+                        return;
+                    }
+
+                    if (isNaN(qty) || qty <= 0) {
+                        r.valid = false;
+                        r.error = 'Qty harus > 0';
+                        return;
+                    }
+
+                    const key = `${sJadi}|${sBahan}`;
+                    if (pairCounts[key] > 1) {
+                        r.valid = false;
+                        r.isDuplicate = true;
+                        r.error = 'Duplikat: kombinasi produk dan bahan ini ada lebih dari 1 kali';
+                        return;
+                    }
+
+                    r.valid = true;
+                    r.error = '';
+                });
             },
 
             downloadExcelTemplate() {
@@ -439,6 +513,7 @@
 
                         if (newRows.length > 0) {
                             this.rows = newRows;
+                            this.validateAll();
                             if (typeof Swal !== 'undefined') {
                                 Swal.fire({
                                     icon: 'success',
@@ -489,9 +564,9 @@
                             sku_bahan: sBahan,
                             qty_per_unit: qty,
                             valid: null,
+                            isDuplicate: false,
                             error: ''
                         };
-                        this.validateRow(rObj);
                         newRows.push(rObj);
                     }
                 });
@@ -504,10 +579,19 @@
                     } else {
                         this.rows.push(...newRows);
                     }
+                    this.validateAll();
                 }
             },
 
             submitBulk() {
+                if (this.duplicateRowsCount > 0) {
+                    if (confirm(`Terdapat ${this.duplicateRowsCount} baris formula duplikat di dalam tabel grid. Bersihkan baris duplikat secara otomatis sebelum menyimpan?`)) {
+                        this.removeDuplicates();
+                    } else {
+                        return;
+                    }
+                }
+
                 const validRows = this.rows.filter(r => r.valid === true);
                 if (validRows.length === 0) {
                     alert('Tidak ada baris data valid yang siap disimpan.');

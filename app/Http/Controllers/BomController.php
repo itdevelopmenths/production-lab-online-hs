@@ -110,7 +110,9 @@ class BomController extends Controller
         ]);
 
         $imported = 0;
+        $duplicatesCount = 0;
         $errors = [];
+        $seenPairs = [];
 
         // Map SKU ke Produk secara efisien
         $allSkus = collect($data['items'])
@@ -120,12 +122,22 @@ class BomController extends Controller
 
         $allProduk = Produk::whereIn('sku', $allSkus)->get()->keyBy('sku');
 
-        DB::transaction(function () use ($data, $allProduk, &$imported, &$errors) {
+        DB::transaction(function () use ($data, $allProduk, &$imported, &$duplicatesCount, &$errors, &$seenPairs) {
             foreach ($data['items'] as $index => $item) {
                 $rowNum = $index + 1;
                 $skuJadi = trim($item['sku_produk_jadi']);
                 $skuBahan = trim($item['sku_bahan']);
                 $qty = (float) $item['qty_per_unit'];
+
+                // Validasi duplikasi pasangan produk jadi & bahan dalam batch impor
+                $pairKey = strtolower($skuJadi) . '|' . strtolower($skuBahan);
+                if (isset($seenPairs[$pairKey])) {
+                    $duplicatesCount++;
+                    $prevRow = $seenPairs[$pairKey];
+                    $errors[] = "Baris {$rowNum}: Duplikat terdeteksi — formula untuk SKU Produk '{$skuJadi}' dan Bahan '{$skuBahan}' sudah ada pada baris {$prevRow}. Baris dilewati.";
+                    continue;
+                }
+                $seenPairs[$pairKey] = $rowNum;
 
                 $jadi = $allProduk->get($skuJadi);
                 $bahan = $allProduk->get($skuBahan);
@@ -157,17 +169,30 @@ class BomController extends Controller
                 'item_name' => "Grid Impor Resep BOM ({$imported} formula)",
                 'event' => 'imported',
                 'old_values' => null,
-                'new_values' => ['imported_count' => $imported, 'skipped_count' => count($errors)],
+                'new_values' => [
+                    'imported_count' => $imported,
+                    'duplicates_count' => $duplicatesCount,
+                    'skipped_count' => count($errors),
+                ],
                 'changed_fields' => ['boms'],
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
         }
 
+        $msg = "Berhasil menyimpan {$imported} formula resep BOM.";
+        if ($duplicatesCount > 0) {
+            $msg .= " ({$duplicatesCount} baris duplikat dilewati).";
+        }
+        if (count($errors) > 0) {
+            $msg .= ' (' . count($errors) . ' baris catatan/dilewati)';
+        }
+
         return response()->json([
             'success' => $imported > 0,
-            'message' => "Berhasil menyimpan {$imported} formula resep BOM." . (count($errors) > 0 ? ' (' . count($errors) . ' baris dilewati)' : ''),
+            'message' => $msg,
             'imported_count' => $imported,
+            'duplicates_count' => $duplicatesCount,
             'errors' => $errors,
         ]);
     }
@@ -200,6 +225,9 @@ class BomController extends Controller
             try {
                 $result = $importer->importFromHandle($handle);
                 $msg = "Impor Stamps berhasil: {$result['boms_imported']} resep BOM diproses ({$result['products_created']} produk baru, {$result['materials_created']} bahan baru).";
+                if (!empty($result['duplicates_skipped'])) {
+                    $msg .= " Catatan: {$result['duplicates_skipped']} baris resep duplikat dalam berkas dilewati.";
+                }
 
                 \App\Models\MasterDataAudit::create([
                     'auditable_type' => Bom::class,
@@ -210,7 +238,7 @@ class BomController extends Controller
                     'event' => 'imported',
                     'old_values' => null,
                     'new_values' => $result,
-                    'changed_fields' => ['boms_imported', 'products_created', 'materials_created'],
+                    'changed_fields' => ['boms_imported', 'products_created', 'materials_created', 'duplicates_skipped'],
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
                 ]);
@@ -224,9 +252,11 @@ class BomController extends Controller
         // Format alternatif standar: sku_produk_jadi;sku_bahan;qty_per_unit
         $skuIndex = array_flip(array_map('trim', $header ?: []));
         $imported = 0;
+        $duplicatesCount = 0;
         $errors = [];
+        $seenPairs = [];
 
-        DB::transaction(function () use ($handle, $delimiter, $skuIndex, &$imported, &$errors) {
+        DB::transaction(function () use ($handle, $delimiter, $skuIndex, &$imported, &$duplicatesCount, &$errors, &$seenPairs) {
             $line = 1;
             while (($row = fgetcsv($handle, 0, $delimiter, '"', '\\')) !== false) {
                 $line++;
@@ -234,10 +264,29 @@ class BomController extends Controller
                 $skuBahan = trim($row[$skuIndex['sku_bahan'] ?? 1] ?? '');
                 $qty = (float) str_replace(',', '.', $row[$skuIndex['qty_per_unit'] ?? 2] ?? '0');
 
+                if ($skuJadi === '' && $skuBahan === '') {
+                    continue;
+                }
+
+                if ($skuJadi === '' || $skuBahan === '') {
+                    $errors[] = "Baris {$line}: SKU Produk Jadi atau SKU Bahan tidak boleh kosong.";
+                    continue;
+                }
+
+                // Validasi duplikasi pasangan produk jadi & bahan dalam berkas CSV
+                $pairKey = strtolower($skuJadi) . '|' . strtolower($skuBahan);
+                if (isset($seenPairs[$pairKey])) {
+                    $duplicatesCount++;
+                    $prevLine = $seenPairs[$pairKey];
+                    $errors[] = "Baris {$line}: Duplikat terdeteksi — formula untuk SKU Produk '{$skuJadi}' dan Bahan '{$skuBahan}' sudah ada pada baris {$prevLine}. Baris dilewati.";
+                    continue;
+                }
+                $seenPairs[$pairKey] = $line;
+
                 $jadi = Produk::where('sku', $skuJadi)->first();
                 $bahan = Produk::where('sku', $skuBahan)->first();
                 if (! $jadi || ! $bahan || $qty <= 0) {
-                    $errors[] = "Baris {$line}: data tidak valid ({$skuJadi} / {$skuBahan}).";
+                    $errors[] = "Baris {$line}: data tidak valid ({$skuJadi} / {$skuBahan}, qty: {$qty}).";
                     continue;
                 }
                 Bom::updateOrCreate(
@@ -250,8 +299,11 @@ class BomController extends Controller
         fclose($handle);
 
         $msg = "{$imported} baris formula BOM berhasil diimpor.";
+        if ($duplicatesCount > 0) {
+            $msg .= " ({$duplicatesCount} baris duplikat dilewati).";
+        }
         if ($errors) {
-            $msg .= ' ' . count($errors) . ' baris dilewati.';
+            $msg .= ' ' . count($errors) . ' baris catatan/dilewati.';
         }
 
         \App\Models\MasterDataAudit::create([
@@ -262,7 +314,11 @@ class BomController extends Controller
             'item_name' => "Batch Impor Resep BOM ({$imported} formula)",
             'event' => 'imported',
             'old_values' => null,
-            'new_values' => ['imported' => $imported, 'errors_count' => count($errors)],
+            'new_values' => [
+                'imported' => $imported,
+                'duplicates_count' => $duplicatesCount,
+                'errors_count' => count($errors),
+            ],
             'changed_fields' => ['boms'],
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),

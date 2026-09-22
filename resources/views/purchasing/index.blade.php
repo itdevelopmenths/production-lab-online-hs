@@ -78,19 +78,6 @@
                     @endif
                 </button>
                 @endif
-
-                {{-- TAB 4: Riwayat Audit Purchasing --}}
-                @canany(['purchasing.audit', 'audit.view'])
-                <button
-                    type="button"
-                    @click="activeTab = 'audit'; $nextTick(() => { if (window.tblOperationalAuditPurchasing) window.tblOperationalAuditPurchasing.columns.adjust().draw(false); })"
-                    :class="activeTab === 'audit' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Riwayat Audit
-                </button>
-                @endcanany
             </nav>
         </div>
 
@@ -227,13 +214,6 @@
             </x-card>
         </div>
         @endif
-
-        <!-- TAB 4: Riwayat Audit Purchasing -->
-        @canany(['purchasing.audit', 'audit.view'])
-        <div x-show="activeTab === 'audit'" x-cloak class="transition-opacity duration-150">
-            <x-operational-audit-tab module="purchasing" title="Log Riwayat Audit Dokumen Purchasing" subtitle="Rekaman otomatis siklus PO, revisi nilai pengadaan, persetujuan manager, penerimaan fisik gudang, dan pembayaran" />
-        </div>
-        @endcanany
     </div>
 
     <!-- Modal Quick-Edit Tanggal PO & ETA -->

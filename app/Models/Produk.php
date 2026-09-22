@@ -42,33 +42,40 @@ class Produk extends Model
     protected static function booted(): void
     {
         static::saving(function ($produk) {
-            // Keep nama column in sync if nama_produk is provided
-            if (!empty($produk->nama_produk)) {
-                $varianNama = '';
-                if (!empty($produk->varian_id)) {
-                    $varian = $produk->relationLoaded('varian') ? $produk->varian : Varian::find($produk->varian_id);
-                    if ($varian) {
-                        $varianNama = ' ' . $varian->nama;
+            // Keep nama column in sync if not explicitly provided or when master fields change without explicit nama
+            if (empty($produk->nama) || (!$produk->isDirty('nama') && ($produk->isDirty('nama_produk') || $produk->isDirty('varian_id')))) {
+                if (!empty($produk->nama_produk)) {
+                    $varianNama = '';
+                    if (!empty($produk->varian_id)) {
+                        $varian = $produk->relationLoaded('varian') ? $produk->varian : Varian::find($produk->varian_id);
+                        if ($varian) {
+                            $varianNama = ' ' . $varian->nama;
+                        }
                     }
+                    $produk->nama = trim($produk->nama_produk . $varianNama);
                 }
-                $produk->nama = trim($produk->nama_produk . $varianNama);
             }
         });
     }
 
     public function getNamaAttribute(?string $value): string
     {
+        if (!empty($value)) {
+            return $value;
+        }
+
         if (!empty($this->attributes['nama_produk'])) {
             if ($this->relationLoaded('varian') && $this->varian) {
                 return "{$this->attributes['nama_produk']} {$this->varian->nama}";
             }
             if (!empty($this->attributes['varian_id'])) {
-                $varian = $this->varian;
+                $varian = Varian::find($this->attributes['varian_id']);
                 return $varian ? "{$this->attributes['nama_produk']} {$varian->nama}" : $this->attributes['nama_produk'];
             }
             return $this->attributes['nama_produk'];
         }
-        return $value ?? '';
+
+        return '';
     }
 
     public function kategori(): BelongsTo

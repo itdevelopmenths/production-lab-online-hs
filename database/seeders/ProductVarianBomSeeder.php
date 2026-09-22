@@ -40,6 +40,7 @@ class ProductVarianBomSeeder extends Seeder
                     ['Produk Jadi (Varian)', $result['products_created']],
                     ['Bahan Baku & Kemasan', $result['materials_created']],
                     ['Item Resep (BOM)', $result['boms_imported']],
+                    ['Baris Duplikat Dilewati', $result['duplicates_skipped'] ?? 0],
                 ]
             );
 
