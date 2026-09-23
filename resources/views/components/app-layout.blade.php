@@ -8,10 +8,13 @@
     <title>{{ $title }} — Heaven Scent Enterprise</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    @php
+        // Versi dari mtime file: nginx men-cache aset statis 1 tahun (immutable).
+        $vendorAsset = fn (string $path) => asset($path).'?v='.@filemtime(public_path($path));
+    @endphp
+    <link rel="stylesheet" href="{{ $vendorAsset('vendor/datatables/jquery.dataTables.min.css') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak]{display:none!important}</style>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="min-h-screen font-sans antialiased text-gray-800 bg-[#f4f6f9] flex flex-col"
       x-data="{
@@ -370,8 +373,8 @@
     </div>
 
     {{-- Global jQuery & DataTables Enterprise Setup --}}
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="{{ $vendorAsset('vendor/jquery/jquery.min.js') }}"></script>
+    <script src="{{ $vendorAsset('vendor/datatables/jquery.dataTables.min.js') }}"></script>
     <script>
         $(function() {
             // Enterprise: Suppress standard browser alerts on DataTables AJAX errors

@@ -3,14 +3,17 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite"
+        "build": "node scripts/copy-vendor.mjs && vite build",
+        "dev": "node scripts/copy-vendor.mjs && vite"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
         "alpinejs": "^3.15.12",
         "chart.js": "^4.5.1",
         "concurrently": "^9.0.1",
+        "datatables.net": "1.13.6",
+        "datatables.net-dt": "1.13.6",
+        "jquery": "3.7.0",
         "laravel-vite-plugin": "^3.1",
         "sweetalert2": "^11.26.25",
         "tailwindcss": "^4.0.0",

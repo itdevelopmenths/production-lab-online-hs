@@ -56,6 +56,8 @@ COPY --chown=www-data:www-data . /var/www
 
 # Copy Vite build output from node-builder stage
 COPY --chown=www-data:www-data --from=node-builder /var/www/public/build /var/www/public/build
+# jQuery & DataTables (disalin dari node_modules oleh scripts/copy-vendor.mjs)
+COPY --chown=www-data:www-data --from=node-builder /var/www/public/vendor /var/www/public/vendor
 
 # Set permissions
 RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache \
