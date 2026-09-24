@@ -645,10 +645,8 @@ class AnalisaController extends Controller
 
         // Susun item awal untuk form Alpine.js
         $prefilledItems = $rekomendasiList->map(function ($r) {
-            $faktor = (float) ($r->produk?->faktor_konversi ?: 1);
-            $qtySatuanBeli = (float) $r->rekomendasi_order;
-            $qtyDasar = (float) $r->rumus_moq;
-            $satuanBeli = $r->produk?->satuan_order_moq ?: $r->produk?->satuan ?: 'pcs';
+            $qty = (float) ($r->rumus_moq ?: $r->rekomendasi_order);
+            $satuan = $r->produk?->satuan ?? 'pcs';
             $hargaSatuan = (float) $r->harga_ml_pcs;
             $hargaTotal = (float) $r->total_nominal_order;
 
@@ -659,11 +657,11 @@ class AnalisaController extends Controller
                 'nama' => $r->produk?->nama ?? '-',
                 'supplier_id' => $r->produk?->supplier_id,
                 'supplier_nama' => $r->produk?->supplier?->nama ?? '-',
-                'satuan_dasar' => $r->produk?->satuan ?? 'pcs',
-                'satuan_beli' => $satuanBeli,
-                'qty_satuan_beli' => $qtySatuanBeli,
-                'faktor_konversi' => $faktor,
-                'qty' => $qtyDasar,
+                'satuan_dasar' => $satuan,
+                'satuan_beli' => $satuan,
+                'qty_satuan_beli' => $qty,
+                'faktor_konversi' => 1,
+                'qty' => $qty,
                 'harga_satuan' => $hargaSatuan,
                 'harga_total' => $hargaTotal,
             ];
@@ -682,10 +680,8 @@ class AnalisaController extends Controller
                 ->get();
 
             $prefilledImpor = $imporItems->map(function ($ai) {
-                $faktor = (float) ($ai->produk?->faktor_konversi ?: 1);
-                $qtySatuanBeli = (float) ($ai->po ?: $ai->qty_order);
-                $qtyDasar = $qtySatuanBeli * $faktor;
-                $satuanBeli = $ai->produk?->satuan_order_moq ?: $ai->produk?->satuan ?: 'pcs';
+                $qty = (float) ($ai->po ?: $ai->qty_order);
+                $satuan = $ai->produk?->satuan ?? 'pcs';
                 $hargaSatuan = (float) $ai->harga_per_satuan;
                 $hargaTotal = (float) $ai->total_nominal_order;
 
@@ -696,11 +692,11 @@ class AnalisaController extends Controller
                     'nama' => $ai->produk?->nama ?? '-',
                     'supplier_id' => $ai->produk?->supplier_id,
                     'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
-                    'satuan_dasar' => $ai->produk?->satuan ?? 'pcs',
-                    'satuan_beli' => $satuanBeli,
-                    'qty_satuan_beli' => $qtySatuanBeli,
-                    'faktor_konversi' => $faktor,
-                    'qty' => $qtyDasar,
+                    'satuan_dasar' => $satuan,
+                    'satuan_beli' => $satuan,
+                    'qty_satuan_beli' => $qty,
+                    'faktor_konversi' => 1,
+                    'qty' => $qty,
                     'harga_satuan' => $hargaSatuan,
                     'harga_total' => $hargaTotal,
                 ];

@@ -121,9 +121,9 @@
                             <div>
                                 <input type="hidden" :name="`items[${idx}][produk_id]`" :value="item.produk_id">
                                 <input type="hidden" :name="`items[${idx}][qty]`" :value="item.qty">
-                                <input type="hidden" :name="`items[${idx}][qty_satuan_beli]`" :value="item.qty_satuan_beli">
-                                <input type="hidden" :name="`items[${idx}][satuan_beli]`" :value="item.satuan_beli">
-                                <input type="hidden" :name="`items[${idx}][faktor_konversi]`" :value="item.faktor_konversi">
+                                <input type="hidden" :name="`items[${idx}][qty_satuan_beli]`" :value="item.qty">
+                                <input type="hidden" :name="`items[${idx}][satuan_beli]`" :value="item.satuan_dasar">
+                                <input type="hidden" :name="`items[${idx}][faktor_konversi]`" value="1">
                                 <input type="hidden" :name="`items[${idx}][harga_satuan]`" :value="item.harga_satuan">
                                 <input type="hidden" :name="`items[${idx}][harga_total]`" :value="item.harga_total">
                             </div>
@@ -135,11 +135,10 @@
                             <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold uppercase text-[11px] tracking-wider">
                                 <tr>
                                     <th class="px-3 py-2.5 text-center w-12">No</th>
-                                    <th class="px-4 py-2.5 text-left min-w-[220px]">Bahan Baku</th>
-                                    <th class="px-3 py-2.5 text-left w-52">Rekomendasi Order Beli</th>
-                                    <th class="px-3 py-2.5 text-left w-48">Kuantitas Dasar</th>
-                                    <th class="px-3 py-2.5 text-right w-40">Estimasi Harga Satuan</th>
-                                    <th class="px-4 py-2.5 text-right w-44 bg-primary-50/50 text-primary-900">Subtotal Estimasi</th>
+                                    <th class="px-4 py-2.5 text-left min-w-[240px]">Bahan Baku</th>
+                                    <th class="px-4 py-2.5 text-left w-56">Jumlah Dipesan</th>
+                                    <th class="px-4 py-2.5 text-right w-44">Estimasi Harga Satuan</th>
+                                    <th class="px-4 py-2.5 text-right w-48 bg-primary-50/50 text-primary-900">Subtotal Estimasi</th>
                                     <th class="px-2 py-2.5 text-center w-14">Aksi</th>
                                 </tr>
                             </thead>
@@ -154,53 +153,27 @@
                                             <div class="text-[11px] text-gray-400 font-mono flex items-center gap-1.5 mt-0.5">
                                                 <span x-text="item.sku"></span>
                                                 <span>&bull;</span>
-                                                <span>Satuan Dasar: <strong class="text-gray-600" x-text="item.satuan_dasar"></strong></span>
+                                                <span>Satuan: <strong class="text-gray-600" x-text="item.satuan_dasar"></strong></span>
                                             </div>
                                         </td>
 
-                                        {{-- Kolom Kuantitas & Satuan Beli --}}
-                                        <td class="px-3 py-2.5">
+                                        {{-- Kolom Jumlah Dipesan --}}
+                                        <td class="px-4 py-2.5">
                                             <div class="flex items-center gap-1.5">
                                                 <input
                                                     type="number"
                                                     step="any"
                                                     min="0.01"
-                                                    x-model.number="item.qty_satuan_beli"
+                                                    x-model.number="item.qty"
                                                     @input="recalculateItem(item)"
-                                                    class="w-24 px-2 py-1 text-xs rounded border border-gray-300 font-mono font-semibold focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                                                    class="w-32 px-2.5 py-1 text-xs rounded border border-gray-300 font-mono font-semibold text-right focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                                                 >
-                                                <input
-                                                    type="text"
-                                                    x-model="item.satuan_beli"
-                                                    placeholder="Satuan Beli"
-                                                    class="w-24 px-2 py-1 text-xs rounded border border-gray-300 focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-                                                >
-                                            </div>
-                                        </td>
-
-                                        {{-- Kolom Kuantitas Dasar & Konversi --}}
-                                        <td class="px-3 py-2.5 font-mono">
-                                            <div class="flex items-center gap-1.5">
-                                                <span class="text-[11px] text-gray-400">×</span>
-                                                <input
-                                                    type="number"
-                                                    step="any"
-                                                    min="0.0001"
-                                                    x-model.number="item.faktor_konversi"
-                                                    @input="recalculateItem(item)"
-                                                    title="Faktor Konversi ke Satuan Dasar"
-                                                    class="w-20 px-1.5 py-1 text-xs rounded border border-gray-300 font-mono text-gray-600 focus:ring-1 focus:ring-primary-500"
-                                                >
-                                                <span class="text-[11px] text-gray-400">=</span>
-                                                <div class="text-xs font-bold text-gray-800 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                                                    <span x-text="formatThousand(item.qty)"></span>
-                                                    <span class="text-[10px] text-gray-500 font-normal" x-text="item.satuan_dasar"></span>
-                                                </div>
+                                                <span class="px-2 py-1 rounded bg-gray-100 text-gray-700 font-mono text-xs border border-gray-200 shrink-0" x-text="item.satuan_dasar"></span>
                                             </div>
                                         </td>
 
                                         {{-- Kolom Harga Satuan --}}
-                                        <td class="px-3 py-2.5 text-right font-mono">
+                                        <td class="px-4 py-2.5 text-right font-mono">
                                             <div class="flex items-center justify-end gap-1">
                                                 <span class="text-[10px] text-gray-400">Rp</span>
                                                 <input
@@ -209,7 +182,7 @@
                                                     min="0"
                                                     x-model.number="item.harga_satuan"
                                                     @input="recalculateItem(item)"
-                                                    class="w-28 px-2 py-1 text-xs text-right rounded border border-gray-300 font-mono focus:ring-1 focus:ring-primary-500"
+                                                    class="w-32 px-2 py-1 text-xs text-right rounded border border-gray-300 font-mono focus:ring-1 focus:ring-primary-500"
                                                 >
                                             </div>
                                         </td>
@@ -235,7 +208,7 @@
 
                                 <template x-if="filteredItems().length === 0">
                                     <tr>
-                                        <td colspan="7" class="py-8 text-center text-gray-400 text-xs">
+                                        <td colspan="6" class="py-8 text-center text-gray-400 text-xs">
                                             <div class="flex flex-col items-center justify-center gap-1">
                                                 <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
                                                 <span x-text="items.length === 0 ? 'Semua item telah dihapus dari daftar.' : 'Tidak ada item yang cocok dengan pencarian.'"></span>
@@ -347,14 +320,13 @@
                 },
 
                 recalculateItem(item) {
-                    const faktor = Number(item.faktor_konversi) > 0 ? Number(item.faktor_konversi) : 1;
-                    const qtyBeli = Number(item.qty_satuan_beli) > 0 ? Number(item.qty_satuan_beli) : 0;
-                    item.qty = Math.round(qtyBeli * faktor * 100) / 100;
+                    const qty = Number(item.qty) > 0 ? Number(item.qty) : 0;
+                    item.qty_satuan_beli = qty;
+                    item.faktor_konversi = 1;
+                    item.satuan_beli = item.satuan_dasar;
                     
-                    // Harga total = harga_satuan (per satuan beli/moq) * qty_satuan_beli
-                    // Atau jika harga per satuan dasar:
                     const hargaSatuan = Number(item.harga_satuan) || 0;
-                    item.harga_total = Math.round(qtyBeli * hargaSatuan * 100) / 100;
+                    item.harga_total = Math.round(qty * hargaSatuan * 100) / 100;
                 },
 
                 grandTotal() {
