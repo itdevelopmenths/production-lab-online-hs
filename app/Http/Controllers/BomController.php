@@ -27,7 +27,7 @@ class BomController extends Controller
 
         return DataTables::eloquent($query)
             ->addColumn('bom_count', fn ($p) => $p->bom_count)
-            ->addColumn('action', fn ($p) => view('bom._actions', ['p' => $p])->render())
+            ->addColumn('action', fn ($p) => '<a href="' . e(route('bom.edit', $p)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Kelola BOM</a>')
             ->rawColumns(['action'])
             ->toJson();
     }

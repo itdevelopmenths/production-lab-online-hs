@@ -22,6 +22,10 @@ class GudangController extends Controller
     {
         $this->authorize('gudang.view');
 
+        // Cek izin sekali per request, bukan per baris
+        $canEdit = auth()->user()->can('gudang.edit');
+        $canDelete = auth()->user()->can('gudang.delete');
+
         $query = Gudang::query()->select('gudang.*')->with('parent:id,nama');
 
         return DataTables::eloquent($query)
@@ -43,7 +47,17 @@ class GudangController extends Controller
             })
             ->addColumn('parent', fn ($g) => $g->parent?->nama ?? '-')
             ->editColumn('status', fn ($g) => ucfirst($g->status))
-            ->addColumn('action', fn ($g) => view('gudang._actions', ['g' => $g])->render())
+            ->addColumn('action', function ($g) use ($canEdit, $canDelete) {
+                $html = '<div class="flex items-center gap-3">';
+                if ($canEdit) {
+                    $html .= '<a href="' . e(route('gudang.edit', $g)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Edit</a>';
+                }
+                if ($canDelete) {
+                    $html .= '<button onclick="hapus(\'' . e(route('gudang.destroy', $g)) . '\')" class="text-red-500 hover:text-red-700 text-xs font-medium">Hapus</button>';
+                }
+
+                return $html . '</div>';
+            })
             ->rawColumns(['nama', 'tipe', 'action'])
             ->toJson();
     }

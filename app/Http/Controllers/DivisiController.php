@@ -25,6 +25,10 @@ class DivisiController extends Controller
     {
         $this->authorize('divisi.view');
 
+        // Cek izin sekali per request, bukan per baris
+        $canEdit = auth()->user()->can('divisi.edit');
+        $canDelete = auth()->user()->can('divisi.delete');
+
         $query = Divisi::query()->withCount('users');
 
         return DataTables::eloquent($query)
@@ -69,8 +73,16 @@ class DivisiController extends Controller
                             Nonaktif
                         </span>';
             })
-            ->addColumn('action', function (Divisi $d) {
-                return view('divisi._actions', ['divisi' => $d])->render();
+            ->addColumn('action', function (Divisi $d) use ($canEdit, $canDelete) {
+                $html = '<div class="flex items-center justify-center gap-3">';
+                if ($canEdit) {
+                    $html .= '<a href="' . e(route('divisi.edit', $d)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-semibold">Edit</a>';
+                }
+                if ($canDelete) {
+                    $html .= '<button type="button" onclick="hapus(\'' . e(route('divisi.destroy', $d)) . '\', \'' . e(addslashes($d->nama)) . '\')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold cursor-pointer">Hapus</button>';
+                }
+
+                return $html . '</div>';
             })
             ->rawColumns(['kode_badge', 'nama_section', 'badge_preview', 'users_count_badge', 'status_badge', 'action'])
             ->toJson();

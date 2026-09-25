@@ -84,11 +84,21 @@ class PurchasingController extends Controller
             ->addColumn('status_pembayaran', fn ($po) => $canSeePrice ? ucwords(str_replace('_', ' ', $po->status_pembayaran ?? 'belum_lunas')) : '—')
             ->addColumn('total_nilai', fn ($po) => $canSeePrice ? number_format((float) $po->totalNilai(), 0, ',', '.') : '—')
             ->addColumn('sisa', fn ($po) => $canSeePrice ? number_format((float) $po->sisaTagihan(), 0, ',', '.') : '—')
-            ->addColumn('action', fn ($po) => view('purchasing._actions', [
-                'po' => $po,
-                'canSeePrice' => $canSeePrice,
-                'canEdit' => $canEditUser && in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty(),
-            ])->render())
+            ->addColumn('action', function ($po) use ($canEditUser) {
+                $html = '<div class="flex items-center justify-center gap-2">'
+                    . '<a href="' . e(route('purchasing.show', $po)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Detail</a>';
+
+                $canEdit = $canEditUser && in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty();
+                if ($canEdit) {
+                    $html .= '<a href="' . e(route('purchasing.edit', $po)) . '" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Edit</a>'
+                        . '<button type="button"'
+                        . ' onclick="openQuickDateModal(\'' . e($po->id) . '\', \'' . e($po->no_po) . '\', \'' . e($po->tanggal?->format('Y-m-d') ?? '') . '\', \'' . e($po->eta?->format('Y-m-d') ?? '') . '\')"'
+                        . ' class="text-amber-600 hover:text-amber-800 text-xs font-medium cursor-pointer"'
+                        . ' title="Edit Tanggal PO &amp; ETA">Edit Tgl</button>';
+                }
+
+                return $html . '</div>';
+            })
             ->rawColumns(['action'])
             ->toJson();
     }
@@ -134,7 +144,16 @@ class PurchasingController extends Controller
                 return $nextTermin ? $nextTermin->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—');
             })
             ->addColumn('status_pembayaran', fn ($po) => $po->status_pembayaran ?? 'belum_lunas')
-            ->addColumn('action', fn ($po) => view('purchasing._actions_ap', ['po' => $po])->render())
+            ->addColumn('action', function ($po) {
+                $showUrl = e(route('purchasing.show', $po));
+                $html = '<div class="flex items-center justify-center gap-2">'
+                    . '<a href="' . $showUrl . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Detail</a>';
+                if (! $po->isLunas() && $po->status !== 'dibatalkan') {
+                    $html .= '<a href="' . $showUrl . '#form-pembayaran" class="text-emerald-600 hover:text-emerald-800 text-xs font-semibold">Bayar</a>';
+                }
+
+                return $html . '</div>';
+            })
             ->rawColumns(['action'])
             ->toJson();
     }

@@ -68,7 +68,7 @@ class BatchController extends Controller
                 $y = $b->yield();
                 return $y !== null ? number_format($y, 1) . '%' : '-';
             })
-            ->addColumn('action', fn ($b) => view('batches._actions', ['b' => $b])->render())
+            ->addColumn('action', fn ($b) => '<a href="' . e(route('batches.show', $b)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Detail</a>')
             ->rawColumns(['action', 'produk_nama', 'status'])
             ->toJson();
     }

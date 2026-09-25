@@ -24,6 +24,10 @@ class VarianController extends Controller
     {
         $this->authorize('produk.view');
 
+        // Cek izin sekali per request, bukan per baris
+        $canEdit = $request->user()->can('produk.edit');
+        $canDelete = $request->user()->can('produk.delete');
+
         $query = Varian::query()
             ->with('kategori')
             ->withCount('produk')
@@ -34,7 +38,17 @@ class VarianController extends Controller
         return DataTables::eloquent($query)
             ->addColumn('kategori_nama', fn ($v) => '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">' . e($v->kategori?->nama ?? '—') . '</span>')
             ->addColumn('produk_count', fn ($v) => '<span class="font-mono text-xs text-primary-700 bg-primary-50 px-2 py-0.5 rounded-sm border border-primary-200">' . number_format($v->produk_count) . ' SKU</span>')
-            ->addColumn('action', fn ($v) => view('varian._actions', ['v' => $v])->render())
+            ->addColumn('action', function ($v) use ($canEdit, $canDelete) {
+                $html = '<div class="flex items-center justify-center gap-3">';
+                if ($canEdit) {
+                    $html .= '<a href="' . e(route('varian.edit', $v)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-semibold">Edit</a>';
+                }
+                if ($canDelete) {
+                    $html .= '<button type="button" onclick="hapus(\'' . e(route('varian.destroy', $v)) . '\')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold">Hapus</button>';
+                }
+
+                return $html . '</div>';
+            })
             ->rawColumns(['kategori_nama', 'produk_count', 'action'])
             ->toJson();
     }

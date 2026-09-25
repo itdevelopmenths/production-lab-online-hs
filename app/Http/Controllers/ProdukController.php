@@ -27,6 +27,10 @@ class ProdukController extends Controller
     {
         $this->authorize('produk.view');
 
+        // Cek izin sekali per request, bukan per baris
+        $canEdit = $request->user()->can('produk.edit');
+        $canDelete = $request->user()->can('produk.delete');
+
         $query = Produk::query()
             ->with(['kategori', 'varian', 'uom'])
             ->select('produk.*')
@@ -45,12 +49,13 @@ class ProdukController extends Controller
                         $q->where(function ($query) use ($keywords) {
                             foreach ($keywords as $word) {
                                 $query->where(function ($sub) use ($word) {
-                                    $sub->whereRaw('LOWER(CAST(produk.sku AS TEXT)) LIKE ?', ["%{$word}%"])
-                                        ->orWhereRaw('LOWER(CAST(produk.nama AS TEXT)) LIKE ?', ["%{$word}%"])
-                                        ->orWhereRaw('LOWER(CAST(produk.nama_produk AS TEXT)) LIKE ?', ["%{$word}%"])
-                                        ->orWhereHas('varian', function ($v) use ($word) {
-                                            $v->whereRaw('LOWER(CAST(nama AS TEXT)) LIKE ?', ["%{$word}%"]);
-                                        });
+                                    // whereIn subquery (bukan whereHas) agar Postgres tidak menjalankan EXISTS per baris
+                                    $sub->whereRaw('LOWER(produk.sku) LIKE ?', ["%{$word}%"])
+                                        ->orWhereRaw('LOWER(produk.nama) LIKE ?', ["%{$word}%"])
+                                        ->orWhereRaw('LOWER(produk.nama_produk) LIKE ?', ["%{$word}%"])
+                                        ->orWhereIn('produk.varian_id', Varian::query()
+                                            ->select('id')
+                                            ->whereRaw('LOWER(nama) LIKE ?', ["%{$word}%"]));
                                 });
                             }
                         });
@@ -78,7 +83,17 @@ class ProdukController extends Controller
                 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>'
                 : '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">Nonaktif</span>'
             )
-            ->addColumn('action', fn ($p) => view('produk._actions', ['p' => $p])->render())
+            ->addColumn('action', function ($p) use ($canEdit, $canDelete) {
+                $html = '<div class="flex items-center gap-3">';
+                if ($canEdit) {
+                    $html .= '<a href="' . e(route('produk.edit', $p)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Edit</a>';
+                }
+                if ($canDelete) {
+                    $html .= '<button onclick="hapus(\'' . e(route('produk.destroy', $p)) . '\')" class="text-red-500 hover:text-red-700 text-xs font-medium">Hapus</button>';
+                }
+
+                return $html . '</div>';
+            })
             ->rawColumns(['sku', 'nama', 'kategori_nama', 'varian_nama', 'tipe', 'satuan', 'is_active', 'action'])
             ->toJson();
     }

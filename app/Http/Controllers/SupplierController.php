@@ -21,13 +21,27 @@ class SupplierController extends Controller
     {
         $this->authorize('supplier.view');
 
+        // Cek izin sekali per request, bukan per baris
+        $canEdit = auth()->user()->can('supplier.edit');
+        $canDelete = auth()->user()->can('supplier.delete');
+
         $query = Supplier::query()->select('supplier.*');
 
         return DataTables::eloquent($query)
             ->editColumn('kategori', fn ($s) => ucfirst($s->kategori))
             ->editColumn('termin_default', fn ($s) => $s->termin_default ? ucfirst($s->termin_default) : '-')
             ->editColumn('is_active', fn ($s) => $s->is_active ? 'Aktif' : 'Nonaktif')
-            ->addColumn('action', fn ($s) => view('supplier._actions', ['s' => $s])->render())
+            ->addColumn('action', function ($s) use ($canEdit, $canDelete) {
+                $html = '<div class="flex items-center gap-3">';
+                if ($canEdit) {
+                    $html .= '<a href="' . e(route('supplier.edit', $s)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Edit</a>';
+                }
+                if ($canDelete) {
+                    $html .= '<button onclick="hapus(\'' . e(route('supplier.destroy', $s)) . '\')" class="text-red-500 hover:text-red-700 text-xs font-medium">Hapus</button>';
+                }
+
+                return $html . '</div>';
+            })
             ->rawColumns(['action'])
             ->toJson();
     }

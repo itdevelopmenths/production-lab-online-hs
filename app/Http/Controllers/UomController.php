@@ -22,6 +22,10 @@ class UomController extends Controller
     {
         $this->authorize('uom.view');
 
+        // Cek izin sekali per request, bukan per baris
+        $canEdit = auth()->user()->can('uom.edit');
+        $canDelete = auth()->user()->can('uom.delete');
+
         $query = Uom::query()->select('uom.*')->withCount('produk');
 
         return DataTables::eloquent($query)
@@ -41,7 +45,17 @@ class UomController extends Controller
                 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>'
                 : '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">Nonaktif</span>'
             )
-            ->addColumn('action', fn ($u) => view('uom._actions', ['u' => $u])->render())
+            ->addColumn('action', function ($u) use ($canEdit, $canDelete) {
+                $html = '<div class="flex items-center justify-center gap-3">';
+                if ($canEdit) {
+                    $html .= '<a href="' . e(route('uom.edit', $u)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-semibold">Edit</a>';
+                }
+                if ($canDelete) {
+                    $html .= '<button type="button" onclick="hapus(\'' . e(route('uom.destroy', $u)) . '\')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold">Hapus</button>';
+                }
+
+                return $html . '</div>';
+            })
             ->rawColumns(['kode', 'kategori', 'konversi', 'produk_count', 'is_active', 'action'])
             ->toJson();
     }

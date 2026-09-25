@@ -38,6 +38,12 @@ class RequestTransferController extends Controller
         $user = auth()->user();
         $accessibleIds = $this->locationScope->getAccessibleWarehouseIds($user);
 
+        // Cek izin sekali per request, bukan per baris
+        $userId = (int) $user->id;
+        $canCreate = $user->can('rt.create');
+        $canCancelAny = $user->can('rt.cancel');
+        $csrf = csrf_token();
+
         $query = RequestTransfer::query()->select('request_transfers.*')
             ->with(['gudangAsal:id,nama', 'gudangTujuan:id,nama'])
             ->when($accessibleIds !== null, function ($q) use ($accessibleIds) {
@@ -78,7 +84,35 @@ class RequestTransferController extends Controller
             ->addColumn('asal', fn ($rt) => $rt->gudangAsal?->nama ?? '-')
             ->addColumn('tujuan', fn ($rt) => $rt->gudangTujuan?->nama ?? '-')
             ->editColumn('created_at', fn ($rt) => $rt->created_at?->format('d/m/Y'))
-            ->addColumn('action', fn ($rt) => view('request-transfer._actions', ['rt' => $rt])->render())
+            ->addColumn('action', function ($rt) use ($userId, $canCreate, $canCancelAny, $csrf) {
+                $sep = '<span class="text-gray-300">|</span>';
+                $html = '<div class="flex items-center justify-center gap-2">'
+                    . '<a href="' . e(route('rt.show', $rt)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-semibold hover:underline" title="Lihat rincian dokumen">Detail</a>';
+
+                if ($rt->status === 'draft' && $canCreate) {
+                    $html .= $sep . '<a href="' . e(route('rt.edit', $rt)) . '" class="text-amber-600 hover:text-amber-800 text-xs font-semibold hover:underline" title="Edit dokumen draft">Edit</a>';
+                }
+
+                $cancellable = in_array($rt->status, ['draft', 'diajukan'], true);
+                $canCancel = $canCancelAny || ($cancellable && (int) $rt->created_by === $userId && $canCreate);
+                if ($cancellable && $canCancel) {
+                    $html .= $sep
+                        . '<form method="POST" action="' . e(route('rt.transition', $rt)) . '" onsubmit="return confirm(\'Apakah Anda yakin ingin membatalkan dokumen ' . e($rt->no_transaksi) . '?\');" class="inline">'
+                        . '<input type="hidden" name="_token" value="' . e($csrf) . '" autocomplete="off">'
+                        . '<input type="hidden" name="aksi" value="cancel">'
+                        . '<button type="submit" class="text-rose-600 hover:text-rose-800 text-xs font-semibold hover:underline cursor-pointer" title="Batalkan pengajuan sebelum disetujui">Batalkan</button>'
+                        . '</form>';
+                }
+
+                if (in_array($rt->status, ['diproses', 'dikirim', 'selesai'], true)) {
+                    $html .= $sep
+                        . '<a href="' . e(route('rt.surat-jalan', $rt)) . '" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold hover:underline flex items-center gap-0.5" title="Buka / Cetak Surat Jalan">'
+                        . '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>'
+                        . 'Surat Jalan</a>';
+                }
+
+                return $html . '</div>';
+            })
             ->rawColumns(['action', 'status'])
             ->toJson();
     }
