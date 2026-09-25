@@ -6,8 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title }} — Heaven Scent Enterprise</title>
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
     @php
         // Versi dari mtime file: nginx men-cache aset statis 1 tahun (immutable).
         $vendorAsset = fn (string $path) => asset($path).'?v='.@filemtime(public_path($path));
@@ -15,6 +13,25 @@
     <link rel="stylesheet" href="{{ $vendorAsset('vendor/datatables/jquery.dataTables.min.css') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak]{display:none!important}</style>
+    {{-- Prefetch halaman tujuan saat link di-hover (Chromium). Hanya GET navigasi biasa;
+         download, tab baru, logout & link bertanda data-no-prefetch dikecualikan. --}}
+    <script type="speculationrules">
+    {
+        "prefetch": [{
+            "where": {
+                "and": [
+                    { "href_matches": "/*" },
+                    { "not": { "href_matches": "/logout" } },
+                    { "not": { "href_matches": "/switch-role" } },
+                    { "not": { "href_matches": "/bom/template" } },
+                    { "not": { "href_matches": "/*/data" } },
+                    { "not": { "selector_matches": "[download], [target=_blank], [data-no-prefetch]" } }
+                ]
+            },
+            "eagerness": "moderate"
+        }]
+    }
+    </script>
 </head>
 <body class="min-h-screen font-sans antialiased text-gray-800 bg-[#f4f6f9] flex flex-col"
       x-data="{
@@ -384,6 +401,8 @@
                 $.extend(true, $.fn.dataTable.defaults, {
                     dom: "<'dt-layout-header'lf><'overflow-x-auto't><'dt-layout-footer'ip>",
                     autoWidth: false,
+                    // Tunggu user berhenti mengetik sebelum kirim request server-side.
+                    searchDelay: 400,
                     language: {
                         processing: '<div class="py-2 text-xs text-gray-500 font-medium">Memuat data...</div>',
                         lengthMenu: '<span class="text-xs text-gray-600 font-normal">Tampilkan</span> _MENU_ <span class="text-xs text-gray-600 font-normal">data</span>',

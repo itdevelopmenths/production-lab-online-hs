@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Login — Heaven Scent Enterprise</title>
     <link rel="icon" type="image/png" href="{{ asset('Logo HS - black.png') }}">
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-full font-sans antialiased text-gray-800 bg-[#f4f6f9] flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 selection:bg-primary-500 selection:text-white">

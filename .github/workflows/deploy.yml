@@ -130,5 +130,9 @@ jobs:
             # di-recreate meski app/resources/config berubah.
             docker compose restart app
 
+            # default.conf di-mount dari host: container nginx tidak di-recreate
+            # saat file berubah, jadi reload agar konfigurasi terbaru terbaca.
+            docker compose exec -T nginx nginx -t && docker compose exec -T nginx nginx -s reload
+
             echo "Deploy selesai untuk commit $GIT_SHA"
             docker compose ps
