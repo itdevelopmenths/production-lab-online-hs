@@ -49,6 +49,7 @@
         var t = $('#tbl').DataTable({
             processing: true,
             serverSide: true,
+            order: [[5, 'desc']],
             ajax: {
                 url: '{{ route("rt.data") }}',
                 data: function(d) {

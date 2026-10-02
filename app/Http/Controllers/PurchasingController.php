@@ -69,7 +69,10 @@ class PurchasingController extends Controller
             $query->where('purchase_orders.status', $request->status_po);
         }
 
+        $query->latest('purchase_orders.created_at');
+
         return DataTables::eloquent($query)
+            ->orderColumn('tanggal', fn ($q, $order) => $q->orderBy('purchase_orders.tanggal', $order)->orderBy('purchase_orders.created_at', $order))
             ->addColumn('no_invoice', fn ($po) => $po->no_invoice ? $po->no_invoice : $po->no_po)
             ->addColumn('supplier_nama', fn ($po) => $po->supplier?->nama ?? '—')
             ->addColumn('gudang_nama', fn ($po) => $po->gudang?->nama ?? '—')
@@ -127,7 +130,10 @@ class PurchasingController extends Controller
             $query->where('purchase_orders.skema_bayar', $request->skema_bayar);
         }
 
+        $query->latest('purchase_orders.created_at');
+
         return DataTables::eloquent($query)
+            ->orderColumn('tanggal', fn ($q, $order) => $q->orderBy('purchase_orders.tanggal', $order)->orderBy('purchase_orders.created_at', $order))
             ->addColumn('no_invoice', fn ($po) => $po->no_invoice ? $po->no_invoice : $po->no_po)
             ->addColumn('supplier_nama', fn ($po) => $po->supplier?->nama ?? '—')
             ->editColumn('tanggal', fn ($po) => $po->tanggal?->format('d/m/Y') ?? '—')

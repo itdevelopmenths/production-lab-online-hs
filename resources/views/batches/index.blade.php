@@ -40,6 +40,7 @@
         $('#tbl').DataTable({
             processing: true,
             serverSide: true,
+            order: [],
             ajax: '{{ route("batches.data") }}',
             columns: [
                 { data: 'no_batch' },

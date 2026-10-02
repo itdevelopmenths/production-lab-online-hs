@@ -52,9 +52,11 @@ class RequestTransferController extends Controller
                         ->orWhereIn('gudang_tujuan_id', $accessibleIds);
                 });
             })
-            ->when($request->filled('jenis'), fn ($q) => $q->where('jenis', $request->jenis));
+            ->when($request->filled('jenis'), fn ($q) => $q->where('jenis', $request->jenis))
+            ->latest('request_transfers.created_at');
 
         return DataTables::eloquent($query)
+            ->orderColumn('created_at', fn ($q, $order) => $q->orderBy('request_transfers.created_at', $order))
             ->editColumn('jenis', fn ($rt) => ucwords(str_replace('_', ' ', $rt->jenis)))
             ->editColumn('status', function ($rt) {
                 $variant = match ($rt->status) {

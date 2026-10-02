@@ -32,9 +32,11 @@ class BatchController extends Controller
         $this->authorize('batch.view');
 
         $query = BatchProduksi::query()->select('batch_produksi.*')
-            ->with(['produk:id,sku,nama,satuan', 'outputs.produk:id,sku,nama,satuan', 'gudangTujuan:id,nama']);
+            ->with(['produk:id,sku,nama,satuan', 'outputs.produk:id,sku,nama,satuan', 'gudangTujuan:id,nama'])
+            ->latest('batch_produksi.created_at');
 
         return DataTables::eloquent($query)
+            ->orderColumn('tanggal', fn ($q, $order) => $q->orderBy('batch_produksi.tanggal', $order)->orderBy('batch_produksi.created_at', $order))
             ->addColumn('produk_nama', function ($b) {
                 if ($b->outputs->isNotEmpty()) {
                     return $b->outputs->map(function ($out) {

@@ -302,6 +302,7 @@
         dtTable = $('#tbl').DataTable({
             processing: true,
             serverSide: true,
+            order: [],
             ajax: {
                 url: '{{ route("purchasing.data") }}',
                 data: function(d) {
@@ -349,6 +350,7 @@
             dtApTable = $('#tblAp').DataTable({
                 processing: true,
                 serverSide: true,
+                order: [],
                 ajax: {
                     url: '{{ route("purchasing.data-ap") }}',
                     data: function(d) {
@@ -429,6 +431,7 @@
         dtApprovalTable = $('#tblApproval').DataTable({
             processing: true,
             serverSide: true,
+            order: [],
             ajax: {
                 url: '{{ route("purchasing.data") }}',
                 data: function(d) {
