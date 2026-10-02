@@ -251,17 +251,7 @@ aside nav::-webkit-scrollbar-thumb:hover,
     background: rgba(156, 163, 175, 0.5);
 }
 
-/* Cross-Document View Transitions for Persistent Sidebar State */
-@media (prefers-reduced-motion: no-preference) {
-    @view-transition {
-        navigation: auto;
-    }
-}
-
-aside.app-sidebar {
-    view-transition-name: app-sidebar;
-}
-
-header.app-header {
-    view-transition-name: app-header;
+/* Native Paint Holding: Menggunakan Chromium Paint Holding bawaan untuk navigasi instan tanpa white flash */
+:root {
+    background-color: #f4f6f9;
 }

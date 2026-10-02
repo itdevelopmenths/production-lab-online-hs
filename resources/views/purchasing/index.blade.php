@@ -40,7 +40,7 @@
                 {{-- TAB 1: Daftar Purchase Order --}}
                 <button
                     type="button"
-                    @click="activeTab = 'po'"
+                    @click="activeTab = 'po'; $nextTick(() => { if (dtTable) dtTable.columns.adjust(); })"
                     :class="activeTab === 'po' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
                     class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
                 >
@@ -52,7 +52,7 @@
                 @if($canSeePrice)
                 <button
                     type="button"
-                    @click="activeTab = 'ap'; $nextTick(() => { if (dtApTable) dtApTable.columns.adjust().draw(false); })"
+                    @click="activeTab = 'ap'; $nextTick(() => { if (dtApTable) dtApTable.columns.adjust(); })"
                     :class="activeTab === 'ap' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
                     class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
                 >
@@ -65,7 +65,7 @@
                 @if($canSeeApprovalTab)
                 <button
                     type="button"
-                    @click="activeTab = 'approval'; $nextTick(() => { if (dtApprovalTable) dtApprovalTable.columns.adjust().draw(false); })"
+                    @click="activeTab = 'approval'; $nextTick(() => { if (dtApprovalTable) dtApprovalTable.columns.adjust(); })"
                     :class="activeTab === 'approval' ? 'border-amber-600 text-amber-700 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
                     class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
                 >
@@ -82,7 +82,7 @@
         </div>
 
         <!-- TAB 1: Daftar Purchase Order -->
-        <div x-show="activeTab === 'po'" class="transition-opacity duration-150">
+        <div x-show="activeTab === 'po'" class="min-h-[480px]">
             <!-- Toolbar Filter PO (Filter Status AP dipindah ke Tab Tagihan) -->
             <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-sm border border-gray-200 mb-3 shadow-xs">
                 <div class="flex flex-wrap items-center gap-3">
@@ -128,7 +128,7 @@
 
         <!-- TAB 2: Buku Tagihan & Pembayaran (AP) -->
         @if($canSeePrice)
-        <div x-show="activeTab === 'ap'" x-cloak class="transition-opacity duration-150">
+        <div x-show="activeTab === 'ap'" x-cloak class="min-h-[480px]">
             <!-- Toolbar Filter AP (Filter status AP terpusat di sini) -->
             <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-sm border border-gray-200 mb-3 shadow-xs">
                 <div class="flex flex-wrap items-center gap-3">
@@ -184,7 +184,7 @@
 
         @if($canSeeApprovalTab)
         <!-- TAB 3: Antrean Approval (Default: Manager & Purchasing) -->
-        <div x-show="activeTab === 'approval'" x-cloak class="transition-opacity duration-150">
+        <div x-show="activeTab === 'approval'" x-cloak class="min-h-[480px]">
             <div class="mb-3 p-3 bg-amber-50/80 border border-amber-200 rounded-sm text-xs flex items-center justify-between gap-3 shadow-2xs">
                 <div class="flex items-center gap-2 text-amber-900">
                     <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>

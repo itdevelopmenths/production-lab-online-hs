@@ -26,5 +26,18 @@ class AppServiceProvider extends ServiceProvider
 
         // N+1 prevention in non-production
         \Illuminate\Database\Eloquent\Model::preventLazyLoading(!app()->isProduction());
+
+        // Slow query monitoring in local development (> 100ms)
+        if ($this->app->environment('local')) {
+            \Illuminate\Support\Facades\DB::listen(function ($query) {
+                if ($query->time > 100) {
+                    \Illuminate\Support\Facades\Log::warning('SLOW QUERY DETECTED', [
+                        'sql' => $query->sql,
+                        'bindings' => $query->bindings,
+                        'time' => $query->time . 'ms',
+                    ]);
+                }
+            });
+        }
     }
 }

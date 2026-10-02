@@ -21,4 +21,27 @@ export default defineConfig({
             ignored: ['**/storage/framework/views/**'],
         },
     },
+    build: {
+        target: 'es2020',
+        cssMinify: true,
+        reportCompressedSize: false,
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes('node_modules')) {
+                        if (id.includes('chart.js')) {
+                            return 'vendor-charts';
+                        }
+                        if (id.includes('sweetalert2')) {
+                            return 'vendor-alerts';
+                        }
+                        if (id.includes('alpinejs')) {
+                            return 'vendor-alpine';
+                        }
+                    }
+                },
+            },
+        },
+    },
 });

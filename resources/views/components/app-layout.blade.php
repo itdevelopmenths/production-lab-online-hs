@@ -5,14 +5,28 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#f4f6f9">
+    <meta name="color-scheme" content="light">
     <title>{{ $title }} — Heaven Scent Enterprise</title>
+    {{-- Critical Anti-White-Flash: Lock canvas & root background before any external resources or scripts load --}}
+    <style>
+        :root {
+            background-color: #f4f6f9 !important;
+            color-scheme: light;
+        }
+        html, body {
+            background-color: #f4f6f9 !important;
+        }
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
     @php
         // Versi dari mtime file: nginx men-cache aset statis 1 tahun (immutable).
         $vendorAsset = fn (string $path) => asset($path).'?v='.@filemtime(public_path($path));
     @endphp
     <link rel="stylesheet" href="{{ $vendorAsset('vendor/datatables/jquery.dataTables.min.css') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>[x-cloak]{display:none!important}</style>
     {{-- Prefetch halaman tujuan saat link di-hover (Chromium). Hanya GET navigasi biasa;
          download, tab baru, logout & link bertanda data-no-prefetch dikecualikan. --}}
     <script type="speculationrules">
