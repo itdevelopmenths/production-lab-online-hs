@@ -119,6 +119,7 @@ class AnalisaStokTest extends TestCase
 
         $response = $this->post(route('analisa.create-po'), [
             'supplier_id' => $supplier->id,
+            'catatan' => 'Pesanan urgent supply chain',
             'items' => [
                 [
                     'produk_id' => $alk->id,
@@ -132,6 +133,7 @@ class AnalisaStokTest extends TestCase
         $response->assertRedirect(route('purchasing.show', $po));
         $this->assertTrue($po->dari_analisa);
         $this->assertEquals('draft', $po->status);
+        $this->assertEquals('Pesanan urgent supply chain', $po->catatan);
         $this->assertCount(1, $po->items);
         $this->assertEquals(25000, (float) $po->items->first()->qty);
     }

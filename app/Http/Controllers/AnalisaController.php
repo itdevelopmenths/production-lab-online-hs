@@ -17,7 +17,10 @@ use App\Models\PurchaseOrder;
 use App\Models\RekomendasiOrderLokal;
 use App\Models\RiwayatAnalisa;
 use App\Models\Supplier;
+use App\Models\Uom;
 use App\Services\AnalisaService;
+use App\Services\Purchasing\PurchasingCostCalculator;
+use App\Services\Purchasing\PurchasingPaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,8 +28,11 @@ use Illuminate\Validation\Rule;
 
 class AnalisaController extends Controller
 {
-    public function __construct(private readonly AnalisaService $analisa)
-    {
+    public function __construct(
+        private readonly AnalisaService $analisa,
+        private readonly PurchasingCostCalculator $calculator,
+        private readonly PurchasingPaymentService $paymentService
+    ) {
     }
 
     public function index()
@@ -612,6 +618,7 @@ class AnalisaController extends Controller
 
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
+        $uomList = Uom::active()->orderBy('nama')->get(['id', 'kode', 'nama', 'kategori', 'satuan_dasar', 'faktor_konversi']);
 
         // Ambil ID rekomendasi jika dikirim spesifik lewat query / POST
         $ids = $request->input('ids');
@@ -649,6 +656,9 @@ class AnalisaController extends Controller
             $satuan = $r->produk?->satuan ?? 'pcs';
             $hargaSatuan = (float) $r->harga_ml_pcs;
             $hargaTotal = (float) $r->total_nominal_order;
+            if ($hargaTotal <= 0 && $qty > 0 && $hargaSatuan > 0) {
+                $hargaTotal = round($qty * $hargaSatuan, 2);
+            }
 
             return [
                 'id' => $r->id,
@@ -664,6 +674,7 @@ class AnalisaController extends Controller
                 'qty' => $qty,
                 'harga_satuan' => $hargaSatuan,
                 'harga_total' => $hargaTotal,
+                'harga_hpp' => (float) ($r->produk?->harga_hpp ?? 0),
             ];
         })->values();
 
@@ -684,6 +695,9 @@ class AnalisaController extends Controller
                 $satuan = $ai->produk?->satuan ?? 'pcs';
                 $hargaSatuan = (float) $ai->harga_per_satuan;
                 $hargaTotal = (float) $ai->total_nominal_order;
+                if ($hargaTotal <= 0 && $qty > 0 && $hargaSatuan > 0) {
+                    $hargaTotal = round($qty * $hargaSatuan, 2);
+                }
 
                 return [
                     'id' => 'impor_'.$ai->id,
@@ -699,6 +713,7 @@ class AnalisaController extends Controller
                     'qty' => $qty,
                     'harga_satuan' => $hargaSatuan,
                     'harga_total' => $hargaTotal,
+                    'harga_hpp' => (float) ($ai->produk?->harga_hpp ?? 0),
                 ];
             });
 
@@ -715,7 +730,7 @@ class AnalisaController extends Controller
 
         $allProduk = Produk::active()->bahan()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp']);
 
-        return view('analisa.create-po', compact('suppliers', 'gudang', 'prefilledItems', 'allProduk', 'defaultSupplierId'));
+        return view('analisa.create-po', compact('suppliers', 'gudang', 'prefilledItems', 'allProduk', 'defaultSupplierId', 'uomList'));
     }
 
     /** Buat draft PO dari hasil analisa (ditandai "Dari Analisa"). */
@@ -724,15 +739,19 @@ class AnalisaController extends Controller
         $this->authorize('analisa.create_po');
 
         $data = $request->validate([
+            'no_invoice' => ['nullable', 'string', 'max:50'],
             'supplier_id' => ['required', 'exists:supplier,id'],
             'gudang_id' => ['nullable', 'exists:gudang,id'],
             'tanggal' => ['nullable', 'date'],
             'eta' => ['nullable', 'date'],
-            'no_invoice' => ['nullable', 'string', 'max:100'],
             'catatan' => ['nullable', 'string', 'max:1000'],
-            'sumber_dana' => ['nullable', 'string', 'max:100'],
-            'skema_bayar' => ['nullable', 'string', 'in:cash,tempo,termin'],
-            'tanggal_tempo' => ['nullable', 'date'],
+            'sumber_dana' => ['nullable', 'string', 'max:50'],
+            'skema_bayar' => ['nullable', Rule::in(['cash', 'tempo', 'termin'])],
+            'tanggal_tempo' => ['nullable', 'date', 'required_if:skema_bayar,tempo'],
+            'diskon_total' => ['nullable', 'numeric', 'min:0'],
+            'ppn_nominal' => ['nullable', 'numeric', 'min:0'],
+            'ongkos_kirim' => ['nullable', 'numeric', 'min:0'],
+            'adjustment' => ['nullable', 'numeric'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.produk_id' => ['required', 'distinct', 'exists:produk,id'],
             'items.*.qty' => ['required', 'numeric', 'gt:0'],
@@ -741,45 +760,77 @@ class AnalisaController extends Controller
             'items.*.faktor_konversi' => ['nullable', 'numeric', 'gt:0'],
             'items.*.harga_satuan' => ['nullable', 'numeric', 'min:0'],
             'items.*.harga_total' => ['required', 'numeric', 'min:0'],
+            'items.*.diskon' => ['nullable', 'numeric', 'min:0'],
+            'items.*.ppn' => ['nullable', 'numeric', 'min:0'],
+            'items.*.ongkir' => ['nullable', 'numeric', 'min:0'],
+            'items.*.adjustment' => ['nullable', 'numeric'],
+            'termins' => ['nullable', 'array'],
+            'termins.*.tanggal_tempo' => ['required_with:termins', 'date'],
+            'termins.*.nominal_tagihan' => ['required_with:termins', 'numeric', 'gt:0'],
+            'termins.*.keterangan' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $po = DB::transaction(function () use ($data) {
-            $year = now()->year;
-            $no = sprintf('PO-%d-%04d', $year, PurchaseOrder::whereYear('tanggal', $year)->count() + 1);
-            $subtotal = (float) collect($data['items'])->sum('harga_total');
+        $totals = $this->calculator->calculatePoTotals(
+            $data['items'],
+            (float) ($data['diskon_total'] ?? 0),
+            (float) ($data['ppn_nominal'] ?? 0),
+            (float) ($data['ongkos_kirim'] ?? 0),
+            (float) ($data['adjustment'] ?? 0)
+        );
+
+        $po = DB::transaction(function () use ($data, $totals) {
             $po = PurchaseOrder::create([
-                'no_po' => $no,
+                'no_po' => $this->nextNoPo(),
+                'no_invoice' => ! empty($data['no_invoice']) ? $data['no_invoice'] : $this->nextNoInvoice(),
                 'supplier_id' => $data['supplier_id'],
                 'gudang_id' => $data['gudang_id'] ?? null,
-                'no_invoice' => $data['no_invoice'] ?? null,
                 'tanggal' => $data['tanggal'] ?? now()->toDateString(),
                 'eta' => $data['eta'] ?? null,
                 'catatan' => $data['catatan'] ?? null,
                 'sumber_dana' => $data['sumber_dana'] ?? null,
                 'skema_bayar' => $data['skema_bayar'] ?? 'cash',
-                'tanggal_tempo' => $data['tanggal_tempo'] ?? null,
+                'tanggal_tempo' => ($data['skema_bayar'] ?? '') === 'tempo' ? ($data['tanggal_tempo'] ?? null) : null,
+                'subtotal_produk' => $totals['subtotal_produk'],
+                'diskon_total' => $totals['diskon_total'],
+                'ppn_nominal' => $totals['ppn_nominal'],
+                'ongkos_kirim' => $totals['ongkos_kirim'],
+                'adjustment' => $totals['adjustment'],
+                'grand_total' => $totals['grand_total'],
                 'status' => 'draft',
+                'status_pembayaran' => 'belum_lunas',
                 'dari_analisa' => true,
-                'subtotal_produk' => $subtotal,
-                'grand_total' => $subtotal,
                 'created_by' => auth()->id(),
             ]);
-            foreach ($data['items'] as $row) {
-                $po->items()->create([
-                    'produk_id' => $row['produk_id'],
-                    'qty' => $row['qty'],
-                    'qty_satuan_beli' => $row['qty_satuan_beli'] ?? null,
-                    'satuan_beli' => $row['satuan_beli'] ?? null,
-                    'faktor_konversi' => $row['faktor_konversi'] ?? 1,
-                    'harga_satuan' => $row['harga_satuan'] ?? (($row['qty'] > 0) ? ($row['harga_total'] / $row['qty']) : 0),
-                    'harga_total' => $row['harga_total'],
-                ]);
+
+            foreach ($totals['items'] as $itemData) {
+                $po->items()->create($itemData);
+            }
+
+            if (! empty($data['termins']) && ($data['skema_bayar'] ?? '') === 'termin') {
+                $this->paymentService->createTerminsForPo($po, $data['termins']);
             }
 
             return $po;
         });
 
         return redirect()->route('purchasing.show', $po)->with('success', "Draft PO {$po->no_po} dibuat dari Analisa.");
+    }
+
+    private function nextNoPo(): string
+    {
+        $year = now()->year;
+        $count = PurchaseOrder::whereYear('tanggal', $year)->count() + 1;
+
+        return sprintf('PO-%d-%04d', $year, $count);
+    }
+
+    private function nextNoInvoice(): string
+    {
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        $count = PurchaseOrder::whereYear('tanggal', now()->year)->whereMonth('tanggal', now()->month)->count() + 1;
+
+        return sprintf('INV/PO/%s%s/%04d', $year, $month, $count);
     }
 
     private function simpanRiwayat(string $tipe, string $label, float $batasMin, float $target, string $status, float $qtyOrder): void

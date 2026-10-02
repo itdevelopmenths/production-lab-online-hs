@@ -565,6 +565,18 @@
                     </fieldset>
                 </div>
 
+                {{-- Card 5: Catatan / Instruksi Khusus PO --}}
+                <x-card title="Catatan / Instruksi Khusus PO" subtitle="Tambahkan catatan internal atau arahan pengiriman untuk supplier" :noPadding="true">
+                    <div class="p-4">
+                        <textarea
+                            name="catatan"
+                            rows="3"
+                            placeholder="Contoh: Pesanan mendesak dari hasil analisa stok mingguan. Mohon kirimkan COA bersamaan dengan barang fisik."
+                            class="w-full text-xs rounded-sm border-gray-300 focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                        >{{ old('catatan') }}</textarea>
+                    </div>
+                </x-card>
+
                 <div class="flex items-center justify-end gap-3 pt-2">
                     <x-button href="{{ route('purchasing.index') }}" variant="secondary" size="md">
                         Batal

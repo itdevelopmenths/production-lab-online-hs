@@ -32,6 +32,7 @@ class PurchaseOrder extends Model
         'adjustment',
         'grand_total',
         'status_pembayaran',
+        'catatan',
     ];
 
     protected $casts = [
