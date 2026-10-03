@@ -59,6 +59,14 @@
           toggleSidebar() {
               this.sidebarOpen = !this.sidebarOpen;
               try { localStorage.setItem('hs_sidebar_open', this.sidebarOpen); } catch(e) {}
+              setTimeout(() => {
+                  try {
+                      if (typeof $ !== 'undefined' && $.fn.dataTable) {
+                          $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+                      }
+                      window.dispatchEvent(new Event('resize'));
+                  } catch(e) {}
+              }, 220);
           }
       }">
     <div class="min-h-screen flex flex-1">
@@ -71,8 +79,10 @@
              @click="sidebarOpen = false; try { localStorage.setItem('hs_sidebar_open', 'false'); } catch(e) {}"
              class="fixed inset-0 z-40 bg-black/50 lg:hidden"></div>
 
-        {{-- Desktop Spacer (lg:w-60 = SSR default so content doesn't flash full-width before Alpine hydrates) --}}
-        <div class="hidden lg:block lg:w-60 shrink-0 transition-all duration-200 ease-in-out" :class="sidebarOpen ? 'w-60' : 'w-0'"></div>
+        {{-- Desktop Spacer: menyesuaikan lebar dinamis dengan sidebarOpen agar konten otomatis flex ke kiri saat sidebar tersembunyi --}}
+        <div class="hidden lg:block shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+             :class="sidebarOpen ? 'w-60' : 'w-0'"
+             :style="sidebarOpen ? 'width: 15rem;' : 'width: 0rem;'"></div>
 
         {{-- Dark Sidebar (AdminLTE 4 Style) --}}
         <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
