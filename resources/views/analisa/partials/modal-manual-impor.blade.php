@@ -57,14 +57,37 @@
         <!-- Group 2: Analisa & Parameter Pemakaian Impor (3.2) -->
         <div>
             <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2.5 pb-1 border-b border-gray-200 flex items-center gap-1.5">
-                <span>2. Parameter Analisa Pemakaian (analisa_impor)</span>
+                <span>2. Parameter Analisa Pemakaian (analisa_impor - PRD v2.2)</span>
             </h4>
+
+            {{-- Rentang Tanggal Kalender Riil --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 text-xs">
+                <div class="p-3 bg-gray-50 rounded-sm border border-gray-200 shadow-2xs">
+                    <label class="font-semibold text-gray-800 block mb-1">
+                        Periode Mulai OUT <span class="text-rose-500">*</span>
+                    </label>
+                    <p class="text-[11px] text-gray-500 mb-2">Tanggal awal rekaman data pengeluaran (OUT).</p>
+                    <input type="date" x-model="manualImporForm.periode_mulai" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-bold text-gray-900 shadow-xs" required>
+                </div>
+                <div class="p-3 bg-gray-50 rounded-sm border border-gray-200 shadow-2xs">
+                    <label class="font-semibold text-gray-800 block mb-1">
+                        Periode Akhir OUT <span class="text-rose-500">*</span>
+                    </label>
+                    <p class="text-[11px] text-gray-500 mb-2">
+                        Tanggal akhir rekaman (Total: <span class="font-bold text-primary-700 font-mono" x-text="simulasiImporJumlahHari() + ' Hari'"></span>).
+                    </p>
+                    <input type="date" x-model="manualImporForm.periode_akhir" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-bold text-gray-900 shadow-xs" required>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div class="p-3 bg-gray-50 rounded-sm border border-gray-200 shadow-2xs">
                     <label class="font-semibold text-gray-800 block mb-1">
-                        OUT (4 Bulan)
+                        Total OUT (Pengeluaran)
                     </label>
-                    <p class="text-[11px] text-gray-500 mb-2">Total pemakaian 4 bulan (ADU = OUT / 120).</p>
+                    <p class="text-[11px] text-gray-500 mb-2">
+                        ADU Base = OUT / <span class="font-bold font-mono text-gray-800" x-text="simulasiImporJumlahHari()"></span> Hari
+                    </p>
                     <div class="relative flex items-center">
                         <input type="number" step="0.01" min="0" x-model.number="manualImporForm.out" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-bold text-gray-900 pr-12 shadow-xs">
                         <span class="absolute right-2.5 text-[11px] text-gray-500 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
@@ -72,7 +95,7 @@
                 </div>
                 <div class="p-3 bg-gray-50 rounded-sm border border-gray-200 shadow-2xs">
                     <label class="font-semibold text-gray-800 block mb-1">
-                        Review Period
+                        Review Period (Hari)
                     </label>
                     <p class="text-[11px] text-gray-500 mb-2">Interval siklus order impor (default 30 hari).</p>
                     <div class="relative flex items-center">
@@ -84,12 +107,13 @@
                     <label class="font-semibold text-gray-800 block mb-1">
                         Klasifikasi ABC
                     </label>
-                    <p class="text-[11px] text-gray-500 mb-2">Kategori kritikalitas bahan impor.</p>
-                    <select x-model="manualImporForm.klasifikasi_abc" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-semibold text-gray-800 uppercase shadow-xs">
-                        <option value="wajib_a">Wajib A (Kritis Utama)</option>
-                        <option value="a">Kelas A (Tinggi)</option>
-                        <option value="b">Kelas B (Menengah)</option>
-                        <option value="c">Kelas C (Rendah)</option>
+                    <p class="text-[11px] text-gray-500 mb-2">
+                        Buffer: <span class="font-bold font-mono text-primary-700" x-text="'+' + simulasiImporTambahanBuffer() + ' Hari'"></span>
+                    </p>
+                    <select x-model="manualImporForm.klasifikasi_abc_id" @change="onAbcChange()" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-semibold text-gray-800 shadow-xs">
+                        <template x-for="abc in klasifikasiAbcList" :key="abc.id">
+                            <option :value="abc.id" :selected="manualImporForm.klasifikasi_abc_id == abc.id" x-text="abc.nama + ' (+' + abc.tambahan_buffer_hari + ' Hari)'"></option>
+                        </template>
                     </select>
                 </div>
             </div>
@@ -115,7 +139,7 @@
                     <label class="font-semibold text-gray-800 block mb-1">
                         Inbound Sebelum ETA
                     </label>
-                    <p class="text-[11px] text-gray-500 mb-2">PO dalam perjalanan sebelum perkiraan tiba.</p>
+                    <p class="text-[11px] text-gray-500 mb-2">PO dalam perjalanan sebelum tiba.</p>
                     <div class="relative flex items-center">
                         <input type="number" step="0.01" min="0" x-model.number="manualImporForm.inbound_before_eta" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-bold text-gray-900 pr-12 shadow-xs">
                         <span class="absolute right-2.5 text-[11px] text-gray-500 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
@@ -134,28 +158,41 @@
             </div>
         </div>
 
-        {{-- Live Calculation Preview Callout (AdminLTE Callout) --}}
+        {{-- Live Calculation Preview Callout (AdminLTE Callout PRD v2.2) --}}
         <div class="bg-gray-50 border border-gray-200 border-l-4 border-l-primary-600 rounded-r-sm p-3 shadow-2xs space-y-2">
-            <div class="text-[10px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                <span>Simulasi Live Hasil Analisa Impor:</span>
+            <div class="text-[10px] font-bold text-gray-700 uppercase tracking-wider flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    <span>Simulasi Live Hasil Analisa Impor (PRD v2.2):</span>
+                </div>
+                <div class="text-[11px] font-normal text-gray-500">
+                    MOQ: <span class="font-mono font-bold text-gray-800" x-text="formatNumber(manualImporForm.satuan_order_moq || 1) + ' ' + (manualImporForm.satuan || '')"></span>
+                </div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                <div class="p-2.5 bg-white rounded-sm border border-gray-200 text-center shadow-2xs">
-                    <div class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">ADU (OUT / 120)</div>
+            <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
+                <div class="p-2 bg-white rounded-sm border border-gray-200 text-center shadow-2xs">
+                    <div class="text-[9px] text-gray-500 font-semibold uppercase tracking-wider">ADU Base</div>
                     <div class="font-mono font-bold text-gray-900 text-xs mt-0.5" x-text="simulasiImporAdu()"></div>
                 </div>
-                <div class="p-2.5 bg-white rounded-sm border border-gray-200 text-center shadow-2xs">
-                    <div class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Safety Stock</div>
+                <div class="p-2 bg-white rounded-sm border border-gray-200 text-center shadow-2xs">
+                    <div class="text-[9px] text-gray-500 font-semibold uppercase tracking-wider">ADU ETA</div>
+                    <div class="font-mono font-bold text-primary-700 text-xs mt-0.5" x-text="simulasiImporAduEta()"></div>
+                </div>
+                <div class="p-2 bg-white rounded-sm border border-gray-200 text-center shadow-2xs">
+                    <div class="text-[9px] text-gray-500 font-semibold uppercase tracking-wider">Safety Stock</div>
                     <div class="font-mono font-bold text-gray-900 text-xs mt-0.5" x-text="simulasiImporSafetyStock()"></div>
                 </div>
-                <div class="p-2.5 bg-white rounded-sm border border-gray-200 text-center shadow-2xs">
-                    <div class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Target Stock</div>
+                <div class="p-2 bg-white rounded-sm border border-gray-200 text-center shadow-2xs">
+                    <div class="text-[9px] text-gray-500 font-semibold uppercase tracking-wider">Target Stock</div>
                     <div class="font-mono font-bold text-gray-900 text-xs mt-0.5" x-text="simulasiImporTarget()"></div>
                 </div>
-                <div class="p-2.5 bg-white rounded-sm border border-gray-200 text-center shadow-2xs">
-                    <div class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Rekomendasi Order</div>
-                    <div class="font-mono font-bold text-primary-700 text-xs mt-0.5" x-text="simulasiImporOrder()"></div>
+                <div class="p-2 bg-white rounded-sm border border-gray-200 text-center shadow-2xs">
+                    <div class="text-[9px] text-gray-500 font-semibold uppercase tracking-wider">Proyeksi</div>
+                    <div class="font-mono font-bold text-xs mt-0.5" :class="simulasiImporProyeksiRaw() < 0 ? 'text-rose-600' : 'text-gray-900'" x-text="simulasiImporProyeksi()"></div>
+                </div>
+                <div class="p-2 bg-white rounded-sm border border-primary-200 bg-primary-50/30 text-center shadow-2xs">
+                    <div class="text-[9px] text-primary-700 font-semibold uppercase tracking-wider">Order (MOQ)</div>
+                    <div class="font-mono font-bold text-primary-800 text-xs mt-0.5" x-text="simulasiImporOrder()"></div>
                 </div>
             </div>
         </div>

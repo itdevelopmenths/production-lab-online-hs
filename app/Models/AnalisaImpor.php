@@ -12,11 +12,15 @@ class AnalisaImpor extends Model
     protected $fillable = [
         'produk_id',
         'out',
+        'periode_mulai',
+        'periode_akhir',
+        'jumlah_hari_periode',
         'adu_base',
         'adu_eta',
         'lead_time',
         'review_period',
         'klasifikasi_abc',
+        'klasifikasi_abc_id',
         'tambahan_buffer_hari',
         'buffer_days',
         'safety_stock',
@@ -38,6 +42,10 @@ class AnalisaImpor extends Model
 
     protected $casts = [
         'out' => 'decimal:2',
+        'periode_mulai' => 'date',
+        'periode_akhir' => 'date',
+        'jumlah_hari_periode' => 'integer',
+        'klasifikasi_abc_id' => 'integer',
         'adu_base' => 'decimal:4',
         'adu_eta' => 'decimal:4',
         'lead_time' => 'decimal:2',
@@ -71,6 +79,11 @@ class AnalisaImpor extends Model
         return $this->belongsTo(Produk::class, 'produk_id');
     }
 
+    public function klasifikasiAbc(): BelongsTo
+    {
+        return $this->belongsTo(KlasifikasiAbc::class, 'klasifikasi_abc_id');
+    }
+
     public function generator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'generated_by');
@@ -78,6 +91,10 @@ class AnalisaImpor extends Model
 
     public function tambahanHariAbc(): int
     {
+        if ($this->klasifikasiAbc) {
+            return (int) $this->klasifikasiAbc->tambahan_buffer_hari;
+        }
+
         return self::ABC_BUFFER[strtolower((string) $this->klasifikasi_abc)] ?? 0;
     }
 }

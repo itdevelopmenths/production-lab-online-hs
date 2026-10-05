@@ -49,7 +49,7 @@
                     'selectedItem' => $p ? [
                         'id' => $p->id,
                         'sku' => $p->sku,
-                        'nama' => $p->nama,
+                        'nama' => !empty($item['nama_varian']) ? ($p->nama . ' - Varian: ' . $item['nama_varian']) : ($item['nama'] ?? $p->nama),
                         'satuan' => $p->satuan,
                         'harga_hpp' => (float) $p->harga_hpp,
                     ] : [

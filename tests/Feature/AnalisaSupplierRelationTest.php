@@ -251,7 +251,7 @@ class AnalisaSupplierRelationTest extends TestCase
         $ai = \App\Models\AnalisaImpor::where('produk_id', $this->botol->id)->first();
         $this->assertNotNull($ai);
         $this->assertEquals(1200, (float) $ai->out);
-        $this->assertEquals(round(1200 / 122, 4), (float) $ai->adu_base); // 1200 / 122 days
+        $this->assertEquals(round(1200 / $ai->jumlah_hari_periode, 4), (float) $ai->adu_base);
         $this->assertEquals(20, $ai->review_period);
         $this->assertEquals('a', $ai->klasifikasi_abc);
         $this->assertEquals(200, (float) $ai->stok_saat_ini);

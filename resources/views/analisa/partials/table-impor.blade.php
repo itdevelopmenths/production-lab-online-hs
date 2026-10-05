@@ -3,7 +3,7 @@
     <div class="space-y-4">
         <x-card 
             title="Tabel Analisa & Rekomendasi Pemesanan Bahan Impor (analisa_impor & lead_time_impor)"
-            subtitle="Lead Time (Avg/Max), Buffer Hari ABC (+4d/+2d/+0d), Safety Stock, Target Stock, Inbound ETA, Proyeksi, Rekomendasi Order MOQ, dan Distribusi Varian"
+            subtitle="Lead Time (Avg/Max), Buffer Hari ABC (+4d/+2d/+0d), Safety Stock, Target Stock, Inbound ETA, Proyeksi, dan Rekomendasi Order MOQ"
             :noPadding="true"
         >
             {{-- Loading Spinner --}}
@@ -23,6 +23,7 @@
                                 <input type="checkbox" @change="toggleSelectCurrentPage($event)" :checked="isCurrentPageAllSelected()" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer">
                             </th>
                             <th class="py-2.5 px-3">Bahan Baku Impor</th>
+                            <th class="py-2.5 px-3">Varian</th>
                             <th class="py-2.5 px-3">Supplier</th>
                             <th class="py-2.5 px-2 text-center">ABC</th>
                             <th class="py-2.5 px-3 text-center">Lead Time (Avg/Max)</th>
@@ -43,7 +44,7 @@
                         <template x-for="r in paginatedRows()" :key="r.id">
                             <tr class="hover:bg-gray-50/80 transition" :class="r.status === 'po' ? 'bg-rose-50/20' : ''">
                                 <td class="py-2.5 px-3 text-center">
-                                    <input type="checkbox" :value="r.produk_id" x-model="selectedItemIds" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer">
+                                    <input type="checkbox" :value="r.id" x-model="selectedItemIds" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer">
                                 </td>
                                 <td class="py-2.5 px-3">
                                     <div class="font-bold text-gray-900" x-text="r.nama"></div>
@@ -51,10 +52,23 @@
                                         <span x-text="r.sku"></span>
                                         <span>·</span>
                                         <span x-text="'Satuan: ' + r.satuan"></span>
-                                        <template x-if="r.punya_varian">
-                                            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">Multi-Varian</span>
-                                        </template>
                                     </div>
+                                    <template x-if="r.periode_mulai && r.periode_akhir">
+                                        <div class="text-[9px] text-gray-400 font-mono mt-0.5" x-text="'Periode: ' + r.periode_mulai + ' ~ ' + r.periode_akhir + ' (' + r.jumlah_hari_periode + ' hr)'"></div>
+                                    </template>
+                                </td>
+                                <td class="py-2.5 px-3">
+                                    <template x-if="r.is_varian && r.nama_varian">
+                                        <div>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200" x-text="r.nama_varian"></span>
+                                            <template x-if="r.persentase">
+                                                <span class="text-[10px] text-gray-500 font-mono ml-1" x-text="'(' + Math.round(r.persentase * 100) + '%)'"></span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template x-if="!r.is_varian || !r.nama_varian">
+                                        <span class="text-gray-400 font-mono text-xs">-</span>
+                                    </template>
                                 </td>
                                 <td class="py-2.5 px-3">
                                     <div class="font-medium text-gray-800" x-text="r.supplier_nama || '-'"></div>
@@ -63,7 +77,7 @@
                                     </template>
                                 </td>
                                 <td class="py-2.5 px-2 text-center font-mono">
-                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase" :class="abcBadgeClass(r.klasifikasi_abc)" x-text="r.klasifikasi_abc"></span>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase" :class="abcBadgeClass(r.klasifikasi_abc)" :title="r.klasifikasi_abc_nama || r.klasifikasi_abc" x-text="r.klasifikasi_abc"></span>
                                 </td>
                                 <td class="py-2.5 px-3 text-center font-mono text-gray-700" x-text="formatNumber(r.lead_time_average) + ' / ' + formatNumber(r.lead_time_max) + ' hr'"></td>
                                 <td class="py-2.5 px-3 text-right font-mono text-gray-600" x-text="formatNumber(r.buffer_days) + ' hr'"></td>
@@ -75,9 +89,9 @@
                                 <td class="py-2.5 px-3 text-right font-mono" :class="r.proyeksi < r.target_stock ? 'text-rose-600 font-bold' : 'text-emerald-700'" x-text="formatNumber(r.proyeksi)"></td>
                                 <td class="py-2.5 px-3 text-center" x-html="badge(r.status)"></td>
                                 <td class="py-2.5 px-3 text-right font-mono font-bold bg-primary-50/30 text-primary-900">
-                                    <span x-text="formatNumber(r.total_qty_order)"></span>
-                                    <template x-if="r.satuan_order_moq && r.satuan_order_moq !== r.satuan">
-                                        <span class="text-[10px] font-normal text-gray-500 block" x-text="r.satuan_order_moq + ' (x' + r.faktor_konversi + ')'"></span>
+                                    <span x-text="formatNumber(Math.round(r.total_qty_order))"></span>
+                                    <template x-if="r.satuan_order_moq && r.satuan_order_moq > 1">
+                                        <span class="text-[10px] font-normal text-gray-500 block" x-text="'MOQ: ' + formatNumber(r.satuan_order_moq)"></span>
                                     </template>
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-900" x-text="'Rp ' + formatNumber(r.total_nominal_order)"></td>
@@ -86,18 +100,13 @@
                                         <button type="button" @click="openManualImporModal(r)" class="px-2 py-1 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded border border-primary-200 text-[10px] font-medium transition cursor-pointer" title="Edit Data Input Manual Impor">
                                             Edit Input
                                         </button>
-                                        <template x-if="r.punya_varian && r.varian && r.varian.length > 0">
-                                            <button type="button" @click="openVarianModal(r)" class="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded border border-purple-200 text-[10px] font-medium transition cursor-pointer" title="Lihat Rincian Varian">
-                                                Varian (<span x-text="r.varian.length"></span>)
-                                            </button>
-                                        </template>
                                     </div>
                                 </td>
                             </tr>
                         </template>
                         <template x-if="paginatedRows().length === 0">
                             <tr>
-                                <td colspan="16" class="py-8 text-center text-gray-400 text-xs">
+                                <td colspan="17" class="py-8 text-center text-gray-400 text-xs">
                                     Tidak ada item bahan impor yang cocok dengan pencarian atau filter.
                                 </td>
                             </tr>

@@ -207,7 +207,6 @@
         @include('analisa.partials.table-riwayat')
         @include('analisa.partials.table-fulfillment')
         <!-- Modal Partials -->
-        @include('analisa.partials.modal-varian')
         @include('analisa.partials.modal-snapshot')
         @include('analisa.partials.modal-stage-lead-time')
         @include('analisa.partials.modal-manual-lokal')
@@ -232,8 +231,6 @@
           last_generated_by: null
         },
         selectedItemIds: [],
-        showVarianModal: false,
-        activeVarianProduct: null,
         showSnapshotModal: false,
         activeSnapshot: null,
         showStageModal: false,
@@ -289,6 +286,7 @@
         },
         showManualImporModal: false,
         savingManualImpor: false,
+        klasifikasiAbcList: [],
         manualImporForm: {
           produk_id: null,
           nama: '',
@@ -297,12 +295,17 @@
           supplier_nama: '',
           lead_time_average: 0,
           lead_time_max: 0,
+          periode_mulai: '',
+          periode_akhir: '',
+          jumlah_hari_periode: 122,
           out: 0,
           review_period: 30,
           klasifikasi_abc: 'b',
+          klasifikasi_abc_id: null,
           stok_saat_ini: 0,
           inbound_before_eta: 0,
-          harga_per_satuan: 0
+          harga_per_satuan: 0,
+          satuan_order_moq: 1
         },
         loading: true,
         generating: false,
@@ -333,6 +336,7 @@
           impor: [
             ['sku', 'SKU', 'text-left'],
             ['nama', 'Nama Bahan', 'text-left'],
+            ['nama_varian', 'Varian', 'text-left'],
             ['supplier_nama', 'Supplier', 'text-left'],
             ['klasifikasi_abc', 'ABC', 'text-center'],
             ['buffer_days', 'Buffer Hari', 'text-right'],
@@ -423,6 +427,7 @@
             list = list.filter(r => 
               (r.nama && r.nama.toLowerCase().includes(q)) || 
               (r.sku && r.sku.toLowerCase().includes(q)) ||
+              (r.nama_varian && r.nama_varian.toLowerCase().includes(q)) ||
               (r.supplier_nama && r.supplier_nama.toLowerCase().includes(q)) ||
               (r.item_label && r.item_label.toLowerCase().includes(q)) ||
               (r.session_id && r.session_id.toLowerCase().includes(q)) ||
@@ -570,11 +575,11 @@
         isCurrentPageAllSelected(){
           const pageItems = this.paginatedRows();
           if (pageItems.length === 0) return false;
-          const key = this.tab === 'impor' ? 'produk_id' : 'id';
+          const key = 'id';
           return pageItems.every(r => this.selectedItemIds.includes(r[key]));
         },
         toggleSelectCurrentPage(e){
-          const key = this.tab === 'impor' ? 'produk_id' : 'id';
+          const key = 'id';
           const pageItemIds = this.paginatedRows().map(r => r[key]);
           if (e.target.checked) {
             this.selectedItemIds = Array.from(new Set([...this.selectedItemIds, ...pageItemIds]));
@@ -583,20 +588,13 @@
           }
         },
         selectAllPerluOrder(){
-          if (this.tab === 'impor') {
-            this.selectedItemIds = this.rows.filter(r => {
-              const s = String(r.status || '').toLowerCase();
-              return s === 'order' || s === 'po';
-            }).map(r => r.produk_id);
-          } else {
-            this.selectedItemIds = this.rows.filter(r => {
-              const s = String(r.status || '').toLowerCase();
-              return s === 'order' || s === 'po';
-            }).map(r => r.id);
-          }
+          this.selectedItemIds = this.rows.filter(r => {
+            const s = String(r.status || '').toLowerCase();
+            return s === 'order' || s === 'po';
+          }).map(r => r.id);
         },
         selectAllFiltered(){
-          const key = this.tab === 'impor' ? 'produk_id' : 'id';
+          const key = 'id';
           const filteredIds = this.filteredRows().map(r => r[key]);
           this.selectedItemIds = Array.from(new Set([...this.selectedItemIds, ...filteredIds]));
         },
@@ -604,7 +602,7 @@
           return this.selectedItemIds.length;
         },
         getSelectedItems(){
-          const key = this.tab === 'impor' ? 'produk_id' : 'id';
+          const key = 'id';
           return this.rows.filter(r => this.selectedItemIds.includes(r[key]));
         },
         getSelectedTotalNominal(){
@@ -612,18 +610,10 @@
         },
         goToCreatePo(){
           if (this.selectedItemIds.length === 0) {
-            // Auto select items that need order
-            if (this.tab === 'impor') {
-              this.selectedItemIds = this.rows.filter(r => {
-                const s = String(r.status || '').toLowerCase();
-                return s === 'order' || s === 'po';
-              }).map(r => r.produk_id);
-            } else {
-              this.selectedItemIds = this.rows.filter(r => {
-                const s = String(r.status || '').toLowerCase();
-                return s === 'order' || s === 'po';
-              }).map(r => r.id);
-            }
+            this.selectedItemIds = this.rows.filter(r => {
+              const s = String(r.status || '').toLowerCase();
+              return s === 'order' || s === 'po';
+            }).map(r => r.id);
           }
           if (this.selectedItemIds.length === 0) {
             Swal.fire({
@@ -634,7 +624,7 @@
             });
             return;
           }
-          let url = '{{ route('analisa.create-po') }}?ids=' + encodeURIComponent(this.selectedItemIds.join(','));
+          let url = '{{ route('analisa.create-po') }}?ids=' + encodeURIComponent(this.selectedItemIds.join(',')) + '&tipe=' + encodeURIComponent(this.tab);
           const selectedItems = this.getSelectedItems();
           const supIds = selectedItems.map(r => r.supplier_id).filter(Boolean);
           const uniqueSupIds = Array.from(new Set(supIds));
@@ -648,10 +638,6 @@
           if (v === 'wajib_a' || v === 'a') return 'bg-amber-100 text-amber-800 border border-amber-300';
           if (v === 'b') return 'bg-blue-100 text-blue-800 border border-blue-300';
           return 'bg-gray-100 text-gray-700 border border-gray-300';
-        },
-        openVarianModal(item){
-          this.activeVarianProduct = item;
-          this.showVarianModal = true;
         },
         openSnapshotModal(item){
           this.activeSnapshot = item;
@@ -896,6 +882,14 @@
         },
 
         openManualImporModal(item){
+          const defaultEnd = item.periode_akhir || new Date().toISOString().split('T')[0];
+          let defaultStart = item.periode_mulai;
+          if (!defaultStart) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - 4);
+            defaultStart = d.toISOString().split('T')[0];
+          }
+
           this.manualImporForm = {
             produk_id: item.produk_id,
             nama: item.nama,
@@ -904,48 +898,111 @@
             supplier_nama: item.supplier_nama,
             lead_time_average: item.lead_time_average || 0,
             lead_time_max: item.lead_time_max || 0,
-            out: item.out || 0,
+            periode_mulai: defaultStart,
+            periode_akhir: defaultEnd,
+            jumlah_hari_periode: item.jumlah_hari_periode || 122,
+            out: item.parent_out !== undefined ? item.parent_out : (item.out || 0),
             review_period: item.review_period || 30,
-            klasifikasi_abc: item.klasifikasi_abc || 'b',
-            stok_saat_ini: item.stok_saat_ini || 0,
-            inbound_before_eta: item.inbound_before_eta || 0,
+            klasifikasi_abc: item.klasifikasi_abc || 'c',
+            klasifikasi_abc_id: item.klasifikasi_abc_id || null,
+            stok_saat_ini: item.parent_stok !== undefined ? item.parent_stok : (item.stok_saat_ini || 0),
+            inbound_before_eta: item.parent_inbound !== undefined ? item.parent_inbound : (item.inbound_before_eta || 0),
             harga_per_satuan: item.harga_per_satuan || 0,
+            satuan_order_moq: Number(item.satuan_order_moq) || 1,
           };
+
+          if (!this.manualImporForm.klasifikasi_abc_id && this.klasifikasiAbcList.length > 0) {
+            const found = this.klasifikasiAbcList.find(x => x.kode === this.manualImporForm.klasifikasi_abc);
+            if (found) this.manualImporForm.klasifikasi_abc_id = found.id;
+          }
+
           this.showManualImporModal = true;
         },
+        onAbcChange(){
+          if (this.manualImporForm.klasifikasi_abc_id) {
+            const found = this.klasifikasiAbcList.find(x => x.id == this.manualImporForm.klasifikasi_abc_id);
+            if (found) {
+              this.manualImporForm.klasifikasi_abc = found.kode;
+            }
+          }
+        },
+        simulasiImporJumlahHari(){
+          const s = this.manualImporForm.periode_mulai;
+          const e = this.manualImporForm.periode_akhir;
+          if (s && e) {
+            const d1 = new Date(s);
+            const d2 = new Date(e);
+            const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+            if (diff > 0) return diff;
+          }
+          return Number(this.manualImporForm.jumlah_hari_periode) || 122;
+        },
+        simulasiImporTambahanBuffer(){
+          if (this.manualImporForm.klasifikasi_abc_id) {
+            const found = this.klasifikasiAbcList.find(x => x.id == this.manualImporForm.klasifikasi_abc_id);
+            if (found) return Number(found.tambahan_buffer_hari) || 0;
+          }
+          const code = String(this.manualImporForm.klasifikasi_abc || 'c').toLowerCase();
+          if (code === 'wajib_a' || code === 'a') return 4;
+          if (code === 'b') return 2;
+          return 0;
+        },
         simulasiImporAdu(){
-          return ((Number(this.manualImporForm.out) || 0) / 120).toFixed(4);
+          const out = Number(this.manualImporForm.out) || 0;
+          const days = this.simulasiImporJumlahHari();
+          return (days > 0 ? (out / days) : 0).toFixed(4);
+        },
+        simulasiImporAduEta(){
+          const aduBase = Number(this.simulasiImporAdu()) || 0;
+          const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
+          const rp = Number(this.manualImporForm.review_period) || 30;
+          const eta = aduBase + (rp > 0 ? (avgLt / rp) : 0);
+          return eta.toFixed(4);
         },
         simulasiImporSafetyStock(){
-          const adu = (Number(this.manualImporForm.out) || 0) / 120;
+          const aduEta = Number(this.simulasiImporAduEta()) || 0;
           const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
           const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
-          const bufferDays = Math.max(0, maxLt - avgLt);
-          return this.formatNumber(bufferDays * adu);
+          const bufferDays = Math.max(0, maxLt - avgLt) + this.simulasiImporTambahanBuffer();
+          return this.formatNumber(bufferDays * aduEta);
         },
         simulasiImporTarget(){
-          const adu = (Number(this.manualImporForm.out) || 0) / 120;
+          const aduEta = Number(this.simulasiImporAduEta()) || 0;
           const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
           const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
-          const bufferDays = Math.max(0, maxLt - avgLt);
-          const ss = bufferDays * adu;
-          const minStock = ss + (adu * avgLt);
           const rp = Number(this.manualImporForm.review_period) || 30;
-          return this.formatNumber(minStock + (adu * rp));
+          const bufferDays = Math.max(0, maxLt - avgLt) + this.simulasiImporTambahanBuffer();
+          const target = aduEta * (avgLt + bufferDays + rp);
+          return this.formatNumber(target);
         },
-        simulasiImporOrder(){
-          const adu = (Number(this.manualImporForm.out) || 0) / 120;
+        simulasiImporProyeksiRaw(){
+          const aduEta = Number(this.simulasiImporAduEta()) || 0;
           const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
-          const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
-          const bufferDays = Math.max(0, maxLt - avgLt);
-          const ss = bufferDays * adu;
-          const minStock = ss + (adu * avgLt);
-          const rp = Number(this.manualImporForm.review_period) || 30;
-          const target = minStock + (adu * rp);
+          const minStock = aduEta * avgLt;
           const stok = Number(this.manualImporForm.stok_saat_ini) || 0;
           const inbound = Number(this.manualImporForm.inbound_before_eta) || 0;
-          const ord = Math.max(0, target - stok - inbound);
-          return this.formatNumber(ord) + ' ' + (this.manualImporForm.satuan || '');
+          return stok + inbound - minStock;
+        },
+        simulasiImporProyeksi(){
+          return this.formatNumber(this.simulasiImporProyeksiRaw());
+        },
+        simulasiImporOrder(){
+          const proyeksi = this.simulasiImporProyeksiRaw();
+          const aduEta = Number(this.simulasiImporAduEta()) || 0;
+          const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
+          const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
+          const rp = Number(this.manualImporForm.review_period) || 30;
+          const bufferDays = Math.max(0, maxLt - avgLt) + this.simulasiImporTambahanBuffer();
+          const target = aduEta * (avgLt + bufferDays + rp);
+
+          const selisih = proyeksi - target;
+          if (selisih >= 0) {
+            return '0 ' + (this.manualImporForm.satuan || '');
+          }
+          const rawOrder = Math.abs(selisih);
+          const moq = Number(this.manualImporForm.satuan_order_moq) || 1;
+          const roundedOrder = moq > 1 ? Math.ceil(rawOrder / moq) * moq : Math.ceil(rawOrder);
+          return this.formatNumber(roundedOrder) + ' ' + (this.manualImporForm.satuan || '');
         },
         async saveManualImpor(){
           this.savingManualImpor = true;
@@ -954,9 +1011,12 @@
               produk_id: this.manualImporForm.produk_id,
               lead_time_average: Number(this.manualImporForm.lead_time_average) || 0,
               lead_time_max: Number(this.manualImporForm.lead_time_max) || 0,
+              periode_mulai: this.manualImporForm.periode_mulai,
+              periode_akhir: this.manualImporForm.periode_akhir,
               out: Number(this.manualImporForm.out) || 0,
               review_period: Number(this.manualImporForm.review_period) || 30,
-              klasifikasi_abc: this.manualImporForm.klasifikasi_abc || 'b',
+              klasifikasi_abc: this.manualImporForm.klasifikasi_abc || 'c',
+              klasifikasi_abc_id: this.manualImporForm.klasifikasi_abc_id ? Number(this.manualImporForm.klasifikasi_abc_id) : null,
               stok_saat_ini: Number(this.manualImporForm.stok_saat_ini) || 0,
               inbound_before_eta: Number(this.manualImporForm.inbound_before_eta) || 0,
               harga_per_satuan: Number(this.manualImporForm.harga_per_satuan) || 0,
@@ -976,7 +1036,7 @@
               Swal.fire({
                 icon: 'success',
                 title: 'Data Manual Tersimpan',
-                text: 'Parameter manual bahan impor berhasil diperbarui & analisa dihitung ulang.',
+                text: 'Parameter manual bahan impor berhasil diperbarui & analisa dihitung ulang (PRD v2.2).',
                 confirmButtonColor: '#0284c7'
               });
               await this.load();
@@ -1221,6 +1281,14 @@
         async load(){
           this.loading = true;
           try {
+            if (this.klasifikasiAbcList.length === 0) {
+              fetch('{{ route('klasifikasi-abc.options') }}')
+                .then(r => r.json())
+                .then(d => {
+                  if (d.success) this.klasifikasiAbcList = d.data || [];
+                }).catch(() => {});
+            }
+
             const res = await fetch(this.urls[this.tab]);
             const j = await res.json();
             this.rows = j.data || [];
@@ -1234,7 +1302,7 @@
             if (this.tab === 'lokal') {
               this.selectedItemIds = this.rows.filter(r => r.status === 'order').map(r => r.id);
             } else if (this.tab === 'impor') {
-              this.selectedItemIds = this.rows.filter(r => r.status === 'po').map(r => r.produk_id);
+              this.selectedItemIds = this.rows.filter(r => r.status === 'po').map(r => r.id);
             } else {
               this.selectedItemIds = [];
             }

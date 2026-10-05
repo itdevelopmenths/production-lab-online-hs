@@ -9,6 +9,7 @@ use App\Http\Controllers\DivisiController;
 use App\Http\Controllers\GudangController;
 use App\Http\Controllers\AnalisaController;
 use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\KlasifikasiAbcController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\VarianController;
@@ -56,6 +57,10 @@ Route::middleware('auth')->group(function () {
 
         Route::get('varian/data', [VarianController::class, 'data'])->name('varian.data');
         Route::resource('varian', VarianController::class)->except(['show']);
+
+        Route::get('klasifikasi-abc/options', [KlasifikasiAbcController::class, 'options'])->name('klasifikasi-abc.options');
+        Route::get('klasifikasi-abc/data', [KlasifikasiAbcController::class, 'data'])->name('klasifikasi-abc.data');
+        Route::resource('klasifikasi-abc', KlasifikasiAbcController::class)->except(['show', 'create', 'edit']);
     });
 
     Route::middleware('can:gudang.view')->group(function () {

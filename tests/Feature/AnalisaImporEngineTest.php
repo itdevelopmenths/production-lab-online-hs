@@ -244,4 +244,156 @@ class AnalisaImporEngineTest extends TestCase
         $this->assertEquals('draft', $po->status);
         $this->assertEquals($this->supplier->id, $po->supplier_id);
     }
+
+    /**
+     * Benchmark Verifikasi Kasus Uji Bab 6.3.5 PRD v2.2 (Botol 50ml)
+     */
+    public function test_benchmark_botol_50ml_case_prd_v2_2(): void
+    {
+        $this->actingAs($this->purchasing);
+
+        // 1. Setup produk Botol 50ml Non-Varian dengan parameter Bab 6.3.5
+        $p = Produk::create([
+            'sku' => 'TEST-BTL50',
+            'nama' => 'Botol 50ml Test Case PRD 2.2',
+            'satuan' => 'pcs',
+            'satuan_order_moq' => 10000,
+            'faktor_konversi' => 1,
+            'tipe' => 'kemas',
+            'supplier_id' => $this->supplier->id,
+            'harga_hpp' => 1500,
+        ]);
+
+        $abcA = \App\Models\KlasifikasiAbc::where('kode', 'a')->firstOrFail();
+
+        // 2. Submit update manual impor dengan parameter pasti Bab 6.3.5
+        $res = $this->postJson(route('analisa.update-manual-impor'), [
+            'produk_id' => $p->id,
+            'periode_mulai' => '2024-10-01',
+            'periode_akhir' => '2025-01-31',
+            'out' => 55099,
+            'lead_time_average' => 60,
+            'lead_time_max' => 92,
+            'klasifikasi_abc_id' => $abcA->id,
+            'review_period' => 30,
+            'stok_saat_ini' => 1200,
+            'inbound_before_eta' => 0,
+            'harga_per_satuan' => 1500,
+        ]);
+        $res->assertOk();
+
+        // 3. Verifikasi hasil kalkulasi engine pada database
+        $ai = AnalisaImpor::where('produk_id', $p->id)->firstOrFail();
+
+        // Jumlah hari: 01/10/2024 s/d 31/01/2025 = 123 hari (31 + 30 + 31 + 31)
+        $this->assertEquals(123, $ai->jumlah_hari_periode);
+
+        // ADU Base = 55.099 / 123 = 447.96 pcs/hari
+        $this->assertEqualsWithDelta(447.96, (float) $ai->adu_base, 0.05);
+
+        // Buffer Days = (92 - 60) + 4 = 36 hari
+        $this->assertEqualsWithDelta(36.00, (float) $ai->buffer_days, 0.01);
+
+        // ADU ETA = 447.96 + (60 / 30) = 449.96 pcs/hari
+        $this->assertEqualsWithDelta(449.96, (float) $ai->adu_eta, 0.05);
+
+        // Safety Stock = 449.96 * 36 = 16.198,56 pcs
+        $this->assertEqualsWithDelta(16198.56, (float) $ai->safety_stock, 1.0);
+
+        // Minimum Stock = 449.96 * 60 = 26.997,60 pcs
+        $this->assertEqualsWithDelta(26997.60, (float) $ai->minimum_stock, 1.0);
+
+        // Target Stock = 449.96 * (60 + 36 + 30) = 56.694,96 pcs
+        $this->assertEqualsWithDelta(56694.96, (float) $ai->target_stock, 1.0);
+
+        // Proyeksi = 1.200 + 0 - 26.997,60 = -25.797,60 pcs
+        $this->assertEqualsWithDelta(-25797.60, (float) $ai->proyeksi, 1.0);
+
+        // Kebutuhan Qty Order = 82.492,56 pcs
+        $this->assertEqualsWithDelta(82492.56, (float) $ai->qty_order, 1.0);
+
+        // Rekomendasi Order Bulat MOQ 10.000 = ceil(82.492,56 / 10.000) * 10.000 = 90.000 pcs!
+        $this->assertEquals(90000, (int) $ai->po);
+        $this->assertEquals('po', $ai->status);
+    }
+
+    public function test_klasifikasi_abc_crud_and_options_endpoint(): void
+    {
+        $this->actingAs($this->purchasing);
+
+        // Test options endpoint
+        $optRes = $this->getJson(route('klasifikasi-abc.options'));
+        $optRes->assertOk();
+        $optRes->assertJsonStructure(['success', 'data']);
+        $this->assertNotEmpty($optRes->json('data'));
+
+        // Test create new ABC class
+        $createRes = $this->postJson(route('klasifikasi-abc.store'), [
+            'kode' => 'khusus_x',
+            'nama' => 'Khusus X Super Critical',
+            'tambahan_buffer_hari' => 7,
+            'warna_badge' => 'red',
+            'deskripsi' => 'Pengadaan komponen khusus uji',
+            'is_active' => true,
+        ]);
+        $createRes->assertOk();
+        $id = $createRes->json('data.id');
+
+        // Test update ABC class
+        $updateRes = $this->putJson(route('klasifikasi-abc.update', $id), [
+            'kode' => 'khusus_x',
+            'nama' => 'Khusus X Updated',
+            'tambahan_buffer_hari' => 8,
+            'warna_badge' => 'amber',
+            'is_active' => true,
+        ]);
+        $updateRes->assertOk();
+        $this->assertEquals(8, $updateRes->json('data.tambahan_buffer_hari'));
+
+        // Test delete ABC class
+        $delRes = $this->deleteJson(route('klasifikasi-abc.destroy', $id));
+        $delRes->assertOk();
+        $this->assertDatabaseMissing('klasifikasi_abc', ['id' => $id]);
+    }
+
+    public function test_impor_data_expands_variants_into_distinct_rows_and_prefills_po_items(): void
+    {
+        $this->actingAs($this->purchasing);
+
+        // Generate data impor
+        $this->postJson(route('analisa.generate-impor'))->assertOk();
+
+        // Ambil data impor
+        $res = $this->getJson(route('analisa.impor.data'));
+        $res->assertOk();
+
+        $rows = collect($res->json('data'));
+        $botolRows = $rows->where('produk_id', $this->botol->id);
+
+        // Harus terurai menjadi 2 baris (Bening 60% dan Frosted 40%)
+        $this->assertCount(2, $botolRows);
+
+        $bening = $botolRows->firstWhere('nama_varian', 'Bening');
+        $frosted = $botolRows->firstWhere('nama_varian', 'Frosted');
+
+        $this->assertNotNull($bening);
+        $this->assertNotNull($frosted);
+        $this->assertTrue($bening['is_varian']);
+        $this->assertTrue($frosted['is_varian']);
+        $this->assertEquals(0.6, (float) $bening['persentase']);
+        $this->assertEquals(0.4, (float) $frosted['persentase']);
+
+        // Nilai target & rekomendasi order masing-masing varian
+        $this->assertGreaterThan(0, (float) $bening['safety_stock']);
+        $this->assertGreaterThan(0, (float) $frosted['safety_stock']);
+        $this->assertGreaterThan(0, (float) $bening['total_qty_order']);
+        $this->assertGreaterThan(0, (float) $frosted['total_qty_order']);
+
+        // Verifikasi create-po form memprefill rincian varian
+        $poFormRes = $this->get(route('analisa.create-po', ['ids' => $this->botol->id, 'tipe' => 'impor']));
+        $poFormRes->assertOk();
+        $poFormRes->assertSee('Varian: Bening');
+        $poFormRes->assertSee('Varian: Frosted');
+    }
 }
+

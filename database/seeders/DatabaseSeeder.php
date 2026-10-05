@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             DivisiSeeder::class,
             UserSeeder::class,
             UomSeeder::class,
+            KlasifikasiAbcSeeder::class,
             MasterDataSeeder::class,
         ]);
 

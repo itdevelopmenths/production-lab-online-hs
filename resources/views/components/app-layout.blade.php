@@ -187,6 +187,13 @@
                     </x-slot:icon>
                     Varian
                 </x-nav-item>
+
+                <x-nav-item href="{{ route('klasifikasi-abc.index') }}" :active="request()->routeIs('klasifikasi-abc.*')">
+                    <x-slot:icon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+                    </x-slot:icon>
+                    Klasifikasi ABC
+                </x-nav-item>
                 @endcan
 
                 @can('gudang.view')

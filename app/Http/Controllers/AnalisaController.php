@@ -9,6 +9,7 @@ use App\Models\AnalisaImporVarian;
 use App\Models\AnalisaLokal;
 use App\Models\AnalisaLokalInput;
 use App\Models\Gudang;
+use App\Models\KlasifikasiAbc;
 use App\Models\LeadTimeImpor;
 use App\Models\LeadTimeLokal;
 use App\Models\LeadTimeLokalStage;
@@ -340,8 +341,11 @@ class AnalisaController extends Controller
             'lead_time_average' => ['nullable', 'numeric', 'min:0'],
             'lead_time_max' => ['nullable', 'numeric', 'min:0'],
             'out' => ['nullable', 'numeric', 'min:0'],
+            'periode_mulai' => ['nullable', 'date'],
+            'periode_akhir' => ['nullable', 'date'],
             'review_period' => ['nullable', 'integer', 'min:1'],
-            'klasifikasi_abc' => ['nullable', 'in:wajib_a,a,b,c'],
+            'klasifikasi_abc' => ['nullable', 'string'],
+            'klasifikasi_abc_id' => ['nullable', 'exists:klasifikasi_abc,id'],
             'stok_saat_ini' => ['nullable', 'numeric', 'min:0'],
             'inbound_before_eta' => ['nullable', 'numeric', 'min:0'],
             'harga_per_satuan' => ['nullable', 'numeric', 'min:0'],
@@ -365,11 +369,32 @@ class AnalisaController extends Controller
             if (array_key_exists('out', $data) && $data['out'] !== null) {
                 $ai->out = $data['out'];
             }
+            if (array_key_exists('periode_mulai', $data) && $data['periode_mulai'] !== null) {
+                $ai->periode_mulai = $data['periode_mulai'];
+            }
+            if (array_key_exists('periode_akhir', $data) && $data['periode_akhir'] !== null) {
+                $ai->periode_akhir = $data['periode_akhir'];
+            }
+            if (! empty($data['periode_mulai']) && ! empty($data['periode_akhir'])) {
+                $ai->jumlah_hari_periode = \Carbon\Carbon::parse($data['periode_mulai'])->diffInDays(\Carbon\Carbon::parse($data['periode_akhir'])) + 1;
+            }
             if (array_key_exists('review_period', $data) && $data['review_period'] !== null) {
                 $ai->review_period = (int) $data['review_period'];
             }
-            if (array_key_exists('klasifikasi_abc', $data) && $data['klasifikasi_abc'] !== null) {
-                $ai->klasifikasi_abc = $data['klasifikasi_abc'];
+            if (array_key_exists('klasifikasi_abc_id', $data) && $data['klasifikasi_abc_id'] !== null) {
+                $ai->klasifikasi_abc_id = (int) $data['klasifikasi_abc_id'];
+                $abc = KlasifikasiAbc::find($data['klasifikasi_abc_id']);
+                if ($abc) {
+                    $ai->klasifikasi_abc = $abc->kode;
+                    $ai->tambahan_buffer_hari = $abc->tambahan_buffer_hari;
+                }
+            } elseif (array_key_exists('klasifikasi_abc', $data) && $data['klasifikasi_abc'] !== null) {
+                $ai->klasifikasi_abc = strtolower($data['klasifikasi_abc']);
+                $abc = KlasifikasiAbc::where('kode', $ai->klasifikasi_abc)->first();
+                if ($abc) {
+                    $ai->klasifikasi_abc_id = $abc->id;
+                    $ai->tambahan_buffer_hari = $abc->tambahan_buffer_hari;
+                }
             }
             if (array_key_exists('stok_saat_ini', $data) && $data['stok_saat_ini'] !== null) {
                 $ai->stok_saat_ini = $data['stok_saat_ini'];
@@ -382,9 +407,21 @@ class AnalisaController extends Controller
             }
             $ai->save();
 
-            // Jika produk memiliki varian di AnalisaImporMeta, sinkronkan stok & inbound varian secara proporsional
+            // Jika produk memiliki varian di AnalisaImporMeta, sinkronkan juga ke meta
             $meta = AnalisaImporMeta::where('produk_id', $prodId)->first();
             if ($meta) {
+                if (isset($data['periode_mulai'])) $meta->periode_mulai = $data['periode_mulai'];
+                if (isset($data['periode_akhir'])) $meta->periode_akhir = $data['periode_akhir'];
+                if ($ai->jumlah_hari_periode) $meta->jumlah_hari_periode = $ai->jumlah_hari_periode;
+                if ($ai->klasifikasi_abc_id) $meta->klasifikasi_abc_id = $ai->klasifikasi_abc_id;
+                if ($ai->klasifikasi_abc) $meta->klasifikasi_abc = $ai->klasifikasi_abc;
+                if (isset($data['out'])) $meta->out_total_4bulan = $data['out'];
+                if (isset($data['harga_per_satuan'])) $meta->harga_per_satuan = $data['harga_per_satuan'];
+                if (isset($data['review_period'])) $meta->review_period = $data['review_period'];
+                if (isset($data['lead_time_average'])) $meta->lead_time_average = $data['lead_time_average'];
+                if (isset($data['lead_time_max'])) $meta->lead_time_max = $data['lead_time_max'];
+                $meta->save();
+
                 $metaVarians = AnalisaImporVarian::where('analisa_impor_meta_id', $meta->id)->get();
                 if ($metaVarians->isNotEmpty()) {
                     foreach ($metaVarians as $mv) {
@@ -423,50 +460,129 @@ class AnalisaController extends Controller
                 $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'supplier_id')
                     ->with('supplier:id,nama,kategori');
             },
+            'klasifikasiAbc',
             'generator:id,name'
         ])->get();
         $ltMap = LeadTimeImpor::all()->keyBy('produk_id');
         $lastGenerated = $imporList->sortByDesc('generated_at')->first();
 
-        $rows = $imporList->map(function ($ai) use ($ltMap) {
+        $rows = [];
+        foreach ($imporList as $ai) {
             $lt = $ltMap->get($ai->produk_id);
+            $varians = $ai->varian_detail ?? [];
 
-            return [
-                'id' => $ai->id,
-                'produk_id' => $ai->produk_id,
-                'sku' => $ai->produk?->sku,
-                'nama' => $ai->produk?->nama,
-                'satuan' => $ai->produk?->satuan,
-                'supplier_id' => $ai->produk?->supplier_id,
-                'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
-                'supplier_kategori' => $ai->produk?->supplier?->kategori ?? '-',
-                'satuan_order_moq' => $ai->produk?->satuan_order_moq,
-                'faktor_konversi' => (float) ($ai->produk?->faktor_konversi ?: 1),
-                'punya_varian' => (bool) $ai->punya_varian,
-                'klasifikasi_abc' => $ai->klasifikasi_abc,
-                'out' => (float) $ai->out,
-                'review_period' => (int) ($ai->review_period ?: 30),
-                'lead_time_average' => (float) ($lt?->lead_time_average ?? $ai->lead_time),
-                'lead_time_max' => (float) ($lt?->lead_time_max ?? 0),
-                'buffer_days' => (float) $ai->buffer_days,
-                'safety_stock' => (float) $ai->safety_stock,
-                'minimum_stock' => (float) $ai->minimum_stock,
-                'target_stock' => (float) $ai->target_stock,
-                'stok_saat_ini' => (float) $ai->stok_saat_ini,
-                'inbound_before_eta' => (float) $ai->inbound_before_eta,
-                'proyeksi' => (float) $ai->proyeksi,
-                'qty_order' => (float) $ai->qty_order,
-                'po' => (float) $ai->po,
-                'total_qty_order' => (float) ($ai->po ?: $ai->qty_order),
-                'total_selisih' => (float) ($ai->proyeksi - $ai->target_stock),
-                'status' => $ai->status,
-                'harga_per_satuan' => (float) $ai->harga_per_satuan,
-                'total_nominal_order' => (float) $ai->total_nominal_order,
-                'varian' => $ai->varian_detail ?? [],
-                'generated_at' => $ai->generated_at?->format('d/m/Y H:i'),
-                'generated_by' => $ai->generator?->name ?? 'Sistem',
-            ];
-        })->values();
+            if ($ai->punya_varian && ! empty($varians)) {
+                foreach ($varians as $vIdx => $v) {
+                    $vQtyOrder = (float) ($v['qty_order'] ?? 0);
+                    $vNominal = round($vQtyOrder * (float) $ai->harga_per_satuan, 2);
+                    $vStatus = $v['status'] ?? ($vQtyOrder > 0 ? 'po' : 'tidak');
+
+                    $rows[] = [
+                        'id' => $ai->id . '_' . $vIdx,
+                        'analisa_impor_id' => $ai->id,
+                        'produk_id' => $ai->produk_id,
+                        'sku' => $ai->produk?->sku,
+                        'nama' => $ai->produk?->nama,
+                        'is_varian' => true,
+                        'nama_varian' => $v['nama_varian'] ?? 'Varian ' . ($vIdx + 1),
+                        'persentase' => (float) ($v['persentase'] ?? 0),
+                        'satuan' => $ai->produk?->satuan,
+                        'supplier_id' => $ai->produk?->supplier_id,
+                        'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
+                        'supplier_kategori' => $ai->produk?->supplier?->kategori ?? '-',
+                        'satuan_order_moq' => $ai->produk?->satuan_order_moq,
+                        'faktor_konversi' => (float) ($ai->produk?->faktor_konversi ?: 1),
+                        'punya_varian' => true,
+                        'periode_mulai' => $ai->periode_mulai?->format('Y-m-d'),
+                        'periode_akhir' => $ai->periode_akhir?->format('Y-m-d'),
+                        'jumlah_hari_periode' => (int) ($ai->jumlah_hari_periode ?: 122),
+                        'adu_base' => (float) ($v['adu_base'] ?? 0),
+                        'adu_eta' => (float) ($v['adu_eta'] ?? $v['adu'] ?? 0),
+                        'klasifikasi_abc' => $ai->klasifikasi_abc,
+                        'klasifikasi_abc_id' => $ai->klasifikasi_abc_id,
+                        'klasifikasi_abc_nama' => $ai->klasifikasiAbc?->nama ?? strtoupper($ai->klasifikasi_abc),
+                        'klasifikasi_abc_badge' => $ai->klasifikasiAbc?->warna_badge ?? 'gray',
+                        'tambahan_buffer_hari' => (int) $ai->tambahan_buffer_hari,
+                        'out' => (float) ($v['out'] ?? 0),
+                        'parent_out' => (float) $ai->out,
+                        'parent_stok' => (float) $ai->stok_saat_ini,
+                        'parent_inbound' => (float) $ai->inbound_before_eta,
+                        'review_period' => (int) ($ai->review_period ?: 30),
+                        'lead_time_average' => (float) ($lt?->lead_time_average ?? $ai->lead_time),
+                        'lead_time_max' => (float) ($lt?->lead_time_max ?? 0),
+                        'buffer_days' => (float) ($v['buffer_days'] ?? $ai->buffer_days),
+                        'safety_stock' => (float) ($v['safety_stock'] ?? 0),
+                        'minimum_stock' => (float) ($v['minimum_stock'] ?? 0),
+                        'target_stock' => (float) ($v['target_stock'] ?? 0),
+                        'stok_saat_ini' => (float) ($v['stok_saat_ini'] ?? $v['stok'] ?? 0),
+                        'inbound_before_eta' => (float) ($v['inbound'] ?? 0),
+                        'proyeksi' => (float) ($v['proyeksi'] ?? 0),
+                        'qty_order' => $vQtyOrder,
+                        'po' => $vQtyOrder,
+                        'total_qty_order' => $vQtyOrder,
+                        'total_selisih' => (float) ($v['selisih'] ?? 0),
+                        'status' => $vStatus,
+                        'harga_per_satuan' => (float) $ai->harga_per_satuan,
+                        'total_nominal_order' => $vNominal,
+                        'varian' => $varians,
+                        'generated_at' => $ai->generated_at?->format('d/m/Y H:i'),
+                        'generated_by' => $ai->generator?->name ?? 'Sistem',
+                    ];
+                }
+            } else {
+                $rows[] = [
+                    'id' => (string) $ai->id,
+                    'analisa_impor_id' => $ai->id,
+                    'produk_id' => $ai->produk_id,
+                    'sku' => $ai->produk?->sku,
+                    'nama' => $ai->produk?->nama,
+                    'is_varian' => false,
+                    'nama_varian' => null,
+                    'persentase' => null,
+                    'satuan' => $ai->produk?->satuan,
+                    'supplier_id' => $ai->produk?->supplier_id,
+                    'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
+                    'supplier_kategori' => $ai->produk?->supplier?->kategori ?? '-',
+                    'satuan_order_moq' => $ai->produk?->satuan_order_moq,
+                    'faktor_konversi' => (float) ($ai->produk?->faktor_konversi ?: 1),
+                    'punya_varian' => false,
+                    'periode_mulai' => $ai->periode_mulai?->format('Y-m-d'),
+                    'periode_akhir' => $ai->periode_akhir?->format('Y-m-d'),
+                    'jumlah_hari_periode' => (int) ($ai->jumlah_hari_periode ?: 122),
+                    'adu_base' => (float) $ai->adu_base,
+                    'adu_eta' => (float) $ai->adu_eta,
+                    'klasifikasi_abc' => $ai->klasifikasi_abc,
+                    'klasifikasi_abc_id' => $ai->klasifikasi_abc_id,
+                    'klasifikasi_abc_nama' => $ai->klasifikasiAbc?->nama ?? strtoupper($ai->klasifikasi_abc),
+                    'klasifikasi_abc_badge' => $ai->klasifikasiAbc?->warna_badge ?? 'gray',
+                    'tambahan_buffer_hari' => (int) $ai->tambahan_buffer_hari,
+                    'out' => (float) $ai->out,
+                    'parent_out' => (float) $ai->out,
+                    'parent_stok' => (float) $ai->stok_saat_ini,
+                    'parent_inbound' => (float) $ai->inbound_before_eta,
+                    'review_period' => (int) ($ai->review_period ?: 30),
+                    'lead_time_average' => (float) ($lt?->lead_time_average ?? $ai->lead_time),
+                    'lead_time_max' => (float) ($lt?->lead_time_max ?? 0),
+                    'buffer_days' => (float) $ai->buffer_days,
+                    'safety_stock' => (float) $ai->safety_stock,
+                    'minimum_stock' => (float) $ai->minimum_stock,
+                    'target_stock' => (float) $ai->target_stock,
+                    'stok_saat_ini' => (float) $ai->stok_saat_ini,
+                    'inbound_before_eta' => (float) $ai->inbound_before_eta,
+                    'proyeksi' => (float) $ai->proyeksi,
+                    'qty_order' => (float) $ai->qty_order,
+                    'po' => (float) $ai->po,
+                    'total_qty_order' => (float) ($ai->po ?: $ai->qty_order),
+                    'total_selisih' => (float) ($ai->proyeksi - $ai->target_stock),
+                    'status' => $ai->status,
+                    'harga_per_satuan' => (float) $ai->harga_per_satuan,
+                    'total_nominal_order' => (float) $ai->total_nominal_order,
+                    'varian' => [],
+                    'generated_at' => $ai->generated_at?->format('d/m/Y H:i'),
+                    'generated_by' => $ai->generator?->name ?? 'Sistem',
+                ];
+            }
+        }
 
         return response()->json([
             'data' => $rows,
@@ -628,84 +744,50 @@ class AnalisaController extends Controller
             $ids = array_filter(array_map('intval', $ids));
         }
 
-        $query = RekomendasiOrderLokal::with(['produk' => function ($q) {
-            $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
-                ->with('supplier:id,nama');
-        }]);
+        $tipe = $request->input('tipe');
+        $prefilledItems = collect();
 
-        if (! empty($ids)) {
-            $query->whereIn('id', $ids);
-        } else {
-            // Default: muat seluruh item yang statusnya perlu order ('order' atau 'po')
-            $query->whereIn('status', ['order', 'po']);
-        }
-
-        $rekomendasiList = $query->get();
-
-        // Fallback jika id yang dikirim adalah produk_id
-        if ($rekomendasiList->isEmpty() && ! empty($ids)) {
-            $rekomendasiList = RekomendasiOrderLokal::with(['produk' => function ($q) {
+        // 1. Muat Rekomendasi Lokal jika tipe bukan 'impor'
+        if ($tipe !== 'impor') {
+            $query = RekomendasiOrderLokal::with(['produk' => function ($q) {
                 $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
                     ->with('supplier:id,nama');
-            }])->whereIn('produk_id', $ids)->get();
-        }
+            }]);
 
-        // Susun item awal untuk form Alpine.js
-        $prefilledItems = $rekomendasiList->map(function ($r) {
-            $qty = (float) ($r->rumus_moq ?: $r->rekomendasi_order);
-            $satuan = $r->produk?->satuan ?? 'pcs';
-            $hargaSatuan = (float) $r->harga_ml_pcs;
-            $hargaTotal = (float) $r->total_nominal_order;
-            if ($hargaTotal <= 0 && $qty > 0 && $hargaSatuan > 0) {
-                $hargaTotal = round($qty * $hargaSatuan, 2);
+            if (! empty($ids)) {
+                $query->whereIn('id', $ids);
+            } else {
+                // Default: muat seluruh item yang statusnya perlu order ('order' atau 'po')
+                $query->whereIn('status', ['order', 'po']);
             }
 
-            return [
-                'id' => $r->id,
-                'produk_id' => $r->produk_id,
-                'sku' => $r->produk?->sku ?? '-',
-                'nama' => $r->produk?->nama ?? '-',
-                'supplier_id' => $r->produk?->supplier_id,
-                'supplier_nama' => $r->produk?->supplier?->nama ?? '-',
-                'satuan_dasar' => $satuan,
-                'satuan_beli' => $satuan,
-                'qty_satuan_beli' => $qty,
-                'faktor_konversi' => 1,
-                'qty' => $qty,
-                'harga_satuan' => $hargaSatuan,
-                'harga_total' => $hargaTotal,
-                'harga_hpp' => (float) ($r->produk?->harga_hpp ?? 0),
-            ];
-        })->values();
+            $rekomendasiList = $query->get();
 
-        // Dukung juga item dari AnalisaImpor jika ada $ids yang cocok atau jika rekomendasi lokal kosong
-        if (! empty($ids)) {
-            $imporItems = AnalisaImpor::with(['produk' => function ($q) {
-                $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
-                    ->with('supplier:id,nama');
-            }])
-                ->where(function ($q) use ($ids) {
-                    $q->whereIn('id', $ids)->orWhereIn('produk_id', $ids);
-                })
-                ->whereNotIn('produk_id', $prefilledItems->pluck('produk_id'))
-                ->get();
+            // Fallback jika id yang dikirim adalah produk_id
+            if ($rekomendasiList->isEmpty() && ! empty($ids)) {
+                $rekomendasiList = RekomendasiOrderLokal::with(['produk' => function ($q) {
+                    $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
+                        ->with('supplier:id,nama');
+                }])->whereIn('produk_id', $ids)->get();
+            }
 
-            $prefilledImpor = $imporItems->map(function ($ai) {
-                $qty = (float) ($ai->po ?: $ai->qty_order);
-                $satuan = $ai->produk?->satuan ?? 'pcs';
-                $hargaSatuan = (float) $ai->harga_per_satuan;
-                $hargaTotal = (float) $ai->total_nominal_order;
+            // Susun item awal untuk form Alpine.js
+            $prefilledLokal = $rekomendasiList->map(function ($r) {
+                $qty = (float) ($r->rumus_moq ?: $r->rekomendasi_order);
+                $satuan = $r->produk?->satuan ?? 'pcs';
+                $hargaSatuan = (float) $r->harga_ml_pcs;
+                $hargaTotal = (float) $r->total_nominal_order;
                 if ($hargaTotal <= 0 && $qty > 0 && $hargaSatuan > 0) {
                     $hargaTotal = round($qty * $hargaSatuan, 2);
                 }
 
                 return [
-                    'id' => 'impor_'.$ai->id,
-                    'produk_id' => $ai->produk_id,
-                    'sku' => $ai->produk?->sku ?? '-',
-                    'nama' => $ai->produk?->nama ?? '-',
-                    'supplier_id' => $ai->produk?->supplier_id,
-                    'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
+                    'id' => $r->id,
+                    'produk_id' => $r->produk_id,
+                    'sku' => $r->produk?->sku ?? '-',
+                    'nama' => $r->produk?->nama ?? '-',
+                    'supplier_id' => $r->produk?->supplier_id,
+                    'supplier_nama' => $r->produk?->supplier?->nama ?? '-',
                     'satuan_dasar' => $satuan,
                     'satuan_beli' => $satuan,
                     'qty_satuan_beli' => $qty,
@@ -713,9 +795,88 @@ class AnalisaController extends Controller
                     'qty' => $qty,
                     'harga_satuan' => $hargaSatuan,
                     'harga_total' => $hargaTotal,
-                    'harga_hpp' => (float) ($ai->produk?->harga_hpp ?? 0),
+                    'harga_hpp' => (float) ($r->produk?->harga_hpp ?? 0),
                 ];
             });
+
+            $prefilledItems = $prefilledItems->concat($prefilledLokal);
+        }
+
+        // 2. Dukung item dari AnalisaImpor jika tipe 'impor' atau jika $ids cocok
+        if ($tipe === 'impor' || ! empty($ids)) {
+            $imporQuery = AnalisaImpor::with(['produk' => function ($q) {
+                $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
+                    ->with('supplier:id,nama');
+            }]);
+
+            if (! empty($ids)) {
+                $imporQuery->where(function ($q) use ($ids) {
+                    $q->whereIn('id', $ids)->orWhereIn('produk_id', $ids);
+                });
+            } else {
+                $imporQuery->whereIn('status', ['order', 'po']);
+            }
+
+            if ($prefilledItems->isNotEmpty()) {
+                $imporQuery->whereNotIn('produk_id', $prefilledItems->pluck('produk_id'));
+            }
+
+            $imporItems = $imporQuery->get();
+
+            $prefilledImpor = collect();
+            foreach ($imporItems as $ai) {
+                $satuan = $ai->produk?->satuan ?? 'pcs';
+                $hargaSatuan = (float) $ai->harga_per_satuan;
+
+                if ($ai->punya_varian && ! empty($ai->varian_detail)) {
+                    foreach ($ai->varian_detail as $vIdx => $v) {
+                        $vQty = (float) ($v['qty_order'] ?? 0);
+                        if ($vQty <= 0) continue;
+                        $vNominal = round($vQty * $hargaSatuan, 2);
+
+                        $prefilledImpor->push([
+                            'id' => 'impor_'.$ai->id.'_'.$vIdx,
+                            'produk_id' => $ai->produk_id,
+                            'sku' => $ai->produk?->sku ?? '-',
+                            'nama' => ($ai->produk?->nama ?? '-') . ' - Varian: ' . ($v['nama_varian'] ?? '-'),
+                            'nama_varian' => $v['nama_varian'] ?? null,
+                            'supplier_id' => $ai->produk?->supplier_id,
+                            'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
+                            'satuan_dasar' => $satuan,
+                            'satuan_beli' => $satuan,
+                            'qty_satuan_beli' => $vQty,
+                            'faktor_konversi' => 1,
+                            'qty' => $vQty,
+                            'harga_satuan' => $hargaSatuan,
+                            'harga_total' => $vNominal,
+                            'harga_hpp' => (float) ($ai->produk?->harga_hpp ?? 0),
+                        ]);
+                    }
+                } else {
+                    $qty = (float) ($ai->po ?: $ai->qty_order);
+                    $hargaTotal = (float) $ai->total_nominal_order;
+                    if ($hargaTotal <= 0 && $qty > 0 && $hargaSatuan > 0) {
+                        $hargaTotal = round($qty * $hargaSatuan, 2);
+                    }
+
+                    $prefilledImpor->push([
+                        'id' => 'impor_'.$ai->id,
+                        'produk_id' => $ai->produk_id,
+                        'sku' => $ai->produk?->sku ?? '-',
+                        'nama' => $ai->produk?->nama ?? '-',
+                        'supplier_id' => $ai->produk?->supplier_id,
+                        'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
+                        'satuan_dasar' => $satuan,
+                        'satuan_beli' => $satuan,
+                        'qty_satuan_beli' => $qty,
+                        'faktor_konversi' => 1,
+                        'qty' => $qty,
+                        'harga_satuan' => $hargaSatuan,
+                        'harga_total' => $hargaTotal,
+                        'harga_hpp' => (float) ($ai->produk?->harga_hpp ?? 0),
+                    ]);
+                }
+            }
 
             $prefilledItems = $prefilledItems->concat($prefilledImpor);
         }
