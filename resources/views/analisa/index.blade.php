@@ -1013,10 +1013,9 @@
               review_period: Number(this.manualImporForm.review_period) || 30,
               klasifikasi_abc: this.manualImporForm.klasifikasi_abc || 'c',
               klasifikasi_abc_id: this.manualImporForm.klasifikasi_abc_id ? Number(this.manualImporForm.klasifikasi_abc_id) : null,
-              stok_saat_ini: this.manualImporForm.punya_varian ? null : (Number(this.manualImporForm.stok_saat_ini) || 0),
-              inbound_before_eta: this.manualImporForm.punya_varian ? null : (Number(this.manualImporForm.inbound_before_eta) || 0),
+              stok_saat_ini: Number(this.manualImporForm.stok_saat_ini) || 0,
+              inbound_before_eta: Number(this.manualImporForm.inbound_before_eta) || 0,
               harga_per_satuan: Number(this.manualImporForm.harga_per_satuan) || 0,
-              varians: this.manualImporForm.punya_varian ? this.manualImporForm.varians : undefined
             };
             const res = await fetch('{{ route('analisa.update-manual-impor') }}', {
               method: 'POST',

@@ -425,19 +425,11 @@ class AnalisaController extends Controller
                 $metaVarians = AnalisaImporVarian::where('analisa_impor_meta_id', $meta->id)->get();
                 if ($metaVarians->isNotEmpty()) {
                     foreach ($metaVarians as $mv) {
-                        if (isset($data['varians']) && is_array($data['varians'])) {
-                            $vData = collect($data['varians'])->firstWhere('id', $mv->id);
-                            if ($vData) {
-                                if (array_key_exists('stok_saat_ini', $vData)) $mv->stok_saat_ini = $vData['stok_saat_ini'];
-                                if (array_key_exists('inbound_before_eta', $vData)) $mv->inbound_before_eta = $vData['inbound_before_eta'];
-                            }
-                        } else {
-                            if (array_key_exists('stok_saat_ini', $data) && $data['stok_saat_ini'] !== null) {
-                                $mv->stok_saat_ini = round((float) $mv->persentase_distribusi * (float) $data['stok_saat_ini']);
-                            }
-                            if (array_key_exists('inbound_before_eta', $data) && $data['inbound_before_eta'] !== null) {
-                                $mv->inbound_before_eta = round((float) $mv->persentase_distribusi * (float) $data['inbound_before_eta']);
-                            }
+                        if (array_key_exists('stok_saat_ini', $data) && $data['stok_saat_ini'] !== null) {
+                            $mv->stok_saat_ini = round((float) $mv->persentase_distribusi * (float) $data['stok_saat_ini']);
+                        }
+                        if (array_key_exists('inbound_before_eta', $data) && $data['inbound_before_eta'] !== null) {
+                            $mv->inbound_before_eta = round((float) $mv->persentase_distribusi * (float) $data['inbound_before_eta']);
                         }
                         $mv->save();
                     }

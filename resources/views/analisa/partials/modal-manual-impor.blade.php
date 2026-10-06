@@ -124,65 +124,27 @@
             <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2.5 pb-1 border-b border-gray-200 flex items-center gap-1.5">
                 <span>3. Stok, Inbound & Finansial</span>
             </h4>
-            <template x-if="manualImporForm.punya_varian">
-                <div class="mb-3 overflow-x-auto border border-gray-200 rounded-sm">
-                    <table class="w-full text-xs text-left">
-                        <thead class="bg-gray-100 text-gray-700 font-semibold border-b border-gray-200">
-                            <tr>
-                                <th class="py-2 px-3">Varian</th>
-                                <th class="py-2 px-3 text-right">Persentase</th>
-                                <th class="py-2 px-3">Stok Saat Ini</th>
-                                <th class="py-2 px-3">Inbound Sblm ETA</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 bg-white">
-                            <template x-for="(v, idx) in manualImporForm.varians" :key="v.id || idx">
-                                <tr>
-                                    <td class="py-2 px-3 font-medium text-gray-900" x-text="v.nama_varian"></td>
-                                    <td class="py-2 px-3 font-mono text-gray-500 text-right" x-text="Math.round(v.persentase_distribusi * 100) + '%'"></td>
-                                    <td class="py-2 px-3">
-                                        <div class="relative flex items-center">
-                                            <input type="number" step="1" min="0" x-model.number="v.stok_saat_ini" class="w-full px-2 py-1 text-xs rounded-sm border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-gray-900 pr-8">
-                                            <span class="absolute right-2 text-[10px] text-gray-500 pointer-events-none" x-text="manualImporForm.satuan"></span>
-                                        </div>
-                                    </td>
-                                    <td class="py-2 px-3">
-                                        <div class="relative flex items-center">
-                                            <input type="number" step="1" min="0" x-model.number="v.inbound_before_eta" class="w-full px-2 py-1 text-xs rounded-sm border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-gray-900 pr-8">
-                                            <span class="absolute right-2 text-[10px] text-gray-500 pointer-events-none" x-text="manualImporForm.satuan"></span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-            </template>
-
-            <template x-if="!manualImporForm.punya_varian">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs mb-3">
-                    <div class="p-3 bg-gray-50 rounded-sm border border-gray-200 shadow-2xs">
-                        <label class="font-semibold text-gray-800 block mb-1">
-                            Stok Fisik Saat Ini
-                        </label>
-                        <p class="text-[11px] text-gray-500 mb-2">Stok riil di gudang impor.</p>
-                        <div class="relative flex items-center">
-                            <input type="number" step="1" min="0" x-model.number="manualImporForm.stok_saat_ini" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-bold text-gray-900 pr-12 shadow-xs">
-                            <span class="absolute right-2.5 text-[11px] text-gray-500 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
-                        </div>
-                    </div>
-                    <div class="p-3 bg-gray-50 rounded-sm border border-gray-200 shadow-2xs">
-                        <label class="font-semibold text-gray-800 block mb-1">
-                            Inbound Sebelum ETA
-                        </label>
-                        <p class="text-[11px] text-gray-500 mb-2">PO dalam perjalanan sebelum tiba.</p>
-                        <div class="relative flex items-center">
-                            <input type="number" step="1" min="0" x-model.number="manualImporForm.inbound_before_eta" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-bold text-gray-900 pr-12 shadow-xs">
-                            <span class="absolute right-2.5 text-[11px] text-gray-500 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
-                        </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div class="p-3 bg-gray-50 rounded-sm border border-gray-200 shadow-2xs">
+                    <label class="font-semibold text-gray-800 block mb-1">
+                        Stok Fisik Saat Ini
+                    </label>
+                    <p class="text-[11px] text-gray-500 mb-2">Stok riil di gudang impor.</p>
+                    <div class="relative flex items-center">
+                        <input type="number" step="0.01" min="0" x-model.number="manualImporForm.stok_saat_ini" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-bold text-gray-900 pr-12 shadow-xs">
+                        <span class="absolute right-2.5 text-[11px] text-gray-500 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
                     </div>
                 </div>
-            </template>
+                <div class="p-3 bg-gray-50 rounded-sm border border-gray-200 shadow-2xs">
+                    <label class="font-semibold text-gray-800 block mb-1">
+                        Inbound Sebelum ETA
+                    </label>
+                    <p class="text-[11px] text-gray-500 mb-2">PO dalam perjalanan sebelum tiba.</p>
+                    <div class="relative flex items-center">
+                        <input type="number" step="0.01" min="0" x-model.number="manualImporForm.inbound_before_eta" class="w-full px-3 py-1.5 text-xs rounded-sm border border-gray-300 bg-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono font-bold text-gray-900 pr-12 shadow-xs">
+                        <span class="absolute right-2.5 text-[11px] text-gray-500 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
+                    </div>
+                </div>
                 <div class="p-3 bg-gray-50 rounded-sm border border-gray-200 shadow-2xs">
                     <label class="font-semibold text-gray-800 block mb-1">
                         Harga per Satuan (Rp)
