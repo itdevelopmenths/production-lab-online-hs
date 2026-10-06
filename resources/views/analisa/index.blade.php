@@ -376,11 +376,7 @@
         },
         formatNumber(v){
           if (v === null || v === undefined || isNaN(v)) return '0';
-          const num = Number(v);
-          if (Math.abs(num - Math.round(num)) < 0.00001) {
-            return num.toLocaleString('id-ID', { maximumFractionDigits: 0 });
-          }
-          return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          return Math.round(Number(v)).toLocaleString('id-ID');
         },
         fmt(v, colName){
           if (typeof v === 'number') {
@@ -950,14 +946,14 @@
         simulasiImporAdu(){
           const out = Number(this.manualImporForm.out) || 0;
           const days = this.simulasiImporJumlahHari();
-          return (days > 0 ? (out / days) : 0).toFixed(4);
+          return Math.round(days > 0 ? (out / days) : 0);
         },
         simulasiImporAduEta(){
           const aduBase = Number(this.simulasiImporAdu()) || 0;
           const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
           const rp = Number(this.manualImporForm.review_period) || 30;
           const eta = aduBase + (rp > 0 ? (avgLt / rp) : 0);
-          return eta.toFixed(4);
+          return Math.round(eta);
         },
         simulasiImporSafetyStock(){
           const aduEta = Number(this.simulasiImporAduEta()) || 0;

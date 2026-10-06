@@ -426,10 +426,10 @@ class AnalisaController extends Controller
                 if ($metaVarians->isNotEmpty()) {
                     foreach ($metaVarians as $mv) {
                         if (array_key_exists('stok_saat_ini', $data) && $data['stok_saat_ini'] !== null) {
-                            $mv->stok_saat_ini = round((float) $mv->persentase_distribusi * (float) $data['stok_saat_ini'], 2);
+                            $mv->stok_saat_ini = round((float) $mv->persentase_distribusi * (float) $data['stok_saat_ini']);
                         }
                         if (array_key_exists('inbound_before_eta', $data) && $data['inbound_before_eta'] !== null) {
-                            $mv->inbound_before_eta = round((float) $mv->persentase_distribusi * (float) $data['inbound_before_eta'], 2);
+                            $mv->inbound_before_eta = round((float) $mv->persentase_distribusi * (float) $data['inbound_before_eta']);
                         }
                         $mv->save();
                     }
@@ -474,7 +474,7 @@ class AnalisaController extends Controller
             if ($ai->punya_varian && ! empty($varians)) {
                 foreach ($varians as $vIdx => $v) {
                     $vQtyOrder = (float) ($v['qty_order'] ?? 0);
-                    $vNominal = round($vQtyOrder * (float) $ai->harga_per_satuan, 2);
+                    $vNominal = round($vQtyOrder * (float) $ai->harga_per_satuan);
                     $vStatus = $v['status'] ?? ($vQtyOrder > 0 ? 'po' : 'tidak');
 
                     $rows[] = [
@@ -778,7 +778,7 @@ class AnalisaController extends Controller
                 $hargaSatuan = (float) $r->harga_ml_pcs;
                 $hargaTotal = (float) $r->total_nominal_order;
                 if ($hargaTotal <= 0 && $qty > 0 && $hargaSatuan > 0) {
-                    $hargaTotal = round($qty * $hargaSatuan, 2);
+                    $hargaTotal = round($qty * $hargaSatuan);
                 }
 
                 return [
@@ -832,7 +832,7 @@ class AnalisaController extends Controller
                     foreach ($ai->varian_detail as $vIdx => $v) {
                         $vQty = (float) ($v['qty_order'] ?? 0);
                         if ($vQty <= 0) continue;
-                        $vNominal = round($vQty * $hargaSatuan, 2);
+                        $vNominal = round($vQty * $hargaSatuan);
 
                         $prefilledImpor->push([
                             'id' => 'impor_'.$ai->id.'_'.$vIdx,
@@ -856,7 +856,7 @@ class AnalisaController extends Controller
                     $qty = (float) ($ai->po ?: $ai->qty_order);
                     $hargaTotal = (float) $ai->total_nominal_order;
                     if ($hargaTotal <= 0 && $qty > 0 && $hargaSatuan > 0) {
-                        $hargaTotal = round($qty * $hargaSatuan, 2);
+                        $hargaTotal = round($qty * $hargaSatuan);
                     }
 
                     $prefilledImpor->push([

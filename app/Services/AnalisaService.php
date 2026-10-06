@@ -125,8 +125,8 @@ class AnalisaService
             }
 
             $adu = $terjual / 30;
-            $batasMinimum = round($adu * ($totalAvg + $safetyStock), 2);
-            $targetStock = round($adu * ($totalAvg + $safetyStock + $reviewPeriod), 2);
+            $batasMinimum = round($adu * ($totalAvg + $safetyStock));
+            $targetStock = round($adu * ($totalAvg + $safetyStock + $reviewPeriod));
 
             $analisaLokal = AnalisaLokal::updateOrCreate(
                 ['produk_id' => $p->id],
@@ -134,7 +134,7 @@ class AnalisaService
                     'total_average_lead_time' => $totalAvg,
                     'safety_stock' => $safetyStock,
                     'terjual_rata_rata_4bulan' => $terjual,
-                    'adu' => round($adu, 4),
+                    'adu' => round($adu),
                     'review_period' => $reviewPeriod,
                     'batas_minimum' => $batasMinimum,
                     'target_stock' => $targetStock,
@@ -159,17 +159,17 @@ class AnalisaService
 
             $tersedia = $stokSaatIni + $akanDatang;
             $isOrder = $tersedia <= $batasMinimum;
-            $selisih = round($tersedia - $batasMinimum, 2);
+            $selisih = round($tersedia - $batasMinimum);
             $status = $isOrder ? 'order' : 'tidak';
 
             $moq = (float) ($p->satuan_order_moq ?: 1);
             $rumusMoq = $isOrder ? $this->bulatkanMoq(abs($selisih), $moq) : 0.0;
 
             $faktor = (float) ($p->faktor_konversi ?: 1);
-            $rekomendasiOrder = ($faktor > 0) ? round($rumusMoq / $faktor, 2) : $rumusMoq;
+            $rekomendasiOrder = ($faktor > 0) ? round($rumusMoq / $faktor) : $rumusMoq;
 
             $hargaSatuan = (float) ($existingInput?->harga_per_satuan ?: ($p->harga_hpp ?: 0));
-            $totalNominal = round($rumusMoq * $hargaSatuan, 2);
+            $totalNominal = round($rumusMoq * $hargaSatuan);
 
             $rekLokal = RekomendasiOrderLokal::updateOrCreate(
                 ['produk_id' => $p->id],
@@ -303,21 +303,21 @@ class AnalisaService
             $varianHasil[] = [
                 'nama_varian' => $v->nama_varian,
                 'persentase' => $distribusi,
-                'out' => round($out, 2),
-                'adu_base' => round($aduBase, 4),
-                'adu_eta' => round($aduEta, 4),
-                'adu' => round($aduEta, 4),
-                'stok' => round((float) $v->stok_saat_ini, 2),
-                'buffer_days' => round($bufferDays, 2),
-                'safety_stock' => round($safetyStock, 2),
-                'minimum_stock' => round($minimumStock, 2),
-                'target_stock' => round($targetStock, 2),
-                'stok_saat_ini' => round((float) $v->stok_saat_ini, 2),
-                'inbound' => round((float) $v->inbound_before_eta, 2),
-                'proyeksi' => round($proyeksi, 2),
-                'selisih' => round($selisih, 2),
+                'out' => round($out),
+                'adu_base' => round($aduBase),
+                'adu_eta' => round($aduEta),
+                'adu' => round($aduEta),
+                'stok' => round((float) $v->stok_saat_ini),
+                'buffer_days' => round($bufferDays),
+                'safety_stock' => round($safetyStock),
+                'minimum_stock' => round($minimumStock),
+                'target_stock' => round($targetStock),
+                'stok_saat_ini' => round((float) $v->stok_saat_ini),
+                'inbound' => round((float) $v->inbound_before_eta),
+                'proyeksi' => round($proyeksi),
+                'selisih' => round($selisih),
                 'status' => $isPo ? 'po' : 'tidak',
-                'qty_order' => round($qtyOrder, 2),
+                'qty_order' => round($qtyOrder),
             ];
         }
 
@@ -464,21 +464,21 @@ class AnalisaService
                     $varianDetails[] = [
                         'nama_varian' => $v->nama_varian,
                         'persentase' => $distribusi,
-                        'out' => round($vOut, 2),
-                        'adu_base' => round($vAduBase, 4),
-                        'adu_eta' => round($vAduEta, 4),
-                        'adu' => round($vAduEta, 4),
-                        'buffer_days' => round($bufferDays, 2),
-                        'safety_stock' => round($vSafety, 2),
-                        'minimum_stock' => round($vMin, 2),
-                        'target_stock' => round($vTarget, 2),
-                        'stok_saat_ini' => round($vStok, 2),
-                        'stok' => round($vStok, 2),
-                        'inbound' => round($vInbound, 2),
-                        'proyeksi' => round($vProyeksi, 2),
-                        'selisih' => round($vSelisih, 2),
+                        'out' => round($vOut),
+                        'adu_base' => round($vAduBase),
+                        'adu_eta' => round($vAduEta),
+                        'adu' => round($vAduEta),
+                        'buffer_days' => round($bufferDays),
+                        'safety_stock' => round($vSafety),
+                        'minimum_stock' => round($vMin),
+                        'target_stock' => round($vTarget),
+                        'stok_saat_ini' => round($vStok),
+                        'stok' => round($vStok),
+                        'inbound' => round($vInbound),
+                        'proyeksi' => round($vProyeksi),
+                        'selisih' => round($vSelisih),
                         'status' => $vIsPo ? 'po' : 'tidak',
-                        'qty_order' => round($vPo, 2),
+                        'qty_order' => round($vPo),
                     ];
                 }
             } else {
@@ -508,29 +508,29 @@ class AnalisaService
             $analisaImpor = AnalisaImpor::updateOrCreate(
                 ['produk_id' => $p->id],
                 [
-                    'out' => round($out, 2),
+                    'out' => round($out),
                     'periode_mulai' => $periodeMulai,
                     'periode_akhir' => $periodeAkhir,
                     'jumlah_hari_periode' => $jumlahHari,
-                    'adu_base' => round($aduBase, 4),
-                    'adu_eta' => round($aduEta, 4),
+                    'adu_base' => round($aduBase),
+                    'adu_eta' => round($aduEta),
                     'lead_time' => $ltAvg,
                     'review_period' => $reviewPeriod,
                     'klasifikasi_abc' => $klasifikasiAbc,
                     'klasifikasi_abc_id' => $klasifikasiAbcId,
                     'tambahan_buffer_hari' => $tambahanHari,
-                    'buffer_days' => round($bufferDays, 2),
-                    'safety_stock' => round($totalSafetyStock, 2),
-                    'minimum_stock' => round($totalMinStock, 2),
-                    'target_stock' => round($totalTargetStock, 2),
-                    'stok_saat_ini' => round($totalStok, 2),
-                    'inbound_before_eta' => round($totalInbound, 2),
-                    'proyeksi' => round($totalProyeksi, 2),
-                    'qty_order' => round($totalQtyOrder, 2),
-                    'po' => round($totalPo, 2),
+                    'buffer_days' => round($bufferDays),
+                    'safety_stock' => round($totalSafetyStock),
+                    'minimum_stock' => round($totalMinStock),
+                    'target_stock' => round($totalTargetStock),
+                    'stok_saat_ini' => round($totalStok),
+                    'inbound_before_eta' => round($totalInbound),
+                    'proyeksi' => round($totalProyeksi),
+                    'qty_order' => round($totalQtyOrder),
+                    'po' => round($totalPo),
                     'status' => $status,
-                    'harga_per_satuan' => round($harga, 2),
-                    'total_nominal_order' => round($totalNominal, 2),
+                    'harga_per_satuan' => round($harga),
+                    'total_nominal_order' => round($totalNominal),
                     'punya_varian' => $punyaVarian,
                     'varian_detail' => $varianDetails,
                     'generated_at' => $now,
