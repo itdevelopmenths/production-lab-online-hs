@@ -57,7 +57,7 @@
         <!-- Group 2: Analisa & Parameter Pemakaian Impor (3.2) -->
         <div>
             <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2.5 pb-1 border-b border-gray-200 flex items-center gap-1.5">
-                <span>2. Parameter Analisa Pemakaian (analisa_impor - PRD v2.2)</span>
+                <span>2. Parameter Analisa Pemakaian</span>
             </h4>
 
             {{-- Rentang Tanggal Kalender Riil --}}
@@ -158,12 +158,16 @@
             </div>
         </div>
 
-        {{-- Live Calculation Preview Callout (AdminLTE Callout PRD v2.2) --}}
+        {{-- Live Calculation Preview Callout --}}
         <div class="bg-gray-50 border border-gray-200 border-l-4 border-l-primary-600 rounded-r-sm p-3 shadow-2xs space-y-2">
             <div class="text-[10px] font-bold text-gray-700 uppercase tracking-wider flex items-center justify-between">
                 <div class="flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                    <span>Simulasi Live Hasil Analisa Impor (PRD v2.2):</span>
+                    <span>
+                        Simulasi Hasil Analisa
+                        <span> Impor </span>
+                        :
+                    </span>
                 </div>
                 <div class="text-[11px] font-normal text-gray-500">
                     MOQ: <span class="font-mono font-bold text-gray-800" x-text="formatNumber(manualImporForm.satuan_order_moq || 1) + ' ' + (manualImporForm.satuan || '')"></span>

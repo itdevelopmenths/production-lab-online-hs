@@ -336,7 +336,7 @@
           impor: [
             ['sku', 'SKU', 'text-left'],
             ['nama', 'Nama Bahan', 'text-left'],
-            ['nama_varian', 'Varian', 'text-left'],
+
             ['supplier_nama', 'Supplier', 'text-left'],
             ['klasifikasi_abc', 'ABC', 'text-center'],
             ['buffer_days', 'Buffer Hari', 'text-right'],
@@ -381,9 +381,9 @@
         fmt(v, colName){
           if (typeof v === 'number') {
             if (colName === 'total_nominal_order') {
-              return 'Rp ' + v.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+              return 'Rp ' + Math.round(v).toLocaleString('id-ID', { maximumFractionDigits: 0 });
             }
-            return v.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+            return Math.round(v).toLocaleString('id-ID', { maximumFractionDigits: 0 });
           }
           return v ?? '-';
         },
@@ -423,7 +423,7 @@
             list = list.filter(r => 
               (r.nama && r.nama.toLowerCase().includes(q)) || 
               (r.sku && r.sku.toLowerCase().includes(q)) ||
-              (r.nama_varian && r.nama_varian.toLowerCase().includes(q)) ||
+
               (r.supplier_nama && r.supplier_nama.toLowerCase().includes(q)) ||
               (r.item_label && r.item_label.toLowerCase().includes(q)) ||
               (r.session_id && r.session_id.toLowerCase().includes(q)) ||
@@ -794,7 +794,8 @@
           this.showManualLokalModal = true;
         },
         simulasiLokalAdu(){
-          return ((Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30).toFixed(4);
+          const terjual = Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0;
+          return this.formatNumber(terjual / 30);
         },
         simulasiLokalBatasMin(){
           const adu = (Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30;
@@ -802,7 +803,7 @@
           const maxLt = Number(this.manualLokalForm.total_max_lead_time) || 0;
           const buffer = Number(this.manualLokalForm.tambahan_buffer_hari) || 0;
           const ss = maxLt > 0 ? (Math.max(0, maxLt - avgLt) + buffer) : (Number(this.manualLokalForm.safety_stock) || 0);
-          return this.formatNumber(adu * (avgLt + ss));
+          return this.formatNumber(Math.round(adu * (avgLt + ss)));
         },
         simulasiLokalTarget(){
           const adu = (Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30;
@@ -811,8 +812,7 @@
           const buffer = Number(this.manualLokalForm.tambahan_buffer_hari) || 0;
           const ss = maxLt > 0 ? (Math.max(0, maxLt - avgLt) + buffer) : (Number(this.manualLokalForm.safety_stock) || 0);
           const rp = Number(this.manualLokalForm.review_period) || 15;
-          const batasMin = adu * (avgLt + ss);
-          return this.formatNumber(batasMin + (adu * rp));
+          return this.formatNumber(Math.round(adu * (avgLt + ss + rp)));
         },
         simulasiLokalOrder(){
           const adu = (Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0) / 30;
@@ -820,12 +820,17 @@
           const maxLt = Number(this.manualLokalForm.total_max_lead_time) || 0;
           const buffer = Number(this.manualLokalForm.tambahan_buffer_hari) || 0;
           const ss = maxLt > 0 ? (Math.max(0, maxLt - avgLt) + buffer) : (Number(this.manualLokalForm.safety_stock) || 0);
-          const rp = Number(this.manualLokalForm.review_period) || 15;
-          const target = (adu * (avgLt + ss)) + (adu * rp);
+          const batasMin = Math.round(adu * (avgLt + ss));
           const stok = Number(this.manualLokalForm.stok_saat_ini) || 0;
           const akanDatang = Number(this.manualLokalForm.akan_datang) || 0;
-          const ord = Math.max(0, target - stok - akanDatang);
-          return this.formatNumber(ord) + ' ' + (this.manualLokalForm.satuan || '');
+          const tersedia = stok + akanDatang;
+          if (tersedia > batasMin) {
+            return '0 ' + (this.manualLokalForm.satuan || '');
+          }
+          const selisih = Math.abs(tersedia - batasMin);
+          const moq = Number(this.manualLokalForm.satuan_order_moq) || 1;
+          const roundedOrder = moq > 1 ? Math.ceil(selisih / moq) * moq : Math.ceil(selisih);
+          return this.formatNumber(Math.round(roundedOrder)) + ' ' + (this.manualLokalForm.satuan || '');
         },
         async saveManualLokal(){
           this.savingManualLokal = true;
@@ -905,6 +910,7 @@
             inbound_before_eta: item.parent_inbound !== undefined ? item.parent_inbound : (item.inbound_before_eta || 0),
             harga_per_satuan: item.harga_per_satuan || 0,
             satuan_order_moq: Number(item.satuan_order_moq) || 1,
+
           };
 
           if (!this.manualImporForm.klasifikasi_abc_id && this.klasifikasiAbcList.length > 0) {
@@ -946,59 +952,66 @@
         simulasiImporAdu(){
           const out = Number(this.manualImporForm.out) || 0;
           const days = this.simulasiImporJumlahHari();
-          return Math.round(days > 0 ? (out / days) : 0);
+          let base = days > 0 ? (out / days) : 0;
+
+          return this.formatNumber(base);
+        },
+        simulasiImporAduEtaRaw(){
+          const out = Number(this.manualImporForm.out) || 0;
+          const days = this.simulasiImporJumlahHari();
+          const aduBase = days > 0 ? (out / days) : 0;
+          const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
+          const rp = Number(this.manualImporForm.review_period) || 30;
+          return aduBase + (rp > 0 ? (avgLt / rp) : 0);
         },
         simulasiImporAduEta(){
-          const aduBase = Number(this.simulasiImporAdu()) || 0;
-          const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
-          const rp = Number(this.manualImporForm.review_period) || 30;
-          const eta = aduBase + (rp > 0 ? (avgLt / rp) : 0);
-          return Math.round(eta);
+          return this.formatNumber(this.simulasiImporAduEtaRaw());
         },
         simulasiImporSafetyStock(){
-          const aduEta = Number(this.simulasiImporAduEta()) || 0;
+          const aduEta = this.simulasiImporAduEtaRaw();
           const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
           const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
           const bufferDays = Math.max(0, maxLt - avgLt) + this.simulasiImporTambahanBuffer();
-          return this.formatNumber(bufferDays * aduEta);
+          return this.formatNumber(Math.round(bufferDays * aduEta));
         },
         simulasiImporTarget(){
-          const aduEta = Number(this.simulasiImporAduEta()) || 0;
+          const aduEta = this.simulasiImporAduEtaRaw();
           const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
           const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
           const rp = Number(this.manualImporForm.review_period) || 30;
           const bufferDays = Math.max(0, maxLt - avgLt) + this.simulasiImporTambahanBuffer();
-          const target = aduEta * (avgLt + bufferDays + rp);
+          const target = Math.floor((aduEta * (avgLt + bufferDays + rp)) + 0.0001);
           return this.formatNumber(target);
         },
         simulasiImporProyeksiRaw(){
-          const aduEta = Number(this.simulasiImporAduEta()) || 0;
+          const aduEta = this.simulasiImporAduEtaRaw();
           const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
-          const minStock = aduEta * avgLt;
-          const stok = Number(this.manualImporForm.stok_saat_ini) || 0;
-          const inbound = Number(this.manualImporForm.inbound_before_eta) || 0;
-          return stok + inbound - minStock;
+          const minStock = Math.round(aduEta * avgLt);
+          let stok = Number(this.manualImporForm.stok_saat_ini) || 0;
+          let inbound = Number(this.manualImporForm.inbound_before_eta) || 0;
+          
+          return Math.round(stok + inbound - minStock);
         },
         simulasiImporProyeksi(){
           return this.formatNumber(this.simulasiImporProyeksiRaw());
         },
         simulasiImporOrder(){
           const proyeksi = this.simulasiImporProyeksiRaw();
-          const aduEta = Number(this.simulasiImporAduEta()) || 0;
+          const aduEta = this.simulasiImporAduEtaRaw();
           const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
           const maxLt = Number(this.manualImporForm.lead_time_max) || 0;
           const rp = Number(this.manualImporForm.review_period) || 30;
           const bufferDays = Math.max(0, maxLt - avgLt) + this.simulasiImporTambahanBuffer();
-          const target = aduEta * (avgLt + bufferDays + rp);
+          const target = Math.floor((aduEta * (avgLt + bufferDays + rp)) + 0.0001);
 
-          const selisih = proyeksi - target;
+          const selisih = Math.round(proyeksi - target);
           if (selisih >= 0) {
             return '0 ' + (this.manualImporForm.satuan || '');
           }
           const rawOrder = Math.abs(selisih);
-          const moq = Number(this.manualImporForm.satuan_order_moq) || 1;
+          const moq = Math.round(Number(this.manualImporForm.satuan_order_moq) || 1);
           const roundedOrder = moq > 1 ? Math.ceil(rawOrder / moq) * moq : Math.ceil(rawOrder);
-          return this.formatNumber(roundedOrder) + ' ' + (this.manualImporForm.satuan || '');
+          return this.formatNumber(Math.round(roundedOrder)) + ' ' + (this.manualImporForm.satuan || '');
         },
         async saveManualImpor(){
           this.savingManualImpor = true;

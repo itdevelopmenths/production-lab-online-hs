@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\AnalisaFulfillmentInput;
 use App\Models\AnalisaImpor;
 use App\Models\AnalisaImporMeta;
-use App\Models\AnalisaImporVarian;
 use App\Models\AnalisaLokal;
 use App\Models\AnalisaLokalInput;
 use App\Models\KlasifikasiAbc;
@@ -125,8 +124,8 @@ class AnalisaService
             }
 
             $adu = $terjual / 30;
-            $batasMinimum = round($adu * ($totalAvg + $safetyStock));
-            $targetStock = round($adu * ($totalAvg + $safetyStock + $reviewPeriod));
+            $batasMinimum = $adu * ($totalAvg + $safetyStock);
+            $targetStock = $adu * ($totalAvg + $safetyStock + $reviewPeriod);
 
             $analisaLokal = AnalisaLokal::updateOrCreate(
                 ['produk_id' => $p->id],
@@ -134,7 +133,7 @@ class AnalisaService
                     'total_average_lead_time' => $totalAvg,
                     'safety_stock' => $safetyStock,
                     'terjual_rata_rata_4bulan' => $terjual,
-                    'adu' => round($adu),
+                    'adu' => $adu,
                     'review_period' => $reviewPeriod,
                     'batas_minimum' => $batasMinimum,
                     'target_stock' => $targetStock,
@@ -159,7 +158,7 @@ class AnalisaService
 
             $tersedia = $stokSaatIni + $akanDatang;
             $isOrder = $tersedia <= $batasMinimum;
-            $selisih = round($tersedia - $batasMinimum);
+            $selisih = $tersedia - $batasMinimum;
             $status = $isOrder ? 'order' : 'tidak';
 
             $moq = (float) ($p->satuan_order_moq ?: 1);
@@ -232,12 +231,12 @@ class AnalisaService
         }
 
         $adu = (float) $input->terjual_rata_rata_4bulan / 30;
-        $batasMinimum = $adu * ($totalAvg + $safetyStockHari);
-        $targetStock = $adu * ($totalAvg + $safetyStockHari + (int) $input->review_period);
+        $batasMinimum = round($adu * ($totalAvg + $safetyStockHari));
+        $targetStock = round($adu * ($totalAvg + $safetyStockHari + (int) $input->review_period));
 
         $tersedia = (float) $input->stok_saat_ini + (float) $input->akan_datang;
         $isOrder = $tersedia <= $batasMinimum;
-        $selisih = $tersedia - $batasMinimum;
+        $selisih = round($tersedia - $batasMinimum);
         $qtyOrder = $isOrder ? $this->bulatkanMoq(abs($selisih), $moq) : 0;
 
         return [
@@ -251,7 +250,7 @@ class AnalisaService
             'selisih' => $selisih,
             'status' => $isOrder ? 'order' : 'tidak',
             'qty_order' => $qtyOrder,
-            'total_nominal_order' => $qtyOrder * (float) $input->harga_per_satuan,
+            'total_nominal_order' => round($qtyOrder * (float) $input->harga_per_satuan),
         ];
     }
 
@@ -281,43 +280,88 @@ class AnalisaService
         $totalQtyOrder = 0.0;
         $totalSelisih = 0.0;
 
-        foreach ($meta->varian as $v) {
-            $out = (float) $v->persentase_distribusi * (float) $meta->out_total_4bulan;
-            $aduBase = $jumlahHari > 0 ? ($out / $jumlahHari) : 0;
-            $distribusi = (float) $v->persentase_distribusi;
+        $hasVarianTable = \Illuminate\Support\Facades\Schema::hasTable('analisa_impor_varian');
+        $varians = $hasVarianTable ? $meta->varian : collect();
 
-            // ADU ETA proporsional per varian
-            $aduEta = $aduBase + ($reviewPeriod > 0 ? ($distribusi * ($ltAvg / $reviewPeriod)) : 0);
+        if ($varians->isNotEmpty()) {
+            foreach ($varians as $v) {
+                $out = round((float) $v->persentase_distribusi * (float) $meta->out_total_4bulan);
+                $aduBase = round($jumlahHari > 0 ? ($out / $jumlahHari) : 0);
+                $distribusi = (float) $v->persentase_distribusi;
 
-            $safetyStock = $aduEta * $bufferDays;
-            $minimumStock = $aduEta * $ltAvg;
-            $targetStock = $aduEta * ($ltAvg + $bufferDays + $reviewPeriod);
-            $proyeksi = (float) $v->stok_saat_ini + (float) $v->inbound_before_eta - $minimumStock;
-            $selisih = $proyeksi - $targetStock;
+                // ADU ETA proporsional per varian
+                $aduEta = round($aduBase + ($reviewPeriod > 0 ? ($distribusi * ($ltAvg / $reviewPeriod)) : 0));
+
+                $safetyStock = round($aduEta * $bufferDays);
+                $minimumStock = round($aduEta * $ltAvg);
+                $targetStock = round($aduEta * ($ltAvg + $bufferDays + $reviewPeriod));
+                $proyeksi = round((float) $v->stok_saat_ini + (float) $v->inbound_before_eta - $minimumStock);
+                $selisih = round($proyeksi - $targetStock);
+                $isPo = $selisih < 0;
+                $qtyOrder = $isPo ? round($this->bulatkanMoq(abs($selisih), $moq)) : 0;
+
+                $totalQtyOrder += $qtyOrder;
+                $totalSelisih += $selisih;
+
+                $varianHasil[] = [
+                    'nama_varian' => $v->nama_varian,
+                    'persentase' => $distribusi,
+                    'out' => $out,
+                    'adu_base' => $aduBase,
+                    'adu_eta' => $aduEta,
+                    'adu' => $aduEta,
+                    'stok' => round((float) $v->stok_saat_ini),
+                    'buffer_days' => $bufferDays,
+                    'safety_stock' => $safetyStock,
+                    'minimum_stock' => $minimumStock,
+                    'target_stock' => $targetStock,
+                    'stok_saat_ini' => round((float) $v->stok_saat_ini),
+                    'inbound' => round((float) $v->inbound_before_eta),
+                    'proyeksi' => $proyeksi,
+                    'selisih' => $selisih,
+                    'status' => $isPo ? 'po' : 'tidak',
+                    'qty_order' => $qtyOrder,
+                ];
+            }
+        } else {
+            $out = round((float) $meta->out_total_4bulan);
+            $aduBase = round($jumlahHari > 0 ? ($out / $jumlahHari) : 0);
+            $aduEta = round($aduBase + ($reviewPeriod > 0 ? ($ltAvg / $reviewPeriod) : 0));
+            $safetyStock = round($aduEta * $bufferDays);
+            $minimumStock = round($aduEta * $ltAvg);
+            $targetStock = round($aduEta * ($ltAvg + $bufferDays + $reviewPeriod));
+
+            $stokDb = (float) Stok::where('produk_id', $meta->produk_id)->sum('qty_saat_ini');
+            $inboundDb = (float) PurchaseOrderItem::where('produk_id', $meta->produk_id)
+                ->whereHas('purchaseOrder', fn ($q) => $q->whereIn('status', ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']))
+                ->sum('qty');
+
+            $proyeksi = round($stokDb + $inboundDb - $minimumStock);
+            $selisih = round($proyeksi - $targetStock);
             $isPo = $selisih < 0;
-            $qtyOrder = $isPo ? $this->bulatkanMoq(abs($selisih), $moq) : 0;
+            $qtyOrder = $isPo ? round($this->bulatkanMoq(abs($selisih), $moq)) : 0;
 
-            $totalQtyOrder += $qtyOrder;
-            $totalSelisih += $selisih;
+            $totalQtyOrder = $qtyOrder;
+            $totalSelisih = $selisih;
 
             $varianHasil[] = [
-                'nama_varian' => $v->nama_varian,
-                'persentase' => $distribusi,
-                'out' => round($out),
-                'adu_base' => round($aduBase),
-                'adu_eta' => round($aduEta),
-                'adu' => round($aduEta),
-                'stok' => round((float) $v->stok_saat_ini),
-                'buffer_days' => round($bufferDays),
-                'safety_stock' => round($safetyStock),
-                'minimum_stock' => round($minimumStock),
-                'target_stock' => round($targetStock),
-                'stok_saat_ini' => round((float) $v->stok_saat_ini),
-                'inbound' => round((float) $v->inbound_before_eta),
-                'proyeksi' => round($proyeksi),
-                'selisih' => round($selisih),
+                'nama_varian' => $meta->produk?->nama ?? 'Default',
+                'persentase' => 1.0,
+                'out' => $out,
+                'adu_base' => $aduBase,
+                'adu_eta' => $aduEta,
+                'adu' => $aduEta,
+                'stok' => round($stokDb),
+                'buffer_days' => $bufferDays,
+                'safety_stock' => $safetyStock,
+                'minimum_stock' => $minimumStock,
+                'target_stock' => $targetStock,
+                'stok_saat_ini' => round($stokDb),
+                'inbound' => round($inboundDb),
+                'proyeksi' => $proyeksi,
+                'selisih' => $selisih,
                 'status' => $isPo ? 'po' : 'tidak',
-                'qty_order' => round($qtyOrder),
+                'qty_order' => $qtyOrder,
             ];
         }
 
@@ -417,93 +461,31 @@ class AnalisaService
                 $jumlahHari = 122;
             }
 
-            // Hitung ADU Base & ADU ETA Produk Master
+            // Hitung ADU Base & ADU ETA Produk Master dengan presisi desimal riil seperti Excel
             $aduBase = $jumlahHari > 0 ? ($out / $jumlahHari) : 0;
             $aduEta = $aduBase + ($reviewPeriod > 0 ? ($ltAvg / $reviewPeriod) : 0);
 
-            $varians = $meta ? AnalisaImporVarian::where('analisa_impor_meta_id', $meta->id)->get() : collect();
-            $punyaVarian = (bool) ($meta?->punya_varian || $varians->isNotEmpty());
+            $totalSafetyStock = round($aduEta * $bufferDays);
+            $totalMinStock = round($aduEta * $ltAvg);
+            $totalTargetStock = (int) floor($aduEta * ($ltAvg + $bufferDays + $reviewPeriod) + 0.0001);
 
-            $totalStok = 0.0;
-            $totalInbound = 0.0;
-            $totalSafetyStock = 0.0;
-            $totalMinStock = 0.0;
-            $totalTargetStock = 0.0;
-            $totalProyeksi = 0.0;
-            $totalQtyOrder = 0.0;
-            $totalPo = 0.0;
-            $varianDetails = [];
+            $stokDb = (float) Stok::where('produk_id', $p->id)->sum('qty_saat_ini');
+            $totalStok = round($existingAnalisa ? (float) $existingAnalisa->stok_saat_ini : $stokDb);
 
-            if ($varians->isNotEmpty()) {
-                foreach ($varians as $v) {
-                    $vOut = (float) $v->persentase_distribusi * $out;
-                    $vAduBase = $jumlahHari > 0 ? ($vOut / $jumlahHari) : 0;
-                    $distribusi = (float) $v->persentase_distribusi;
-                    $vAduEta = $vAduBase + ($reviewPeriod > 0 ? ($distribusi * ($ltAvg / $reviewPeriod)) : 0);
+            $akanDatangDb = (float) PurchaseOrderItem::where('produk_id', $p->id)
+                ->whereHas('purchaseOrder', function ($q) {
+                    $q->whereIn('status', ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']);
+                })->sum('qty');
+            $totalInbound = round($existingAnalisa ? (float) $existingAnalisa->inbound_before_eta : $akanDatangDb);
 
-                    $vSafety = $vAduEta * $bufferDays;
-                    $vMin = $vAduEta * $ltAvg;
-                    $vTarget = $vAduEta * ($ltAvg + $bufferDays + $reviewPeriod);
-                    $vStok = (float) $v->stok_saat_ini;
-                    $vInbound = (float) $v->inbound_before_eta;
-                    $vProyeksi = $vStok + $vInbound - $vMin;
-                    $vSelisih = $vProyeksi - $vTarget;
-                    $vIsPo = $vSelisih < 0;
-                    $vQtyOrder = $vIsPo ? abs($vSelisih) : 0;
-                    $vPo = $vIsPo ? $this->bulatkanMoq($vQtyOrder, $moq) : 0;
-
-                    $totalStok += $vStok;
-                    $totalInbound += $vInbound;
-                    $totalSafetyStock += $vSafety;
-                    $totalMinStock += $vMin;
-                    $totalTargetStock += $vTarget;
-                    $totalProyeksi += $vProyeksi;
-                    $totalQtyOrder += $vQtyOrder;
-                    $totalPo += $vPo;
-
-                    $varianDetails[] = [
-                        'nama_varian' => $v->nama_varian,
-                        'persentase' => $distribusi,
-                        'out' => round($vOut),
-                        'adu_base' => round($vAduBase),
-                        'adu_eta' => round($vAduEta),
-                        'adu' => round($vAduEta),
-                        'buffer_days' => round($bufferDays),
-                        'safety_stock' => round($vSafety),
-                        'minimum_stock' => round($vMin),
-                        'target_stock' => round($vTarget),
-                        'stok_saat_ini' => round($vStok),
-                        'stok' => round($vStok),
-                        'inbound' => round($vInbound),
-                        'proyeksi' => round($vProyeksi),
-                        'selisih' => round($vSelisih),
-                        'status' => $vIsPo ? 'po' : 'tidak',
-                        'qty_order' => round($vPo),
-                    ];
-                }
-            } else {
-                $totalSafetyStock = $aduEta * $bufferDays;
-                $totalMinStock = $aduEta * $ltAvg;
-                $totalTargetStock = $aduEta * ($ltAvg + $bufferDays + $reviewPeriod);
-
-                $stokDb = (float) Stok::where('produk_id', $p->id)->sum('qty_saat_ini');
-                $totalStok = $existingAnalisa ? (float) $existingAnalisa->stok_saat_ini : $stokDb;
-
-                $akanDatangDb = (float) PurchaseOrderItem::where('produk_id', $p->id)
-                    ->whereHas('purchaseOrder', function ($q) {
-                        $q->whereIn('status', ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']);
-                    })->sum('qty');
-                $totalInbound = $existingAnalisa ? (float) $existingAnalisa->inbound_before_eta : $akanDatangDb;
-
-                $totalProyeksi = $totalStok + $totalInbound - $totalMinStock;
-                $selisih = $totalProyeksi - $totalTargetStock;
-                $isPo = $selisih < 0;
-                $totalQtyOrder = $isPo ? abs($selisih) : 0;
-                $totalPo = $isPo ? $this->bulatkanMoq($totalQtyOrder, $moq) : 0;
-            }
+            $totalProyeksi = round($totalStok + $totalInbound - $totalMinStock);
+            $selisih = round($totalProyeksi - $totalTargetStock);
+            $isPo = $selisih < 0;
+            $totalQtyOrder = $isPo ? abs($selisih) : 0;
+            $totalPo = $isPo ? round($this->bulatkanMoq($totalQtyOrder, $moq)) : 0;
 
             $status = $totalPo > 0 ? 'po' : 'tidak';
-            $totalNominal = $totalPo * $harga;
+            $totalNominal = round($totalPo * $harga);
 
             $analisaImpor = AnalisaImpor::updateOrCreate(
                 ['produk_id' => $p->id],
@@ -512,8 +494,8 @@ class AnalisaService
                     'periode_mulai' => $periodeMulai,
                     'periode_akhir' => $periodeAkhir,
                     'jumlah_hari_periode' => $jumlahHari,
-                    'adu_base' => round($aduBase),
-                    'adu_eta' => round($aduEta),
+                    'adu_base' => $aduBase,
+                    'adu_eta' => $aduEta,
                     'lead_time' => $ltAvg,
                     'review_period' => $reviewPeriod,
                     'klasifikasi_abc' => $klasifikasiAbc,
@@ -531,8 +513,6 @@ class AnalisaService
                     'status' => $status,
                     'harga_per_satuan' => round($harga),
                     'total_nominal_order' => round($totalNominal),
-                    'punya_varian' => $punyaVarian,
-                    'varian_detail' => $varianDetails,
                     'generated_at' => $now,
                     'generated_by' => $userId ?? auth()->id(),
                 ]
@@ -689,7 +669,7 @@ class AnalisaService
         $akanDatang = 0.0;
 
         foreach ($rows as $r) {
-            $adu = (float) $r->terjual_rata_rata_4bulan / 30;
+            $adu = round((float) $r->terjual_rata_rata_4bulan / 30);
             $batasMin = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi);
             $target = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi + (int) $r->review_period);
 
@@ -769,7 +749,7 @@ class AnalisaService
                 $byProduct[$ai->produk_id] = (float) $ai->minimum_stock;
             }
         } else {
-            $imporMetas = AnalisaImporMeta::with(['produk', 'varian'])->get();
+            $imporMetas = AnalisaImporMeta::with('produk')->get();
             foreach ($imporMetas as $meta) {
                 $hasil = $this->impor($meta);
                 $minTotal = 0.0;
@@ -783,7 +763,7 @@ class AnalisaService
         // 3. Profil Produk Jadi (Fulfillment)
         $ffInputs = AnalisaFulfillmentInput::all();
         foreach ($ffInputs as $r) {
-            $adu = (float) $r->terjual_rata_rata_4bulan / 30;
+            $adu = round((float) $r->terjual_rata_rata_4bulan / 30);
             $batasMin = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi);
             $key = "{$r->produk_id}_{$r->gudang_id}";
             $byProductGudang[$key] = $batasMin;
@@ -826,7 +806,7 @@ class AnalisaService
 
         $imporOrder = AnalisaImpor::where('status', 'po')->count();
         if ($imporOrder === 0 && AnalisaImporMeta::exists()) {
-            $imporOrder = AnalisaImporMeta::with(['produk', 'varian'])->get()
+            $imporOrder = AnalisaImporMeta::with('produk')->get()
                 ->filter(fn ($m) => $this->impor($m)['status'] === 'po')
                 ->count();
         }

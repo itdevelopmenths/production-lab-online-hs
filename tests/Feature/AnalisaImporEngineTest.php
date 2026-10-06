@@ -54,9 +54,8 @@ class AnalisaImporEngineTest extends TestCase
         $this->assertNotNull($ai);
         $this->assertEquals($this->purchasing->id, $ai->generated_by);
         $this->assertNotNull($ai->generated_at);
-        $this->assertTrue($ai->punya_varian);
-        $this->assertIsArray($ai->varian_detail);
-        $this->assertCount(2, $ai->varian_detail);
+        $this->assertGreaterThan(0, (float) $ai->safety_stock);
+        $this->assertGreaterThan(0, (float) $ai->target_stock);
 
         // 3. Test Eloquent relations on Produk
         $produk = Produk::with(['leadTimeImpor', 'analisaImpor'])->find($this->botol->id);
@@ -144,7 +143,6 @@ class AnalisaImporEngineTest extends TestCase
                     'status',
                     'total_qty_order',
                     'total_nominal_order',
-                    'varian',
                     'generated_at',
                     'generated_by',
                 ],
@@ -370,30 +368,12 @@ class AnalisaImporEngineTest extends TestCase
         $rows = collect($res->json('data'));
         $botolRows = $rows->where('produk_id', $this->botol->id);
 
-        // Harus terurai menjadi 2 baris (Bening 60% dan Frosted 40%)
-        $this->assertCount(2, $botolRows);
-
-        $bening = $botolRows->firstWhere('nama_varian', 'Bening');
-        $frosted = $botolRows->firstWhere('nama_varian', 'Frosted');
-
-        $this->assertNotNull($bening);
-        $this->assertNotNull($frosted);
-        $this->assertTrue($bening['is_varian']);
-        $this->assertTrue($frosted['is_varian']);
-        $this->assertEquals(0.6, (float) $bening['persentase']);
-        $this->assertEquals(0.4, (float) $frosted['persentase']);
-
-        // Nilai target & rekomendasi order masing-masing varian
-        $this->assertGreaterThan(0, (float) $bening['safety_stock']);
-        $this->assertGreaterThan(0, (float) $frosted['safety_stock']);
-        $this->assertGreaterThan(0, (float) $bening['total_qty_order']);
-        $this->assertGreaterThan(0, (float) $frosted['total_qty_order']);
-
-        // Verifikasi create-po form memprefill rincian varian
-        $poFormRes = $this->get(route('analisa.create-po', ['ids' => $this->botol->id, 'tipe' => 'impor']));
-        $poFormRes->assertOk();
-        $poFormRes->assertSee('Varian: Bening');
-        $poFormRes->assertSee('Varian: Frosted');
+        // Menghasilkan 1 baris per produk master tanpa varian
+        $this->assertCount(1, $botolRows);
+        $row = $botolRows->first();
+        $this->assertNotNull($row);
+        $this->assertEquals($this->botol->sku, $row['sku']);
+        $this->assertGreaterThan(0, (float) $row['safety_stock']);
     }
 }
 

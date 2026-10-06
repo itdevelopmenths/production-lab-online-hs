@@ -60,13 +60,11 @@ class MasterDataSeeder extends Seeder
         }
         app(\App\Services\AnalisaService::class)->generateLokal($alk->id);
 
-        // ===== Analisa Impor (BTL-P50) + varian =====
+        // ===== Analisa Impor (BTL-P50) =====
         $meta = AnalisaImporMeta::firstOrCreate(['produk_id' => $btl->id], [
-            'punya_varian' => true, 'out_total_4bulan' => 47312, 'lead_time_average' => 81.75,
+            'out_total_4bulan' => 47312, 'lead_time_average' => 81.75,
             'lead_time_max' => 114, 'klasifikasi_abc' => 'a', 'review_period' => 30, 'harga_per_satuan' => 1500,
         ]);
-        $meta->varian()->firstOrCreate(['nama_varian' => 'Bening'], ['persentase_distribusi' => 0.6, 'stok_saat_ini' => 1573, 'inbound_before_eta' => 10044]);
-        $meta->varian()->firstOrCreate(['nama_varian' => 'Frosted'], ['persentase_distribusi' => 0.4, 'stok_saat_ini' => 900, 'inbound_before_eta' => 5000]);
 
         // ===== Analisa Fulfillment (GOH-P50 per gudang) =====
         foreach ([[$ffPusat->id, 60000, 500], [$ffSby->id, 90000, 4000], [$ffSolo->id, 45000, 2000]] as [$gid, $terjual, $stokNow]) {

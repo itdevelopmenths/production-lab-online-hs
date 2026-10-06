@@ -65,15 +65,12 @@ class AnalisaStokTest extends TestCase
 
     public function test_best_case_analisa_bahan_impor_formula_and_endpoint(): void
     {
-        $meta = AnalisaImporMeta::with(['produk', 'varian'])->firstOrFail();
+        $meta = AnalisaImporMeta::with('produk')->firstOrFail();
 
         $analisaService = app(AnalisaService::class);
-        $hasil = $analisaService->impor($meta);
+        $hasil = $analisaService->generateImpor($meta->produk_id);
 
-        $this->assertArrayHasKey('buffer_days', $hasil);
-        $this->assertArrayHasKey('total_qty_order', $hasil);
-        $this->assertCount(2, $hasil['varian']);
-        $this->assertEquals(2, $meta->varian->count());
+        $this->assertGreaterThanOrEqual(1, $hasil['generated_count']);
 
         $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
         $this->actingAs($purchasing);

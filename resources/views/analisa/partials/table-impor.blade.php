@@ -23,7 +23,7 @@
                                 <input type="checkbox" @change="toggleSelectCurrentPage($event)" :checked="isCurrentPageAllSelected()" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer">
                             </th>
                             <th class="py-2.5 px-3">Bahan Baku Impor</th>
-                            <th class="py-2.5 px-3">Varian</th>
+
                             <th class="py-2.5 px-3">Supplier</th>
                             <th class="py-2.5 px-2 text-center">ABC</th>
                             <th class="py-2.5 px-3 text-center">Lead Time (Avg/Max)</th>
@@ -57,19 +57,7 @@
                                         <div class="text-[9px] text-gray-400 font-mono mt-0.5" x-text="'Periode: ' + r.periode_mulai + ' ~ ' + r.periode_akhir + ' (' + r.jumlah_hari_periode + ' hr)'"></div>
                                     </template>
                                 </td>
-                                <td class="py-2.5 px-3">
-                                    <template x-if="r.is_varian && r.nama_varian">
-                                        <div>
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200" x-text="r.nama_varian"></span>
-                                            <template x-if="r.persentase">
-                                                <span class="text-[10px] text-gray-500 font-mono ml-1" x-text="'(' + Math.round(r.persentase * 100) + '%)'"></span>
-                                            </template>
-                                        </div>
-                                    </template>
-                                    <template x-if="!r.is_varian || !r.nama_varian">
-                                        <span class="text-gray-400 font-mono text-xs">-</span>
-                                    </template>
-                                </td>
+
                                 <td class="py-2.5 px-3">
                                     <div class="font-medium text-gray-800" x-text="r.supplier_nama || '-'"></div>
                                     <template x-if="r.supplier_kategori && r.supplier_kategori !== '-'">
