@@ -11,22 +11,22 @@
                         <div class="flex items-center gap-2">
                             @can('analisa.manage')
                             <!-- Fase 1: Generate -->
-                            <button type="button" @click="generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-primary-800 disabled:opacity-50 text-white text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer" title="Generate working data analisa dari master">
-                                <svg x-show="!generating" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                <svg x-show="generating" class="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <button type="button" @click="generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 text-xs font-medium rounded-lg shadow-sm transition-colors cursor-pointer" title="Generate working data analisa dari master">
+                                <svg x-show="!generating" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                <svg x-show="generating" class="animate-spin size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 <span x-text="generating ? 'Menghitung Engine...' : 'Generate Analisa'"></span>
                             </button>
 
                             <!-- Fase 2: Checking (Generate Ulang) -->
-                            <button type="button" @click="checkingLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 hover:bg-sky-100 disabled:opacity-50 text-sky-800 border border-sky-300 text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO berjalan saat ini">
-                                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            <button type="button" @click="checkingLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border disabled:opacity-50 text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO berjalan saat ini">
+                                <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                 <span>Checking (Generate Ulang)</span>
                             </button>
                             @endcan
 
                             @can('analisa.create_po')
-                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer">
+                                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 <span>Buat PO (<span x-text="selectedOrderCount()"></span>)</span>
                             </button>
                             @endcan
@@ -37,22 +37,22 @@
                         <div class="flex items-center gap-2">
                             @can('analisa.manage')
                             <!-- Fase 1: Generate -->
-                            <button type="button" @click="generateImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-primary-800 disabled:opacity-50 text-white text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer" title="Generate working data analisa impor">
-                                <svg x-show="!generating" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                <svg x-show="generating" class="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <button type="button" @click="generateImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 text-xs font-medium rounded-lg shadow-sm transition-colors cursor-pointer" title="Generate working data analisa impor">
+                                <svg x-show="!generating" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                <svg x-show="generating" class="animate-spin size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 <span x-text="generating ? 'Menghitung Engine Impor...' : 'Generate Analisa Impor'"></span>
                             </button>
 
                             <!-- Fase 2: Checking (Generate Ulang) -->
-                            <button type="button" @click="checkingImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-50 hover:bg-sky-100 disabled:opacity-50 text-sky-800 border border-sky-300 text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO impor saat ini">
-                                <svg class="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            <button type="button" @click="checkingImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border disabled:opacity-50 text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO impor saat ini">
+                                <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                 <span>Checking (Generate Ulang)</span>
                             </button>
                             @endcan
 
                             @can('analisa.create_po')
-                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-sm shadow-xs transition cursor-pointer">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer">
+                                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 <span>Buat PO Impor (<span x-text="selectedOrderCount()"></span>)</span>
                             </button>
                             @endcan
@@ -61,8 +61,8 @@
 
                     @can('analisa.snapshot')
                     <!-- Fase 3: Finalisasi -->
-                    <button type="button" @click="confirmFinalisasi()" x-show="tab !== 'riwayat'" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-900 text-white text-xs font-medium rounded-sm shadow-xs transition cursor-pointer" title="Kunci data working analisa aktif ke riwayat snapshot">
-                        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <button type="button" @click="confirmFinalisasi()" x-show="tab !== 'riwayat'" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Kunci data working analisa aktif ke riwayat snapshot">
+                        <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         <span>Finalisasi ke Riwayat</span>
                     </button>
                     @endcan
@@ -71,29 +71,29 @@
         </x-page-header>
 
         <!-- Segmented Tab Navigation & Status -->
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-3">
-            <div class="inline-flex rounded-sm bg-gray-100 p-0.5 border border-gray-200">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
+            <div class="inline-flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/40">
                 <template x-for="t in tabs" :key="t.key">
                     <button type="button"
                         @click="tab = t.key; load()"
-                        :class="tab === t.key ? 'bg-white text-primary-700 shadow-xs font-semibold' : 'text-gray-600 hover:text-gray-900 font-medium'"
-                        class="px-3.5 py-1.5 text-xs rounded-sm transition flex items-center gap-1.5 cursor-pointer"
+                        :class="tab === t.key ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                        class="px-4 py-2 text-xs rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer select-none font-medium"
                     >
                         <span x-text="t.label"></span>
                     </button>
                 </template>
             </div>
             
-            <div class="text-xs text-gray-500 flex items-center gap-2">
+            <div class="text-xs text-muted-foreground flex items-center gap-2">
                 <template x-if="(tab === 'lokal' || tab === 'impor') && meta.last_generated_at">
-                    <div class="flex items-center gap-1.5 text-[11px] bg-primary-50 text-primary-800 px-2 py-0.5 rounded border border-primary-100 font-mono">
-                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <div class="flex items-center gap-1.5 text-[11px] bg-muted text-foreground px-2.5 py-1 rounded-md border border-border font-mono">
+                        <span class="inline-block size-2 rounded-full bg-emerald-500"></span>
                         <span>Di-generate: <strong x-text="meta.last_generated_at"></strong> (<span x-text="meta.last_generated_by"></span>)</span>
                     </div>
                 </template>
                 <template x-if="!( (tab === 'lokal' || tab === 'impor') && meta.last_generated_at )">
                     <div class="flex items-center gap-1.5">
-                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="inline-block size-2 rounded-full bg-emerald-500"></span>
                         <span>Data Real-time Sistem</span>
                     </div>
                 </template>
@@ -101,52 +101,52 @@
         </div>
 
         <!-- Quick KPI Summary Strip -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-xs">
-                <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Item</p>
-                <p class="text-lg font-bold font-mono text-gray-900 mt-0.5" x-text="rows.length"></p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
+                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Item</p>
+                <p class="text-xl font-bold font-mono text-foreground mt-1" x-text="rows.length"></p>
             </div>
-            <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-xs">
-                <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Perlu Tindakan / Order</p>
-                <p class="text-lg font-bold font-mono text-rose-600 mt-0.5" x-text="kpiOrderCount()"></p>
+            <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
+                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Perlu Tindakan / Order</p>
+                <p class="text-xl font-bold font-mono text-destructive mt-1" x-text="kpiOrderCount()"></p>
             </div>
-            <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-xs">
-                <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Status Aman</p>
-                <p class="text-lg font-bold font-mono text-emerald-600 mt-0.5" x-text="kpiAmanCount()"></p>
+            <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
+                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status Aman</p>
+                <p class="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1" x-text="kpiAmanCount()"></p>
             </div>
-            <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-xs">
-                <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Qty Rekomendasi</p>
-                <p class="text-lg font-bold font-mono text-primary-700 mt-0.5" x-text="kpiTotalOrderQty()"></p>
+            <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
+                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Qty Rekomendasi</p>
+                <p class="text-xl font-bold font-mono text-foreground mt-1" x-text="kpiTotalOrderQty()"></p>
             </div>
         </div>
 
         <!-- Toolbar Pencarian, Filter & Kontrol Pagination -->
-        <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div class="bg-card p-4 rounded-xl border border-border shadow-xs flex flex-wrap items-center justify-between gap-4">
             <!-- Kiri: Input Cari & Filter Status -->
-            <div class="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-                <div class="relative flex-1 min-w-[200px] max-w-sm">
+            <div class="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+                <div class="relative flex-1 min-w-[220px] max-w-sm">
                     <input 
                         type="text" 
                         x-model.debounce.250ms="searchQuery" 
                         @input="page = 1; if(tab !== 'lokal') renderTable();"
                         placeholder="Cari SKU, nama bahan, supplier..."
-                        class="w-full pl-8 pr-7 py-1.5 text-xs rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                        class="w-full pl-9 pr-8 py-2 text-xs rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                     >
-                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
-                    <button type="button" x-show="searchQuery" @click="searchQuery = ''; page = 1; if(tab !== 'lokal') renderTable();" class="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <button type="button" x-show="searchQuery" @click="searchQuery = ''; page = 1; if(tab !== 'lokal') renderTable();" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-muted-foreground hover:text-foreground cursor-pointer">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
 
                 <template x-if="tab === 'lokal' || tab === 'impor'">
-                    <div class="flex items-center gap-1.5">
+                    <div class="flex items-center gap-2">
                         <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || tab === 'impor'">
                             <select 
                                 x-model="statusFilter" 
                                 @change="page = 1"
-                                class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                                class="rounded-lg border border-input bg-background text-xs py-2 px-3 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                             >
                                 <option value="all">Semua Status</option>
                                 <option value="order">Hanya Perlu Order</option>
@@ -156,7 +156,7 @@
                         <select 
                             x-model="supplierFilter" 
                             @change="page = 1"
-                            class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                            class="rounded-lg border border-input bg-background text-xs py-2 px-3 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                         >
                             <option value="all">Semua Supplier</option>
                             @foreach($suppliers as $s)
@@ -168,27 +168,27 @@
             </div>
 
             <!-- Kanan: Tombol Aksi Massal & Jumlah per Halaman -->
-            <div class="flex flex-wrap items-center gap-2.5 text-xs">
+            <div class="flex flex-wrap items-center gap-3 text-xs">
                 <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || tab === 'impor'">
-                    <div class="flex items-center gap-1.5 border-r border-gray-200 pr-2.5">
-                        <button type="button" @click="selectAllPerluOrder()" class="px-2 py-1 text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded border border-rose-200 transition cursor-pointer">
+                    <div class="flex items-center gap-2 border-r border-border pr-3">
+                        <button type="button" @click="selectAllPerluOrder()" class="px-2.5 py-1.5 text-xs font-semibold text-destructive bg-destructive/10 hover:bg-destructive/15 rounded-lg border border-destructive/20 transition cursor-pointer">
                             Pilih Perlu Order (<span x-text="kpiOrderCount()"></span>)
                         </button>
-                        <button type="button" @click="selectAllFiltered()" class="px-2 py-1 text-[11px] font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition cursor-pointer">
+                        <button type="button" @click="selectAllFiltered()" class="px-2.5 py-1.5 text-xs font-medium text-foreground bg-muted hover:bg-muted/80 rounded-lg border border-border transition cursor-pointer">
                             Pilih Semua Hasil (<span x-text="filteredRows().length"></span>)
                         </button>
-                        <button type="button" x-show="selectedItemIds.length > 0" @click="selectedItemIds = []" class="px-2 py-1 text-[11px] font-medium text-gray-500 hover:text-gray-800 transition cursor-pointer">
+                        <button type="button" x-show="selectedItemIds.length > 0" @click="selectedItemIds = []" class="px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition cursor-pointer">
                             Batal Pilih
                         </button>
                     </div>
                 </template>
 
-                <div class="flex items-center gap-1.5 text-gray-600 text-xs">
+                <div class="flex items-center gap-2 text-muted-foreground text-xs">
                     <span>Tampilkan:</span>
                     <select 
                         x-model="perPage" 
                         @change="page = 1; if(tab !== 'lokal') renderTable();"
-                        class="rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                        class="rounded-lg border border-input bg-background text-xs py-1.5 px-2.5 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                     >
                         <option :value="10">10</option>
                         <option :value="15">15</option>

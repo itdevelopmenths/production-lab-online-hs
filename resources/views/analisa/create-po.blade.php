@@ -85,47 +85,45 @@
         ];
     @endphp
 
-    <div class="max-w-6xl mx-auto space-y-5">
+    <div class="max-w-6xl mx-auto space-y-6">
         <x-page-header
             title="Buat Draft Purchase Order"
             subtitle="Penerbitan Draft PO otomatis dari hasil kalkulasi Analisa & Rekomendasi Stok Bahan Baku"
             :breadcrumbs="['Inventori' => null, 'Analisa Stok' => route('analisa.index'), 'Buat Draft PO' => null]"
         >
             <x-slot:actions>
-                <x-button href="{{ route('analisa.index') }}" variant="secondary" size="xs">
+                <x-button href="{{ route('analisa.index') }}" variant="outline" size="sm">
                     &larr; Kembali ke Analisa Stok
                 </x-button>
             </x-slot:actions>
         </x-page-header>
 
         {{-- Banner Panduan Rekomendasi --}}
-        <div class="bg-gradient-to-r from-primary-50 via-sky-50 to-white p-4 rounded-sm border border-primary-200 flex items-start justify-between gap-4 shadow-2xs">
-            <div class="flex items-start gap-3">
-                <div class="w-8 h-8 rounded-sm bg-primary-700 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+        <div class="rounded-xl border border-border bg-card p-4.5 flex items-start justify-between gap-4 shadow-xs">
+            <div class="flex items-start gap-3.5">
+                <div class="size-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                    <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
-                        <h4 class="text-xs font-bold text-gray-900">Formulir Pengadaan dari Analisa Stok</h4>
-                    </div>
-                    <p class="text-[11px] text-gray-600 mt-0.5">
+                    <h4 class="text-sm font-semibold text-foreground">Formulir Pengadaan dari Analisa Stok</h4>
+                    <p class="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                         Daftar bahan baku di bawah ini dimuat berdasarkan rekomendasi perhitungan batas minimum & rumus MOQ. Anda dapat memilih supplier rekanan, menyesuaikan kuantitas beli, atau menambah dan menghapus baris item sesuai kebutuhan.
                     </p>
                 </div>
             </div>
             <div class="text-right shrink-0">
-                <span class="text-[11px] text-gray-500 block">Total Baris Terisi</span>
-                <span class="text-base font-extrabold text-primary-800 font-mono">{{ count($rows) }} Bahan</span>
+                <span class="text-xs text-muted-foreground block">Total Baris Terisi</span>
+                <span class="text-base font-bold text-foreground font-mono">{{ count($rows) }} Bahan</span>
             </div>
         </div>
 
         <div x-data="poForm({{ Js::from($initialData) }})" x-init="init()">
             <form method="POST" action="{{ route('analisa.create-po.store') }}" @submit="if(submitting) return false; submitting = true">
             @csrf
-            <div class="space-y-5">
+            <div class="space-y-6">
                 {{-- Card 1: Informasi Header PO & Lokasi --}}
-                <x-card title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice" variant="primary">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <x-card title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <x-form-group name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
                             <x-select name="supplier_id" placeholder="— Pilih Supplier —" :required="true">
                                 @foreach($suppliers as $s)
@@ -163,9 +161,9 @@
                         </x-form-group>
                     </div>
 
-                    <div class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="mt-5 pt-5 border-t border-border grid grid-cols-1 md:grid-cols-3 gap-5">
                         <x-form-group name="skema_bayar" label="Skema Pembayaran" :required="true">
-                            <select name="skema_bayar" x-model="skemaBayar" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <select name="skema_bayar" x-model="skemaBayar" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
                                 <option value="cash">Tunai (Cash / Transfer Penuh)</option>
                                 <option value="tempo">Tempo (Jatuh Tempo Tunggal)</option>
                                 <option value="termin">Termin (Pembayaran Bertahap / Cicil)</option>
@@ -184,27 +182,27 @@
                 <x-card title="Daftar Bahan Baku" subtitle="Input kuantitas dan total harga per bahan. Diskon, PPN, ongkir, dan adjustment diatur pada formulir Global di bawah dan dialokasikan ke HPP secara realtime." :noPadding="true" class="relative z-20">
                     <div class="overflow-visible">
                         <table class="w-full text-xs">
-                            <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold uppercase text-[11px] tracking-wider">
+                            <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
                                 <tr>
-                                    <th class="px-4 py-2.5 text-left w-[36%]">Bahan Baku <span class="text-rose-500">*</span></th>
-                                    <th class="px-3 py-2.5 text-left w-56">Kuantitas & Satuan Beli <span class="text-rose-500">*</span></th>
-                                    <th class="px-3 py-2.5 text-right w-44">Total Harga <span class="text-rose-500">*</span></th>
-                                    <th class="px-4 py-2.5 text-right w-52 bg-primary-50/50 text-primary-900">HPP / Satuan Dasar</th>
-                                    <th class="px-2 py-2.5 text-center w-12">Aksi</th>
+                                    <th class="px-4 py-3 text-left w-[36%]">Bahan Baku <span class="text-destructive">*</span></th>
+                                    <th class="px-3 py-3 text-left w-56">Kuantitas & Satuan Beli <span class="text-destructive">*</span></th>
+                                    <th class="px-3 py-3 text-right w-44">Total Harga <span class="text-destructive">*</span></th>
+                                    <th class="px-4 py-3 text-right w-52 bg-muted/40 text-foreground">HPP / Satuan Dasar</th>
+                                    <th class="px-2 py-3 text-center w-12">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100 bg-white">
+                            <tbody class="divide-y divide-border bg-card">
                                 <template x-for="(row, i) in rows" :key="i">
                                     <tr
-                                        class="hover:bg-gray-50/60 transition"
+                                        class="hover:bg-muted/40 transition"
                                         :style="'position: relative; z-index: ' + (activeRow === i ? 200 : (100 - i))"
                                         @hs-dropdown-opened.window="if ($event.detail === `items[${i}][produk_id]`) activeRow = i"
                                         @hs-dropdown-closed.window="if ($event.detail === `items[${i}][produk_id]` && activeRow === i) activeRow = null"
                                         @product-selected="onProductSelected(row, $event.detail)"
                                     >
                                         {{-- Kolom 1: Produk Search Select --}}
-                                        <td class="px-3 py-2" :style="activeRow === i ? 'position: relative; z-index: 200;' : ''">
-                                            <div
+                                        <td class="px-4 py-3" :style="activeRow === i ? 'position: relative; z-index: 200;' : ''">
+                                             <div
                                                 x-data="productSearchSelect({
                                                     name: `items[${i}][produk_id]`,
                                                     selectedId: row.produk_id,
@@ -229,33 +227,33 @@
                                                     tabindex="0"
                                                     @keydown.enter.prevent="toggle()"
                                                     @keydown.space.prevent="toggle()"
-                                                    class="w-full flex items-center justify-between text-left rounded-sm border border-gray-300 bg-white px-2.5 py-1.5 text-xs shadow-xs hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition cursor-pointer select-none"
+                                                    class="w-full flex items-center justify-between text-left rounded-lg border border-input bg-background px-3 py-2 text-xs shadow-xs hover:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-ring transition cursor-pointer select-none"
                                                 >
                                                     <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
                                                         <template x-if="selectedItem">
                                                             <div class="flex items-center gap-1.5 truncate">
-                                                                <span class="font-mono text-primary-700 font-semibold bg-primary-50 px-1 py-0.5 rounded-xs border border-primary-100 text-[10px]" x-text="selectedItem.sku"></span>
-                                                                <span class="font-medium text-gray-900 truncate" x-text="selectedItem.nama"></span>
-                                                                <span class="text-[9px] font-mono text-gray-500 bg-gray-100 px-1 py-0.5 rounded-xs border border-gray-200" x-text="selectedItem.satuan"></span>
+                                                                <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
+                                                                <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
+                                                                <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan"></span>
                                                             </div>
                                                         </template>
                                                         <template x-if="!selectedItem">
-                                                            <span class="text-gray-400 font-normal" x-text="placeholder"></span>
+                                                            <span class="text-muted-foreground font-normal" x-text="placeholder"></span>
                                                         </template>
                                                     </div>
                                                     <div class="flex items-center gap-1 ml-1 shrink-0 pointer-events-none">
-                                                        <svg class="w-3.5 h-3.5 text-gray-400 transition-transform duration-150" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                                        <svg class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-150" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                                     </div>
                                                 </div>
 
                                                 <template x-if="selectedItem">
                                                     <div class="mt-1 flex items-center gap-1.5 text-[10px] font-mono">
-                                                        <span class="text-gray-400">HPP Lama:</span>
+                                                        <span class="text-muted-foreground">HPP Lama:</span>
                                                         <template x-if="parseFloat(selectedItem.harga_hpp || 0) > 0">
-                                                            <span class="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200" x-text="'Rp ' + formatHpp(selectedItem.harga_hpp) + (selectedItem.satuan ? ' / ' + selectedItem.satuan : '')"></span>
+                                                            <span class="font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20" x-text="'Rp ' + formatHpp(selectedItem.harga_hpp) + (selectedItem.satuan ? ' / ' + selectedItem.satuan : '')"></span>
                                                         </template>
                                                         <template x-if="!parseFloat(selectedItem.harga_hpp || 0)">
-                                                            <span class="text-gray-400 italic bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">Belum ada HPP</span>
+                                                            <span class="text-muted-foreground italic bg-muted px-1.5 py-0.5 rounded-md border border-border">Belum ada HPP</span>
                                                         </template>
                                                     </div>
                                                 </template>
@@ -264,35 +262,35 @@
                                                     x-show="open"
                                                     x-cloak
                                                     style="display: none; position: absolute; left: 0; top: 100%; z-index: 9999; width: 100%; min-width: 320px; box-sizing: border-box;"
-                                                    class="absolute left-0 top-full z-[9999] mt-1 w-full min-w-[320px] bg-white rounded-sm border border-gray-200 shadow-2xl text-xs overflow-hidden"
+                                                    class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-[320px] bg-card rounded-xl border border-border shadow-xl text-xs overflow-hidden"
                                                 >
-                                                    <div class="p-2 border-b border-gray-100 bg-gray-50 flex items-center gap-1.5">
-                                                        <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                        <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU bahan..." class="w-full bg-white border border-gray-200 rounded-xs px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
+                                                    <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
+                                                        <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                        <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU bahan..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
                                                     </div>
 
-                                                    <div class="max-h-48 overflow-y-auto divide-y divide-gray-50">
+                                                    <div class="max-h-48 overflow-y-auto divide-y divide-border">
                                                         <template x-for="item in items" :key="item.id">
-                                                            <div @click="select(item)" :class="selectedId == item.id ? 'bg-primary-50 text-primary-900 font-semibold' : 'text-gray-700 hover:bg-gray-50'" class="px-3 py-2 cursor-pointer transition flex items-center justify-between gap-2 select-none">
-                                                                <div class="flex items-center gap-1.5 truncate pointer-events-none">
-                                                                    <span class="font-mono text-primary-700 font-medium bg-primary-50 px-1 py-0.5 rounded-xs border border-primary-100 text-[10px]" x-text="item.sku"></span>
-                                                                    <span class="truncate font-medium text-gray-900" x-text="item.nama"></span>
+                                                            <div @click="select(item)" :class="selectedId == item.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50'" class="px-3.5 py-2.5 cursor-pointer transition flex items-center justify-between gap-2 select-none">
+                                                                <div class="flex items-center gap-2 truncate pointer-events-none">
+                                                                    <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
+                                                                    <span class="truncate font-medium text-foreground" x-text="item.nama"></span>
                                                                 </div>
                                                                 <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
-                                                                    <span class="text-[9px] font-mono text-amber-700 bg-amber-50 px-1 py-0.5 rounded-xs border border-amber-200" x-text="'HPP: Rp ' + formatHpp(item.harga_hpp || 0)"></span>
-                                                                    <span class="text-[9px] font-mono text-gray-500 bg-gray-100 px-1 py-0.5 rounded-xs border border-gray-200" x-text="item.satuan"></span>
+                                                                    <span class="text-[9px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20" x-text="'HPP: Rp ' + formatHpp(item.harga_hpp || 0)"></span>
+                                                                    <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan"></span>
                                                                 </div>
                                                             </div>
                                                         </template>
-                                                        <div x-show="!loading && items.length === 0" class="py-3 text-center text-gray-400">Tidak ada produk cocok.</div>
+                                                        <div x-show="!loading && items.length === 0" class="py-3 text-center text-muted-foreground">Tidak ada produk cocok.</div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
 
                                         {{-- Kolom 2: Qty Satuan Beli & Konversi --}}
-                                        <td class="px-3 py-2">
-                                            <div class="space-y-1">
+                                        <td class="px-4 py-3">
+                                            <div class="space-y-1.5">
                                                 <div class="flex items-center gap-1.5">
                                                     {{-- Input Qty Satuan Beli --}}
                                                     <input
@@ -304,7 +302,7 @@
                                                         @input="updateRowQty(row)"
                                                         placeholder="Qty"
                                                         required
-                                                        class="w-24 rounded-sm border-gray-300 text-xs py-1.5 px-2 font-mono text-right focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                        class="w-24 rounded-lg border border-input bg-background text-xs py-2 px-2.5 font-mono text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                                                     />
 
                                                     {{-- Dropdown Satuan Beli --}}
@@ -312,7 +310,7 @@
                                                         :name="`items[${i}][satuan_beli]`"
                                                         x-model="row.satuan_beli"
                                                         @change="onSatuanBeliChange(row)"
-                                                        class="flex-1 rounded-sm border-gray-300 text-xs py-1.5 px-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                        class="flex-1 rounded-lg border border-input bg-background text-xs py-2 px-2 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                                                     >
                                                         <template x-for="opt in getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi)" :key="opt.code">
                                                             <option :value="opt.code" x-text="opt.label" :selected="opt.code === row.satuan_beli || opt.code.toLowerCase() === (row.satuan_beli || '').toLowerCase()"></option>
@@ -322,8 +320,8 @@
 
                                                 {{-- Custom Factor Input --}}
                                                 <template x-if="row.satuan_beli === 'custom'">
-                                                    <div class="flex items-center gap-1 mt-1 text-[10px] bg-amber-50 p-1 rounded-xs border border-amber-200">
-                                                        <span class="text-amber-800 font-medium">1 unit =</span>
+                                                    <div class="flex items-center gap-1 mt-1 text-[10px] bg-amber-500/10 p-1.5 rounded-md border border-amber-500/20">
+                                                        <span class="text-amber-700 dark:text-amber-400 font-medium">1 unit =</span>
                                                         <input
                                                             type="number"
                                                             step="any"
@@ -331,11 +329,11 @@
                                                             :name="`items[${i}][faktor_konversi]`"
                                                             x-model.number="row.faktor_konversi"
                                                             @input="updateRowQty(row)"
-                                                            class="w-16 text-right py-0.5 px-1 text-xs rounded border-amber-300 font-mono"
+                                                            class="w-16 text-right py-0.5 px-1.5 text-xs rounded-md border border-input bg-background font-mono text-foreground"
                                                             placeholder="Faktor"
                                                             required
                                                         />
-                                                        <span class="text-amber-800 font-mono" x-text="row.satuan"></span>
+                                                        <span class="text-amber-700 dark:text-amber-400 font-mono" x-text="row.satuan"></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="row.satuan_beli !== 'custom'">
@@ -343,9 +341,9 @@
                                                 </template>
 
                                                 {{-- Live Indicator Kuantitas Fisik Masuk Gudang --}}
-                                                <div class="text-[10px] font-mono text-primary-700 bg-primary-50/70 px-1.5 py-0.5 rounded-xs border border-primary-100 flex items-center justify-between mt-1 select-none" x-show="row.qty > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
-                                                    <span class="text-gray-500">Masuk fisik:</span>
-                                                    <span class="font-bold text-primary-800" x-text="formatQty(row.qty) + ' ' + (row.satuan || '')"></span>
+                                                <div class="text-[10px] font-mono text-foreground bg-muted px-2 py-0.5 rounded-md border border-border flex items-center justify-between mt-1 select-none" x-show="row.qty > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
+                                                    <span class="text-muted-foreground">Masuk fisik:</span>
+                                                    <span class="font-bold text-foreground" x-text="formatQty(row.qty) + ' ' + (row.satuan || '')"></span>
                                                 </div>
 
                                                 {{-- Hidden Base Qty Input Sent to Backend --}}
@@ -354,7 +352,7 @@
                                         </td>
 
                                         {{-- Kolom 3: Total Harga Kotor --}}
-                                        <td class="px-3 py-2">
+                                        <td class="px-4 py-3">
                                             <div class="relative flex items-center">
                                                 <input type="hidden" :name="`items[${i}][harga_total]`" :value="row.harga">
                                                 <input
@@ -365,28 +363,28 @@
                                                     @keydown="handleKeyDown($event)"
                                                     placeholder="0"
                                                     required
-                                                    class="w-full rounded-sm border-gray-300 text-xs py-1.5 px-2 font-mono text-right focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-xs"
+                                                    class="w-full rounded-lg border border-input bg-background text-xs py-2 px-2.5 font-mono text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs font-medium"
                                                 />
                                             </div>
                                         </td>
 
                                         {{-- Kolom 4: Live HPP / Satuan Dasar (Hasil Alokasi Biaya Global) --}}
-                                        <td class="px-4 py-2 text-right bg-primary-50/40">
+                                        <td class="px-4 py-3 text-right bg-muted/20">
                                             <template x-if="calculateRowHpp(row) > 0">
                                                 <div>
-                                                    <div class="font-mono font-bold text-xs text-primary-900" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + ' / ' + (row.satuan || 'unit')"></div>
-                                                    <div class="text-[10px] text-gray-500 font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
+                                                    <div class="font-mono font-bold text-xs text-foreground" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + ' / ' + (row.satuan || 'unit')"></div>
+                                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
                                                 </div>
                                             </template>
                                             <template x-if="!calculateRowHpp(row) || calculateRowHpp(row) <= 0">
-                                                <span class="text-gray-400 italic text-[11px]">—</span>
+                                                <span class="text-muted-foreground italic text-[11px]">—</span>
                                             </template>
                                         </td>
 
                                         {{-- Kolom 5: Hapus --}}
-                                        <td class="px-2 py-2 text-center">
+                                        <td class="px-3 py-3 text-center">
                                             <button type="button" @click="if(rows.length > 1) { rows.splice(i,1); recalcAll(); }" :disabled="rows.length <= 1"
-                                                    class="p-1 text-gray-400 hover:text-rose-600 disabled:opacity-30 disabled:cursor-not-allowed transition rounded-sm cursor-pointer"
+                                                    class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed transition rounded-lg"
                                                     title="Hapus baris">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                             </button>
@@ -397,16 +395,16 @@
                         </table>
                     </div>
 
-                    <div class="px-4 py-3 bg-gray-50/50 border-t border-gray-200 flex items-center justify-between">
-                        <x-button type="button" @click="addRow()" variant="secondary" size="xs">
+                    <div class="px-4 py-3 bg-muted/30 border-t border-border flex items-center justify-between">
+                        <x-button type="button" @click="addRow()" variant="outline" size="sm">
                             <x-slot:icon>
-                                <svg class="w-3.5 h-3.5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <svg class="w-3.5 h-3.5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             </x-slot:icon>
                             Tambah Baris Bahan
                         </x-button>
 
-                        <div class="text-xs text-gray-500 font-mono">
-                            Total Baris: <span class="font-bold text-gray-800" x-text="rows.length"></span> item
+                        <div class="text-xs text-muted-foreground font-mono">
+                            Total Baris: <span class="font-bold text-foreground" x-text="rows.length"></span> item
                         </div>
                     </div>
                 </x-card>
@@ -414,20 +412,20 @@
                 {{-- Card 3: Rekapitulasi Biaya & Grand Total --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
                     <x-card title="Biaya Tambahan Global (Opsional)" subtitle="Biaya tingkat PO yang otomatis dialokasikan ke HPP bahan baku">
-                        <div class="space-y-3">
+                        <div class="space-y-3.5">
                             <div class="flex items-center justify-between gap-4">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    <label class="text-xs text-gray-700 font-medium">Diskon Global PO</label>
-                                    <span class="text-[10px] text-gray-400 font-mono truncate" x-show="headerDiskonMode === 'persen' && headerDiskon > 0" x-text="'(= Rp ' + formatThousand(headerDiskon) + ')'"></span>
+                                    <label class="text-xs text-foreground font-medium">Diskon Global PO</label>
+                                    <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerDiskonMode === 'persen' && headerDiskon > 0" x-text="'(= Rp ' + formatThousand(headerDiskon) + ')'"></span>
                                 </div>
                                 <div class="w-48">
                                     <input type="hidden" name="diskon_total" :value="headerDiskon">
-                                    <div class="relative flex rounded-sm shadow-2xs">
+                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
                                         <button
                                             type="button"
                                             @click="toggleHeaderDiskonMode()"
-                                            class="px-2 py-1 text-[10px] font-mono font-bold rounded-l-sm border border-r-0 transition cursor-pointer select-none shrink-0"
-                                            :class="headerDiskonMode === 'persen' ? 'bg-rose-100 border-rose-300 text-rose-800 hover:bg-rose-200' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'"
+                                            class="px-2.5 py-1.5 text-[10px] font-mono font-bold transition cursor-pointer select-none shrink-0"
+                                            :class="headerDiskonMode === 'persen' ? 'bg-destructive/15 text-destructive' : 'bg-muted text-muted-foreground'"
                                             :title="'Klik untuk ganti mode: ' + (headerDiskonMode === 'persen' ? 'Persentase (%)' : 'Nominal (Rp)')"
                                         >
                                             <span x-text="headerDiskonMode === 'persen' ? '%' : 'Rp'"></span>
@@ -442,7 +440,7 @@
                                                 @input="recalcHeaderDiskon()"
                                                 @keydown.enter.prevent
                                                 placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 rounded-r-sm border-gray-300 font-mono text-rose-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-destructive border-0 focus:ring-0"
                                             />
                                         </template>
                                         <template x-if="headerDiskonMode !== 'persen'">
@@ -453,7 +451,7 @@
                                                 @input="updateHeaderField('headerDiskon', $event)"
                                                 @keydown="handleKeyDown($event)"
                                                 placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 rounded-r-sm border-gray-300 font-mono text-rose-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-destructive border-0 focus:ring-0"
                                             />
                                         </template>
                                     </div>
@@ -461,17 +459,17 @@
                             </div>
                             <div class="flex items-center justify-between gap-4">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    <label class="text-xs text-gray-700 font-medium">PPN Global PO</label>
-                                    <span class="text-[10px] text-gray-400 font-mono truncate" x-show="headerPpnMode === 'persen' && headerPpn > 0" x-text="'(= Rp ' + formatThousand(headerPpn) + ')'"></span>
+                                    <label class="text-xs text-foreground font-medium">PPN Global PO</label>
+                                    <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerPpnMode === 'persen' && headerPpn > 0" x-text="'(= Rp ' + formatThousand(headerPpn) + ')'"></span>
                                 </div>
                                 <div class="w-48">
                                     <input type="hidden" name="ppn_nominal" :value="headerPpn">
-                                    <div class="relative flex rounded-sm shadow-2xs">
+                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
                                         <button
                                             type="button"
                                             @click="toggleHeaderPpnMode()"
-                                            class="px-2 py-1 text-[10px] font-mono font-bold rounded-l-sm border border-r-0 transition cursor-pointer select-none shrink-0"
-                                            :class="headerPpnMode === 'persen' ? 'bg-primary-100 border-primary-300 text-primary-800 hover:bg-primary-200' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'"
+                                            class="px-2.5 py-1.5 text-[10px] font-mono font-bold transition cursor-pointer select-none shrink-0"
+                                            :class="headerPpnMode === 'persen' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'"
                                             :title="'Klik untuk ganti mode: ' + (headerPpnMode === 'persen' ? 'Persentase (%)' : 'Nominal (Rp)')"
                                         >
                                             <span x-text="headerPpnMode === 'persen' ? '%' : 'Rp'"></span>
@@ -486,7 +484,7 @@
                                                 @input="recalcHeaderPpn()"
                                                 @keydown.enter.prevent
                                                 placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 rounded-r-sm border-gray-300 font-mono text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-foreground border-0 focus:ring-0"
                                             />
                                         </template>
                                         <template x-if="headerPpnMode !== 'persen'">
@@ -497,54 +495,54 @@
                                                 @input="updateHeaderField('headerPpn', $event)"
                                                 @keydown="handleKeyDown($event)"
                                                 placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 rounded-r-sm border-gray-300 font-mono text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-foreground border-0 focus:ring-0"
                                             />
                                         </template>
                                     </div>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between gap-4">
-                                <label class="text-xs text-gray-700 font-medium">Ongkos Kirim Global (Rp)</label>
-                                <div class="w-44">
+                                <label class="text-xs text-foreground font-medium">Ongkos Kirim Global (Rp)</label>
+                                <div class="w-48">
                                     <input type="hidden" name="ongkos_kirim" :value="headerOngkir">
-                                    <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 rounded-sm border-gray-300 font-mono focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                    <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background text-foreground font-mono focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
                                 </div>
                             </div>
                             <div class="flex items-center justify-between gap-4">
-                                <label class="text-xs text-gray-700 font-medium">Adjustment / Pembulatan (Rp)</label>
-                                <div class="w-44">
+                                <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan (Rp)</label>
+                                <div class="w-48">
                                     <input type="hidden" name="adjustment" :value="headerAdj">
-                                    <input type="text" inputmode="numeric" :value="formatThousand(headerAdj)" @input="updateHeaderField('headerAdj', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 rounded-sm border-gray-300 font-mono focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                    <input type="text" inputmode="numeric" :value="formatThousand(headerAdj)" @input="updateHeaderField('headerAdj', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background text-foreground font-mono focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
                                 </div>
                             </div>
                         </div>
                     </x-card>
 
                     <x-card title="Ringkasan Nilai Pengadaan">
-                        <div class="space-y-2.5 text-xs">
-                            <div class="flex justify-between text-gray-600">
+                        <div class="space-y-3 text-xs">
+                            <div class="flex justify-between text-muted-foreground">
                                 <span>Subtotal Bahan (Kotor):</span>
-                                <span class="font-mono font-semibold text-gray-900" x-text="'Rp ' + formatThousand(subtotalProduk())"></span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'Rp ' + formatThousand(subtotalProduk())"></span>
                             </div>
-                            <div class="flex justify-between text-rose-600">
+                            <div class="flex justify-between text-destructive">
                                 <span>Total Diskon:</span>
                                 <span class="font-mono font-semibold" x-text="'- Rp ' + formatThousand(totalDiskon())"></span>
                             </div>
-                            <div class="flex justify-between text-gray-600">
+                            <div class="flex justify-between text-muted-foreground">
                                 <span>Total PPN:</span>
-                                <span class="font-mono font-semibold text-gray-900" x-text="'+ Rp ' + formatThousand(totalPpn())"></span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalPpn())"></span>
                             </div>
-                            <div class="flex justify-between text-gray-600">
+                            <div class="flex justify-between text-muted-foreground">
                                 <span>Total Ongkos Kirim:</span>
-                                <span class="font-mono font-semibold text-gray-900" x-text="'+ Rp ' + formatThousand(totalOngkir())"></span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalOngkir())"></span>
                             </div>
-                            <div class="flex justify-between text-gray-600">
+                            <div class="flex justify-between text-muted-foreground">
                                 <span>Total Adjustment:</span>
-                                <span class="font-mono font-semibold text-gray-900" x-text="'+ Rp ' + formatThousand(totalAdj())"></span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalAdj())"></span>
                             </div>
-                            <div class="pt-3 border-t border-gray-200 flex justify-between items-center text-sm">
-                                <span class="font-bold text-gray-900">Grand Total Tagihan:</span>
-                                <span class="font-mono font-extrabold text-primary-700 text-base" x-text="'Rp ' + formatThousand(grandTotal())"></span>
+                            <div class="pt-3 border-t border-border flex justify-between items-center text-sm">
+                                <span class="font-bold text-foreground">Grand Total Tagihan:</span>
+                                <span class="font-mono font-extrabold text-foreground text-lg" x-text="'Rp ' + formatThousand(grandTotal())"></span>
                             </div>
                         </div>
                     </x-card>
@@ -553,47 +551,47 @@
                 {{-- Card 4: Jadwal Pembayaran Termin (Hanya aktif jika skema_bayar == termin) --}}
                 <div x-show="skemaBayar === 'termin'" x-cloak class="transition-all duration-200">
                     <fieldset :disabled="skemaBayar !== 'termin'" class="border-0 p-0 m-0 min-w-0">
-                        <x-card title="Jadwal Pembayaran Termin (Cicilan)" subtitle="Tentukan periode pembayaran dan tanggal jatuh tempo tiap termin" variant="default" :noPadding="true">
-                            <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <x-card title="Jadwal Pembayaran Termin (Cicilan)" subtitle="Tentukan periode pembayaran dan tanggal jatuh tempo tiap termin" :noPadding="true">
+                            <div class="p-4 border-b border-border flex items-center justify-between">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-xs text-gray-600 font-medium">Bagi Cepat:</span>
-                                    <button type="button" @click="generateEqualTermins(2)" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-700 cursor-pointer">2 Termin (50:50)</button>
-                                    <button type="button" @click="generateEqualTermins(3)" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-700 cursor-pointer">3 Termin</button>
-                                    <button type="button" @click="generateEqualTermins(4)" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-700 cursor-pointer">4 Termin</button>
+                                    <span class="text-xs text-muted-foreground font-medium">Bagi Cepat:</span>
+                                    <button type="button" @click="generateEqualTermins(2)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 rounded-md text-xs text-foreground transition font-medium">2 Termin (50:50)</button>
+                                    <button type="button" @click="generateEqualTermins(3)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 rounded-md text-xs text-foreground transition font-medium">3 Termin</button>
+                                    <button type="button" @click="generateEqualTermins(4)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 rounded-md text-xs text-foreground transition font-medium">4 Termin</button>
                                 </div>
 
-                                <button type="button" @click="termins.push({tanggal_tempo:'',nominal_tagihan:0,keterangan:''})" class="text-xs font-semibold text-primary-600 hover:text-primary-800 cursor-pointer">
+                                <button type="button" @click="termins.push({tanggal_tempo:'',nominal_tagihan:0,keterangan:''})" class="text-xs font-semibold text-foreground hover:underline">
                                     + Tambah Termin Manual
                                 </button>
                             </div>
 
                             <div class="overflow-x-auto">
                                 <table class="w-full text-xs">
-                                    <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold uppercase text-[11px]">
+                                    <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
                                         <tr>
-                                            <th class="px-4 py-2.5 text-center w-16">Termin</th>
-                                            <th class="px-4 py-2.5 text-left w-44">Jatuh Tempo <span class="text-rose-500">*</span></th>
-                                            <th class="px-4 py-2.5 text-right w-52">Nominal Tagihan (Rp) <span class="text-rose-500">*</span></th>
-                                            <th class="px-4 py-2.5 text-left">Keterangan</th>
-                                            <th class="px-4 py-2.5 text-center w-12">Aksi</th>
+                                            <th class="px-4 py-3 text-center w-16">Termin</th>
+                                            <th class="px-4 py-3 text-left w-44">Jatuh Tempo <span class="text-destructive">*</span></th>
+                                            <th class="px-4 py-3 text-right w-52">Nominal Tagihan (Rp) <span class="text-destructive">*</span></th>
+                                            <th class="px-4 py-3 text-left">Keterangan</th>
+                                            <th class="px-4 py-3 text-center w-12">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-100 bg-white">
+                                    <tbody class="divide-y divide-border bg-card">
                                         <template x-for="(tm, idx) in termins" :key="idx">
-                                            <tr class="hover:bg-gray-50/50">
-                                                <td class="px-4 py-2 text-center font-mono font-bold text-gray-700" x-text="idx + 1"></td>
-                                                <td class="px-4 py-2">
-                                                    <input type="date" :name="`termins[${idx}][tanggal_tempo]`" x-model="tm.tanggal_tempo" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" class="w-full text-xs py-1.5 rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="px-4 py-2.5 text-center font-mono font-bold text-foreground" x-text="idx + 1"></td>
+                                                <td class="px-4 py-2.5">
+                                                    <input type="date" :name="`termins[${idx}][tanggal_tempo]`" x-model="tm.tanggal_tempo" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" class="w-full text-xs py-2 px-2.5 rounded-lg border border-input bg-background text-foreground focus:border-ring focus:ring-1 focus:ring-ring">
                                                 </td>
-                                                <td class="px-4 py-2">
+                                                <td class="px-4 py-2.5">
                                                     <input type="hidden" :name="`termins[${idx}][nominal_tagihan]`" :value="tm.nominal_tagihan" :disabled="skemaBayar !== 'termin'">
-                                                    <input type="text" inputmode="numeric" :value="formatThousand(tm.nominal_tagihan)" @input="updateTerminNominal(tm, $event)" @keydown="handleKeyDown($event)" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" placeholder="0" class="w-full text-right font-mono text-xs py-1.5 rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-semibold text-gray-900">
+                                                    <input type="text" inputmode="numeric" :value="formatThousand(tm.nominal_tagihan)" @input="updateTerminNominal(tm, $event)" @keydown="handleKeyDown($event)" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" placeholder="0" class="w-full text-right font-mono text-xs py-2 px-2.5 rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-semibold text-foreground">
                                                 </td>
-                                                <td class="px-4 py-2">
-                                                    <input type="text" :name="`termins[${idx}][keterangan]`" x-model="tm.keterangan" :disabled="skemaBayar !== 'termin'" placeholder="Contoh: DP 30% / Pelunasan" class="w-full text-xs py-1.5 rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                                <td class="px-4 py-2.5">
+                                                    <input type="text" :name="`termins[${idx}][keterangan]`" x-model="tm.keterangan" :disabled="skemaBayar !== 'termin'" placeholder="Contoh: DP 30% / Pelunasan" class="w-full text-xs py-2 px-2.5 rounded-lg border border-input bg-background text-foreground focus:border-ring focus:ring-1 focus:ring-ring">
                                                 </td>
-                                                <td class="px-4 py-2 text-center">
-                                                    <button type="button" @click="if(termins.length > 1) termins.splice(idx,1)" :disabled="termins.length <= 1" class="p-1 text-gray-400 hover:text-rose-600 disabled:opacity-30 cursor-pointer">
+                                                <td class="px-4 py-2.5 text-center">
+                                                    <button type="button" @click="if(termins.length > 1) termins.splice(idx,1)" :disabled="termins.length <= 1" class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition disabled:opacity-30">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                     </button>
                                                 </td>
@@ -603,16 +601,16 @@
                                 </table>
                             </div>
 
-                            <div class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs">
-                                <div class="font-medium">
-                                    Akumulasi Termin: <span class="font-mono font-bold text-gray-900" x-text="'Rp ' + formatThousand(totalTermins())"></span>
+                            <div class="p-4 bg-muted/30 border-t border-border flex items-center justify-between text-xs">
+                                <div class="font-medium text-foreground">
+                                    Akumulasi Termin: <span class="font-mono font-bold text-foreground" x-text="'Rp ' + formatThousand(totalTermins())"></span>
                                 </div>
                                 <div>
                                     <template x-if="totalTermins() === grandTotal()">
-                                        <span class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">✓ Sesuai dengan Grand Total</span>
+                                        <span class="text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">✓ Sesuai dengan Grand Total</span>
                                     </template>
                                     <template x-if="totalTermins() !== grandTotal()">
-                                        <span class="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200" x-text="'Selisih: Rp ' + formatThousand(Math.abs(grandTotal() - totalTermins())) + (grandTotal() > totalTermins() ? ' (Kurang)' : ' (Lebih)')"></span>
+                                        <span class="text-amber-700 dark:text-amber-400 font-semibold bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20" x-text="'Selisih: Rp ' + formatThousand(Math.abs(grandTotal() - totalTermins())) + (grandTotal() > totalTermins() ? ' (Kurang)' : ' (Lebih)')"></span>
                                     </template>
                                 </div>
                             </div>
@@ -627,17 +625,16 @@
                             name="catatan"
                             rows="3"
                             placeholder="Contoh: Pesanan mendesak dari hasil analisa stok mingguan. Mohon kirimkan COA bersamaan dengan barang fisik."
-                            class="w-full text-xs rounded-sm border-gray-300 focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                            class="w-full text-xs rounded-lg border border-input bg-background text-foreground p-3 focus:ring-1 focus:ring-ring focus:border-ring shadow-xs"
                         >{{ old('catatan') }}</textarea>
                     </div>
                 </x-card>
 
-                {{-- Action Buttons --}}
                 <div class="flex items-center justify-end gap-3 pt-2">
-                    <x-button href="{{ route('analisa.index') }}" variant="secondary" size="md">
+                    <x-button href="{{ route('analisa.index') }}" variant="outline" size="sm">
                         Batal
                     </x-button>
-                    <x-button type="submit" variant="primary" size="md">
+                    <x-button type="submit" variant="primary" size="sm">
                         <x-slot:icon>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         </x-slot:icon>
@@ -675,9 +672,9 @@
             }));
 
             return {
-                submitting: false,
                 uomList: @json($uomList ?? []),
                 skemaBayar: initial.skemaBayar || 'cash',
+                submitting: false,
                 headerDiskonMode: 'nominal',
                 headerDiskonVal: 0,
                 headerDiskon: initial.headerDiskon || 0,
@@ -754,156 +751,98 @@
 
                             if (isMatch && !seen.has(uKode)) {
                                 seen.add(uKode);
-                                const factorDisplay = (factor == parseInt(factor) ? parseInt(factor) : factor).toLocaleString('id-ID');
-                                const label = factor > 1 
-                                    ? `${u.nama} (${factorDisplay} ${baseSatuan || ''})`
-                                    : (uBasis === s || uKode === s ? `${u.nama} (${u.kode} - Satuan Dasar)` : `${u.nama} (${u.kode})`);
                                 options.push({
                                     code: u.kode,
-                                    label: label,
-                                    factor: factor,
-                                    isBase: (uKode === s || (uBasis === s && factor === 1))
+                                    label: `${u.nama} (${u.kode})` + (factor !== 1 ? ` [1 ${u.kode} = ${factor} ${u.satuan_dasar || s}]` : ''),
+                                    factor: factor
                                 });
                             }
                         });
                     }
 
-                    // 2. Fallback kemasan standar industri jika belum ada di database
-                    const presets = [];
-                    if (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter') {
-                        presets.push(
-                            { code: 'ml', label: 'Mililiter (ml - Satuan Dasar)', factor: 1, isBase: true },
-                            { code: 'Liter', label: 'Liter (1.000 ml)', factor: 1000 },
-                            { code: 'Jerigen 5L', label: 'Jerigen 5L (5.000 ml)', factor: 5000 },
-                            { code: 'Galon 19L', label: 'Galon 19L (19.000 ml)', factor: 19000 },
-                            { code: 'Drum 200L', label: 'Drum 200L (200.000 ml)', factor: 200000 }
-                        );
-                    } else if (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg' || s === 'kilogram') {
-                        presets.push(
-                            { code: 'Gram', label: 'Gram (gr - Satuan Dasar)', factor: 1, isBase: true },
-                            { code: 'Kilogram', label: 'Kilogram (1.000 gr)', factor: 1000 },
-                            { code: 'Sak 25kg', label: 'Sak 25kg (25.000 gr)', factor: 25000 },
-                            { code: 'Sak 50kg', label: 'Sak 50kg (50.000 gr)', factor: 50000 },
-                            { code: 'Ton', label: 'Ton (1.000.000 gr)', factor: 1000000 }
-                        );
-                    } else {
-                        presets.push(
-                            { code: 'Pieces', label: 'Pieces (pcs - Satuan Dasar)', factor: 1, isBase: true },
-                            { code: 'Pack (10)', label: 'Pack (10 pcs)', factor: 10 },
-                            { code: 'Dus (100)', label: 'Dus / Box (100 pcs)', factor: 100 }
-                        );
+                    // 2. Default standard options jika master UOM belum lengkap di database
+                    if (s === 'ml' || s === 'l' || s === 'liter') {
+                        if (!seen.has('ml')) { options.push({ code: 'ml', label: 'Mililiter (ml)', factor: 1 }); seen.add('ml'); }
+                        if (!seen.has('l')) { options.push({ code: 'l', label: 'Liter (l) [1 l = 1.000 ml]', factor: 1000 }); seen.add('l'); }
+                        if (!seen.has('galon')) { options.push({ code: 'galon', label: 'Galon (galon) [1 galon = 5.000 ml]', factor: 5000 }); seen.add('galon'); }
+                        if (!seen.has('drum')) { options.push({ code: 'drum', label: 'Drum (drum) [1 drum = 200.000 ml]', factor: 200000 }); seen.add('drum'); }
+                    } else if (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg') {
+                        if (!seen.has('gr') && !seen.has('g')) { options.push({ code: 'gr', label: 'Gram (gr)', factor: 1 }); seen.add('gr'); }
+                        if (!seen.has('kg')) { options.push({ code: 'kg', label: 'Kilogram (kg) [1 kg = 1.000 gr]', factor: 1000 }); seen.add('kg'); }
+                        if (!seen.has('sak')) { options.push({ code: 'sak', label: 'Sak (sak) [1 sak = 25.000 gr]', factor: 25000 }); seen.add('sak'); }
+                        if (!seen.has('zak')) { options.push({ code: 'zak', label: 'Zak (zak) [1 zak = 25.000 gr]', factor: 25000 }); seen.add('zak'); }
+                        if (!seen.has('drum')) { options.push({ code: 'drum', label: 'Drum (drum) [1 drum = 25.000 gr]', factor: 25000 }); seen.add('drum'); }
+                        if (!seen.has('karton')) { options.push({ code: 'karton', label: 'Karton (karton) [1 karton = 20.000 gr]', factor: 20000 }); seen.add('karton'); }
+                    } else if (s === 'pcs' || s === 'unit' || s === 'botol' || s === 'buah') {
+                        if (!seen.has('pcs')) { options.push({ code: 'pcs', label: 'Pieces (pcs)', factor: 1 }); seen.add('pcs'); }
+                        if (!seen.has('lusin')) { options.push({ code: 'lusin', label: 'Lusin [1 lusin = 12 pcs]', factor: 12 }); seen.add('lusin'); }
+                        if (!seen.has('gross')) { options.push({ code: 'gross', label: 'Gross [1 gross = 144 pcs]', factor: 144 }); seen.add('gross'); }
+                        if (!seen.has('box')) { options.push({ code: 'box', label: 'Box / Kotak [1 box = 100 pcs]', factor: 100 }); seen.add('box'); }
+                        if (!seen.has('karton')) { options.push({ code: 'karton', label: 'Karton [1 karton = 500 pcs]', factor: 500 }); seen.add('karton'); }
+                        if (!seen.has('rim')) { options.push({ code: 'rim', label: 'Rim [1 rim = 500 pcs]', factor: 500 }); seen.add('rim'); }
                     }
 
-                    presets.forEach(p => {
-                        const pKey = p.code.toLowerCase().trim();
-                        if (!seen.has(pKey)) {
-                            seen.add(pKey);
-                            options.push(p);
-                        }
-                    });
-
-                    // 3. Pastikan satuan dasar produk selalu ada di opsi jika belum ada
-                    if (!seen.has(s) && baseSatuan) {
+                    // 3. Pastikan satuan dasar produk selalu ada di list
+                    if (baseSatuan && !seen.has(s)) {
+                        options.unshift({ code: baseSatuan, label: `${baseSatuan} (Satuan Dasar)`, factor: 1 });
                         seen.add(s);
-                        options.unshift({ code: baseSatuan, label: `${baseSatuan} (Satuan Dasar)`, factor: 1, isBase: true });
                     }
 
-                    // 4. Pastikan jika ada currentSatuanBeli yang belum tercantum, masukkan ke options
-                    if (curKey && curKey !== 'custom') {
-                        const found = options.some(o => o.code.toLowerCase().trim() === curKey);
-                        if (!found) {
-                            seen.add(curKey);
-                            const factorNum = parseFloat(currentFactor) || 1;
-                            const factorDisplay = (factorNum == parseInt(factorNum) ? parseInt(factorNum) : factorNum).toLocaleString('id-ID');
-                            options.push({
-                                code: currentSatuanBeli,
-                                label: `${currentSatuanBeli} (${factorDisplay} ${baseSatuan || ''})`,
-                                factor: factorNum
-                            });
-                        }
+                    // 4. Jika satuan beli saat ini belum masuk (misal data import/legacy), masukkan agar select tidak blank
+                    if (currentSatuanBeli && !seen.has(curKey) && curKey !== 'custom') {
+                        options.push({
+                            code: currentSatuanBeli,
+                            label: `${currentSatuanBeli} [1 ${currentSatuanBeli} = ${currentFactor || 1} ${baseSatuan || ''}]`,
+                            factor: currentFactor || 1
+                        });
+                        seen.add(curKey);
                     }
 
-                    // Urutkan opsi: Satuan dasar di paling atas, lalu urut faktor terkecil ke terbesar
-                    options.sort((a, b) => {
-                        const aIsBase = a.isBase || (a.code.toLowerCase().trim() === s);
-                        const bIsBase = b.isBase || (b.code.toLowerCase().trim() === s);
-                        if (aIsBase && !bIsBase) return -1;
-                        if (!aIsBase && bIsBase) return 1;
-                        return (parseFloat(a.factor) || 0) - (parseFloat(b.factor) || 0);
-                    });
-
-                    // 5. Selalu sertakan opsi manual/kustom di paling akhir
-                    options.push({ code: 'custom', label: 'Kustom / Input Faktor Manual...', factor: null });
+                    // 5. Opsi konversi manual kustom
+                    options.push({ code: 'custom', label: '⚙️ Konversi Lainnya (Kustom Faktor)', factor: null });
 
                     return options;
                 },
 
                 onProductSelected(row, product) {
-                    if (product) {
-                        const isSameProduct = (row.produk_id && String(row.produk_id) === String(product.id));
-                        row.produk_id = product.id;
-                        row.satuan = product.satuan;
-                        row.selectedItem = product;
+                    row.produk_id = product.id;
+                    row.satuan = product.satuan || '';
+                    row.selectedItem = {
+                        id: product.id,
+                        sku: product.sku,
+                        nama: product.nama,
+                        satuan: product.satuan,
+                        harga_hpp: parseFloat(product.harga_hpp) || 0
+                    };
 
-                        if (row._isInitialized && !isSameProduct) {
-                            row.satuan_beli = product.satuan || 'UNIT';
-                            row.faktor_konversi = 1;
-                            row._lockedSatuanBeli = row.satuan_beli;
-                            row._lockedFaktorKonversi = 1;
-                            this.updateRowQty(row);
-                        } else if (!row.satuan_beli) {
-                            row.satuan_beli = product.satuan || 'UNIT';
-                            row.faktor_konversi = 1;
-                            row._lockedSatuanBeli = row.satuan_beli;
-                            row._lockedFaktorKonversi = 1;
-                            this.updateRowQty(row);
-                        }
-                    } else {
-                        row.produk_id = '';
-                        row.satuan = '';
-                        row.selectedItem = null;
-                        row.satuan_beli = '';
-                        row.faktor_konversi = 1;
-                        row.qty = 0;
-                        row.qty_satuan_beli = '';
-                        row._lockedSatuanBeli = '';
-                        row._lockedFaktorKonversi = 1;
-                        this.recalcAll();
+                    const options = this.getUomOptions(row.satuan);
+                    if (options.length > 0 && (!row.satuan_beli || row.satuan_beli === 'custom')) {
+                        row.satuan_beli = options[0].code;
+                        row.faktor_konversi = options[0].factor || 1;
                     }
+                    this.updateRowQty(row);
                 },
 
                 onSatuanBeliChange(row) {
-                    const options = this.getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi);
-                    const opt = options.find(o => o.code === row.satuan_beli || o.code.toLowerCase() === (row.satuan_beli || '').toLowerCase());
-                    if (opt && opt.factor !== null && opt.factor !== undefined) {
-                        row.faktor_konversi = opt.factor;
+                    if (row.satuan_beli === 'custom') {
+                        row.faktor_konversi = 1;
+                    } else {
+                        const options = this.getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi);
+                        const match = options.find(o => o.code === row.satuan_beli || o.code.toLowerCase() === (row.satuan_beli || '').toLowerCase());
+                        if (match && match.factor !== null) {
+                            row.faktor_konversi = match.factor;
+                        } else {
+                            row.faktor_konversi = 1;
+                        }
                     }
-                    row._lockedSatuanBeli = row.satuan_beli;
-                    row._lockedFaktorKonversi = row.faktor_konversi;
                     this.updateRowQty(row);
                 },
 
                 updateRowQty(row) {
-                    const qtyBeli = parseFloat(row.qty_satuan_beli) || 0;
-                    const factor = parseFloat(row.faktor_konversi) || 1;
-                    row.qty = Math.round(qtyBeli * factor * 100) / 100;
-                    this.recalcAll();
-                },
-
-                formatQty(val) {
-                    if (val === '' || val === null || val === undefined || isNaN(val)) return '0';
-                    const num = Number(val);
-                    if (Math.abs(num - Math.round(num)) < 0.00001) {
-                        return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                    }
-                    return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                },
-
-                calculateRowHppPerSatuanBeli(row) {
                     const qBeli = parseFloat(row.qty_satuan_beli) || 0;
-                    if (qBeli <= 0) return 0;
-                    const net = this.calculateRowNet(row);
-                    return Math.round((net / qBeli) * 100) / 100;
+                    const faktor = parseFloat(row.faktor_konversi) || 1;
+                    row.qty = Math.round(qBeli * faktor * 10000) / 10000;
+                    this.recalcAll();
                 },
 
                 addRow() {
@@ -916,231 +855,137 @@
                         harga: '',
                         satuan: '',
                         selectedItem: null,
-                        _lockedSatuanBeli: '',
-                        _lockedFaktorKonversi: 1,
-                        _lockedQtySatuanBeli: '',
-                        _lockedQty: '',
                         _isInitialized: true
                     });
                 },
 
-                recalcAll() {
-                    if (this.headerDiskonMode === 'persen') this.recalcHeaderDiskon();
-                    if (this.headerPpnMode === 'persen') this.recalcHeaderPpn();
+                formatThousand(v) {
+                    if (v === '' || v === null || v === undefined) return '';
+                    const num = Math.round(parseFloat(v) || 0);
+                    return num.toLocaleString('id-ID');
+                },
+
+                formatHpp(v) {
+                    if (v === '' || v === null || v === undefined) return '0';
+                    const num = parseFloat(v) || 0;
+                    return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+                },
+
+                formatQty(v) {
+                    if (v === '' || v === null || v === undefined) return '0';
+                    const num = parseFloat(v) || 0;
+                    return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+                },
+
+                handleKeyDown(e) {
+                    if ([46, 8, 9, 27, 13].indexOf(e.keyCode) !== -1 ||
+                        (e.keyCode === 65 && (e.ctrlKey || e.metaKey)) ||
+                        (e.keyCode === 67 && (e.ctrlKey || e.metaKey)) ||
+                        (e.keyCode === 86 && (e.ctrlKey || e.metaKey)) ||
+                        (e.keyCode === 88 && (e.ctrlKey || e.metaKey)) ||
+                        (e.keyCode >= 35 && e.keyCode <= 40)) {
+                        return;
+                    }
+                    if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                        e.preventDefault();
+                    }
+                },
+
+                updateRowField(row, field, event) {
+                    const clean = event.target.value.replace(/\D/g, '');
+                    row[field] = clean === '' ? '' : parseInt(clean, 10);
+                    event.target.value = this.formatThousand(row[field]);
+                    this.recalcAll();
+                },
+
+                updateHeaderField(field, event) {
+                    const clean = event.target.value.replace(/\D/g, '');
+                    this[field] = clean === '' ? 0 : parseInt(clean, 10);
+                    event.target.value = this.formatThousand(this[field]);
+                    this.recalcAll();
+                },
+
+                updateTerminNominal(tm, event) {
+                    const clean = event.target.value.replace(/\D/g, '');
+                    tm.nominal_tagihan = clean === '' ? 0 : parseInt(clean, 10);
+                    event.target.value = this.formatThousand(tm.nominal_tagihan);
                 },
 
                 toggleHeaderDiskonMode() {
-                    if (this.headerDiskonMode === 'persen') {
-                        this.headerDiskonMode = 'nominal';
-                    } else {
+                    const subtotal = this.subtotalProduk();
+                    if (this.headerDiskonMode === 'nominal') {
                         this.headerDiskonMode = 'persen';
-                        const sub = this.subtotalProduk();
-                        if (!this.headerDiskonVal && this.headerDiskon > 0 && sub > 0) {
-                            this.headerDiskonVal = Math.round(((parseFloat(this.headerDiskon) || 0) / sub) * 10000) / 100;
+                        if (subtotal > 0 && this.headerDiskon > 0) {
+                            this.headerDiskonVal = Math.round((this.headerDiskon / subtotal) * 10000) / 100;
+                        } else {
+                            this.headerDiskonVal = 0;
                         }
+                    } else {
+                        this.headerDiskonMode = 'nominal';
+                        this.recalcHeaderDiskon();
                     }
-                    this.recalcHeaderDiskon();
                 },
 
                 recalcHeaderDiskon() {
                     if (this.headerDiskonMode === 'persen') {
-                        const sub = this.subtotalProduk();
-                        const pct = parseFloat(this.headerDiskonVal) || 0;
-                        this.headerDiskon = Math.round((sub * pct) / 100);
+                        const subtotal = this.subtotalProduk();
+                        const pct = Math.max(0, Math.min(100, parseFloat(this.headerDiskonVal) || 0));
+                        this.headerDiskon = Math.round((subtotal * (pct / 100)) * 100) / 100;
+                    }
+                    this.recalcAll();
+                },
+
+                toggleHeaderPpnMode() {
+                    const subtotal = this.subtotalProduk();
+                    const d = parseFloat(this.headerDiskon) || 0;
+                    const dpp = Math.max(0, subtotal - d);
+                    if (this.headerPpnMode === 'nominal') {
+                        this.headerPpnMode = 'persen';
+                        if (dpp > 0 && this.headerPpn > 0) {
+                            this.headerPpnVal = Math.round((this.headerPpn / dpp) * 10000) / 100;
+                        } else {
+                            this.headerPpnVal = 11;
+                            this.recalcHeaderPpn();
+                        }
+                    } else {
+                        this.headerPpnMode = 'nominal';
+                        this.recalcHeaderPpn();
+                    }
+                },
+
+                recalcHeaderPpn() {
+                    if (this.headerPpnMode === 'persen') {
+                        const subtotal = this.subtotalProduk();
+                        const d = parseFloat(this.headerDiskon) || 0;
+                        const dpp = Math.max(0, subtotal - d);
+                        const pct = Math.max(0, parseFloat(this.headerPpnVal) || 0);
+                        this.headerPpn = Math.round((dpp * (pct / 100)) * 100) / 100;
+                    }
+                    this.recalcAll();
+                },
+
+                recalcAll() {
+                    if (this.headerDiskonMode === 'persen') {
+                        this.recalcHeaderDiskon();
                     }
                     if (this.headerPpnMode === 'persen') {
                         this.recalcHeaderPpn();
                     }
                 },
 
-                toggleHeaderPpnMode() {
-                    if (this.headerPpnMode === 'persen') {
-                        this.headerPpnMode = 'nominal';
-                    } else {
-                        this.headerPpnMode = 'persen';
-                        const dpp = Math.max(0, this.subtotalProduk() - this.totalDiskon());
-                        if (!this.headerPpnVal && this.headerPpn > 0 && dpp > 0) {
-                            this.headerPpnVal = Math.round(((parseFloat(this.headerPpn) || 0) / dpp) * 10000) / 100;
-                        } else if (!this.headerPpnVal) {
-                            this.headerPpnVal = 11;
-                        }
-                    }
-                    this.recalcHeaderPpn();
-                },
-
-                recalcHeaderPpn() {
-                    if (this.headerPpnMode === 'persen') {
-                        const dpp = Math.max(0, this.subtotalProduk() - this.totalDiskon());
-                        const pct = parseFloat(this.headerPpnVal) || 0;
-                        this.headerPpn = Math.round((dpp * pct) / 100);
-                    }
-                },
-
-                formatThousand(val) {
-                    if (val === '' || val === null || val === undefined) return '';
-                    if (typeof val === 'number') {
-                        return Math.round(val).toLocaleString('id-ID');
-                    }
-                    const str = val.toString().trim();
-                    if (str.includes('.')) {
-                        const num = parseFloat(str);
-                        if (!isNaN(num)) {
-                            return Math.round(num).toLocaleString('id-ID');
-                        }
-                    }
-                    const clean = str.replace(/\D/g, '');
-                    if (!clean) return '';
-                    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-                },
-
-                formatHpp(val) {
-                    if (val === '' || val === null || val === undefined || isNaN(val)) return '0';
-                    const num = Number(val);
-                    if (Math.abs(num - Math.round(num)) < 0.00001) {
-                        return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                    }
-                    return num.toLocaleString('id-ID', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 2
-                    });
-                },
-
-                updateRowField(row, field, event) {
-                    const input = event.target;
-                    const oldVal = input.value;
-                    const oldPos = input.selectionEnd || 0;
-                    const digitsBeforeCursor = (oldVal.slice(0, oldPos).match(/\d/g) || []).length;
-                    
-                    let rawDigits = oldVal.replace(/\D/g, '');
-                    if (rawDigits === '') {
-                        row[field] = 0;
-                        input.value = '';
-                        this.recalcAll();
-                        return;
-                    }
-                    if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
-                        rawDigits = String(parseInt(rawDigits, 10) || 0);
-                    }
-                    
-                    const num = parseInt(rawDigits, 10);
-                    row[field] = isNaN(num) ? 0 : num;
-                    
-                    const formatted = this.formatThousand(rawDigits);
-                    input.value = formatted;
-                    this.repositionCursor(input, formatted, digitsBeforeCursor);
-                    this.recalcAll();
-                },
-
-                updateHeaderField(field, event) {
-                    const input = event.target;
-                    const oldVal = input.value;
-                    const oldPos = input.selectionEnd || 0;
-                    const digitsBeforeCursor = (oldVal.slice(0, oldPos).match(/\d/g) || []).length;
-                    
-                    let rawDigits = oldVal.replace(/\D/g, '');
-                    if (rawDigits === '') {
-                        this[field] = 0;
-                        input.value = '';
-                        this.recalcAll();
-                        return;
-                    }
-                    if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
-                        rawDigits = String(parseInt(rawDigits, 10) || 0);
-                    }
-                    
-                    const num = parseInt(rawDigits, 10);
-                    this[field] = isNaN(num) ? 0 : num;
-                    
-                    const formatted = this.formatThousand(rawDigits);
-                    input.value = formatted;
-                    this.repositionCursor(input, formatted, digitsBeforeCursor);
-                    this.recalcAll();
-                },
-
-                updateTerminNominal(tm, event) {
-                    const input = event.target;
-                    const oldVal = input.value;
-                    const oldPos = input.selectionEnd || 0;
-                    const digitsBeforeCursor = (oldVal.slice(0, oldPos).match(/\d/g) || []).length;
-                    
-                    let rawDigits = oldVal.replace(/\D/g, '');
-                    if (rawDigits === '') {
-                        tm.nominal_tagihan = 0;
-                        input.value = '';
-                        return;
-                    }
-                    if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
-                        rawDigits = String(parseInt(rawDigits, 10) || 0);
-                    }
-                    
-                    const num = parseInt(rawDigits, 10);
-                    tm.nominal_tagihan = isNaN(num) ? 0 : num;
-                    
-                    const formatted = this.formatThousand(rawDigits);
-                    input.value = formatted;
-                    this.repositionCursor(input, formatted, digitsBeforeCursor);
-                },
-
-                repositionCursor(input, formatted, digitsBeforeCursor) {
-                    let newPos = 0;
-                    let countedDigits = 0;
-                    for (let i = 0; i < formatted.length; i++) {
-                        if (/\d/.test(formatted[i])) countedDigits++;
-                        if (countedDigits === digitsBeforeCursor) {
-                            newPos = i + 1;
-                            break;
-                        }
-                    }
-                    if (countedDigits < digitsBeforeCursor || newPos > formatted.length) {
-                        newPos = formatted.length;
-                    }
-                    try { input.setSelectionRange(newPos, newPos); } catch (e) {}
-                },
-
-                handleKeyDown(event) {
-                    if (event.key === 'Backspace') {
-                        const input = event.target;
-                        if (input.selectionStart === input.selectionEnd && input.selectionStart > 0) {
-                            if (input.value[input.selectionStart - 1] === '.') {
-                                event.preventDefault();
-                                const pos = input.selectionStart - 1;
-                                const val = input.value;
-                                input.value = val.slice(0, pos - 1) + val.slice(pos);
-                                input.dispatchEvent(new Event('input'));
-                            }
-                        }
-                    } else if (event.key === 'Delete') {
-                        const input = event.target;
-                        if (input.selectionStart === input.selectionEnd && input.selectionStart < input.value.length) {
-                            if (input.value[input.selectionStart] === '.') {
-                                event.preventDefault();
-                                const pos = input.selectionStart;
-                                const val = input.value;
-                                input.value = val.slice(0, pos) + val.slice(pos + 2);
-                                input.dispatchEvent(new Event('input'));
-                            }
-                        }
-                    }
-                },
-
                 calculateRowNet(row) {
-                    const h = parseFloat(row.harga) || 0;
-                    if (h <= 0) return 0;
+                    const raw = parseFloat(row.harga) || 0;
+                    if (raw <= 0) return 0;
+                    const subtotal = this.subtotalProduk();
+                    if (subtotal <= 0) return raw;
 
-                    const sub = this.subtotalProduk();
-                    const diskonTotal = parseFloat(this.headerDiskon) || 0;
-                    const ppnTotal = parseFloat(this.headerPpn) || 0;
-                    const ongkirTotal = parseFloat(this.headerOngkir) || 0;
-                    const adjTotal = parseFloat(this.headerAdj) || 0;
+                    const ratio = raw / subtotal;
+                    const d = (parseFloat(this.headerDiskon) || 0) * ratio;
+                    const p = (parseFloat(this.headerPpn) || 0) * ratio;
+                    const o = (parseFloat(this.headerOngkir) || 0) * ratio;
+                    const a = (parseFloat(this.headerAdj) || 0) * ratio;
 
-                    const ratio = sub > 0 ? (h / sub) : (this.rows.length > 0 ? (1 / this.rows.length) : 0);
-
-                    const d = diskonTotal * ratio;
-                    const p = ppnTotal * ratio;
-                    const o = ongkirTotal * ratio;
-                    const a = adjTotal * ratio;
-
-                    return Math.max(0, Math.round((h - d + p + o + a) * 100) / 100);
+                    return Math.max(0, Math.round((raw - d + p + o + a) * 100) / 100);
                 },
 
                 calculateRowHpp(row) {

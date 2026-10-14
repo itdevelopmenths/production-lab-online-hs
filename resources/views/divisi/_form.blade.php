@@ -22,36 +22,36 @@
 
     getBadgeClass() {
         const classes = {
-            'indigo': 'bg-indigo-50 text-indigo-700 border-indigo-200/80',
-            'blue': 'bg-blue-50 text-blue-700 border-blue-200/80',
-            'emerald': 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
-            'teal': 'bg-teal-50 text-teal-700 border-teal-200/80',
-            'amber': 'bg-amber-50 text-amber-700 border-amber-200/80',
-            'rose': 'bg-rose-50 text-rose-700 border-rose-200/80',
-            'purple': 'bg-purple-50 text-purple-700 border-purple-200/80',
-            'cyan': 'bg-cyan-50 text-cyan-700 border-cyan-200/80',
-            'slate': 'bg-slate-50 text-slate-700 border-slate-200/80'
+            'indigo': 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20',
+            'blue': 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20',
+            'emerald': 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
+            'teal': 'bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20',
+            'amber': 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
+            'rose': 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
+            'purple': 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20',
+            'cyan': 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20',
+            'slate': 'bg-muted text-muted-foreground border-border'
         };
         return classes[this.color] || classes['slate'];
     }
 }" class="space-y-6">
 
     {{-- Live Preview Card --}}
-    <div class="p-4 rounded-sm bg-gradient-to-r from-slate-50 to-gray-50 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div class="p-4 rounded-xl border border-border bg-muted/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Live Preview Tampilan Badge Divisi:</span>
+            <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Live Preview Tampilan Badge Divisi:</span>
             <div class="mt-2 flex items-center gap-2.5">
-                <span class="inline-flex items-center px-3 py-1 rounded text-xs font-semibold border transition-all duration-150"
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border transition-all duration-150"
                       :class="getBadgeClass()">
-                    <span class="w-1.5 h-1.5 rounded-full mr-2 bg-current opacity-70"></span>
+                    <span class="size-1.5 rounded-full mr-2 bg-current opacity-70"></span>
                     <span x-text="nama.trim() ? nama : 'Nama Divisi'"></span>
                 </span>
-                <span class="text-xs text-gray-400 font-mono tracking-tight" x-show="kode.trim()">
+                <span class="text-xs text-muted-foreground font-mono tracking-tight" x-show="kode.trim()">
                     (<span x-text="kode"></span>)
                 </span>
             </div>
         </div>
-        <p class="text-[11px] text-gray-500 max-w-xs leading-normal">
+        <p class="text-[11px] text-muted-foreground max-w-xs leading-normal">
             Aksen warna dan label badge ini akan langsung muncul di profil staf, filter pengguna, dan riwayat aktivitas sistem.
         </p>
     </div>
@@ -65,7 +65,7 @@
                        @input="onNamaChange()"
                        required
                        placeholder="misal: Research & Development"
-                       class="w-full text-xs rounded-sm border-gray-300 focus:border-primary-500 focus:ring-primary-500 shadow-sm transition" />
+                       class="w-full text-xs rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs transition" />
             </x-form-group>
         </div>
 
@@ -78,52 +78,52 @@
                            @input="isCustomSlug = true"
                            required
                            placeholder="misal: rnd"
-                           class="w-full text-xs font-mono rounded-sm border-gray-300 focus:border-primary-500 focus:ring-primary-500 shadow-sm transition" />
+                           class="w-full text-xs font-mono rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs transition lowercase" />
                 </div>
             </x-form-group>
         </div>
 
         {{-- Color Selection Palette --}}
         <div class="md:col-span-2">
-            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Aksen Warna Badge Divisi <span class="text-red-500">*</span>
+            <label class="block text-xs font-semibold text-foreground mb-1">
+                Aksen Warna Badge Divisi <span class="text-destructive">*</span>
             </label>
-            <p class="text-xs text-gray-500 mb-3">
+            <p class="text-xs text-muted-foreground mb-3">
                 Pilih tema warna visual untuk mempermudah identifikasi staf antar-divisi di berbagai tabel data.
             </p>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
                 @php
                     $colorStyles = [
-                        'slate' => 'border-slate-300 bg-slate-50 text-slate-700',
-                        'indigo' => 'border-indigo-300 bg-indigo-50 text-indigo-700',
-                        'blue' => 'border-blue-300 bg-blue-50 text-blue-700',
-                        'emerald' => 'border-emerald-300 bg-emerald-50 text-emerald-700',
-                        'teal' => 'border-teal-300 bg-teal-50 text-teal-700',
-                        'amber' => 'border-amber-300 bg-amber-50 text-amber-700',
-                        'rose' => 'border-rose-300 bg-rose-50 text-rose-700',
-                        'purple' => 'border-purple-300 bg-purple-50 text-purple-700',
-                        'cyan' => 'border-cyan-300 bg-cyan-50 text-cyan-700',
+                        'slate' => 'bg-slate-400',
+                        'indigo' => 'bg-indigo-500',
+                        'blue' => 'bg-blue-500',
+                        'emerald' => 'bg-emerald-500',
+                        'teal' => 'bg-teal-500',
+                        'amber' => 'bg-amber-500',
+                        'rose' => 'bg-rose-500',
+                        'purple' => 'bg-purple-500',
+                        'cyan' => 'bg-cyan-500',
                     ];
                 @endphp
 
                 @foreach($availableColors as $colKey => $colLabel)
-                    <label class="relative flex items-center p-2.5 rounded-sm border cursor-pointer select-none transition"
-                           :class="color === '{{ $colKey }}' ? 'ring-2 ring-primary-500 border-primary-500 shadow-xs' : 'border-gray-200 hover:border-gray-300 bg-white'">
+                    <label class="relative flex items-center p-2.5 rounded-lg border cursor-pointer select-none transition"
+                           :class="color === '{{ $colKey }}' ? 'ring-2 ring-primary border-primary bg-accent/30 shadow-xs' : 'border-border hover:border-foreground/30 bg-card'">
                         <input type="radio" 
                                name="color" 
                                value="{{ $colKey }}" 
                                x-model="color" 
-                               class="text-primary-600 focus:ring-primary-500 h-3.5 w-3.5" />
+                               class="text-primary focus:ring-primary h-3.5 w-3.5" />
                         <div class="ml-2 flex items-center gap-1.5 min-w-0">
-                            <span class="w-3 h-3 rounded-full {{ $colorStyles[$colKey] ?? 'bg-slate-400' }} border border-black/10 flex-shrink-0"></span>
-                            <span class="text-xs font-medium text-gray-800 truncate">{{ $colLabel }}</span>
+                            <span class="size-3 rounded-full {{ $colorStyles[$colKey] ?? 'bg-slate-400' }} shrink-0"></span>
+                            <span class="text-xs font-medium text-foreground truncate">{{ $colLabel }}</span>
                         </div>
                     </label>
                 @endforeach
             </div>
             @error('color')
-                <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
+                <p class="mt-1 text-xs text-destructive">{{ $message }}</p>
             @enderror
         </div>
 
@@ -133,7 +133,7 @@
             </x-form-group>
         </div>
 
-        <div class="md:col-span-2 pt-2 border-t border-gray-100">
+        <div class="md:col-span-2 pt-2 border-t border-border">
             <x-checkbox name="is_active" label="Status Aktif Divisi" :checked="old('is_active', $divisi?->is_active ?? true)" help="Divisi aktif dapat dipilih saat mendaftarkan staf baru di User Management" />
         </div>
     </div>

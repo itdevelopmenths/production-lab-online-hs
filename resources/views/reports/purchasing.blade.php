@@ -5,8 +5,8 @@
         :breadcrumbs="['Laporan' => route('reports.index'), 'Purchasing & Hutang' => null]"
     >
         <x-slot:actions>
-            <x-button href="{{ route('reports.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Pusat Laporan
+            <x-button href="{{ route('reports.index') }}" variant="outline" size="sm">
+                &larr; Kembali
             </x-button>
         </x-slot:actions>
     </x-page-header>
@@ -19,87 +19,87 @@
     @endphp
 
     <!-- Financial KPI Summary Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-sm">
-            <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Pesanan (PO)</p>
-            <p class="text-lg font-bold font-mono text-gray-900 mt-0.5">{{ number_format($totalPoCount) }} <span class="text-xs font-normal text-gray-500">PO</span></p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Pesanan (PO)</p>
+            <p class="text-xl font-bold font-mono text-foreground mt-1">{{ number_format($totalPoCount) }} <span class="text-xs font-normal text-muted-foreground">PO</span></p>
         </div>
-        <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-sm">
-            <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Nilai Komitmen</p>
-            <p class="text-lg font-bold font-mono text-gray-900 mt-0.5">Rp {{ number_format($totalNilai, 0, ',', '.') }}</p>
+        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Nilai Komitmen</p>
+            <p class="text-xl font-bold font-mono text-foreground mt-1">Rp {{ number_format($totalNilai, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-sm">
-            <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Realisasi Bayar</p>
-            <p class="text-lg font-bold font-mono text-emerald-600 mt-0.5">Rp {{ number_format($totalDibayar, 0, ',', '.') }}</p>
+        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Realisasi Bayar</p>
+            <p class="text-xl font-bold font-mono text-emerald-600 mt-1">Rp {{ number_format($totalDibayar, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-sm">
-            <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Sisa Hutang Berjalan</p>
-            <p class="text-lg font-bold font-mono {{ $totalSisa > 0 ? 'text-rose-600' : 'text-gray-400' }} mt-0.5">
+        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Sisa Hutang Berjalan</p>
+            <p class="text-xl font-bold font-mono {{ $totalSisa > 0 ? 'text-destructive' : 'text-muted-foreground' }} mt-1">
                 Rp {{ number_format($totalSisa, 0, ',', '.') }}
             </p>
         </div>
     </div>
 
     <!-- Table Card -->
-    <x-card title="Rekapitulasi Purchase Order & Liabilitas" subtitle="Daftar transaksi pengadaan bahan baku beserta status pembayaran termin" variant="primary">
+    <x-card title="Rekapitulasi Purchase Order & Liabilitas" subtitle="Daftar transaksi pengadaan bahan baku beserta status pembayaran termin">
         <div class="-mx-4 -my-4 overflow-x-auto">
             <table class="w-full text-xs text-left border-collapse">
-                <thead class="bg-gray-50 border-b border-gray-200">
+                <thead class="bg-muted/70 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
                     <tr>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider w-36">No. PO</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider">Supplier</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider text-center">Status PO</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider text-right">Nilai Total</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider text-right">Sudah Dibayar</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider text-right">Sisa Tagihan</th>
+                        <th class="px-4 py-3 w-40">No. PO</th>
+                        <th class="px-4 py-3">Supplier</th>
+                        <th class="px-4 py-3 text-center">Status PO</th>
+                        <th class="px-4 py-3 text-right">Nilai Total</th>
+                        <th class="px-4 py-3 text-right">Sudah Dibayar</th>
+                        <th class="px-4 py-3 text-right">Sisa Tagihan</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-border">
                     @forelse($pos as $po)
                     @php
                         $sisa = ($po->total_nilai ?? 0) - ($po->total_dibayar ?? 0);
                     @endphp
-                    <tr class="hover:bg-primary-50/20 transition-colors {{ $loop->even ? 'bg-gray-50/40' : 'bg-white' }}">
-                        <td class="px-3.5 py-2 font-mono font-medium text-primary-700">
+                    <tr class="hover:bg-muted/40 transition-colors">
+                        <td class="px-4 py-2.5 font-mono font-medium text-foreground">
                             @can('purchasing.view')
-                                <a href="{{ route('purchasing.show', $po) }}" class="hover:underline">{{ $po->no_po }}</a>
+                                <a href="{{ route('purchasing.show', $po) }}" class="hover:underline font-semibold">{{ $po->no_po }}</a>
                             @else
                                 {{ $po->no_po }}
                             @endcan
                         </td>
-                        <td class="px-3.5 py-2 font-medium text-gray-900">
+                        <td class="px-4 py-2.5 font-medium text-foreground">
                             {{ $po->supplier->nama }}
                         </td>
-                        <td class="px-3.5 py-2 text-center">
+                        <td class="px-4 py-2.5 text-center">
                             @php
                                 $badgeClass = match($po->status) {
-                                    'draft' => 'bg-gray-100 text-gray-700 border-gray-200',
-                                    'menunggu_approval' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                    'approved' => 'bg-blue-50 text-blue-700 border-blue-200',
-                                    'dikirim_ke_gudang' => 'bg-purple-50 text-purple-700 border-purple-200',
-                                    'selesai' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                    'dibatalkan' => 'bg-rose-50 text-rose-700 border-rose-200',
-                                    default => 'bg-gray-100 text-gray-700 border-gray-200'
+                                    'draft' => 'bg-muted text-muted-foreground border-border',
+                                    'menunggu_approval' => 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
+                                    'approved' => 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20',
+                                    'dikirim_ke_gudang' => 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20',
+                                    'selesai' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
+                                    'dibatalkan' => 'bg-destructive/10 text-destructive border-destructive/20',
+                                    default => 'bg-muted text-muted-foreground border-border'
                                 };
                             @endphp
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold border {{ $badgeClass }} uppercase tracking-wider">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border {{ $badgeClass }} uppercase tracking-wider">
                                 {{ ucwords(str_replace('_', ' ', $po->status)) }}
                             </span>
                         </td>
-                        <td class="px-3.5 py-2 text-right font-mono text-gray-900">
+                        <td class="px-4 py-2.5 text-right font-mono text-foreground font-medium">
                             Rp {{ number_format($po->total_nilai, 0, ',', '.') }}
                         </td>
-                        <td class="px-3.5 py-2 text-right font-mono text-emerald-700 font-medium">
+                        <td class="px-4 py-2.5 text-right font-mono text-emerald-600 font-medium">
                             Rp {{ number_format($po->total_dibayar ?? 0, 0, ',', '.') }}
                         </td>
-                        <td class="px-3.5 py-2 text-right font-mono font-semibold {{ $sisa > 0 ? 'text-rose-600' : 'text-gray-400' }}">
+                        <td class="px-4 py-2.5 text-right font-mono font-semibold {{ $sisa > 0 ? 'text-destructive' : 'text-muted-foreground' }}">
                             Rp {{ number_format($sisa, 0, ',', '.') }}
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-xs text-gray-400">
-                            <svg class="mx-auto h-7 w-7 text-gray-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        <td colspan="6" class="px-4 py-12 text-center text-xs text-muted-foreground">
+                            <svg class="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                             Belum ada riwayat purchase order.
                         </td>
                     </tr>

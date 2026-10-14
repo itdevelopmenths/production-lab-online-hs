@@ -5,20 +5,19 @@
 ])
 
 @php
-    $borderColor = match ($variant) {
-        'primary' => 'border-l-primary-600',
-        'info' => 'border-l-blue-500',
-        'success' => 'border-l-emerald-600',
-        'warning' => 'border-l-amber-500',
-        'danger' => 'border-l-rose-500',
-        'default' => 'border-l-gray-500',
-        default => 'border-l-blue-500',
+    $themeClasses = match ($variant) {
+        'primary' => 'border-primary/30 bg-muted/40 text-foreground',
+        'info' => 'border-sky-200 bg-sky-50/70 text-sky-900',
+        'success' => 'border-emerald-200 bg-emerald-50/70 text-emerald-900',
+        'warning' => 'border-amber-200 bg-amber-50/70 text-amber-900',
+        'danger' => 'border-red-200 bg-red-50/70 text-red-900',
+        default => 'border-border bg-muted/30 text-foreground',
     };
 @endphp
 
-<div {{ $attributes->merge(['class' => "bg-gray-50 border border-gray-200 border-l-4 $borderColor rounded-r-sm p-3 shadow-2xs text-xs text-gray-700"]) }}>
+<div {{ $attributes->merge(['class' => "border rounded-xl p-4 shadow-xs text-sm $themeClasses"]) }}>
     @if ($title || $icon)
-        <div class="flex items-center gap-1.5 mb-1.5 font-bold text-xs text-gray-800">
+        <div class="flex items-center gap-2 mb-1.5 font-semibold text-sm">
             @if ($icon)
                 <span class="shrink-0">{!! $icon !!}</span>
             @endif
@@ -27,7 +26,7 @@
             @endif
         </div>
     @endif
-    <div>
+    <div class="text-xs leading-relaxed opacity-90">
         {{ $slot }}
     </div>
 </div>

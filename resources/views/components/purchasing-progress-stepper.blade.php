@@ -13,7 +13,6 @@
     $isCancelled = $po->status === 'dibatalkan';
     $isReceived = $po->barangDatang->count() > 0;
     
-    // Tentukan current step level (1 s/d 6)
     $currentStep = match($po->status) {
         'draft' => 1,
         'diajukan' => 2,
@@ -24,42 +23,42 @@
     };
 @endphp
 
-<div class="bg-white rounded-sm border border-gray-200 p-4 shadow-xs">
+<div class="bg-card rounded-xl border border-border p-6 shadow-xs">
     @if($isCancelled)
-        <div class="flex items-center justify-between p-3 bg-rose-50 border border-rose-200 rounded-sm">
-            <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold">
+        <div class="flex items-center justify-between p-4 bg-red-50/80 border border-red-200 rounded-xl">
+            <div class="flex items-center gap-3">
+                <div class="size-9 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-sm">
                     ✕
                 </div>
                 <div>
-                    <h4 class="text-xs font-bold text-rose-900">Purchase Order Dibatalkan</h4>
-                    <p class="text-[11px] text-rose-600">Dokumen ini telah dibatalkan dan tidak lagi diproses lebih lanjut.</p>
+                    <h4 class="text-sm font-semibold text-red-900">Purchase Order Dibatalkan</h4>
+                    <p class="text-xs text-red-600 mt-0.5">Dokumen ini telah dibatalkan dan tidak lagi diproses lebih lanjut.</p>
                 </div>
             </div>
             <x-badge variant="danger" size="sm">Dibatalkan</x-badge>
         </div>
     @else
         <div class="relative">
-            <div class="hidden sm:block absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2 z-0"></div>
-            <div class="grid grid-cols-2 sm:grid-cols-6 gap-2 sm:gap-0 relative z-10">
+            <div class="hidden sm:block absolute top-1/2 left-0 w-full h-0.5 bg-border -translate-y-1/2 z-0"></div>
+            <div class="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-0 relative z-10">
                 @foreach($steps as $key => $st)
                     @php
                         $isCompleted = $st['step'] < $currentStep || ($st['step'] == 6 && $po->status === 'selesai');
                         $isActive = $st['step'] == $currentStep && $po->status !== 'selesai';
                     @endphp
                     <div class="flex flex-col items-center text-center group">
-                        <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition shadow-xs {{ $isCompleted ? 'bg-emerald-600 text-white ring-2 ring-emerald-100' : ($isActive ? 'bg-primary-600 text-white ring-4 ring-primary-100' : 'bg-white border border-gray-300 text-gray-400') }}">
+                        <div class="size-8 rounded-full flex items-center justify-center text-xs font-bold transition shadow-xs {{ $isCompleted ? 'bg-emerald-600 text-white ring-4 ring-emerald-50' : ($isActive ? 'bg-primary text-primary-foreground ring-4 ring-primary/10' : 'bg-card border border-border text-muted-foreground') }}">
                             @if($isCompleted)
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                             @else
                                 {{ $st['step'] }}
                             @endif
                         </div>
-                        <div class="mt-1.5">
-                            <span class="block text-[11px] font-bold {{ $isActive ? 'text-primary-700' : ($isCompleted ? 'text-gray-900' : 'text-gray-400') }}">
+                        <div class="mt-2">
+                            <span class="block text-xs font-semibold {{ $isActive ? 'text-foreground' : ($isCompleted ? 'text-foreground' : 'text-muted-foreground') }}">
                                 {{ $st['label'] }}
                             </span>
-                            <span class="hidden sm:block text-[9px] text-gray-400 truncate max-w-[90px]">
+                            <span class="hidden sm:block text-[10px] text-muted-foreground truncate max-w-[95px] mt-0.5">
                                 {{ $st['desc'] }}
                             </span>
                         </div>

@@ -69,31 +69,31 @@
 
     <!-- Metadata Singkat PO -->
     <div class="grid grid-cols-2 {{ $po->skema_bayar === 'tempo' ? 'sm:grid-cols-5' : 'sm:grid-cols-4' }} gap-3 mb-5">
-        <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs">
-            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">No. Invoice Vendor</span>
-            <p class="font-mono font-semibold text-xs text-gray-900 mt-0.5">{{ $po->no_invoice ?? '—' }}</p>
+        <div class="bg-card p-3.5 rounded-xl border border-border shadow-xs">
+            <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">No. Invoice Vendor</span>
+            <p class="font-mono font-semibold text-xs text-foreground mt-0.5">{{ $po->no_invoice ?? '—' }}</p>
         </div>
-        <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs">
-            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Lokasi PO (Gudang)</span>
-            <p class="font-semibold text-xs text-gray-900 mt-0.5">{{ $po->gudang?->nama ?? 'Semua Gudang' }}</p>
+        <div class="bg-card p-3.5 rounded-xl border border-border shadow-xs">
+            <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Lokasi PO (Gudang)</span>
+            <p class="font-semibold text-xs text-foreground mt-0.5">{{ $po->gudang?->nama ?? 'Semua Gudang' }}</p>
         </div>
-        <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs">
-            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Estimasi Tiba (ETA)</span>
-            <p class="font-mono text-xs {{ $po->eta && $po->eta->isPast() && $po->status !== 'selesai' ? 'text-rose-600 font-bold' : 'text-gray-900' }} mt-0.5">
+        <div class="bg-card p-3.5 rounded-xl border border-border shadow-xs">
+            <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Estimasi Tiba (ETA)</span>
+            <p class="font-mono text-xs {{ $po->eta && $po->eta->isPast() && $po->status !== 'selesai' ? 'text-destructive font-bold' : 'text-foreground' }} mt-0.5">
                 {{ $po->eta ? $po->eta->format('d/m/Y') : '—' }}
             </p>
         </div>
-        <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-xs">
-            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Skema Bayar</span>
-            <p class="font-semibold text-xs text-gray-900 mt-0.5 capitalize">{{ $po->skema_bayar ?? 'cash' }}</p>
+        <div class="bg-card p-3.5 rounded-xl border border-border shadow-xs">
+            <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Skema Bayar</span>
+            <p class="font-semibold text-xs text-foreground mt-0.5 capitalize">{{ $po->skema_bayar ?? 'cash' }}</p>
         </div>
         @if($po->skema_bayar === 'tempo')
-        <div class="bg-white p-3 rounded-sm border {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'border-rose-300 bg-rose-50/40' : 'border-gray-200' }} shadow-xs">
-            <span class="text-[10px] uppercase font-bold {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'text-rose-600' : 'text-gray-400' }} tracking-wider">Deadline Tempo</span>
-            <p class="font-mono text-xs {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'text-rose-600 font-bold' : 'text-gray-900 font-semibold' }} mt-0.5">
+        <div class="bg-card p-3.5 rounded-xl border {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'border-destructive/30 bg-destructive/10' : 'border-border' }} shadow-xs">
+            <span class="text-[10px] uppercase font-bold {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'text-destructive' : 'text-muted-foreground' }} tracking-wider">Deadline Tempo</span>
+            <p class="font-mono text-xs {{ $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas() ? 'text-destructive font-bold' : 'text-foreground font-semibold' }} mt-0.5">
                 {{ $po->tanggal_tempo ? $po->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—') }}
                 @if($po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas())
-                    <span class="text-[9px] uppercase font-bold text-rose-700 bg-rose-100 px-1 py-0.2 rounded ml-1">Overdue</span>
+                    <span class="text-[9px] uppercase font-bold text-destructive bg-destructive/10 px-1 py-0.5 rounded ml-1 border border-destructive/20">Overdue</span>
                 @endif
             </p>
         </div>
@@ -101,11 +101,11 @@
     </div>
 
     @if($po->catatan)
-    <div class="mb-5 bg-amber-50/70 border border-amber-200 rounded-sm p-3.5 flex items-start gap-3 shadow-2xs">
-        <svg class="w-4 h-4 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+    <div class="mb-5 bg-muted/40 border border-border rounded-xl p-4 flex items-start gap-3 shadow-xs">
+        <svg class="size-4 text-muted-foreground mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
         <div class="text-xs">
-            <span class="font-bold text-amber-900 block mb-0.5">Catatan / Instruksi Khusus PO:</span>
-            <p class="text-amber-800 whitespace-pre-line">{{ $po->catatan }}</p>
+            <span class="font-semibold text-foreground block mb-0.5">Catatan / Instruksi Khusus PO:</span>
+            <p class="text-muted-foreground whitespace-pre-line">{{ $po->catatan }}</p>
         </div>
     </div>
     @endif
@@ -149,7 +149,7 @@
                                             {{ rtrim(rtrim(number_format($it->qty_satuan_beli, 2, ',', '.'), '0'), ',') }}
                                             <span class="text-xs font-normal text-gray-600">{{ $it->satuan_beli }}</span>
                                         </div>
-                                        <div class="text-[10px] text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 inline-block mt-0.5">
+                                        <div class="text-[10px] text-foreground bg-muted px-1.5 py-0.5 rounded border border-border inline-block mt-0.5">
                                             = {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk?->satuan }}
                                         </div>
                                     @else
@@ -172,24 +172,24 @@
                                     <td class="py-2.5 px-2 text-right font-mono text-gray-600">
                                         {{ (float)$it->ongkir > 0 ? '+Rp ' . number_format($it->ongkir, 0, ',', '.') : '—' }}
                                     </td>
-                                    <td class="py-2.5 px-3 text-right font-mono font-semibold text-gray-900">
+                                    <td class="py-2.5 px-3 text-right font-mono font-semibold text-foreground">
                                         Rp {{ number_format($it->netTotal(), abs($it->netTotal() - round($it->netTotal())) < 0.00001 ? 0 : 2, ',', '.') }}
                                     </td>
-                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-primary-800 bg-primary-50/30" title="HPP / Satuan Dasar ({{ $it->produk?->satuan }}): {{ $it->formattedHpp() }}">
+                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-foreground bg-muted/40" title="HPP / Satuan Dasar ({{ $it->produk?->satuan }}): {{ $it->formattedHpp() }}">
                                         <div>{{ $it->formattedHpp() }}</div>
                                         @if($it->qty_satuan_beli && $it->satuan_beli && strcasecmp($it->satuan_beli, $it->produk?->satuan ?? '') !== 0 && (float)$it->qty_satuan_beli > 0)
                                             @php
                                                 $hppPerSatuanBeli = $it->netTotal() / (float)$it->qty_satuan_beli;
                                             @endphp
-                                            <div class="text-[9px] font-normal text-primary-600">
+                                            <div class="text-[9px] font-normal text-muted-foreground">
                                                 (Rp {{ number_format($hppPerSatuanBeli, 0, ',', '.') }} / {{ $it->satuan_beli }})
                                             </div>
                                         @endif
                                     </td>
                                 @endif
-                                <td class="py-2.5 px-3.5 text-right font-mono font-medium {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-emerald-700 font-bold' : 'text-gray-700' }}">
+                                <td class="py-2.5 px-3.5 text-right font-mono font-medium {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-foreground' }}">
                                     {{ rtrim(rtrim(number_format($it->qtyDiterima(), 2, ',', '.'), '0'), ',') }}
-                                    <span class="text-gray-400 font-normal text-[10px]">{{ $it->produk->satuan }}</span>
+                                    <span class="text-muted-foreground font-normal text-[10px]">{{ $it->produk->satuan }}</span>
                                 </td>
                             </tr>
                             @endforeach
@@ -211,7 +211,7 @@
                                 <td class="py-2.5 px-2 text-right font-mono text-gray-700">
                                     {{ (float)$po->ongkos_kirim > 0 ? '+Rp ' . number_format($po->ongkos_kirim, 0, ',', '.') : '—' }}
                                 </td>
-                                <td colspan="2" class="py-2.5 px-3 text-right font-mono text-primary-700 text-sm">
+                                <td colspan="2" class="py-2.5 px-3 text-right font-mono text-foreground font-bold text-sm">
                                     Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}
                                 </td>
                                 <td></td>
@@ -460,7 +460,7 @@
                             @elseif($po->skema_bayar === 'tempo')
                                 <span class="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[11px] font-medium">Tempo (Jatuh Tempo Tunggal)</span>
                             @else
-                                <span class="bg-primary-50 text-primary-700 border border-primary-200 px-2 py-0.5 rounded text-[11px] font-medium">Termin (Cicilan Bertahap)</span>
+                                <span class="bg-muted text-foreground border border-border px-2 py-0.5 rounded text-[11px] font-medium">Termin (Cicilan Bertahap)</span>
                             @endif
                         </span>
                     </div>

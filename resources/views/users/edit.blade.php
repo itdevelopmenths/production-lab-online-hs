@@ -1,24 +1,23 @@
-<x-app-layout title="Edit Pengguna">
-    <div class="flex justify-center w-full">
-        <div class="w-full max-w-5xl space-y-6">
-            <x-page-header
-                title="Edit Pengguna: {{ $user->name }}"
-                subtitle="Perbarui profil akun, departemen divisi, hak akses gudang, dan peran wewenang sistem"
-                :breadcrumbs="['Pengaturan' => null, 'Manajemen Pengguna' => route('users.index'), $user->name => null, 'Edit' => null]"
-            >
-                <x-slot:actions>
-                    <x-button href="{{ route('users.index') }}" variant="secondary" size="xs">
-                        &larr; Kembali ke Daftar
-                    </x-button>
-                </x-slot:actions>
-            </x-page-header>
+<x-app-layout title="Edit Pengguna" :backUrl="route('users.index')">
+    <div class="mx-auto max-w-5xl space-y-6">
+        <x-page-header
+            title="Edit Pengguna: {{ $user->name }}"
+            subtitle="Perbarui profil akun, departemen divisi, hak akses gudang, dan peran wewenang sistem"
+            :breadcrumbs="['Pengaturan' => null, 'Manajemen Pengguna' => route('users.index'), $user->name => null, 'Edit' => null]"
+        >
+            <x-slot:actions>
+                <x-button href="{{ route('users.index') }}" variant="outline" size="sm">
+                    &larr; Kembali
+                </x-button>
+            </x-slot:actions>
+        </x-page-header>
 
         <form action="{{ route('users.update', $user) }}" method="POST" class="space-y-6">
             @csrf
             @method('PUT')
 
             {{-- Card 1: Informasi Akun & Divisi --}}
-            <x-card title="Data Akun & Departemen Organisasi" subtitle="Mengubah akun login: {{ $user->email }}" variant="primary">
+            <x-card title="Data Akun & Departemen Organisasi" subtitle="Mengubah akun login: {{ $user->email }}">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                         <x-form-group name="name" label="Nama Lengkap" :required="true">
@@ -34,11 +33,11 @@
 
                     <div class="md:col-span-2">
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-xs font-semibold text-gray-700">
+                            <label class="block text-xs font-semibold text-foreground">
                                 Divisi / Departemen Kerja
                             </label>
                             @can('divisi.view')
-                            <a href="{{ route('divisi.index') }}" target="_blank" class="text-[11px] text-primary-600 hover:text-primary-800 underline">
+                            <a href="{{ route('divisi.index') }}" target="_blank" class="text-[11px] text-foreground hover:underline">
                                 Kelola Master Divisi &rarr;
                             </a>
                             @endcan
@@ -95,7 +94,7 @@
                     }
                 }
             }">
-                <x-card title="Peran & Hak Akses Fasilitas Gudang" subtitle="Tentukan peran wewenang sistem dan batas wilayah/lokasi operasional staf" variant="primary">
+                <x-card title="Peran & Hak Akses Fasilitas Gudang" subtitle="Tentukan peran wewenang sistem dan batas wilayah/lokasi operasional staf">
                     <div class="space-y-6">
                         {{-- Role Utama --}}
                         <div>
@@ -106,39 +105,39 @@
                                             $rKey = is_object($r) ? $r->name : $r;
                                             $rLabel = is_object($r) ? ($r->display_name ? $r->display_name . ' (' . $r->name . ')' : $r->name) : $r;
                                         @endphp
-                                        <option value="{{ $rKey }}" @selected(old('role', $user->roles->first()?->name) === $rKey)>{{ $rLabel }}</option>
+                                        <option value="{{ $rKey }}" @selected(old('role', $userRole) === $rKey)>{{ $rLabel }}</option>
                                     @endforeach
                                 </x-select>
                             </x-form-group>
                         </div>
 
                         {{-- Mode Akses Gudang (LBAC) --}}
-                        <div class="border-t border-gray-100 pt-5">
-                            <label class="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2">
+                        <div class="border-t border-border pt-5">
+                            <label class="block text-xs font-semibold text-foreground mb-1">
                                 Lingkup Wilayah / Fasilitas Gudang (LBAC)
                             </label>
-                            <p class="text-xs text-gray-500 mb-4">
+                            <p class="text-xs text-muted-foreground mb-4">
                                 Batasi data stok, mutasi kartu stok, dan dokumen transfer yang dapat diakses pengguna berdasarkan gudang fisik.
                             </p>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                                <label class="relative flex items-start p-3 rounded-sm border cursor-pointer select-none transition"
-                                       :class="accessType === 'global' ? 'bg-primary-50/40 border-primary-300 ring-1 ring-primary-200' : 'bg-white border-gray-200 hover:border-gray-300'">
-                                    <input type="radio" name="warehouse_access_type" value="global" x-model="accessType" class="mt-0.5 text-primary-600 focus:ring-primary-500">
+                                <label class="relative flex items-start p-3.5 rounded-xl border cursor-pointer select-none transition"
+                                       :class="accessType === 'global' ? 'bg-accent/40 border-primary ring-1 ring-primary/20' : 'bg-card border-border hover:border-foreground/30'">
+                                    <input type="radio" name="warehouse_access_type" value="global" x-model="accessType" class="mt-0.5 text-primary focus:ring-primary">
                                     <div class="ml-3">
-                                        <span class="block text-xs font-bold text-gray-900">🌍 Akses Seluruh Gudang (Global)</span>
-                                        <span class="block text-[11px] text-gray-500 mt-0.5 leading-normal">
+                                        <span class="block text-xs font-bold text-foreground">🌍 Akses Seluruh Gudang (Global)</span>
+                                        <span class="block text-[11px] text-muted-foreground mt-0.5 leading-normal">
                                             Pengguna bebas melihat stok dan membuat mutasi di semua fasilitas (Cocok untuk Manager, Direksi, Auditor).
                                         </span>
                                     </div>
                                 </label>
 
-                                <label class="relative flex items-start p-3 rounded-sm border cursor-pointer select-none transition"
-                                       :class="accessType === 'restricted' ? 'bg-primary-50/40 border-primary-300 ring-1 ring-primary-200' : 'bg-white border-gray-200 hover:border-gray-300'">
-                                    <input type="radio" name="warehouse_access_type" value="restricted" x-model="accessType" class="mt-0.5 text-primary-600 focus:ring-primary-500">
+                                <label class="relative flex items-start p-3.5 rounded-xl border cursor-pointer select-none transition"
+                                       :class="accessType === 'restricted' ? 'bg-accent/40 border-primary ring-1 ring-primary/20' : 'bg-card border-border hover:border-foreground/30'">
+                                    <input type="radio" name="warehouse_access_type" value="restricted" x-model="accessType" class="mt-0.5 text-primary focus:ring-primary">
                                     <div class="ml-3">
-                                        <span class="block text-xs font-bold text-gray-900">🏢 Dibatasi ke Fasilitas Tertentu</span>
-                                        <span class="block text-[11px] text-gray-500 mt-0.5 leading-normal">
+                                        <span class="block text-xs font-bold text-foreground">🏢 Dibatasi ke Fasilitas Tertentu</span>
+                                        <span class="block text-[11px] text-muted-foreground mt-0.5 leading-normal">
                                             Pengguna hanya diizinkan melihat data pada gudang-gudang yang dicentang di bawah ini.
                                         </span>
                                     </div>
@@ -146,11 +145,11 @@
                             </div>
 
                             {{-- Checklist Gudang per Tipe --}}
-                            <div x-show="accessType === 'restricted'" x-transition class="space-y-4 bg-gray-50/70 p-4 rounded-sm border border-gray-200">
+                            <div x-show="accessType === 'restricted'" x-transition class="space-y-4 bg-muted/30 p-4 rounded-xl border border-border">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs font-bold text-gray-800">Daftar Fasilitas Gudang yang Diizinkan:</span>
-                                    <span class="text-[11px] text-gray-500">
-                                        <span class="font-bold text-primary-700" x-text="selectedGudangs.length"></span> gudang dipilih
+                                    <span class="text-xs font-semibold text-foreground">Daftar Fasilitas Gudang yang Diizinkan:</span>
+                                    <span class="text-[11px] text-muted-foreground">
+                                        <span class="font-bold text-foreground" x-text="selectedGudangs.length"></span> gudang dipilih
                                     </span>
                                 </div>
 
@@ -166,38 +165,38 @@
                                 @endphp
 
                                 @foreach($groupedGudangs as $groupTitle => $groupItems)
-                                    <div class="bg-white p-3 rounded-sm border border-gray-200 shadow-2xs">
-                                        <div class="text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-primary-600"></span>
+                                    <div class="bg-card p-3.5 rounded-xl border border-border shadow-xs">
+                                        <div class="text-[11px] font-semibold text-foreground uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                                            <span class="size-1.5 rounded-full bg-primary"></span>
                                             {{ $groupTitle }}
                                         </div>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                                             @foreach($groupItems as $g)
-                                                <div class="flex items-center justify-between p-2 rounded border border-gray-100 bg-gray-50/40 hover:bg-gray-50 transition">
+                                                <div class="flex items-center justify-between p-2 rounded-lg border border-border bg-background hover:bg-muted/40 transition">
                                                     <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0 select-none">
                                                         <input type="checkbox" 
                                                                name="gudang_ids[]" 
                                                                value="{{ $g->id }}" 
                                                                :checked="selectedGudangs.includes({{ $g->id }})"
                                                                @change="toggleGudang({{ $g->id }})"
-                                                               class="w-4 h-4 rounded-sm text-primary-600 focus:ring-primary-500 border-gray-300">
+                                                               class="size-4 rounded border-border text-primary focus:ring-primary/20">
                                                         <div class="min-w-0">
-                                                            <div class="text-xs font-semibold text-gray-900 truncate flex items-center gap-1">
+                                                            <div class="text-xs font-medium text-foreground truncate flex items-center gap-1">
                                                                 <span>{{ $g->nama }}</span>
                                                                 @if($g->isPusat())
-                                                                    <span class="px-1 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Pusat</span>
+                                                                    <span class="px-1 py-0.5 rounded text-[9px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">Pusat</span>
                                                                 @endif
                                                             </div>
-                                                            <div class="text-[10px] text-gray-400 font-mono">{{ $g->kode }}</div>
+                                                            <div class="text-[10px] text-muted-foreground font-mono">{{ $g->kode }}</div>
                                                         </div>
                                                     </label>
                                                     <div x-show="selectedGudangs.includes({{ $g->id }})" class="pl-2">
-                                                        <label class="inline-flex items-center gap-1 cursor-pointer text-[10px] text-amber-700 hover:text-amber-900" title="Jadikan Gudang Utama (Home Base)">
+                                                        <label class="inline-flex items-center gap-1 cursor-pointer text-[10px] text-foreground hover:underline" title="Jadikan Gudang Utama (Home Base)">
                                                             <input type="radio" 
                                                                    name="primary_gudang_id" 
                                                                    value="{{ $g->id }}" 
                                                                    x-model="primaryGudang"
-                                                                   class="w-3 h-3 text-amber-600 focus:ring-amber-500 border-gray-300">
+                                                                   class="size-3 text-primary focus:ring-primary">
                                                             <span>Utama</span>
                                                         </label>
                                                     </div>
@@ -214,11 +213,11 @@
 
             {{-- Card 3: Wewenang Khusus Pengguna (Direct Permissions) --}}
             <div x-data="{ openDirectPerms: {{ !empty($activeDirectPermissions) ? 'true' : 'false' }} }">
-                <x-card title="Wewenang Khusus Pengguna (Direct Permissions)" subtitle="Tambahkan izin spesifik individual di luar cakupan peran utama tanpa perlu membuat peran baru" variant="primary">
+                <x-card title="Wewenang Khusus Pengguna (Direct Permissions)" subtitle="Tambahkan izin spesifik individual di luar cakupan peran utama tanpa perlu membuat peran baru">
                     <div class="space-y-4">
-                        <div class="flex items-center justify-between p-3 rounded-sm bg-blue-50/60 border border-blue-200/80 text-blue-800 text-xs">
+                        <div class="flex items-center justify-between p-3.5 rounded-xl bg-muted/40 border border-border text-foreground text-xs">
                             <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg class="size-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <span>
@@ -232,7 +231,7 @@
                             </div>
                             <button type="button" 
                                     @click="openDirectPerms = !openDirectPerms" 
-                                    class="text-xs font-semibold text-primary-700 hover:text-primary-900 underline whitespace-nowrap cursor-pointer">
+                                    class="text-xs font-semibold text-foreground underline whitespace-nowrap cursor-pointer ml-3">
                                 <span x-text="openDirectPerms ? 'Tutup Matriks Izin' : 'Buka Matriks Wewenang Khusus'"></span>
                             </button>
                         </div>
@@ -243,13 +242,13 @@
                     </div>
 
                     <x-slot:footer>
-                        <div class="flex items-center justify-end gap-2.5">
-                            <x-button href="{{ route('users.index') }}" variant="secondary" size="sm">
+                        <div class="flex items-center justify-end gap-2">
+                            <x-button href="{{ route('users.index') }}" variant="outline" size="sm">
                                 Batal
                             </x-button>
                             <x-button type="submit" variant="primary" size="sm">
                                 <x-slot:icon>
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 </x-slot:icon>
                                 Perbarui Pengguna
                             </x-button>
@@ -258,6 +257,5 @@
                 </x-card>
             </div>
         </form>
-        </div>
     </div>
 </x-app-layout>

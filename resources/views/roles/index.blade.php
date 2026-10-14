@@ -17,11 +17,11 @@
             </x-slot:actions>
         </x-page-header>
 
-        <x-card title="Daftar Peran & Hak Akses" :noPadding="true">
+        <x-card title="Daftar Peran & Hak Akses" subtitle="Struktur peran sistem dan matriks wewenang laboratorium" :noPadding="true">
             <div class="overflow-x-auto">
                 <table id="rolesTable" class="w-full text-xs">
                     <thead>
-                        <tr class="bg-gray-50/75 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
+                        <tr>
                             <th class="px-4 py-3 text-left">Nama Peran & Identifier</th>
                             <th class="px-4 py-3 text-left">Tipe</th>
                             <th class="px-4 py-3 text-left">Cakupan Izin</th>

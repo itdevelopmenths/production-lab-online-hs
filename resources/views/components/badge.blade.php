@@ -1,40 +1,49 @@
 @props([
-    'variant' => 'secondary', // primary, success, danger, warning, info, secondary, gold, gray
+    'variant' => 'neutral', // neutral, info, progress, warning, success, danger, muted, primary, secondary
     'dot' => false,
-    'size' => 'xs', // xs, sm
+    'size' => 'default', // default, sm
 ])
 
 @php
-    $classes = match ($variant) {
-        'primary' => 'bg-primary-50 text-primary-700 border border-primary-200',
-        'success' => 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-        'danger' => 'bg-rose-50 text-rose-700 border border-rose-200',
-        'warning' => 'bg-amber-50 text-amber-800 border border-amber-200',
-        'info' => 'bg-blue-50 text-blue-700 border border-blue-200',
-        'gold' => 'bg-gold-50 text-gold-800 border border-gold-300',
-        'gray', 'secondary' => 'bg-gray-100 text-gray-700 border border-gray-200',
-        default => 'bg-gray-100 text-gray-700 border border-gray-200',
+    $tone = match ($variant) {
+        'primary', 'indigo', 'progress' => 'progress',
+        'info', 'blue', 'sky' => 'info',
+        'warning', 'amber', 'gold' => 'warning',
+        'success', 'emerald', 'green' => 'success',
+        'danger', 'rose', 'red' => 'danger',
+        'muted' => 'muted',
+        default => 'neutral',
     };
 
-    $dotClasses = match ($variant) {
-        'primary' => 'bg-primary-600',
-        'success' => 'bg-emerald-600',
-        'danger' => 'bg-rose-600',
-        'warning' => 'bg-amber-600',
-        'info' => 'bg-blue-600',
-        'gold' => 'bg-gold-600',
-        default => 'bg-gray-500',
+    $classes = match ($tone) {
+        'info' => 'bg-sky-50 text-sky-700 border border-sky-200/60',
+        'progress' => 'bg-indigo-50 text-indigo-700 border border-indigo-200/60',
+        'warning' => 'bg-amber-50 text-amber-600 border border-amber-200/60',
+        'success' => 'bg-emerald-50 text-emerald-700 border border-emerald-200/60',
+        'danger' => 'bg-red-50 text-red-600 border border-red-200/60',
+        'muted' => 'bg-zinc-50 text-zinc-400 border border-zinc-200/60',
+        default => 'bg-zinc-100 text-zinc-700 border border-zinc-200/60',
+    };
+
+    $dotClasses = match ($tone) {
+        'info' => 'bg-sky-500',
+        'progress' => 'bg-indigo-500',
+        'warning' => 'bg-amber-500',
+        'success' => 'bg-emerald-500',
+        'danger' => 'bg-red-500',
+        'muted' => 'bg-zinc-400',
+        default => 'bg-zinc-500',
     };
 
     $sizeClasses = match ($size) {
-        'sm' => 'text-xs px-2 py-0.5',
-        default => 'text-[11px] px-1.5 py-0.25',
+        'sm' => 'text-[10px] px-2 py-0.5',
+        default => 'text-[11px] px-2.5 py-1',
     };
 @endphp
 
-<span {{ $attributes->merge(['class' => 'inline-flex items-center gap-1 font-semibold rounded-sm tracking-wide ' . $classes . ' ' . $sizeClasses]) }}>
+<span {{ $attributes->merge(['class' => 'inline-flex items-center gap-1.5 rounded-md font-semibold tracking-wide whitespace-nowrap uppercase ' . $classes . ' ' . $sizeClasses]) }}>
     @if ($dot)
-        <span class="w-1.5 h-1.5 rounded-full {{ $dotClasses }}"></span>
+        <span class="size-1.5 rounded-full {{ $dotClasses }}"></span>
     @endif
-    {{ $slot }}
+    <span>{{ $slot }}</span>
 </span>

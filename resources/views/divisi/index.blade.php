@@ -6,11 +6,11 @@
     >
         <x-slot:actions>
             @can('divisi.create')
-            <x-button href="{{ route('divisi.create') }}" variant="primary" size="xs">
+            <x-button href="{{ route('divisi.create') }}" variant="primary" size="sm">
                 <x-slot:icon>
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </x-slot:icon>
-                Tambah Divisi Baru
+                Tambah Divisi
             </x-button>
             @endcan
         </x-slot:actions>
@@ -41,9 +41,15 @@
             text: 'Divisi "' + nama + '" yang masih digunakan oleh staf aktif tidak dapat dihapus.',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc2626',
+            confirmButtonColor: '#18181b',
+            cancelButtonColor: '#71717a',
             confirmButtonText: 'Ya, Hapus',
-            cancelButtonText: 'Batal'
+            cancelButtonText: 'Batal',
+            customClass: {
+                popup: 'rounded-xl border border-border shadow-lg',
+                confirmButton: 'rounded-lg text-xs font-medium px-4 py-2',
+                cancelButton: 'rounded-lg text-xs font-medium px-4 py-2'
+            }
         }).then(r => {
             if(r.isConfirmed){
                 fetch(url, {
@@ -61,7 +67,7 @@
                             icon: 'success',
                             title: 'Terhapus',
                             text: d.message,
-                            confirmButtonColor: '#0284c7'
+                            confirmButtonColor: '#18181b'
                         });
                         $('#tbl').DataTable().ajax.reload();
                     } else {

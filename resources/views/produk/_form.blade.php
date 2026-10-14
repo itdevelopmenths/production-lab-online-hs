@@ -39,13 +39,13 @@
 }" class="space-y-6">
 
     <!-- Preview Box -->
-    <div class="p-3 bg-primary-50/70 border border-primary-200 rounded-md flex flex-wrap items-center justify-between gap-4">
+    <div class="p-4 bg-muted/40 border border-border rounded-xl flex flex-wrap items-center justify-between gap-4">
         <div>
-            <span class="text-[10px] font-bold text-primary-700 uppercase tracking-wider block">Pratinjau Nama Lengkap Produk (Katalog & Transaksi):</span>
-            <span class="text-sm font-semibold text-primary-900 font-mono" x-text="fullNamePreview"></span>
+            <span class="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block">Pratinjau Nama Lengkap Produk:</span>
+            <span class="text-sm font-semibold text-foreground font-mono" x-text="fullNamePreview"></span>
         </div>
         <div class="text-right">
-            <span class="text-[10px] text-gray-500 block">Struktur: Kategori + Nama Dasar + Varian</span>
+            <span class="text-[11px] text-muted-foreground block">Format: Kategori + Nama Dasar + Varian</span>
         </div>
     </div>
 
@@ -58,7 +58,7 @@
                 x-model="selectedKategoriId"
                 @change="onKategoriChange()"
                 required
-                class="w-full text-xs rounded-sm border-gray-300 shadow-2xs focus:border-primary-500 focus:ring-primary-500 transition py-2 px-3"
+                class="w-full text-xs rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs transition"
             >
                 <option value="">— Pilih Kategori Produk —</option>
                 <template x-for="c in categories" :key="c.id">
@@ -73,7 +73,7 @@
                 name="varian_id"
                 id="varian_id"
                 x-model="selectedVarianId"
-                class="w-full text-xs rounded-sm border-gray-300 shadow-2xs focus:border-primary-500 focus:ring-primary-500 transition py-2 px-3"
+                class="w-full text-xs rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs transition"
             >
                 <option value="">— Tanpa Varian (Non-Varian) —</option>
                 <template x-for="v in currentVarians" :key="v.id">
@@ -93,7 +93,7 @@
                 placeholder="misal: Travel Perfume"
                 required
                 maxlength="150"
-                class="w-full text-xs rounded-sm border-gray-300 shadow-2xs focus:border-primary-500 focus:ring-primary-500 transition py-2 px-3"
+                class="w-full text-xs rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs transition"
             />
         </x-form-group>
 

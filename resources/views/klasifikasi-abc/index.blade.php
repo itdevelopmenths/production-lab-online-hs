@@ -7,29 +7,27 @@
         >
             <x-slot:actions>
                 @can('analisa.manage')
-                <button
-                    type="button"
-                    @click="openAddModal()"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-primary-600 text-white hover:bg-primary-700 shadow-sm transition"
-                >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Tambah Klasifikasi Baru
-                </button>
+                <x-button type="button" @click="openAddModal()" variant="primary" size="sm">
+                    <x-slot:icon>
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </x-slot:icon>
+                    Tambah Klasifikasi
+                </x-button>
                 @endcan
             </x-slot:actions>
         </x-page-header>
 
-        <x-card title="Daftar Klasifikasi ABC" :noPadding="true">
-            <div class="overflow-x-auto p-4">
-                <table id="tbl-klasifikasi-abc" class="w-full text-xs stripe hover">
+        <x-card title="Daftar Klasifikasi ABC" subtitle="Pengaturan buffer lead time dan bobot prioritas pengadaan" :noPadding="true">
+            <div class="overflow-x-auto">
+                <table id="tbl-klasifikasi-abc" class="w-full text-xs">
                     <thead>
-                        <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold uppercase tracking-wider text-[11px]">
+                        <tr>
                             <th class="px-4 py-3 text-left">Kode</th>
                             <th class="px-4 py-3 text-left">Nama Klasifikasi</th>
                             <th class="px-4 py-3 text-left">Tambahan Buffer</th>
                             <th class="px-4 py-3 text-left">Deskripsi</th>
                             <th class="px-4 py-3 text-left">Penggunaan</th>
-                            <th class="px-4 py-3 text-center">Status</th>
+                            <th class="px-4 py-3 text-center w-28">Status</th>
                             <th class="px-4 py-3 text-center w-28">Aksi</th>
                         </tr>
                     </thead>
@@ -40,64 +38,64 @@
         <!-- Modal Form Tambah / Edit Klasifikasi ABC -->
         <div
             x-show="showModal"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs transition-opacity"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs transition-opacity"
             x-cloak
             @keydown.escape.window="closeModal()"
         >
             <div
-                class="bg-white rounded-lg shadow-xl border border-gray-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                class="bg-card rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150"
                 @click.away="closeModal()"
             >
-                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                    <h3 class="text-sm font-bold text-gray-900" x-text="isEdit ? 'Edit Klasifikasi ABC' : 'Tambah Klasifikasi ABC'"></h3>
-                    <button type="button" @click="closeModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-foreground" x-text="isEdit ? 'Edit Klasifikasi ABC' : 'Tambah Klasifikasi ABC'"></h3>
+                    <button type="button" @click="closeModal()" class="text-muted-foreground hover:text-foreground transition cursor-pointer">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
 
                 <form @submit.prevent="saveItem()" class="p-5 space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Kode Klasifikasi <span class="text-rose-500">*</span></label>
+                        <label class="block text-xs font-semibold text-foreground mb-1">Kode Klasifikasi <span class="text-destructive">*</span></label>
                         <input
                             type="text"
                             x-model="form.kode"
                             placeholder="misal: a, b, c, wajib_a"
-                            class="w-full px-3 py-2 text-xs rounded border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono lowercase"
+                            class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono lowercase text-foreground"
                             required
                         >
-                        <p class="text-[11px] text-gray-500 mt-1">Gunakan huruf kecil atau underscore (contoh: wajib_a, a, b, c).</p>
+                        <p class="text-[11px] text-muted-foreground mt-1">Gunakan huruf kecil atau underscore (contoh: wajib_a, a, b, c).</p>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nama Klasifikasi <span class="text-rose-500">*</span></label>
+                        <label class="block text-xs font-semibold text-foreground mb-1">Nama Klasifikasi <span class="text-destructive">*</span></label>
                         <input
                             type="text"
                             x-model="form.nama"
                             placeholder="misal: A - Fast Moving"
-                            class="w-full px-3 py-2 text-xs rounded border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                            class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
                             required
                         >
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Tambahan Buffer (Hari) <span class="text-rose-500">*</span></label>
+                            <label class="block text-xs font-semibold text-foreground mb-1">Tambahan Buffer (Hari) <span class="text-destructive">*</span></label>
                             <input
                                 type="number"
                                 min="0"
                                 max="365"
                                 x-model.number="form.tambahan_buffer_hari"
-                                class="w-full px-3 py-2 text-xs rounded border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono"
+                                class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono text-foreground"
                                 required
                             >
-                            <p class="text-[11px] text-gray-500 mt-1">Ditambahkan ke Buffer Days.</p>
+                            <p class="text-[11px] text-muted-foreground mt-1">Ditambahkan ke Buffer Days.</p>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Warna Badge <span class="text-rose-500">*</span></label>
+                            <label class="block text-xs font-semibold text-foreground mb-1">Warna Badge <span class="text-destructive">*</span></label>
                             <select
                                 x-model="form.warna_badge"
-                                class="w-full px-3 py-2 text-xs rounded border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                                class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
                             >
                                 <option value="red">Merah (Wajib / Vital)</option>
                                 <option value="amber">Amber (Fast Moving)</option>
@@ -109,12 +107,12 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Deskripsi</label>
+                        <label class="block text-xs font-semibold text-foreground mb-1">Deskripsi</label>
                         <textarea
                             x-model="form.deskripsi"
                             rows="2"
                             placeholder="Keterangan kategori prioritas pengadaan..."
-                            class="w-full px-3 py-2 text-xs rounded border border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                            class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
                         ></textarea>
                     </div>
 
@@ -123,25 +121,25 @@
                             type="checkbox"
                             id="chk-active"
                             x-model="form.is_active"
-                            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            class="rounded border-border text-primary focus:ring-primary/20"
                         >
-                        <label for="chk-active" class="text-xs font-medium text-gray-700">Aktif digunakan dalam analisa stok</label>
+                        <label for="chk-active" class="text-xs font-medium text-foreground cursor-pointer">Aktif digunakan dalam analisa stok</label>
                     </div>
 
-                    <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+                    <div class="flex items-center justify-end gap-2 pt-4 border-t border-border">
                         <button
                             type="button"
                             @click="closeModal()"
-                            class="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded transition"
+                            class="px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted border border-border rounded-lg transition cursor-pointer"
                         >
                             Batal
                         </button>
                         <button
                             type="submit"
                             :disabled="saving"
-                            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded transition disabled:opacity-50"
+                            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg shadow-xs transition disabled:opacity-50 cursor-pointer"
                         >
-                            <svg x-show="saving" class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <svg x-show="saving" class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                             <span x-text="saving ? 'Menyimpan...' : 'Simpan Klasifikasi'"></span>
                         </button>
                     </div>
@@ -228,7 +226,7 @@
                             icon: 'error',
                             title: 'Gagal Menyimpan',
                             text: d.message || Object.values(d.errors || {})[0] || 'Periksa kembali data input.',
-                            confirmButtonColor: '#dc2626'
+                            confirmButtonColor: '#18181b'
                         });
                     }
                 } catch(e){
@@ -236,7 +234,7 @@
                         icon: 'error',
                         title: 'Kesalahan Sistem',
                         text: 'Terjadi kesalahan saat menghubungi server.',
-                        confirmButtonColor: '#dc2626'
+                        confirmButtonColor: '#18181b'
                     });
                 } finally {
                     this.saving = false;
@@ -251,9 +249,15 @@
             text: 'Klasifikasi yang digunakan pada analisa stok tidak dapat dihapus.',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc2626',
+            confirmButtonColor: '#18181b',
+            cancelButtonColor: '#71717a',
             confirmButtonText: 'Ya, Hapus',
-            cancelButtonText: 'Batal'
+            cancelButtonText: 'Batal',
+            customClass: {
+                popup: 'rounded-xl border border-border shadow-lg',
+                confirmButton: 'rounded-lg text-xs font-medium px-4 py-2',
+                cancelButton: 'rounded-lg text-xs font-medium px-4 py-2'
+            }
         }).then(r => {
             if(r.isConfirmed){
                 fetch('{{ url("klasifikasi-abc") }}/' + id, {
@@ -279,7 +283,7 @@
                             icon: 'error',
                             title: 'Gagal Menghapus',
                             text: d.message || 'Terjadi kesalahan.',
-                            confirmButtonColor: '#dc2626'
+                            confirmButtonColor: '#18181b'
                         });
                     }
                 })
@@ -288,7 +292,7 @@
                         icon: 'error',
                         title: 'Kesalahan Sistem',
                         text: 'Gagal menghubungi server.',
-                        confirmButtonColor: '#dc2626'
+                        confirmButtonColor: '#18181b'
                     });
                 });
             }

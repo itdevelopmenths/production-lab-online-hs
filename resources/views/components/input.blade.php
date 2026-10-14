@@ -8,29 +8,30 @@
     'readonly' => false,
     'icon' => null,
     'addonRight' => null,
-    'size' => 'sm',
+    'size' => 'default',
 ])
 
 @php
     $hasError = $name && $errors->has($name);
     
     $borderClass = $hasError 
-        ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500 text-rose-900 bg-rose-50/20' 
-        : 'border-gray-300 focus:border-primary-500 focus:ring-primary-500 bg-white text-gray-800';
+        ? 'border-destructive focus:ring-destructive/20 text-destructive bg-destructive/5' 
+        : 'border-border focus:ring-primary/20 bg-card text-foreground';
 
     $sizeClasses = match($size) {
-        'xs' => 'text-[11px] px-2.5 py-1',
-        'md' => 'text-sm px-3.5 py-2.5',
-        default => 'text-xs px-3 py-2', // sm
+        'xs' => 'text-xs px-2.5 py-1 rounded-md h-8',
+        'sm' => 'text-xs px-3 py-1.5 rounded-lg h-8',
+        'lg' => 'text-base px-4 py-2.5 rounded-xl h-11',
+        default => 'text-sm px-3.5 py-2 rounded-lg h-10', // default / h-10
     };
 
-    $paddingLeft = $icon ? 'pl-9' : '';
+    $paddingLeft = $icon ? 'pl-10' : '';
     $paddingRight = $addonRight ? 'pr-12' : '';
 @endphp
 
 <div class="relative w-full">
     @if ($icon)
-        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
             {!! $icon !!}
         </span>
     @endif
@@ -44,12 +45,12 @@
         @if($disabled) disabled @endif
         @if($readonly) readonly @endif
         {{ $attributes->merge([
-            'class' => "w-full rounded-sm border shadow-xs outline-none transition placeholder-gray-400 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed focus:ring-1 $borderClass $sizeClasses $paddingLeft $paddingRight"
+            'class' => "w-full border shadow-xs outline-none transition placeholder:text-muted-foreground disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed focus:ring-2 $borderClass $sizeClasses $paddingLeft $paddingRight"
         ]) }}
     />
 
     @if ($addonRight)
-        <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs text-gray-400 font-medium">
+        <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs text-muted-foreground font-medium">
             {{ $addonRight }}
         </span>
     @endif

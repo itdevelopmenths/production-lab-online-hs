@@ -114,7 +114,7 @@
             <x-card title="Produk Jadi Luaran Batch" subtitle="Daftar varian dan kuantitas produk jadi yang dihasilkan oleh batch ini" :noPadding="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
+                        <thead>
                             <tr>
                                 <th class="py-2.5 px-3.5">Produk Jadi</th>
                                 <th class="py-2.5 px-3 text-right">Target Rencana</th>
@@ -123,20 +123,20 @@
                                 <th class="py-2.5 px-3 text-center">Yield QC</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-border">
                             @foreach($batch->outputs as $out)
-                            <tr class="hover:bg-gray-50/70 transition">
+                            <tr class="hover:bg-muted/40 transition">
                                 <td class="py-2.5 px-3.5">
-                                    <div class="font-bold text-gray-900">{{ $out->produk?->nama }}</div>
-                                    <div class="font-mono text-[11px] text-gray-400">{{ $out->produk?->sku }}</div>
+                                    <div class="font-bold text-foreground">{{ $out->produk?->nama }}</div>
+                                    <div class="font-mono text-[11px] text-muted-foreground">{{ $out->produk?->sku }}</div>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-gray-900">
-                                    {{ \App\Helpers\NumberHelper::formatQty($out->qty_rencana) }} <span class="text-gray-400 font-normal">{{ $out->produk?->satuan }}</span>
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-foreground">
+                                    {{ \App\Helpers\NumberHelper::formatQty($out->qty_rencana) }} <span class="text-muted-foreground font-normal">{{ $out->produk?->satuan }}</span>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-emerald-700">
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-emerald-700 dark:text-emerald-400">
                                     {{ $out->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($out->qty_baik) . ' ' . $out->produk?->satuan : '-' }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-rose-700">
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-rose-700 dark:text-rose-400">
                                     {{ $out->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($out->qty_rusak) . ' ' . $out->produk?->satuan : '-' }}
                                 </td>
                                 <td class="py-2.5 px-3 text-center font-mono font-bold">
@@ -153,12 +153,12 @@
             <!-- Tabel Alokasi Bahan Baku (BOM Explode) -->
             <x-card title="Alokasi Bahan Baku (BOM Explode)" subtitle="Formula resep × target kuantitas. Stok fisik dipotong saat Release & Issue." :noPadding="true">
                 <x-slot:tools>
-                    <span class="text-xs text-gray-500 font-mono font-medium">{{ $batch->alokasi->count() }} komponen resep</span>
+                    <span class="text-xs text-muted-foreground font-mono font-medium">{{ $batch->alokasi->count() }} komponen resep</span>
                 </x-slot:tools>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
+                        <thead>
                             <tr>
                                 <th class="py-2.5 px-3.5">Bahan Baku</th>
                                 <th class="py-2.5 px-3 text-right">Kebutuhan</th>
@@ -169,7 +169,7 @@
                                 <th class="py-2.5 px-3.5 text-center">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-border">
                             @forelse($batch->alokasi as $a)
                             @php
                                 $w = $earlyWarnings[$a->id] ?? null;
@@ -223,7 +223,7 @@
                                     @endif
                                 </td>
                                 <td class="py-2.5 px-3.5 text-center whitespace-nowrap">
-                                    <a href="{{ route('stok.ledger', $a->bahan_id) }}" class="text-primary-700 hover:text-primary-900 text-xs font-semibold">
+                                    <a href="{{ route('stok.ledger', $a->bahan_id) }}" class="text-foreground hover:underline text-xs font-semibold">
                                         Kartu Stok &rarr;
                                     </a>
                                 </td>

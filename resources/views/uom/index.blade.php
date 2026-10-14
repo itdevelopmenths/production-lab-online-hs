@@ -6,9 +6,9 @@
     >
         <x-slot:actions>
             @can('uom.create')
-            <x-button href="{{ route('uom.create') }}" variant="primary" size="xs">
+            <x-button href="{{ route('uom.create') }}" variant="primary" size="sm">
                 <x-slot:icon>
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </x-slot:icon>
                 Tambah Satuan Baru
             </x-button>
@@ -16,7 +16,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <x-card title="Daftar Master Satuan Unit (Unit of Measure)" :noPadding="true">
+    <x-card title="Daftar Master Satuan Unit (Unit of Measure)" subtitle="Standar pengukuran unit untuk resep BOM, kartu stok, dan pemesanan" :noPadding="true">
         <div class="overflow-x-auto">
             <table id="tbl" class="w-full text-xs">
                 <thead>
@@ -42,9 +42,15 @@
             text: 'Data yang sedang digunakan oleh produk katalog tidak dapat dihapus.',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc2626',
+            confirmButtonColor: '#18181b',
+            cancelButtonColor: '#71717a',
             confirmButtonText: 'Ya, Hapus',
-            cancelButtonText: 'Batal'
+            cancelButtonText: 'Batal',
+            customClass: {
+                popup: 'rounded-xl border border-border shadow-lg',
+                confirmButton: 'rounded-lg text-xs font-medium px-4 py-2',
+                cancelButton: 'rounded-lg text-xs font-medium px-4 py-2'
+            }
         }).then(r => {
             if(r.isConfirmed){
                 fetch(url, {
@@ -58,7 +64,7 @@
                             icon: 'success',
                             title: 'Terhapus',
                             text: d.message,
-                            confirmButtonColor: '#0284c7'
+                            confirmButtonColor: '#18181b'
                         });
                         $('#tbl').DataTable().ajax.reload();
                     } else {
@@ -88,12 +94,42 @@
             serverSide: true,
             ajax: '{{ route("uom.data") }}',
             columns: [
-                { data: 'kode' },
-                { data: 'nama' },
-                { data: 'kategori' },
-                { data: 'konversi' },
+                {
+                    data: 'kode',
+                    render: function(data) {
+                        return '<span class="font-mono font-bold text-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border text-[11px]">' + (data || '-') + '</span>';
+                    }
+                },
+                {
+                    data: 'nama',
+                    render: function(data) {
+                        return '<span class="font-medium text-foreground">' + (data || '-') + '</span>';
+                    }
+                },
+                {
+                    data: 'kategori',
+                    render: function(data) {
+                        return data ? '<span class="text-muted-foreground">' + data + '</span>' : '-';
+                    }
+                },
+                {
+                    data: 'konversi',
+                    render: function(data) {
+                        return '<span class="font-mono text-muted-foreground text-[11px]">' + (data || '-') + '</span>';
+                    }
+                },
                 { data: 'produk_count', orderable: false, searchable: false },
-                { data: 'is_active', className: 'text-center' },
+                {
+                    data: 'is_active',
+                    className: 'text-center',
+                    render: function(data) {
+                        const isAktif = String(data).toLowerCase() === 'aktif';
+                        const cls = isAktif
+                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                            : 'bg-muted text-muted-foreground border-border';
+                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ' + cls + '">' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
+                    }
+                },
                 { data: 'action', orderable: false, searchable: false, className: 'text-center' }
             ]
         });

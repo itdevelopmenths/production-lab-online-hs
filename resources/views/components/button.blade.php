@@ -1,28 +1,30 @@
 @props([
-    'variant' => 'primary', // primary, secondary, success, danger, warning, outline, link
-    'size' => 'sm', // xs, sm, md
+    'variant' => 'primary', // primary (default), secondary, outline, destructive/danger, ghost, success, warning, link
+    'size' => 'default', // default, sm, xs, lg, icon
     'href' => null,
     'icon' => null,
     'type' => 'button',
 ])
 
 @php
-    $baseClasses = 'inline-flex items-center justify-center font-medium rounded-sm transition focus:outline-none focus:ring-1 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed select-none tracking-wide cursor-pointer';
+    $baseClasses = 'focus-visible:ring-ring inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer select-none';
 
     $sizeClasses = match ($size) {
-        'xs' => 'text-[11px] px-2 py-1 gap-1',
-        'md' => 'text-sm px-4 py-2 gap-2 shadow-xs',
-        default => 'text-xs px-3 py-1.5 gap-1.5 shadow-xs', // sm
+        'xs' => 'h-7 px-2.5 text-xs rounded-md',
+        'sm' => 'h-8 px-3 text-xs rounded-md',
+        'lg' => 'h-10 px-6',
+        'icon' => 'size-8 rounded-lg',
+        default => 'h-9 px-4 py-2 text-sm',
     };
 
     $variantClasses = match ($variant) {
-        'secondary' => 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-400',
-        'success' => 'bg-emerald-600 text-white border border-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500',
-        'danger' => 'bg-rose-600 text-white border border-rose-600 hover:bg-rose-700 focus:ring-rose-500',
-        'warning' => 'bg-amber-500 text-white border border-amber-500 hover:bg-amber-600 focus:ring-amber-500',
-        'outline' => 'bg-transparent text-gray-700 border border-gray-300 hover:bg-gray-100 focus:ring-gray-400',
-        'link' => 'bg-transparent text-primary-600 hover:text-primary-800 hover:underline p-0 shadow-none border-transparent focus:ring-0',
-        default => 'bg-primary-600 text-white border border-primary-600 hover:bg-primary-700 focus:ring-primary-500', // primary
+        'secondary', 'outline' => 'bg-card hover:bg-accent hover:text-foreground text-foreground border border-border shadow-xs',
+        'destructive', 'danger' => 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm',
+        'ghost' => 'hover:bg-accent hover:text-foreground text-foreground',
+        'link' => 'text-foreground underline-offset-4 hover:underline p-0 h-auto shadow-none',
+        'success' => 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm',
+        'warning' => 'bg-amber-500 text-white hover:bg-amber-600 shadow-sm',
+        default => 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm font-medium', // primary
     };
 @endphp
 

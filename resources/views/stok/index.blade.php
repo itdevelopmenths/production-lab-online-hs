@@ -22,11 +22,11 @@
             </x-slot:actions>
         </x-page-header>
 
-        <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-sm border border-gray-200">
-            <div class="flex flex-wrap items-center gap-3">
+        <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border shadow-xs">
+            <div class="flex flex-wrap items-center gap-4">
                 <div>
-                    <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Lokasi Gudang</label>
-                    <select id="filter-gudang" class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[180px]">
+                    <label class="block text-xs font-medium text-muted-foreground mb-1">Lokasi Gudang</label>
+                    <select id="filter-gudang" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[200px] outline-none cursor-pointer">
                         @if($isGlobal)
                             <option value="">— Semua Gudang —</option>
                         @endif
@@ -36,8 +36,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Kategori Barang</label>
-                    <select id="filter-kategori" class="rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[160px]">
+                    <label class="block text-xs font-medium text-muted-foreground mb-1">Kategori Barang</label>
+                    <select id="filter-kategori" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
                         <option value="">— Semua Kategori —</option>
                         <option value="bahan">Bahan Baku & Kemas</option>
                         <option value="produk_jadi">Produk Jadi</option>
@@ -45,28 +45,30 @@
                 </div>
             </div>
             <div class="text-right">
-                <span class="text-xs text-gray-400 font-medium">Buku Saldo & Evaluasi Stok</span>
+                <span class="text-xs text-muted-foreground font-medium">Buku Saldo & Evaluasi Stok</span>
             </div>
         </div>
 
-        <x-card title="Buku Saldo & Alert Ketersediaan Stok" :noPadding="true">
-            <table id="tbl" class="w-full text-xs">
-                <thead>
-                    <tr>
-                        <th class="px-3.5 py-2.5 text-left">SKU</th>
-                        <th class="px-3.5 py-2.5 text-left">Produk</th>
-                        <th class="px-3.5 py-2.5 text-left">Gudang</th>
-                        <th class="px-3.5 py-2.5 text-right">Batas Min (Analisa)</th>
-                        <th class="px-3.5 py-2.5 text-right">Kolom Stok</th>
-                        <th class="px-3.5 py-2.5 text-right">Kolom Rencana</th>
-                        @if($canSeePrice)
-                            <th class="px-3.5 py-2.5 text-right">HPP</th>
-                            <th class="px-3.5 py-2.5 text-right">Nilai Stok</th>
-                        @endif
-                        <th class="px-3.5 py-2.5 text-center">Aksi</th>
-                    </tr>
-                </thead>
-            </table>
+        <x-card title="Buku Saldo & Alert Ketersediaan Stok" subtitle="Pemantauan saldo fisik vs alokasi batch dan batas aman" :noPadding="true">
+            <div class="overflow-x-auto">
+                <table id="tbl" class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[13px] font-medium">
+                            <th class="px-4 py-3 text-left">SKU</th>
+                            <th class="px-4 py-3 text-left">Produk</th>
+                            <th class="px-4 py-3 text-left">Gudang</th>
+                            <th class="px-4 py-3 text-right">Batas Min (Analisa)</th>
+                            <th class="px-4 py-3 text-right">Kolom Stok</th>
+                            <th class="px-4 py-3 text-right">Kolom Rencana</th>
+                            @if($canSeePrice)
+                                <th class="px-4 py-3 text-right">HPP</th>
+                                <th class="px-4 py-3 text-right">Nilai Stok</th>
+                            @endif
+                            <th class="px-4 py-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
         </x-card>
 
         {{-- Modal Mutasi Manual (AdminLTE Sharp Modal) --}}
@@ -173,33 +175,33 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-3.5">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Tipe Mutasi</label>
-                        <select name="tipe" x-model="tipe" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <label class="block text-xs font-semibold text-foreground mb-1.5">Tipe Mutasi</label>
+                        <select name="tipe" x-model="tipe" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
                             <option value="in">Masuk (IN)</option>
                             <option value="out">Keluar (OUT)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Qty <span class="text-rose-500">*</span></label>
+                        <label class="block text-xs font-semibold text-foreground mb-1.5">Qty <span class="text-destructive">*</span></label>
                         <div class="relative flex items-center">
-                            <input type="number" step="0.01" min="0.01" name="qty" x-model="qty" class="w-full rounded-sm border-gray-300 text-xs py-1.5 pr-14 font-mono focus:border-primary-500 focus:ring-1 focus:ring-primary-500" placeholder="0.00" required>
-                            <span class="absolute right-2 px-1 py-0.5 text-[10px] font-mono font-bold text-primary-700 bg-primary-50 border border-primary-200 rounded-xs uppercase tracking-wider pointer-events-none" x-text="mutasiUom || 'Unit'"></span>
+                            <input type="number" step="0.01" min="0.01" name="qty" x-model="qty" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 pr-14 font-mono text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs" placeholder="0.00" required>
+                            <span class="absolute right-2 px-1.5 py-0.5 text-[10px] font-mono font-bold text-foreground bg-muted border border-border rounded-md uppercase tracking-wider pointer-events-none" x-text="mutasiUom || 'Unit'"></span>
                         </div>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Catatan / Alasan Mutasi</label>
-                    <input type="text" name="catatan" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" placeholder="Penyesuaian stok / rusak / sampel">
+                    <label class="block text-xs font-semibold text-foreground mb-1.5">Catatan / Alasan Mutasi</label>
+                    <input type="text" name="catatan" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs" placeholder="Penyesuaian stok / rusak / sampel">
                 </div>
             </form>
 
             <x-slot:footer>
-                <x-button @click="openMutasi = false" variant="secondary" size="xs">
+                <x-button @click="openMutasi = false" variant="outline" size="sm">
                     Batal
                 </x-button>
-                <x-button onclick="document.getElementById('form-mutasi-manual').submit()" variant="primary" size="xs">
+                <x-button onclick="document.getElementById('form-mutasi-manual').submit()" variant="primary" size="sm">
                     Simpan Mutasi
                 </x-button>
             </x-slot:footer>

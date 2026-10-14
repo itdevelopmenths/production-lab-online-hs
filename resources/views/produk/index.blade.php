@@ -1,74 +1,56 @@
-<x-app-layout title="Produk">
-    <x-page-header
-        title="Master Produk"
-        subtitle="Daftar produk jadi, bahan baku konsentrat/alkohol, dan komponen kemasan"
-        :breadcrumbs="['Master Data' => null, 'Produk' => null]"
-    >
-        <x-slot:actions>
-            @can('produk.create')
-            <x-button href="{{ route('produk.create') }}" variant="primary" size="xs">
-                <x-slot:icon>
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                </x-slot:icon>
-                Tambah Produk
-            </x-button>
-            @endcan
-        </x-slot:actions>
-    </x-page-header>
+<x-app-layout title="Produk" subtitle="Daftar produk jadi, bahan baku konsentrat/alkohol, dan komponen kemasan">
+    <div x-data="{ currentTab: 'all' }" class="space-y-6">
+        <x-card>
+            {{-- Card Header matching DevScore --}}
+            <x-slot:header>
+                <div>
+                    <h2 class="text-lg font-semibold text-foreground tracking-tight leading-tight">Daftar Produk</h2>
+                    <p class="text-sm text-muted-foreground mt-0.5">Seluruh produk jadi, bahan baku, dan kemasan laboratorium</p>
+                </div>
+                @can('produk.create')
+                <x-button href="{{ route('produk.create') }}" variant="primary">
+                    <x-slot:icon>
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </x-slot:icon>
+                    Tambah Produk
+                </x-button>
+                @endcan
+            </x-slot:header>
 
-    <div x-data="{ currentTab: 'all' }">
-        <!-- Tab Navigation -->
-        <div class="border-b border-gray-200 mb-5 flex items-center justify-between">
-            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                <button
-                    type="button"
-                    @click="currentTab = 'all'; filterTab('all')"
-                    :class="currentTab === 'all' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                    Semua Produk
-                </button>
+            {{-- Filter Bar & Segmented Tabs --}}
+            <div class="px-5 pt-4 pb-2 border-b border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {{-- Segmented Pill Tabs matching DevScore --}}
+                <div class="inline-flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/40">
+                    <button type="button"
+                            @click="currentTab = 'all'; filterTab('all')"
+                            :class="currentTab === 'all' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                            class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none">
+                        Semua Produk
+                    </button>
+                    <button type="button"
+                            @click="currentTab = 'bahan'; filterTab('bahan')"
+                            :class="currentTab === 'bahan' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                            class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none">
+                        Bahan Baku
+                    </button>
+                    <button type="button"
+                            @click="currentTab = 'kemas'; filterTab('kemas')"
+                            :class="currentTab === 'kemas' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                            class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none">
+                        Kemasan
+                    </button>
+                    <button type="button"
+                            @click="currentTab = 'produk_jadi'; filterTab('produk_jadi')"
+                            :class="currentTab === 'produk_jadi' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                            class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none">
+                        Produk Jadi
+                    </button>
+                </div>
 
-                <button
-                    type="button"
-                    @click="currentTab = 'bahan'; filterTab('bahan')"
-                    :class="currentTab === 'bahan' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                    Bahan Baku
-                </button>
-
-                <button
-                    type="button"
-                    @click="currentTab = 'kemas'; filterTab('kemas')"
-                    :class="currentTab === 'kemas' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                    Komponen Kemasan
-                </button>
-
-                <button
-                    type="button"
-                    @click="currentTab = 'produk_jadi'; filterTab('produk_jadi')"
-                    :class="currentTab === 'produk_jadi' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
-                    Produk Jadi
-                </button>
-
-            </nav>
-        </div>
-
-        <div>
-            <!-- Filter Bar -->
-            <div class="mb-4 bg-white p-3 rounded-md border border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div class="flex items-center gap-2">
-                    <label for="filter-kategori" class="font-medium text-gray-700">Filter Kategori:</label>
-                    <select id="filter-kategori" class="rounded border-gray-300 text-xs py-1.5 px-2.5 focus:border-primary-500 focus:ring-primary-500">
+                {{-- Additional Filter --}}
+                <div class="flex items-center gap-2.5">
+                    <label for="filter-kategori" class="text-xs font-medium text-muted-foreground">Kategori:</label>
+                    <select id="filter-kategori" class="h-9 rounded-lg border border-border bg-card px-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer">
                         <option value="">Semua Kategori</option>
                         @foreach($kategoriList as $k)
                             <option value="{{ $k->id }}">{{ $k->nama }}</option>
@@ -77,25 +59,24 @@
                 </div>
             </div>
 
-            <x-card title="Katalog Produk & Bahan Baku" :noPadding="true">
-                <div class="overflow-x-auto">
-                    <table id="tbl" class="w-full text-xs">
-                        <thead>
-                            <tr class="bg-gray-50 border-b border-gray-200 text-gray-700 text-[11px] uppercase tracking-wider font-semibold">
-                                <th class="px-4 py-3 text-left w-32 font-semibold">SKU</th>
-                                <th class="px-4 py-3 text-left font-semibold">Nama Produk</th>
-                                <th class="px-4 py-3 text-left w-32 font-semibold">Kategori</th>
-                                <th class="px-4 py-3 text-left w-32 font-semibold">Varian</th>
-                                <th class="px-4 py-3 text-left w-28 font-semibold">Tipe</th>
-                                <th class="px-4 py-3 text-center w-20 font-semibold">Satuan</th>
-                                <th class="px-4 py-3 text-center w-24 font-semibold">Status</th>
-                                <th class="px-4 py-3 text-center w-28 font-semibold">Aksi</th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
-            </x-card>
-        </div>
+            {{-- Table --}}
+            <div class="overflow-x-auto">
+                <table id="tbl" class="w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left w-28">SKU</th>
+                            <th class="px-4 py-3 text-left">Nama Produk</th>
+                            <th class="px-4 py-3 text-left w-32">Kategori</th>
+                            <th class="px-4 py-3 text-left w-32">Varian</th>
+                            <th class="px-4 py-3 text-left w-28">Tipe</th>
+                            <th class="px-4 py-3 text-center w-20">Satuan</th>
+                            <th class="px-4 py-3 text-center w-24">Status</th>
+                            <th class="px-4 py-3 text-center w-28">Aksi</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </x-card>
     </div>
 
     @push('scripts')
@@ -116,7 +97,8 @@
             text: 'Data produk yang memiliki histori transaksi stok tidak dapat dihapus.',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#dc2626',
+            confirmButtonColor: '#18181b',
+            cancelButtonColor: '#71717a',
             confirmButtonText: 'Ya, Hapus',
             cancelButtonText: 'Batal'
         }).then(r => {
@@ -128,14 +110,14 @@
                 .then(async res => {
                     const d = await res.json();
                     if (res.ok) {
-                        Swal.fire('Terhapus', d.message, 'success');
+                        Swal.fire({ icon: 'success', title: 'Terhapus', text: d.message, confirmButtonColor: '#18181b' });
                         $('#tbl').DataTable().ajax.reload();
                     } else {
-                        Swal.fire('Gagal Menghapus', d.message || 'Terjadi kesalahan.', 'error');
+                        Swal.fire({ icon: 'error', title: 'Gagal Menghapus', text: d.message || 'Terjadi kesalahan.', confirmButtonColor: '#18181b' });
                     }
                 })
                 .catch(() => {
-                    Swal.fire('Kesalahan Sistem', 'Tidak dapat terhubung ke server.', 'error');
+                    Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Tidak dapat terhubung ke server.', confirmButtonColor: '#18181b' });
                 });
             }
         });
@@ -153,14 +135,14 @@
                 }
             },
             columns: [
-                { data: 'sku', name: 'sku', searchable: true, className: 'px-4 py-3 align-middle text-left font-mono' },
-                { data: 'nama', name: 'nama', searchable: true, className: 'px-4 py-3 align-middle text-left' },
-                { data: 'kategori_nama', name: 'kategori_nama', orderable: false, searchable: false, className: 'px-4 py-3 align-middle text-left' },
-                { data: 'varian_nama', name: 'varian_nama', orderable: false, searchable: false, className: 'px-4 py-3 align-middle text-left' },
-                { data: 'tipe', name: 'tipe', searchable: false, className: 'px-4 py-3 align-middle text-left' },
-                { data: 'satuan', name: 'satuan', searchable: false, className: 'px-4 py-3 align-middle text-center' },
-                { data: 'is_active', name: 'is_active', searchable: false, className: 'px-4 py-3 align-middle text-center' },
-                { data: 'action', orderable: false, searchable: false, className: 'px-4 py-3 align-middle text-center' }
+                { data: 'sku', name: 'sku', searchable: true, className: 'px-4 py-3.5 align-middle text-left font-mono text-xs' },
+                { data: 'nama', name: 'nama', searchable: true, className: 'px-4 py-3.5 align-middle text-left font-medium' },
+                { data: 'kategori_nama', name: 'kategori_nama', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
+                { data: 'varian_nama', name: 'varian_nama', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
+                { data: 'tipe', name: 'tipe', searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
+                { data: 'satuan', name: 'satuan', searchable: false, className: 'px-4 py-3.5 align-middle text-center font-mono text-xs' },
+                { data: 'is_active', name: 'is_active', searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
+                { data: 'action', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' }
             ]
         });
 

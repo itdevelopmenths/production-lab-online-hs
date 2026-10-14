@@ -43,13 +43,13 @@
 
     <!-- Action Toolbar (Hidden during Print) -->
     <div class="max-w-3xl mx-auto mb-6 flex items-center justify-between no-print">
-        <a href="{{ route('rt.show', $requestTransfer) }}" class="inline-flex items-center gap-2 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-white border border-gray-300 rounded-sm px-3 py-1.5 shadow-2xs hover:bg-gray-50 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <a href="{{ route('rt.show', $requestTransfer) }}" class="inline-flex items-center gap-2 text-xs font-medium text-foreground bg-background border border-border rounded-lg px-3.5 py-2 shadow-xs hover:bg-muted transition">
+            <svg class="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
             Kembali ke Detail Dokumen
         </a>
 
         <div class="flex items-center gap-2">
-            <button onclick="window.print()" class="inline-flex items-center gap-2 text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-sm px-4 py-1.5 shadow-xs transition cursor-pointer">
+            <button onclick="window.print()" class="inline-flex items-center gap-2 text-xs font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg px-4 py-2 shadow-xs transition cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                 Cetak Surat Jalan
             </button>
@@ -57,7 +57,7 @@
     </div>
 
     <!-- Container Utama Surat Jalan -->
-    <div class="max-w-3xl mx-auto bg-white rounded-sm border border-gray-300 p-8 shadow-sm print-page">
+    <div class="max-w-3xl mx-auto bg-card rounded-xl border border-border p-8 shadow-xs print-page">
 
         <!-- Header: Judul & Nomor Dokumen -->
         <div class="flex items-start justify-between border-b-2 border-gray-900 pb-4 mb-6">

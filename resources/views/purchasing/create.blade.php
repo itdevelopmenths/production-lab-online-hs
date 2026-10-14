@@ -51,15 +51,15 @@
         ];
     @endphp
 
-    <div class="max-w-6xl mx-auto">
+    <div class="max-w-6xl mx-auto space-y-6">
         <x-page-header
             title="Buat Purchase Order"
             subtitle="Formulir pengadaan bahan baku, kemasan, atau botol ke supplier rekanan"
             :breadcrumbs="['Purchasing' => route('purchasing.index'), 'Buat PO' => null]"
         >
             <x-slot:actions>
-                <x-button href="{{ route('purchasing.index') }}" variant="secondary" size="xs">
-                    &larr; Kembali ke Daftar
+                <x-button href="{{ route('purchasing.index') }}" variant="outline" size="sm">
+                    &larr; Kembali
                 </x-button>
             </x-slot:actions>
         </x-page-header>
@@ -67,10 +67,10 @@
         <div x-data="poForm({{ Js::from($initialData) }})" x-init="init()">
             <form method="POST" action="{{ route('purchasing.store') }}">
             @csrf
-            <div class="space-y-5">
+            <div class="space-y-6">
                 {{-- Card 1: Informasi Header PO & Lokasi --}}
-                <x-card title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice" variant="primary">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <x-card title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <x-form-group name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
                             <x-select name="supplier_id" placeholder="— Pilih Supplier —" :required="true">
                                 @foreach($suppliers as $s)
@@ -108,9 +108,9 @@
                         </x-form-group>
                     </div>
 
-                    <div class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="mt-5 pt-5 border-t border-border grid grid-cols-1 md:grid-cols-3 gap-5">
                         <x-form-group name="skema_bayar" label="Skema Pembayaran" :required="true">
-                            <select name="skema_bayar" x-model="skemaBayar" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                            <select name="skema_bayar" x-model="skemaBayar" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
                                 <option value="cash">Tunai (Cash / Transfer Penuh)</option>
                                 <option value="tempo">Tempo (Jatuh Tempo Tunggal)</option>
                                 <option value="termin">Termin (Pembayaran Bertahap / Cicil)</option>
@@ -129,26 +129,26 @@
                 <x-card title="Daftar Bahan Baku" subtitle="Input kuantitas dan total harga per bahan. Diskon, PPN, ongkir, dan adjustment diatur pada formulir Global di bawah dan dialokasikan ke HPP secara realtime." :noPadding="true" class="relative z-20">
                     <div class="overflow-visible">
                         <table class="w-full text-xs">
-                            <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold uppercase text-[11px] tracking-wider">
+                            <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
                                 <tr>
-                                    <th class="px-4 py-2.5 text-left w-[36%]">Bahan Baku <span class="text-rose-500">*</span></th>
-                                    <th class="px-3 py-2.5 text-left w-56">Kuantitas & Satuan Beli <span class="text-rose-500">*</span></th>
-                                    <th class="px-3 py-2.5 text-right w-44">Total Harga <span class="text-rose-500">*</span></th>
-                                    <th class="px-4 py-2.5 text-right w-52 bg-primary-50/50 text-primary-900">HPP / Satuan Dasar</th>
-                                    <th class="px-2 py-2.5 text-center w-12">Aksi</th>
+                                    <th class="px-4 py-3 text-left w-[36%]">Bahan Baku <span class="text-destructive">*</span></th>
+                                    <th class="px-3 py-3 text-left w-56">Kuantitas & Satuan Beli <span class="text-destructive">*</span></th>
+                                    <th class="px-3 py-3 text-right w-44">Total Harga <span class="text-destructive">*</span></th>
+                                    <th class="px-4 py-3 text-right w-52 bg-muted/40 text-foreground">HPP / Satuan Dasar</th>
+                                    <th class="px-2 py-3 text-center w-12">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100 bg-white">
+                            <tbody class="divide-y divide-border bg-card">
                                 <template x-for="(row, i) in rows" :key="i">
                                     <tr
-                                        class="hover:bg-gray-50/60 transition"
+                                        class="hover:bg-muted/40 transition"
                                         :style="'position: relative; z-index: ' + (activeRow === i ? 200 : (100 - i))"
                                         @hs-dropdown-opened.window="if ($event.detail === `items[${i}][produk_id]`) activeRow = i"
                                         @hs-dropdown-closed.window="if ($event.detail === `items[${i}][produk_id]` && activeRow === i) activeRow = null"
                                         @product-selected="onProductSelected(row, $event.detail)"
                                     >
                                         {{-- Kolom 1: Produk Search Select --}}
-                                        <td class="px-3 py-2" :style="activeRow === i ? 'position: relative; z-index: 200;' : ''">
+                                        <td class="px-4 py-3" :style="activeRow === i ? 'position: relative; z-index: 200;' : ''">
                                             <div
                                                 x-data="productSearchSelect({
                                                     name: `items[${i}][produk_id]`,
@@ -174,33 +174,33 @@
                                                     tabindex="0"
                                                     @keydown.enter.prevent="toggle()"
                                                     @keydown.space.prevent="toggle()"
-                                                    class="w-full flex items-center justify-between text-left rounded-sm border border-gray-300 bg-white px-2.5 py-1.5 text-xs shadow-xs hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition cursor-pointer select-none"
+                                                    class="w-full flex items-center justify-between text-left rounded-lg border border-input bg-background px-3 py-2 text-xs shadow-xs hover:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-ring transition cursor-pointer select-none"
                                                 >
                                                     <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
                                                         <template x-if="selectedItem">
                                                             <div class="flex items-center gap-1.5 truncate">
-                                                                <span class="font-mono text-primary-700 font-semibold bg-primary-50 px-1 py-0.5 rounded-xs border border-primary-100 text-[10px]" x-text="selectedItem.sku"></span>
-                                                                <span class="font-medium text-gray-900 truncate" x-text="selectedItem.nama"></span>
-                                                                <span class="text-[9px] font-mono text-gray-500 bg-gray-100 px-1 py-0.5 rounded-xs border border-gray-200" x-text="selectedItem.satuan"></span>
+                                                                <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
+                                                                <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
+                                                                <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan"></span>
                                                             </div>
                                                         </template>
                                                         <template x-if="!selectedItem">
-                                                            <span class="text-gray-400 font-normal" x-text="placeholder"></span>
+                                                            <span class="text-muted-foreground font-normal" x-text="placeholder"></span>
                                                         </template>
                                                     </div>
                                                     <div class="flex items-center gap-1 ml-1 shrink-0 pointer-events-none">
-                                                        <svg class="w-3.5 h-3.5 text-gray-400 transition-transform duration-150" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                                        <svg class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-150" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                                     </div>
                                                 </div>
 
                                                 <template x-if="selectedItem">
                                                     <div class="mt-1 flex items-center gap-1.5 text-[10px] font-mono">
-                                                        <span class="text-gray-400">HPP Lama:</span>
+                                                        <span class="text-muted-foreground">HPP Lama:</span>
                                                         <template x-if="parseFloat(selectedItem.harga_hpp || 0) > 0">
-                                                            <span class="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200" x-text="'Rp ' + formatHpp(selectedItem.harga_hpp) + (selectedItem.satuan ? ' / ' + selectedItem.satuan : '')"></span>
+                                                            <span class="font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20" x-text="'Rp ' + formatHpp(selectedItem.harga_hpp) + (selectedItem.satuan ? ' / ' + selectedItem.satuan : '')"></span>
                                                         </template>
                                                         <template x-if="!parseFloat(selectedItem.harga_hpp || 0)">
-                                                            <span class="text-gray-400 italic bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">Belum ada HPP</span>
+                                                            <span class="text-muted-foreground italic bg-muted px-1.5 py-0.5 rounded-md border border-border">Belum ada HPP</span>
                                                         </template>
                                                     </div>
                                                 </template>
@@ -209,35 +209,35 @@
                                                     x-show="open"
                                                     x-cloak
                                                     style="display: none; position: absolute; left: 0; top: 100%; z-index: 9999; width: 100%; min-width: 320px; box-sizing: border-box;"
-                                                    class="absolute left-0 top-full z-[9999] mt-1 w-full min-w-[320px] bg-white rounded-sm border border-gray-200 shadow-2xl text-xs overflow-hidden"
+                                                    class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-[320px] bg-card rounded-xl border border-border shadow-xl text-xs overflow-hidden"
                                                 >
-                                                    <div class="p-2 border-b border-gray-100 bg-gray-50 flex items-center gap-1.5">
-                                                        <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                        <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU bahan..." class="w-full bg-white border border-gray-200 rounded-xs px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
+                                                    <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
+                                                        <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                        <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU bahan..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
                                                     </div>
 
-                                                    <div class="max-h-48 overflow-y-auto divide-y divide-gray-50">
+                                                    <div class="max-h-48 overflow-y-auto divide-y divide-border">
                                                         <template x-for="item in items" :key="item.id">
-                                                            <div @click="select(item)" :class="selectedId == item.id ? 'bg-primary-50 text-primary-900 font-semibold' : 'text-gray-700 hover:bg-gray-50'" class="px-3 py-2 cursor-pointer transition flex items-center justify-between gap-2 select-none">
-                                                                <div class="flex items-center gap-1.5 truncate pointer-events-none">
-                                                                    <span class="font-mono text-primary-700 font-medium bg-primary-50 px-1 py-0.5 rounded-xs border border-primary-100 text-[10px]" x-text="item.sku"></span>
-                                                                    <span class="truncate font-medium text-gray-900" x-text="item.nama"></span>
+                                                            <div @click="select(item)" :class="selectedId == item.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50'" class="px-3.5 py-2.5 cursor-pointer transition flex items-center justify-between gap-2 select-none">
+                                                                <div class="flex items-center gap-2 truncate pointer-events-none">
+                                                                    <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
+                                                                    <span class="truncate font-medium text-foreground" x-text="item.nama"></span>
                                                                 </div>
                                                                 <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
-                                                                    <span class="text-[9px] font-mono text-amber-700 bg-amber-50 px-1 py-0.5 rounded-xs border border-amber-200" x-text="'HPP: Rp ' + formatHpp(item.harga_hpp || 0)"></span>
-                                                                    <span class="text-[9px] font-mono text-gray-500 bg-gray-100 px-1 py-0.5 rounded-xs border border-gray-200" x-text="item.satuan"></span>
+                                                                    <span class="text-[9px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20" x-text="'HPP: Rp ' + formatHpp(item.harga_hpp || 0)"></span>
+                                                                    <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan"></span>
                                                                 </div>
                                                             </div>
                                                         </template>
-                                                        <div x-show="!loading && items.length === 0" class="py-3 text-center text-gray-400">Tidak ada produk cocok.</div>
+                                                        <div x-show="!loading && items.length === 0" class="py-3 text-center text-muted-foreground">Tidak ada produk cocok.</div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
 
                                         {{-- Kolom 2: Qty Satuan Beli & Konversi --}}
-                                        <td class="px-3 py-2">
-                                            <div class="space-y-1">
+                                        <td class="px-4 py-3">
+                                            <div class="space-y-1.5">
                                                 <div class="flex items-center gap-1.5">
                                                     {{-- Input Qty Satuan Beli --}}
                                                     <input
@@ -249,7 +249,7 @@
                                                         @input="updateRowQty(row)"
                                                         placeholder="Qty"
                                                         required
-                                                        class="w-24 rounded-sm border-gray-300 text-xs py-1.5 px-2 font-mono text-right focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                        class="w-24 rounded-lg border border-input bg-background text-xs py-2 px-2.5 font-mono text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                                                     />
 
                                                     {{-- Dropdown Satuan Beli --}}
@@ -257,7 +257,7 @@
                                                         :name="`items[${i}][satuan_beli]`"
                                                         x-model="row.satuan_beli"
                                                         @change="onSatuanBeliChange(row)"
-                                                        class="flex-1 rounded-sm border-gray-300 text-xs py-1.5 px-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                        class="flex-1 rounded-lg border border-input bg-background text-xs py-2 px-2 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                                                     >
                                                         <template x-for="opt in getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi)" :key="opt.code">
                                                             <option :value="opt.code" x-text="opt.label" :selected="opt.code === row.satuan_beli || opt.code.toLowerCase() === (row.satuan_beli || '').toLowerCase()"></option>
@@ -267,8 +267,8 @@
 
                                                 {{-- Custom Factor Input --}}
                                                 <template x-if="row.satuan_beli === 'custom'">
-                                                    <div class="flex items-center gap-1 mt-1 text-[10px] bg-amber-50 p-1 rounded-xs border border-amber-200">
-                                                        <span class="text-amber-800 font-medium">1 unit =</span>
+                                                    <div class="flex items-center gap-1 mt-1 text-[10px] bg-amber-500/10 p-1.5 rounded-md border border-amber-500/20">
+                                                        <span class="text-amber-700 dark:text-amber-400 font-medium">1 unit =</span>
                                                         <input
                                                             type="number"
                                                             step="any"
@@ -276,11 +276,11 @@
                                                             :name="`items[${i}][faktor_konversi]`"
                                                             x-model.number="row.faktor_konversi"
                                                             @input="updateRowQty(row)"
-                                                            class="w-16 text-right py-0.5 px-1 text-xs rounded border-amber-300 font-mono"
+                                                            class="w-16 text-right py-0.5 px-1.5 text-xs rounded-md border border-input bg-background font-mono text-foreground"
                                                             placeholder="Faktor"
                                                             required
                                                         />
-                                                        <span class="text-amber-800 font-mono" x-text="row.satuan"></span>
+                                                        <span class="text-amber-700 dark:text-amber-400 font-mono" x-text="row.satuan"></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="row.satuan_beli !== 'custom'">
@@ -288,9 +288,9 @@
                                                 </template>
 
                                                 {{-- Live Indicator Kuantitas Fisik Masuk Gudang --}}
-                                                <div class="text-[10px] font-mono text-primary-700 bg-primary-50/70 px-1.5 py-0.5 rounded-xs border border-primary-100 flex items-center justify-between mt-1 select-none" x-show="row.qty > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
-                                                    <span class="text-gray-500">Masuk fisik:</span>
-                                                    <span class="font-bold text-primary-800" x-text="formatQty(row.qty) + ' ' + (row.satuan || '')"></span>
+                                                <div class="text-[10px] font-mono text-foreground bg-muted px-2 py-0.5 rounded-md border border-border flex items-center justify-between mt-1 select-none" x-show="row.qty > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
+                                                    <span class="text-muted-foreground">Masuk fisik:</span>
+                                                    <span class="font-bold text-foreground" x-text="formatQty(row.qty) + ' ' + (row.satuan || '')"></span>
                                                 </div>
 
                                                 {{-- Hidden Base Qty Input Sent to Backend --}}
@@ -299,7 +299,7 @@
                                         </td>
 
                                         {{-- Kolom 3: Total Harga Kotor --}}
-                                        <td class="px-3 py-2">
+                                        <td class="px-4 py-3">
                                             <div class="relative flex items-center">
                                                 <input type="hidden" :name="`items[${i}][harga_total]`" :value="row.harga">
                                                 <input
@@ -310,28 +310,28 @@
                                                     @keydown="handleKeyDown($event)"
                                                     placeholder="0"
                                                     required
-                                                    class="w-full rounded-sm border-gray-300 text-xs py-1.5 px-2 font-mono text-right focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-xs"
+                                                    class="w-full rounded-lg border border-input bg-background text-xs py-2 px-2.5 font-mono text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs font-medium"
                                                 />
                                             </div>
                                         </td>
 
                                         {{-- Kolom 4: Live HPP / Satuan Dasar (Hasil Alokasi Biaya Global) --}}
-                                        <td class="px-4 py-2 text-right bg-primary-50/40">
+                                        <td class="px-4 py-3 text-right bg-muted/20">
                                             <template x-if="calculateRowHpp(row) > 0">
                                                 <div>
-                                                    <div class="font-mono font-bold text-xs text-primary-900" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + ' / ' + (row.satuan || 'unit')"></div>
-                                                    <div class="text-[10px] text-gray-500 font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
+                                                    <div class="font-mono font-bold text-xs text-foreground" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + ' / ' + (row.satuan || 'unit')"></div>
+                                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
                                                 </div>
                                             </template>
                                             <template x-if="!calculateRowHpp(row) || calculateRowHpp(row) <= 0">
-                                                <span class="text-gray-400 italic text-[11px]">—</span>
+                                                <span class="text-muted-foreground italic text-[11px]">—</span>
                                             </template>
                                         </td>
 
                                         {{-- Kolom 5: Hapus --}}
-                                        <td class="px-2 py-2 text-center">
+                                        <td class="px-3 py-3 text-center">
                                             <button type="button" @click="if(rows.length > 1) { rows.splice(i,1); recalcAll(); }" :disabled="rows.length <= 1"
-                                                    class="p-1 text-gray-400 hover:text-rose-600 disabled:opacity-30 disabled:cursor-not-allowed transition rounded-sm"
+                                                    class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed transition rounded-lg"
                                                     title="Hapus baris">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                             </button>
@@ -342,16 +342,16 @@
                         </table>
                     </div>
 
-                    <div class="px-4 py-3 bg-gray-50/50 border-t border-gray-200 flex items-center justify-between">
-                        <x-button type="button" @click="addRow()" variant="secondary" size="xs">
+                    <div class="px-4 py-3 bg-muted/30 border-t border-border flex items-center justify-between">
+                        <x-button type="button" @click="addRow()" variant="outline" size="sm">
                             <x-slot:icon>
-                                <svg class="w-3.5 h-3.5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <svg class="w-3.5 h-3.5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             </x-slot:icon>
                             Tambah Baris Bahan
                         </x-button>
 
-                        <div class="text-xs text-gray-500 font-mono">
-                            Total Baris: <span class="font-bold text-gray-800" x-text="rows.length"></span> item
+                        <div class="text-xs text-muted-foreground font-mono">
+                            Total Baris: <span class="font-bold text-foreground" x-text="rows.length"></span> item
                         </div>
                     </div>
                 </x-card>
@@ -359,20 +359,20 @@
                 {{-- Card 3: Rekapitulasi Biaya & Grand Total --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
                     <x-card title="Biaya Tambahan Global (Opsional)" subtitle="Biaya tingkat PO yang otomatis dialokasikan ke HPP bahan baku">
-                        <div class="space-y-3">
+                        <div class="space-y-3.5">
                             <div class="flex items-center justify-between gap-4">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    <label class="text-xs text-gray-700 font-medium">Diskon Global PO</label>
-                                    <span class="text-[10px] text-gray-400 font-mono truncate" x-show="headerDiskonMode === 'persen' && headerDiskon > 0" x-text="'(= Rp ' + formatThousand(headerDiskon) + ')'"></span>
+                                    <label class="text-xs text-foreground font-medium">Diskon Global PO</label>
+                                    <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerDiskonMode === 'persen' && headerDiskon > 0" x-text="'(= Rp ' + formatThousand(headerDiskon) + ')'"></span>
                                 </div>
                                 <div class="w-48">
                                     <input type="hidden" name="diskon_total" :value="headerDiskon">
-                                    <div class="relative flex rounded-sm shadow-2xs">
+                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
                                         <button
                                             type="button"
                                             @click="toggleHeaderDiskonMode()"
-                                            class="px-2 py-1 text-[10px] font-mono font-bold rounded-l-sm border border-r-0 transition cursor-pointer select-none shrink-0"
-                                            :class="headerDiskonMode === 'persen' ? 'bg-rose-100 border-rose-300 text-rose-800 hover:bg-rose-200' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'"
+                                            class="px-2.5 py-1.5 text-[10px] font-mono font-bold transition cursor-pointer select-none shrink-0"
+                                            :class="headerDiskonMode === 'persen' ? 'bg-destructive/15 text-destructive' : 'bg-muted text-muted-foreground'"
                                             :title="'Klik untuk ganti mode: ' + (headerDiskonMode === 'persen' ? 'Persentase (%)' : 'Nominal (Rp)')"
                                         >
                                             <span x-text="headerDiskonMode === 'persen' ? '%' : 'Rp'"></span>
@@ -387,7 +387,7 @@
                                                 @input="recalcHeaderDiskon()"
                                                 @keydown.enter.prevent
                                                 placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 rounded-r-sm border-gray-300 font-mono text-rose-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-destructive border-0 focus:ring-0"
                                             />
                                         </template>
                                         <template x-if="headerDiskonMode !== 'persen'">
@@ -398,7 +398,7 @@
                                                 @input="updateHeaderField('headerDiskon', $event)"
                                                 @keydown="handleKeyDown($event)"
                                                 placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 rounded-r-sm border-gray-300 font-mono text-rose-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-destructive border-0 focus:ring-0"
                                             />
                                         </template>
                                     </div>
@@ -406,17 +406,17 @@
                             </div>
                             <div class="flex items-center justify-between gap-4">
                                 <div class="flex items-center gap-1.5 min-w-0">
-                                    <label class="text-xs text-gray-700 font-medium">PPN Global PO</label>
-                                    <span class="text-[10px] text-gray-400 font-mono truncate" x-show="headerPpnMode === 'persen' && headerPpn > 0" x-text="'(= Rp ' + formatThousand(headerPpn) + ')'"></span>
+                                    <label class="text-xs text-foreground font-medium">PPN Global PO</label>
+                                    <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerPpnMode === 'persen' && headerPpn > 0" x-text="'(= Rp ' + formatThousand(headerPpn) + ')'"></span>
                                 </div>
                                 <div class="w-48">
                                     <input type="hidden" name="ppn_nominal" :value="headerPpn">
-                                    <div class="relative flex rounded-sm shadow-2xs">
+                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
                                         <button
                                             type="button"
                                             @click="toggleHeaderPpnMode()"
-                                            class="px-2 py-1 text-[10px] font-mono font-bold rounded-l-sm border border-r-0 transition cursor-pointer select-none shrink-0"
-                                            :class="headerPpnMode === 'persen' ? 'bg-primary-100 border-primary-300 text-primary-800 hover:bg-primary-200' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'"
+                                            class="px-2.5 py-1.5 text-[10px] font-mono font-bold transition cursor-pointer select-none shrink-0"
+                                            :class="headerPpnMode === 'persen' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'"
                                             :title="'Klik untuk ganti mode: ' + (headerPpnMode === 'persen' ? 'Persentase (%)' : 'Nominal (Rp)')"
                                         >
                                             <span x-text="headerPpnMode === 'persen' ? '%' : 'Rp'"></span>
@@ -431,7 +431,7 @@
                                                 @input="recalcHeaderPpn()"
                                                 @keydown.enter.prevent
                                                 placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 rounded-r-sm border-gray-300 font-mono text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-foreground border-0 focus:ring-0"
                                             />
                                         </template>
                                         <template x-if="headerPpnMode !== 'persen'">
@@ -442,54 +442,54 @@
                                                 @input="updateHeaderField('headerPpn', $event)"
                                                 @keydown="handleKeyDown($event)"
                                                 placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 rounded-r-sm border-gray-300 font-mono text-gray-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 shadow-2xs"
+                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-foreground border-0 focus:ring-0"
                                             />
                                         </template>
                                     </div>
                                 </div>
                             </div>
                             <div class="flex items-center justify-between gap-4">
-                                <label class="text-xs text-gray-700 font-medium">Ongkos Kirim Global (Rp)</label>
-                                <div class="w-44">
+                                <label class="text-xs text-foreground font-medium">Ongkos Kirim Global (Rp)</label>
+                                <div class="w-48">
                                     <input type="hidden" name="ongkos_kirim" :value="headerOngkir">
-                                    <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 rounded-sm border-gray-300 font-mono focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                    <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background text-foreground font-mono focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
                                 </div>
                             </div>
                             <div class="flex items-center justify-between gap-4">
-                                <label class="text-xs text-gray-700 font-medium">Adjustment / Pembulatan (Rp)</label>
-                                <div class="w-44">
+                                <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan (Rp)</label>
+                                <div class="w-48">
                                     <input type="hidden" name="adjustment" :value="headerAdj">
-                                    <input type="text" inputmode="numeric" :value="formatThousand(headerAdj)" @input="updateHeaderField('headerAdj', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 rounded-sm border-gray-300 font-mono focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                    <input type="text" inputmode="numeric" :value="formatThousand(headerAdj)" @input="updateHeaderField('headerAdj', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background text-foreground font-mono focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
                                 </div>
                             </div>
                         </div>
                     </x-card>
 
                     <x-card title="Ringkasan Nilai Pengadaan">
-                        <div class="space-y-2.5 text-xs">
-                            <div class="flex justify-between text-gray-600">
+                        <div class="space-y-3 text-xs">
+                            <div class="flex justify-between text-muted-foreground">
                                 <span>Subtotal Bahan (Kotor):</span>
-                                <span class="font-mono font-semibold text-gray-900" x-text="'Rp ' + formatThousand(subtotalProduk())"></span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'Rp ' + formatThousand(subtotalProduk())"></span>
                             </div>
-                            <div class="flex justify-between text-rose-600">
+                            <div class="flex justify-between text-destructive">
                                 <span>Total Diskon:</span>
                                 <span class="font-mono font-semibold" x-text="'- Rp ' + formatThousand(totalDiskon())"></span>
                             </div>
-                            <div class="flex justify-between text-gray-600">
+                            <div class="flex justify-between text-muted-foreground">
                                 <span>Total PPN:</span>
-                                <span class="font-mono font-semibold text-gray-900" x-text="'+ Rp ' + formatThousand(totalPpn())"></span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalPpn())"></span>
                             </div>
-                            <div class="flex justify-between text-gray-600">
+                            <div class="flex justify-between text-muted-foreground">
                                 <span>Total Ongkos Kirim:</span>
-                                <span class="font-mono font-semibold text-gray-900" x-text="'+ Rp ' + formatThousand(totalOngkir())"></span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalOngkir())"></span>
                             </div>
-                            <div class="flex justify-between text-gray-600">
+                            <div class="flex justify-between text-muted-foreground">
                                 <span>Total Adjustment:</span>
-                                <span class="font-mono font-semibold text-gray-900" x-text="'+ Rp ' + formatThousand(totalAdj())"></span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalAdj())"></span>
                             </div>
-                            <div class="pt-3 border-t border-gray-200 flex justify-between items-center text-sm">
-                                <span class="font-bold text-gray-900">Grand Total Tagihan:</span>
-                                <span class="font-mono font-extrabold text-primary-700 text-base" x-text="'Rp ' + formatThousand(grandTotal())"></span>
+                            <div class="pt-3 border-t border-border flex justify-between items-center text-sm">
+                                <span class="font-bold text-foreground">Grand Total Tagihan:</span>
+                                <span class="font-mono font-extrabold text-foreground text-lg" x-text="'Rp ' + formatThousand(grandTotal())"></span>
                             </div>
                         </div>
                     </x-card>
@@ -498,47 +498,47 @@
                 {{-- Card 4: Jadwal Pembayaran Termin (Hanya aktif jika skema_bayar == termin) --}}
                 <div x-show="skemaBayar === 'termin'" x-cloak class="transition-all duration-200">
                     <fieldset :disabled="skemaBayar !== 'termin'" class="border-0 p-0 m-0 min-w-0">
-                        <x-card title="Jadwal Pembayaran Termin (Cicilan)" subtitle="Tentukan periode pembayaran dan tanggal jatuh tempo tiap termin" variant="default" :noPadding="true">
-                            <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <x-card title="Jadwal Pembayaran Termin (Cicilan)" subtitle="Tentukan periode pembayaran dan tanggal jatuh tempo tiap termin" :noPadding="true">
+                            <div class="p-4 border-b border-border flex items-center justify-between">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-xs text-gray-600 font-medium">Bagi Cepat:</span>
-                                    <button type="button" @click="generateEqualTermins(2)" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-700">2 Termin (50:50)</button>
-                                    <button type="button" @click="generateEqualTermins(3)" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-700">3 Termin</button>
-                                    <button type="button" @click="generateEqualTermins(4)" class="px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-700">4 Termin</button>
+                                    <span class="text-xs text-muted-foreground font-medium">Bagi Cepat:</span>
+                                    <button type="button" @click="generateEqualTermins(2)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 rounded-md text-xs text-foreground transition font-medium">2 Termin (50:50)</button>
+                                    <button type="button" @click="generateEqualTermins(3)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 rounded-md text-xs text-foreground transition font-medium">3 Termin</button>
+                                    <button type="button" @click="generateEqualTermins(4)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 rounded-md text-xs text-foreground transition font-medium">4 Termin</button>
                                 </div>
 
-                                <button type="button" @click="termins.push({tanggal_tempo:'',nominal_tagihan:0,keterangan:''})" class="text-xs font-semibold text-primary-600 hover:text-primary-800">
+                                <button type="button" @click="termins.push({tanggal_tempo:'',nominal_tagihan:0,keterangan:''})" class="text-xs font-semibold text-foreground hover:underline">
                                     + Tambah Termin Manual
                                 </button>
                             </div>
 
                             <div class="overflow-x-auto">
                                 <table class="w-full text-xs">
-                                    <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 font-semibold uppercase text-[11px]">
+                                    <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
                                         <tr>
-                                            <th class="px-4 py-2.5 text-center w-16">Termin</th>
-                                            <th class="px-4 py-2.5 text-left w-44">Jatuh Tempo <span class="text-rose-500">*</span></th>
-                                            <th class="px-4 py-2.5 text-right w-52">Nominal Tagihan (Rp) <span class="text-rose-500">*</span></th>
-                                            <th class="px-4 py-2.5 text-left">Keterangan</th>
-                                            <th class="px-4 py-2.5 text-center w-12">Aksi</th>
+                                            <th class="px-4 py-3 text-center w-16">Termin</th>
+                                            <th class="px-4 py-3 text-left w-44">Jatuh Tempo <span class="text-destructive">*</span></th>
+                                            <th class="px-4 py-3 text-right w-52">Nominal Tagihan (Rp) <span class="text-destructive">*</span></th>
+                                            <th class="px-4 py-3 text-left">Keterangan</th>
+                                            <th class="px-4 py-3 text-center w-12">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-100 bg-white">
+                                    <tbody class="divide-y divide-border bg-card">
                                         <template x-for="(tm, idx) in termins" :key="idx">
-                                            <tr class="hover:bg-gray-50/50">
-                                                <td class="px-4 py-2 text-center font-mono font-bold text-gray-700" x-text="idx + 1"></td>
-                                                <td class="px-4 py-2">
-                                                    <input type="date" :name="`termins[${idx}][tanggal_tempo]`" x-model="tm.tanggal_tempo" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" class="w-full text-xs py-1.5 rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                            <tr class="hover:bg-muted/40 transition">
+                                                <td class="px-4 py-2.5 text-center font-mono font-bold text-foreground" x-text="idx + 1"></td>
+                                                <td class="px-4 py-2.5">
+                                                    <input type="date" :name="`termins[${idx}][tanggal_tempo]`" x-model="tm.tanggal_tempo" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" class="w-full text-xs py-2 px-2.5 rounded-lg border border-input bg-background text-foreground focus:border-ring focus:ring-1 focus:ring-ring">
                                                 </td>
-                                                <td class="px-4 py-2">
+                                                <td class="px-4 py-2.5">
                                                     <input type="hidden" :name="`termins[${idx}][nominal_tagihan]`" :value="tm.nominal_tagihan" :disabled="skemaBayar !== 'termin'">
-                                                    <input type="text" inputmode="numeric" :value="formatThousand(tm.nominal_tagihan)" @input="updateTerminNominal(tm, $event)" @keydown="handleKeyDown($event)" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" placeholder="0" class="w-full text-right font-mono text-xs py-1.5 rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-semibold text-gray-900">
+                                                    <input type="text" inputmode="numeric" :value="formatThousand(tm.nominal_tagihan)" @input="updateTerminNominal(tm, $event)" @keydown="handleKeyDown($event)" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" placeholder="0" class="w-full text-right font-mono text-xs py-2 px-2.5 rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-semibold text-foreground">
                                                 </td>
-                                                <td class="px-4 py-2">
-                                                    <input type="text" :name="`termins[${idx}][keterangan]`" x-model="tm.keterangan" :disabled="skemaBayar !== 'termin'" placeholder="Contoh: DP 30% / Pelunasan" class="w-full text-xs py-1.5 rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                                <td class="px-4 py-2.5">
+                                                    <input type="text" :name="`termins[${idx}][keterangan]`" x-model="tm.keterangan" :disabled="skemaBayar !== 'termin'" placeholder="Contoh: DP 30% / Pelunasan" class="w-full text-xs py-2 px-2.5 rounded-lg border border-input bg-background text-foreground focus:border-ring focus:ring-1 focus:ring-ring">
                                                 </td>
-                                                <td class="px-4 py-2 text-center">
-                                                    <button type="button" @click="if(termins.length > 1) termins.splice(idx,1)" :disabled="termins.length <= 1" class="p-1 text-gray-400 hover:text-rose-600 disabled:opacity-30">
+                                                <td class="px-4 py-2.5 text-center">
+                                                    <button type="button" @click="if(termins.length > 1) termins.splice(idx,1)" :disabled="termins.length <= 1" class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition disabled:opacity-30">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                     </button>
                                                 </td>
@@ -548,16 +548,16 @@
                                 </table>
                             </div>
 
-                            <div class="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs">
-                                <div class="font-medium">
-                                    Akumulasi Termin: <span class="font-mono font-bold text-gray-900" x-text="'Rp ' + formatThousand(totalTermins())"></span>
+                            <div class="p-4 bg-muted/30 border-t border-border flex items-center justify-between text-xs">
+                                <div class="font-medium text-foreground">
+                                    Akumulasi Termin: <span class="font-mono font-bold text-foreground" x-text="'Rp ' + formatThousand(totalTermins())"></span>
                                 </div>
                                 <div>
                                     <template x-if="totalTermins() === grandTotal()">
-                                        <span class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">✓ Sesuai dengan Grand Total</span>
+                                        <span class="text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">✓ Sesuai dengan Grand Total</span>
                                     </template>
                                     <template x-if="totalTermins() !== grandTotal()">
-                                        <span class="text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200" x-text="'Selisih: Rp ' + formatThousand(Math.abs(grandTotal() - totalTermins())) + (grandTotal() > totalTermins() ? ' (Kurang)' : ' (Lebih)')"></span>
+                                        <span class="text-amber-700 dark:text-amber-400 font-semibold bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20" x-text="'Selisih: Rp ' + formatThousand(Math.abs(grandTotal() - totalTermins())) + (grandTotal() > totalTermins() ? ' (Kurang)' : ' (Lebih)')"></span>
                                     </template>
                                 </div>
                             </div>
@@ -572,16 +572,16 @@
                             name="catatan"
                             rows="3"
                             placeholder="Contoh: Pesanan mendesak dari hasil analisa stok mingguan. Mohon kirimkan COA bersamaan dengan barang fisik."
-                            class="w-full text-xs rounded-sm border-gray-300 focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                            class="w-full text-xs rounded-lg border border-input bg-background text-foreground p-3 focus:ring-1 focus:ring-ring focus:border-ring shadow-xs"
                         >{{ old('catatan') }}</textarea>
                     </div>
                 </x-card>
 
                 <div class="flex items-center justify-end gap-3 pt-2">
-                    <x-button href="{{ route('purchasing.index') }}" variant="secondary" size="md">
+                    <x-button href="{{ route('purchasing.index') }}" variant="outline" size="sm">
                         Batal
                     </x-button>
-                    <x-button type="submit" variant="primary" size="md">
+                    <x-button type="submit" variant="primary" size="sm">
                         <x-slot:icon>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                         </x-slot:icon>

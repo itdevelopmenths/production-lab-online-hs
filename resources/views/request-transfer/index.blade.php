@@ -1,12 +1,12 @@
-<x-app-layout title="Request & Transfer">
-    <x-page-header
-        title="Request & Transfer"
-        subtitle="Logistik mutasi internal, permintaan bahan baku, dan pengiriman produk jadi"
-        :breadcrumbs="['Request & Transfer' => null]"
-    >
-        <x-slot:actions>
-            <div class="flex items-center gap-2">
-                <select id="jenisFilter" class="rounded-sm border-gray-300 text-xs py-1 px-2.5 bg-white shadow-xs focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+<x-app-layout title="Request & Transfer" subtitle="Logistik mutasi internal, permintaan bahan baku, dan pengiriman produk jadi">
+    <x-card>
+        <x-slot:header>
+            <div>
+                <h2 class="text-lg font-semibold text-foreground tracking-tight leading-tight">Daftar Dokumen Mutasi & Transfer</h2>
+                <p class="text-sm text-muted-foreground mt-0.5">Logistik mutasi internal, permintaan bahan baku, dan distribusi antar gudang</p>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <select id="jenisFilter" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
                     <option value="">Semua Jenis Mutasi</option>
                     <option value="req_bahan">Request Bahan</option>
                     <option value="retur_bahan">Retur Bahan</option>
@@ -16,31 +16,31 @@
                 </select>
 
                 @can('rt.create')
-                <x-button href="{{ route('rt.create') }}" variant="primary" size="xs">
+                <x-button href="{{ route('rt.create') }}" variant="primary">
                     <x-slot:icon>
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     </x-slot:icon>
                     Buat Transfer Baru
                 </x-button>
                 @endcan
             </div>
-        </x-slot:actions>
-    </x-page-header>
+        </x-slot:header>
 
-    <x-card title="Daftar Dokumen Mutasi & Transfer" :noPadding="true">
-        <table id="tbl" class="w-full text-xs">
-            <thead>
-                <tr>
-                    <th class="px-4 py-3 text-left">No Transaksi</th>
-                    <th class="px-4 py-3 text-left">Jenis</th>
-                    <th class="px-4 py-3 text-left">Gudang Asal</th>
-                    <th class="px-4 py-3 text-left">Gudang Tujuan</th>
-                    <th class="px-4 py-3 text-left">Status</th>
-                    <th class="px-4 py-3 text-left">Tanggal</th>
-                    <th class="px-4 py-3 text-center">Aksi</th>
-                </tr>
-            </thead>
-        </table>
+        <div class="overflow-x-auto">
+            <table id="tbl" class="w-full text-sm">
+                <thead>
+                    <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[13px] font-medium">
+                        <th class="px-4 py-3 text-left">No Transaksi</th>
+                        <th class="px-4 py-3 text-left">Jenis</th>
+                        <th class="px-4 py-3 text-left">Gudang Asal</th>
+                        <th class="px-4 py-3 text-left">Gudang Tujuan</th>
+                        <th class="px-4 py-3 text-left">Status</th>
+                        <th class="px-4 py-3 text-left">Tanggal</th>
+                        <th class="px-4 py-3 text-center">Aksi</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
     </x-card>
 
     @push('scripts')
@@ -57,13 +57,13 @@
                 }
             },
             columns: [
-                { data: 'no_transaksi' },
-                { data: 'jenis' },
-                { data: 'asal', orderable: false, searchable: false },
-                { data: 'tujuan', orderable: false, searchable: false },
-                { data: 'status', className: 'text-center' },
-                { data: 'created_at' },
-                { data: 'action', orderable: false, searchable: false, className: 'text-center whitespace-nowrap' }
+                { data: 'no_transaksi', className: 'px-4 py-3.5 font-mono text-xs font-semibold text-foreground' },
+                { data: 'jenis', className: 'px-4 py-3.5 font-medium text-foreground' },
+                { data: 'asal', orderable: false, searchable: false, className: 'px-4 py-3.5 text-xs text-muted-foreground' },
+                { data: 'tujuan', orderable: false, searchable: false, className: 'px-4 py-3.5 text-xs text-muted-foreground' },
+                { data: 'status', className: 'px-4 py-3.5 text-center' },
+                { data: 'created_at', className: 'px-4 py-3.5 text-xs text-muted-foreground' },
+                { data: 'action', orderable: false, searchable: false, className: 'px-4 py-3.5 text-center whitespace-nowrap' }
             ]
         });
         $('#jenisFilter').on('change', () => t.ajax.reload());

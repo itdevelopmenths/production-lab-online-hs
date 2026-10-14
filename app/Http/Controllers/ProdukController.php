@@ -62,34 +62,34 @@ class ProdukController extends Controller
                     }
                 }
             })
-            ->editColumn('sku', fn ($p) => '<span class="font-mono font-medium text-gray-800">' . e($p->sku) . '</span>')
-            ->editColumn('nama', fn ($p) => '<span class="font-semibold text-gray-900">' . e($p->nama) . '</span>')
+            ->editColumn('sku', fn ($p) => '<span class="font-mono text-xs font-semibold text-foreground">' . e($p->sku) . '</span>')
+            ->editColumn('nama', fn ($p) => '<span class="font-medium text-foreground">' . e($p->nama) . '</span>')
             ->editColumn('kategori_nama', fn ($p) => $p->kategori
-                ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">' . e($p->kategori->nama) . '</span>'
-                : '<span class="text-gray-400">—</span>'
+                ? '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-zinc-100 text-zinc-700 border border-zinc-200/60">' . e($p->kategori->nama) . '</span>'
+                : '<span class="text-muted-foreground">—</span>'
             )
             ->editColumn('varian_nama', fn ($p) => $p->varian
-                ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">' . e($p->varian->nama) . '</span>'
-                : '<span class="text-gray-400">—</span>'
+                ? '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-indigo-50 text-indigo-700 border border-indigo-200/60">' . e($p->varian->nama) . '</span>'
+                : '<span class="text-muted-foreground">—</span>'
             )
             ->editColumn('tipe', fn ($p) => match($p->tipe) {
-                'bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">Bahan Baku</span>',
-                'kemas' => '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">Kemasan</span>',
-                'produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Produk Jadi</span>',
-                default => '<span class="text-gray-600">' . e(ucfirst(str_replace('_', ' ', $p->tipe))) . '</span>'
+                'bahan' => '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-amber-50 text-amber-600 border border-amber-200/60">Bahan Baku</span>',
+                'kemas' => '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-sky-50 text-sky-700 border border-sky-200/60">Kemasan</span>',
+                'produk_jadi' => '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200/60">Produk Jadi</span>',
+                default => '<span class="text-muted-foreground">' . e(ucfirst(str_replace('_', ' ', $p->tipe))) . '</span>'
             })
-            ->editColumn('satuan', fn ($p) => '<span class="font-mono text-gray-700 font-medium">' . e($p->satuan) . '</span>')
+            ->editColumn('satuan', fn ($p) => '<span class="font-mono text-xs text-muted-foreground font-medium">' . e($p->satuan) . '</span>')
             ->editColumn('is_active', fn ($p) => $p->is_active
-                ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>'
-                : '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">Nonaktif</span>'
+                ? '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200/60">Aktif</span>'
+                : '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-zinc-100 text-zinc-500 border border-zinc-200/60">Nonaktif</span>'
             )
             ->addColumn('action', function ($p) use ($canEdit, $canDelete) {
-                $html = '<div class="flex items-center gap-3">';
+                $html = '<div class="flex items-center justify-center gap-1.5">';
                 if ($canEdit) {
-                    $html .= '<a href="' . e(route('produk.edit', $p)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Edit</a>';
+                    $html .= '<a href="' . e(route('produk.edit', $p)) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground hover:bg-accent border border-border transition-colors">Edit</a>';
                 }
                 if ($canDelete) {
-                    $html .= '<button onclick="hapus(\'' . e(route('produk.destroy', $p)) . '\')" class="text-red-500 hover:text-red-700 text-xs font-medium">Hapus</button>';
+                    $html .= '<button onclick="hapus(\'' . e(route('produk.destroy', $p)) . '\')" class="px-2.5 py-1 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors cursor-pointer">Hapus</button>';
                 }
 
                 return $html . '</div>';

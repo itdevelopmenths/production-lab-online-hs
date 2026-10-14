@@ -18,14 +18,14 @@
 
     <div x-data="bomDualGridImporter()" x-init="init()" class="space-y-5">
         <!-- Panel Atas: Toolbar Dual-Format & Ringkasan -->
-        <div class="bg-white rounded-sm border border-gray-200 p-4 shadow-xs">
+        <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-sm font-bold text-gray-900 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <h2 class="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <svg class="size-4 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Opsi Impor & Pengisian Data Dual-Format
                     </h2>
-                    <p class="text-xs text-gray-500 mt-0.5">
+                    <p class="text-xs text-muted-foreground mt-0.5">
                         Dukung berkas <strong>Microsoft Excel (.xlsx, .xls)</strong> dan <strong>CSV (.csv, .txt)</strong>, atau ketik & tempel langsung (Ctrl+V) pada tabel grid di bawah.
                     </p>
                 </div>
@@ -36,26 +36,26 @@
                     <button
                         type="button"
                         @click="downloadExcelTemplate()"
-                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-xs font-semibold shadow-2xs transition cursor-pointer"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-xs transition cursor-pointer"
                         title="Unduh format spreadsheet resmi Microsoft Excel (.xlsx)"
                     >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Template Excel (.xlsx)
                     </button>
 
                     {{-- 2. Download Template CSV --}}
                     <a
                         href="{{ route('bom.template') }}"
-                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-sm text-xs font-medium transition cursor-pointer"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-background hover:bg-muted text-foreground border border-border rounded-lg text-xs font-medium transition cursor-pointer"
                         title="Unduh format teks standar CSV (.csv)"
                     >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                         Template CSV (.csv)
                     </a>
 
                     {{-- 3. Upload File Excel / CSV --}}
-                    <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-sm text-xs font-semibold shadow-2xs transition cursor-pointer">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    <label class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                         Unggah Berkas (Excel / CSV)
                         <input type="file" @change="handleFileUpload($event)" accept=".xlsx,.xls,.csv,.txt" class="hidden">
                     </label>
@@ -63,26 +63,26 @@
             </div>
 
             <!-- Kartu Status & Petunjuk Cepat -->
-            <div class="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <div class="p-2.5 bg-gray-50 rounded-sm border border-gray-200 flex items-center justify-between">
-                    <span class="text-xs text-gray-600">Total Baris:</span>
-                    <span class="font-mono text-sm font-bold text-gray-900" x-text="rows.length"></span>
+            <div class="mt-4 pt-3 border-t border-border grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div class="p-2.5 bg-muted/40 rounded-lg border border-border flex items-center justify-between">
+                    <span class="text-xs text-muted-foreground">Total Baris:</span>
+                    <span class="font-mono text-sm font-bold text-foreground" x-text="rows.length"></span>
                 </div>
-                <div class="p-2.5 bg-emerald-50 rounded-sm border border-emerald-200 flex items-center justify-between">
-                    <span class="text-xs text-emerald-800">Baris Valid:</span>
-                    <span class="font-mono text-sm font-bold text-emerald-700" x-text="validRowsCount"></span>
+                <div class="p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20 flex items-center justify-between">
+                    <span class="text-xs text-emerald-700 dark:text-emerald-400">Baris Valid:</span>
+                    <span class="font-mono text-sm font-bold text-emerald-700 dark:text-emerald-400" x-text="validRowsCount"></span>
                 </div>
-                <div class="p-2.5 rounded-sm border flex items-center justify-between transition" :class="duplicateRowsCount > 0 ? 'bg-purple-50 border-purple-300' : 'bg-gray-50 border-gray-200'">
-                    <span class="text-xs" :class="duplicateRowsCount > 0 ? 'text-purple-800 font-semibold' : 'text-gray-600'">Duplikat di Grid:</span>
-                    <span class="font-mono text-sm font-bold" :class="duplicateRowsCount > 0 ? 'text-purple-700' : 'text-gray-500'" x-text="duplicateRowsCount"></span>
+                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="duplicateRowsCount > 0 ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/40 border-border'">
+                    <span class="text-xs" :class="duplicateRowsCount > 0 ? 'text-purple-700 dark:text-purple-400 font-semibold' : 'text-muted-foreground'">Duplikat di Grid:</span>
+                    <span class="font-mono text-sm font-bold" :class="duplicateRowsCount > 0 ? 'text-purple-700 dark:text-purple-400' : 'text-muted-foreground'" x-text="duplicateRowsCount"></span>
                 </div>
-                <div class="p-2.5 rounded-sm border flex items-center justify-between transition" :class="alreadyExistsCount > 0 ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'">
-                    <span class="text-xs" :class="alreadyExistsCount > 0 ? 'text-amber-800 font-semibold' : 'text-gray-600'">Sudah Terdaftar:</span>
-                    <span class="font-mono text-sm font-bold" :class="alreadyExistsCount > 0 ? 'text-amber-700' : 'text-gray-500'" x-text="alreadyExistsCount"></span>
+                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="alreadyExistsCount > 0 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-muted/40 border-border'">
+                    <span class="text-xs" :class="alreadyExistsCount > 0 ? 'text-amber-700 dark:text-amber-400 font-semibold' : 'text-muted-foreground'">Sudah Terdaftar:</span>
+                    <span class="font-mono text-sm font-bold" :class="alreadyExistsCount > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'" x-text="alreadyExistsCount"></span>
                 </div>
-                <div class="p-2.5 bg-rose-50 rounded-sm border border-rose-200 flex items-center justify-between">
-                    <span class="text-xs text-rose-800">Perlu Diperiksa:</span>
-                    <span class="font-mono text-sm font-bold text-rose-700" x-text="invalidRowsCount"></span>
+                <div class="p-2.5 bg-destructive/10 rounded-lg border border-destructive/20 flex items-center justify-between">
+                    <span class="text-xs text-destructive">Perlu Diperiksa:</span>
+                    <span class="font-mono text-sm font-bold text-destructive" x-text="invalidRowsCount"></span>
                 </div>
             </div>
         </div>
@@ -108,35 +108,35 @@
                         type="button"
                         @click="removeExisting()"
                         x-show="alreadyExistsCount > 0"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-sm text-xs font-semibold cursor-pointer transition"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg text-xs font-medium cursor-pointer transition"
                         title="Hapus baris bahan yang sudah terdaftar sebelumnya dari tabel"
                     >
-                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         Bersihkan Resep Terdaftar (<span x-text="alreadyExistsCount"></span>)
                     </button>
                     <button
                         type="button"
                         @click="removeDuplicates()"
                         x-show="duplicateRowsCount > 0"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-300 rounded-sm text-xs font-semibold cursor-pointer transition"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-400 border border-purple-500/20 rounded-lg text-xs font-medium cursor-pointer transition"
                         title="Hapus baris duplikat secara otomatis dan pertahankan baris pertama"
                     >
-                        <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         Bersihkan Duplikat (<span x-text="duplicateRowsCount"></span>)
                     </button>
                     <button
                         type="button"
                         @click="addRow()"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-sm text-xs font-semibold transition cursor-pointer"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-background hover:bg-muted text-foreground border border-border rounded-lg text-xs font-medium transition cursor-pointer"
                     >
-                        <svg class="w-3.5 h-3.5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         + Tambah Baris
                     </button>
                     <button
                         type="button"
                         @click="clearAllRows()"
                         x-show="rows.length > 0"
-                        class="inline-flex items-center gap-1 px-2 py-1 text-rose-600 hover:text-rose-800 text-xs font-medium cursor-pointer"
+                        class="inline-flex items-center gap-1 px-2 py-1 text-destructive hover:underline text-xs font-medium cursor-pointer"
                     >
                         Hapus Semua
                     </button>
@@ -144,32 +144,32 @@
             </x-slot:headerActions>
 
             <!-- Keyboard Paste Listener Box -->
-            <div class="px-4 py-2.5 bg-blue-50/60 border-b border-blue-100 flex items-center justify-between text-xs text-blue-900">
+            <div class="px-4 py-2.5 bg-blue-500/10 border-b border-blue-500/20 flex items-center justify-between text-xs text-blue-700 dark:text-blue-300">
                 <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span class="size-2 rounded-full bg-blue-500 animate-pulse"></span>
                     <span>
                         <strong>Tips Efisiensi:</strong> Anda dapat memblok data tabel di Microsoft Excel / Google Sheets, tekan <strong>Ctrl + C</strong>, lalu klik di sini dan tekan <strong>Ctrl + V</strong> untuk mengisi otomatis seluruh baris!
                     </span>
                 </div>
-                <span class="text-[11px] text-blue-700 font-mono font-medium hidden sm:inline">Ctrl + V didukung</span>
+                <span class="text-[11px] font-mono font-medium hidden sm:inline">Ctrl + V didukung</span>
             </div>
 
             <div class="overflow-x-auto p-2" @paste="handlePaste($event)">
                 <table class="w-full text-xs border-collapse">
                     <thead>
-                        <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-[11px] uppercase tracking-wider">
+                        <tr>
                             <th class="px-3 py-2.5 text-center w-12">#</th>
-                            <th class="px-3 py-2.5 text-left w-72">SKU Produk Jadi <span class="text-rose-500">*</span></th>
-                            <th class="px-3 py-2.5 text-left w-72">SKU Bahan Baku / Kemasan <span class="text-rose-500">*</span></th>
-                            <th class="px-3 py-2.5 text-right w-44">Kuantitas / Unit <span class="text-rose-500">*</span></th>
+                            <th class="px-3 py-2.5 text-left w-72">SKU Produk Jadi <span class="text-destructive">*</span></th>
+                            <th class="px-3 py-2.5 text-left w-72">SKU Bahan Baku / Kemasan <span class="text-destructive">*</span></th>
+                            <th class="px-3 py-2.5 text-right w-44">Kuantitas / Unit <span class="text-destructive">*</span></th>
                             <th class="px-3 py-2.5 text-center w-40">Status Validasi</th>
                             <th class="px-3 py-2.5 text-center w-16">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200">
+                    <tbody class="divide-y divide-border">
                         <template x-for="(row, index) in rows" :key="row.id">
-                            <tr :class="row.isExisting ? 'bg-amber-50/70' : (row.isDuplicate ? 'bg-purple-50/50' : (row.valid === false ? 'bg-rose-50/50' : 'hover:bg-gray-50/80'))">
-                                <td class="px-3 py-2 text-center font-mono text-gray-500 text-xs" x-text="index + 1"></td>
+                            <tr :class="row.isExisting ? 'bg-amber-500/10' : (row.isDuplicate ? 'bg-purple-500/10' : (row.valid === false ? 'bg-destructive/10' : 'hover:bg-muted/40'))">
+                                <td class="px-3 py-2 text-center font-mono text-muted-foreground text-xs" x-text="index + 1"></td>
                                 
                                 {{-- Kolom 1: SKU Produk Jadi (Inputable) --}}
                                 <td class="px-3 py-1.5">
@@ -179,9 +179,9 @@
                                         x-model="row.sku_produk_jadi"
                                         @input="validateRow(row)"
                                         placeholder="Ketik SKU atau pilih..."
-                                        class="w-full text-xs py-1 px-2 rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono uppercase"
+                                        class="w-full text-xs py-1.5 px-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono uppercase"
                                     >
-                                    <span class="block text-[10px] text-gray-500 mt-0.5 truncate" x-text="getProdukJadiName(row.sku_produk_jadi)"></span>
+                                    <span class="block text-[10px] text-muted-foreground mt-0.5 truncate" x-text="getProdukJadiName(row.sku_produk_jadi)"></span>
                                 </td>
 
                                 {{-- Kolom 2: SKU Bahan (Inputable) --}}
@@ -192,9 +192,9 @@
                                         x-model="row.sku_bahan"
                                         @input="validateRow(row)"
                                         placeholder="Ketik SKU bahan atau pilih..."
-                                        class="w-full text-xs py-1 px-2 rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono uppercase"
+                                        class="w-full text-xs py-1.5 px-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono uppercase"
                                     >
-                                    <span class="block text-[10px] text-gray-500 mt-0.5 truncate" x-text="getBahanName(row.sku_bahan)"></span>
+                                    <span class="block text-[10px] text-muted-foreground mt-0.5 truncate" x-text="getBahanName(row.sku_bahan)"></span>
                                 </td>
 
                                 {{-- Kolom 3: Qty per Unit (Inputable) --}}
@@ -205,29 +205,29 @@
                                         min="0.0001"
                                         x-model="row.qty_per_unit"
                                         @input="validateRow(row)"
-                                        class="w-36 text-xs py-1 px-2 text-right rounded-sm border-gray-300 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono"
+                                        class="w-36 text-xs py-1.5 px-2.5 text-right rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
                                     >
                                 </td>
 
                                 {{-- Kolom 4: Status Validasi --}}
                                 <td class="px-3 py-1.5 text-center">
                                     <template x-if="row.valid === true">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                                             &check; Siap Disimpan
                                         </span>
                                     </template>
                                     <template x-if="row.isExisting === true">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300" :title="row.error">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20" :title="row.error">
                                             ⚠️ Resep Sudah Terdaftar
                                         </span>
                                     </template>
                                     <template x-if="row.valid === false && !row.isExisting">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300" :title="row.error">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20" :title="row.error">
                                             &times; <span x-text="row.error || 'Data Tidak Valid'"></span>
                                         </span>
                                     </template>
                                     <template x-if="row.valid === null">
-                                        <span class="text-[10px] text-gray-400">Belum diisi</span>
+                                        <span class="text-[10px] text-muted-foreground">Belum diisi</span>
                                     </template>
                                 </td>
 
@@ -236,7 +236,7 @@
                                     <button
                                         type="button"
                                         @click="removeRow(index)"
-                                        class="text-gray-400 hover:text-rose-600 p-1 transition cursor-pointer font-bold"
+                                        class="text-muted-foreground hover:text-destructive p-1 transition cursor-pointer font-bold"
                                         title="Hapus baris ini"
                                     >
                                         &times;
@@ -246,14 +246,14 @@
                         </template>
 
                         <tr x-show="rows.length === 0">
-                            <td colspan="6" class="py-12 text-center text-gray-400 text-xs">
-                                <svg class="mx-auto h-8 w-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <p class="font-medium text-gray-600">Belum ada baris formula resep.</p>
-                                <p class="text-[11px] text-gray-400 mt-1">Unggah berkas Excel/CSV di atas, tempel data dengan <strong>Ctrl + V</strong>, atau klik <strong>+ Tambah Baris</strong>.</p>
+                            <td colspan="6" class="py-12 text-center text-muted-foreground text-xs">
+                                <svg class="mx-auto size-8 text-muted-foreground/60 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <p class="font-medium text-foreground">Belum ada baris formula resep.</p>
+                                <p class="text-[11px] text-muted-foreground mt-1">Unggah berkas Excel/CSV di atas, tempel data dengan <strong>Ctrl + V</strong>, atau klik <strong>+ Tambah Baris</strong>.</p>
                                 <button
                                     type="button"
                                     @click="addRow()"
-                                    class="mt-3 inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-700 border border-primary-200 rounded-sm text-xs font-semibold hover:bg-primary-100 transition cursor-pointer"
+                                    class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition cursor-pointer shadow-xs"
                                 >
                                     + Tambah Baris Pertama
                                 </button>
@@ -264,10 +264,10 @@
             </div>
 
             <!-- Footer Grid: Action Submit Batch -->
-            <div class="p-3 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div class="text-xs text-gray-600">
-                    Menampilkan <strong x-text="rows.length"></strong> baris resep.
-                    <span x-show="invalidRowsCount > 0" class="text-rose-600 font-semibold ml-2">
+            <div class="p-3 bg-muted/30 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="text-xs text-muted-foreground">
+                    Menampilkan <strong class="text-foreground" x-text="rows.length"></strong> baris resep.
+                    <span x-show="invalidRowsCount > 0" class="text-destructive font-semibold ml-2">
                         * Ada <span x-text="invalidRowsCount"></span> baris yang perlu diperbaiki sebelum dapat disimpan.
                     </span>
                 </div>
@@ -276,7 +276,7 @@
                     <button
                         type="button"
                         @click="addRow()"
-                        class="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-sm text-xs font-semibold transition cursor-pointer"
+                        class="px-3 py-1.5 bg-background hover:bg-muted text-foreground border border-border rounded-lg text-xs font-medium transition cursor-pointer"
                     >
                         + Tambah Baris
                     </button>
@@ -284,9 +284,9 @@
                         type="button"
                         @click="submitBulk()"
                         :disabled="rows.length === 0 || invalidRowsCount > 0 || isSubmitting"
-                        class="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-sm text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                        class="px-4 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5"
                     >
-                        <svg x-show="isSubmitting" class="animate-spin -ml-1 mr-1.5 h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <svg x-show="isSubmitting" class="animate-spin -ml-1 mr-1.5 size-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         <span x-text="isSubmitting ? 'Menyimpan...' : 'Simpan Semua Formula BOM (' + validRowsCount + ' Baris)'"></span>
                     </button>
                 </div>

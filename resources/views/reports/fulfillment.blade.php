@@ -5,8 +5,8 @@
         :breadcrumbs="['Laporan' => route('reports.index'), 'Pergerakan Fulfillment' => null]"
     >
         <x-slot:actions>
-            <x-button href="{{ route('reports.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Pusat Laporan
+            <x-button href="{{ route('reports.index') }}" variant="outline" size="sm">
+                &larr; Kembali
             </x-button>
         </x-slot:actions>
     </x-page-header>
@@ -18,72 +18,72 @@
     @endphp
 
     <!-- KPI Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-sm">
-            <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Transaksi Mutasi</p>
-            <p class="text-lg font-bold font-mono text-gray-900 mt-0.5">{{ number_format($totalLogs) }} <span class="text-xs font-normal text-gray-500">Log</span></p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Transaksi Mutasi</p>
+            <p class="text-xl font-bold font-mono text-foreground mt-1">{{ number_format($totalLogs) }} <span class="text-xs font-normal text-muted-foreground">Log</span></p>
         </div>
-        <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-sm">
-            <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Masuk (IN)</p>
-            <p class="text-lg font-bold font-mono text-emerald-600 mt-0.5">+{{ number_format($totalIn, 0, ',', '.') }} <span class="text-xs font-normal text-gray-500">Pcs</span></p>
+        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Masuk (IN)</p>
+            <p class="text-xl font-bold font-mono text-emerald-600 mt-1">+{{ number_format($totalIn, 0, ',', '.') }} <span class="text-xs font-normal text-muted-foreground">Pcs</span></p>
         </div>
-        <div class="bg-white rounded-sm border border-gray-200 p-3 shadow-sm">
-            <p class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Total Keluar (OUT)</p>
-            <p class="text-lg font-bold font-mono text-amber-600 mt-0.5">-{{ number_format($totalOut, 0, ',', '.') }} <span class="text-xs font-normal text-gray-500">Pcs</span></p>
+        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Keluar (OUT)</p>
+            <p class="text-xl font-bold font-mono text-foreground mt-1">-{{ number_format($totalOut, 0, ',', '.') }} <span class="text-xs font-normal text-muted-foreground">Pcs</span></p>
         </div>
     </div>
 
     <!-- Table Card -->
-    <x-card title="Riwayat Mutasi Stok Fulfillment" subtitle="Data pergerakan kartu stok pada gudang bertipe fulfillment" variant="primary">
+    <x-card title="Riwayat Mutasi Stok Fulfillment" subtitle="Data pergerakan kartu stok pada gudang bertipe fulfillment">
         <div class="-mx-4 -my-4 overflow-x-auto">
             <table class="w-full text-xs text-left border-collapse">
-                <thead class="bg-gray-50 border-b border-gray-200">
+                <thead class="bg-muted/70 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
                     <tr>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider w-28">Tanggal</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider">Lokasi Gudang</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider">Produk Jadi</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider text-center w-24">Tipe</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider text-right">Kuantitas</th>
-                        <th class="px-3.5 py-2.5 font-semibold text-gray-600 uppercase tracking-wider text-right">Saldo Akhir</th>
+                        <th class="px-4 py-3 w-32">Tanggal</th>
+                        <th class="px-4 py-3">Lokasi Gudang</th>
+                        <th class="px-4 py-3">Produk Jadi</th>
+                        <th class="px-4 py-3 text-center w-24">Tipe</th>
+                        <th class="px-4 py-3 text-right">Kuantitas</th>
+                        <th class="px-4 py-3 text-right">Saldo Akhir</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-border">
                     @forelse($rows as $r)
                     @php
                         $isMasuk = strtolower($r->tipe) === 'in';
                     @endphp
-                    <tr class="hover:bg-primary-50/20 transition-colors {{ $loop->even ? 'bg-gray-50/40' : 'bg-white' }}">
-                        <td class="px-3.5 py-2 font-mono text-gray-700">
+                    <tr class="hover:bg-muted/40 transition-colors">
+                        <td class="px-4 py-2.5 font-mono text-muted-foreground">
                             {{ $r->tanggal->format('d/m/Y') }}
                         </td>
-                        <td class="px-3.5 py-2 font-medium text-gray-900">
+                        <td class="px-4 py-2.5 font-medium text-foreground">
                             {{ $r->gudang->nama ?? '-' }}
                         </td>
-                        <td class="px-3.5 py-2 text-gray-800">
+                        <td class="px-4 py-2.5 text-foreground">
                             {{ $r->produk->nama ?? '-' }}
                         </td>
-                        <td class="px-3.5 py-2 text-center">
+                        <td class="px-4 py-2.5 text-center">
                             @if($isMasuk)
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                                     MASUK
                                 </span>
                             @else
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                                     KELUAR
                                 </span>
                             @endif
                         </td>
-                        <td class="px-3.5 py-2 text-right font-mono font-medium {{ $isMasuk ? 'text-emerald-600' : 'text-amber-600' }}">
+                        <td class="px-4 py-2.5 text-right font-mono font-medium {{ $isMasuk ? 'text-emerald-600' : 'text-amber-600' }}">
                             {{ $isMasuk ? '+' : '-' }}{{ number_format($r->qty, 0, ',', '.') }}
                         </td>
-                        <td class="px-3.5 py-2 text-right font-mono text-gray-900 font-semibold">
+                        <td class="px-4 py-2.5 text-right font-mono text-foreground font-semibold">
                             {{ number_format($r->saldo_setelah, 0, ',', '.') }}
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-xs text-gray-400">
-                            <svg class="mx-auto h-7 w-7 text-gray-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                        <td colspan="6" class="px-4 py-12 text-center text-xs text-muted-foreground">
+                            <svg class="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                             Belum ada catatan mutasi stok fulfillment.
                         </td>
                     </tr>

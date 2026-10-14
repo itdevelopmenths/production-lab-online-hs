@@ -121,20 +121,20 @@
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
+                        <thead>
                             <tr>
                                 <th class="py-2.5 px-3.5">Produk</th>
                                 <th class="py-2.5 px-3 text-right">Diminta</th>
                                 <th class="py-2.5 px-3 text-right">Stok Fisik Asal</th>
                                 <th class="py-2.5 px-3 text-right">Dikirim</th>
                                 <th class="py-2.5 px-3 text-right">Diterima</th>
-                                <th class="py-2.5 px-3 text-right text-emerald-800">Kondisi Baik</th>
-                                <th class="py-2.5 px-3 text-right text-rose-800">Kondisi Rusak</th>
+                                <th class="py-2.5 px-3 text-right text-emerald-800 dark:text-emerald-400">Kondisi Baik</th>
+                                <th class="py-2.5 px-3 text-right text-rose-800 dark:text-rose-400">Kondisi Rusak</th>
                                 <th class="py-2.5 px-3 text-center">Status</th>
                                 <th class="py-2.5 px-3.5 text-center">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-border">
                             @foreach($rt->items as $it)
                             @php
                                 $w = $itemWarnings[$it->id] ?? null;
@@ -237,7 +237,7 @@
                                     @endif
                                 </td>
                                 <td class="py-2.5 px-3.5 text-center whitespace-nowrap">
-                                    <a href="{{ route('stok.ledger', $it->produk_id) }}" class="text-primary-700 hover:text-primary-900 text-xs font-semibold">
+                                    <a href="{{ route('stok.ledger', $it->produk_id) }}" class="text-foreground hover:underline text-xs font-semibold">
                                         Kartu Stok &rarr;
                                     </a>
                                 </td>

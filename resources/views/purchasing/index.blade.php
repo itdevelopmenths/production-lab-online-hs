@@ -34,61 +34,59 @@
     </x-page-header>
 
     <div x-data="{ activeTab: '{{ $defaultTab }}' }">
-        {{-- Tab Navigation (PO, Buku Tagihan AP, Antrean Approval) --}}
-        <div class="border-b border-gray-200 mb-5 flex items-center justify-between">
-            <nav class="-mb-px flex space-x-6">
-                {{-- TAB 1: Daftar Purchase Order --}}
-                <button
-                    type="button"
-                    @click="activeTab = 'po'; $nextTick(() => { if (dtTable) dtTable.columns.adjust(); })"
-                    :class="activeTab === 'po' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Daftar Purchase Order
-                </button>
+        {{-- DevScore Segmented Tabs --}}
+        <div class="inline-flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/40 mb-6">
+            {{-- TAB 1: Daftar Purchase Order --}}
+            <button
+                type="button"
+                @click="activeTab = 'po'; $nextTick(() => { if (dtTable) dtTable.columns.adjust(); })"
+                :class="activeTab === 'po' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-2"
+            >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Daftar Purchase Order
+            </button>
 
-                {{-- TAB 2: Buku Tagihan & Pembayaran (AP) --}}
-                @if($canSeePrice)
-                <button
-                    type="button"
-                    @click="activeTab = 'ap'; $nextTick(() => { if (dtApTable) dtApTable.columns.adjust(); })"
-                    :class="activeTab === 'ap' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                    Buku Tagihan (AP)
-                </button>
-                @endif
+            {{-- TAB 2: Buku Tagihan & Pembayaran (AP) --}}
+            @if($canSeePrice)
+            <button
+                type="button"
+                @click="activeTab = 'ap'; $nextTick(() => { if (dtApTable) dtApTable.columns.adjust(); })"
+                :class="activeTab === 'ap' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-2"
+            >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                Buku Tagihan (AP)
+            </button>
+            @endif
 
-                {{-- TAB 3: Antrean Approval (Default: Manager & Purchasing) --}}
-                @if($canSeeApprovalTab)
-                <button
-                    type="button"
-                    @click="activeTab = 'approval'; $nextTick(() => { if (dtApprovalTable) dtApprovalTable.columns.adjust(); })"
-                    :class="activeTab === 'approval' ? 'border-amber-600 text-amber-700 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium'"
-                    class="py-2.5 px-1 border-b-2 text-xs transition cursor-pointer flex items-center gap-2"
-                >
-                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Antrean Approval
-                    @if($pendingApprovalCount > 0)
-                        <span class="px-1.5 py-0.5 text-[10px] font-bold font-mono rounded-full bg-amber-100 text-amber-800 border border-amber-300">
-                            {{ $pendingApprovalCount }}
-                        </span>
-                    @endif
-                </button>
+            {{-- TAB 3: Antrean Approval --}}
+            @if($canSeeApprovalTab)
+            <button
+                type="button"
+                @click="activeTab = 'approval'; $nextTick(() => { if (dtApprovalTable) dtApprovalTable.columns.adjust(); })"
+                :class="activeTab === 'approval' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-2"
+            >
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Antrean Approval
+                @if($pendingApprovalCount > 0)
+                    <span :class="activeTab === 'approval' ? 'bg-primary-foreground text-primary' : 'bg-muted text-foreground'" class="px-1.5 py-0.5 text-[10px] font-bold rounded-full">
+                        {{ $pendingApprovalCount }}
+                    </span>
                 @endif
-            </nav>
+            </button>
+            @endif
         </div>
 
         <!-- TAB 1: Daftar Purchase Order -->
         <div x-show="activeTab === 'po'" class="min-h-[480px]">
-            <!-- Toolbar Filter PO (Filter Status AP dipindah ke Tab Tagihan) -->
-            <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-sm border border-gray-200 mb-3 shadow-xs">
+            <!-- Toolbar Filter PO -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border mb-4 shadow-xs">
                 <div class="flex flex-wrap items-center gap-3">
                     <div>
-                        <label for="filter-status-po" class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Filter Status PO</label>
-                        <select id="filter-status-po" class="rounded-sm border-gray-300 text-xs py-1.5 px-2.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 min-w-[180px]">
+                        <label for="filter-status-po" class="block text-xs font-medium text-muted-foreground mb-1">Status PO</label>
+                        <select id="filter-status-po" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[200px] outline-none cursor-pointer">
                             <option value="">— Semua Status PO —</option>
                             <option value="draft">Draft</option>
                             <option value="diajukan">Diajukan (Menunggu Approval)</option>
@@ -100,25 +98,25 @@
                     </div>
                 </div>
                 <div>
-                    <button type="button" id="btn-reset-po" class="text-xs text-gray-500 hover:text-gray-800 underline font-medium cursor-pointer">
+                    <button type="button" id="btn-reset-po" class="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer transition-colors">
                         Reset Filter
                     </button>
                 </div>
             </div>
 
-            <x-card title="Semua Dokumen Purchase Order" :noPadding="true">
-                <div class="overflow-x-auto p-2">
-                    <table id="tbl" class="w-full text-xs">
+            <x-card title="Semua Dokumen Purchase Order" subtitle="Daftar transaksi pengadaan bahan dan status kedatangan" :noPadding="true">
+                <div class="overflow-x-auto">
+                    <table id="tbl" class="w-full text-sm">
                         <thead>
-                            <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-[11px] uppercase">
-                                <th class="px-3 py-2.5 text-left">No Invoice</th>
-                                <th class="px-3 py-2.5 text-left">Supplier</th>
-                                <th class="px-3 py-2.5 text-left">Lokasi</th>
-                                <th class="px-3 py-2.5 text-left">Tgl PO</th>
-                                <th class="px-3 py-2.5 text-left">ETA</th>
-                                <th class="px-3 py-2.5 text-left">Tgl Tiba</th>
-                                <th class="px-3 py-2.5 text-left">Status PO</th>
-                                <th class="px-3 py-2.5 text-center">Aksi</th>
+                            <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[13px] font-medium">
+                                <th class="px-4 py-3 text-left">No Invoice</th>
+                                <th class="px-4 py-3 text-left">Supplier</th>
+                                <th class="px-4 py-3 text-left">Lokasi</th>
+                                <th class="px-4 py-3 text-left">Tgl PO</th>
+                                <th class="px-4 py-3 text-left">ETA</th>
+                                <th class="px-4 py-3 text-left">Tgl Tiba</th>
+                                <th class="px-4 py-3 text-left">Status PO</th>
+                                <th class="px-4 py-3 text-center">Aksi</th>
                             </tr>
                         </thead>
                     </table>

@@ -35,7 +35,7 @@
         </x-select>
     </x-form-group>
 
-    <div class="md:col-span-2 pt-2 space-y-3.5 border-t border-gray-100">
+    <div class="md:col-span-2 pt-2 space-y-3.5 border-t border-border">
         <x-checkbox 
             name="is_pusat" 
             label="Tandai Sebagai Gudang Pusat (Central Hub)" 
