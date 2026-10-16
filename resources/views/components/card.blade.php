@@ -7,11 +7,18 @@
     'noPadding' => false,
     'tools' => null,
     'footer' => null,
+    'overflow' => null,
 ])
 
-<div {{ $attributes->merge(['class' => 'bg-card text-card-foreground rounded-xl border border-border shadow-xs flex flex-col overflow-hidden transition-all']) }}>
+@php
+    $classAttr = $attributes->get('class', '');
+    $hasExplicitOverflow = (bool) preg_match('/\boverflow-(visible|hidden|auto|scroll)\b/', $classAttr);
+    $overflowClass = $overflow ? "overflow-{$overflow}" : ($hasExplicitOverflow ? '' : 'overflow-hidden');
+@endphp
+
+<div {{ $attributes->merge(['class' => 'bg-card text-card-foreground rounded-xl border border-border shadow-xs flex flex-col ' . $overflowClass . ' transition-all']) }}>
     @if ($title || isset($header) || isset($tools))
-        <div class="p-5 border-b border-border/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-card">
+        <div class="p-5 border-b border-border/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-card rounded-t-xl">
             @if (isset($header))
                 {{ $header }}
             @else

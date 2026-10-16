@@ -75,8 +75,8 @@
                 </x-card>
 
                 {{-- Card 2: Rincian Item Mutasi --}}
-                <x-card title="Daftar Barang & Kuantitas Diminta" subtitle="Tentukan SKU produk/bahan dan kuantitas unit yang akan ditransfer" :noPadding="true">
-                    <div class="overflow-visible">
+                <x-card title="Daftar Barang & Kuantitas Diminta" subtitle="Tentukan SKU produk/bahan dan kuantitas unit yang akan ditransfer" :noPadding="true" overflow="visible">
+                    <div class="overflow-visible min-h-[220px]">
                         <table class="w-full text-xs">
                             <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
                                 <tr>
@@ -114,11 +114,11 @@
                                                 <input type="hidden" :name="`items[${i}][produk_id]`" :value="selectedId" required>
 
                                                 <div
-                                                    @click="toggle()"
+                                                    @click="activeRow = i; toggle()"
                                                     role="button"
                                                     tabindex="0"
-                                                    @keydown.enter.prevent="toggle()"
-                                                    @keydown.space.prevent="toggle()"
+                                                    @keydown.enter.prevent="activeRow = i; toggle()"
+                                                    @keydown.space.prevent="activeRow = i; toggle()"
                                                     class="w-full flex items-center justify-between text-left rounded-lg border border-input bg-background px-3 py-2 text-xs shadow-xs hover:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-ring transition cursor-pointer select-none"
                                                 >
                                                     <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
