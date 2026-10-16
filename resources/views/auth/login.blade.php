@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full bg-background">
+<html lang="id" class="h-full bg-white">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -40,10 +40,10 @@
         }
     </style>
 </head>
-<body class="min-h-screen font-sans antialiased text-foreground bg-neutral-100/75 dark:bg-neutral-950 flex items-center justify-center p-4 sm:p-6 lg:p-8 selection:bg-neutral-900 selection:text-white">
+<body class="min-h-screen font-sans antialiased text-foreground bg-white flex items-center justify-center p-4 sm:p-6 lg:p-8 selection:bg-neutral-900 selection:text-white">
 
     {{-- Card Container Terpadu: Elegan, Bersudut Rounded Halus, dan Proporsional --}}
-    <div class="w-full max-w-5xl bg-card text-card-foreground rounded-2xl shadow-xl shadow-neutral-950/5 border border-border/80 overflow-hidden grid lg:grid-cols-12 min-h-[600px] lg:min-h-[640px]">
+    <div class="w-full max-w-5xl bg-card text-card-foreground rounded-2xl shadow-xl shadow-neutral-900/10 border border-neutral-200 overflow-hidden grid lg:grid-cols-12 min-h-[600px] lg:min-h-[640px]">
 
         {{-- Sisi Kiri: Visual Eksklusif Laboratorium (Ukuran Tidak Terlalu Besar, Rounded Terpadu) --}}
         <div class="relative lg:col-span-5 bg-neutral-950 flex flex-col justify-between p-6 sm:p-8 lg:p-10 min-h-[320px] lg:min-h-[640px] overflow-hidden text-white">
