@@ -26,7 +26,30 @@
         [x-cloak] {
             display: none !important;
         }
+        /* Sembunyikan halaman sampai Alpine siap supaya sidebar tidak tampil tanpa class lalu
+           beranimasi (kesan "render ulang"). Browser menahan tampilan halaman lama selama itu.
+           Fallback: tetap tampil setelah 1.5 detik bila JS gagal. */
+        html.hs-booting body {
+            visibility: hidden;
+            animation: hs-reveal 0s linear 1.5s forwards;
+        }
+        html.hs-booting *, html.hs-booting *::before, html.hs-booting *::after {
+            transition: none !important;
+        }
+        @keyframes hs-reveal {
+            to { visibility: visible; }
+        }
     </style>
+    <script>
+        document.documentElement.classList.add('hs-booting');
+        document.addEventListener('alpine:initialized', function() {
+            // Satu frame setelah Alpine menerapkan class, agar perubahan awal tidak ikut beranimasi.
+            // setTimeout sebagai cadangan untuk tab latar belakang (rAF tertunda).
+            var reveal = function() { document.documentElement.classList.remove('hs-booting'); };
+            requestAnimationFrame(reveal);
+            setTimeout(reveal, 100);
+        });
+    </script>
     @php
         $vendorAsset = fn (string $path) => asset($path).'?v='.@filemtime(public_path($path));
     @endphp
