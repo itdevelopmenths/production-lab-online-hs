@@ -389,6 +389,37 @@
                     </div>
                     @endif
                 </nav>
+                {{-- Pulihkan posisi scroll sidebar sebelum paint agar tidak loncat ke atas saat pindah menu --}}
+                <script>
+                    (function() {
+                        var nav = document.getElementById('app-sidebar-nav');
+                        if (!nav) return;
+                        var saved = null;
+                        try { saved = sessionStorage.getItem('hs_sidebar_scroll'); } catch(e) {}
+
+                        function restore() {
+                            if (saved !== null) {
+                                nav.scrollTop = parseInt(saved, 10) || 0;
+                            } else {
+                                var active = nav.querySelector('[data-nav-active="true"]');
+                                if (active) {
+                                    var top = active.getBoundingClientRect().top - nav.getBoundingClientRect().top + nav.scrollTop;
+                                    if (top + active.offsetHeight > nav.clientHeight) {
+                                        nav.scrollTop = top - nav.clientHeight / 2;
+                                    }
+                                }
+                            }
+                        }
+
+                        restore();
+                        // Alpine mengubah padding (collapsed) setelah init; ulangi sekali
+                        document.addEventListener('alpine:initialized', function() { requestAnimationFrame(restore); });
+
+                        window.addEventListener('pagehide', function() {
+                            try { sessionStorage.setItem('hs_sidebar_scroll', nav.scrollTop); } catch(e) {}
+                        });
+                    })();
+                </script>
 
                 {{-- DevScore Bottom User Menu --}}
                 <div class="relative border-t border-border"

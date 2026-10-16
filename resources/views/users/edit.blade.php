@@ -105,7 +105,7 @@
                                             $rKey = is_object($r) ? $r->name : $r;
                                             $rLabel = is_object($r) ? ($r->display_name ? $r->display_name . ' (' . $r->name . ')' : $r->name) : $r;
                                         @endphp
-                                        <option value="{{ $rKey }}" @selected(old('role', $userRole) === $rKey)>{{ $rLabel }}</option>
+                                        <option value="{{ $rKey }}" @selected(old('role', $user->roles->first()?->name) === $rKey)>{{ $rLabel }}</option>
                                     @endforeach
                                 </x-select>
                             </x-form-group>
