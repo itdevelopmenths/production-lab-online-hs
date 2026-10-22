@@ -265,27 +265,7 @@
                                                     </select>
                                                 </div>
 
-                                                {{-- Custom Factor Input --}}
-                                                <template x-if="row.satuan_beli === 'custom'">
-                                                    <div class="flex items-center gap-1 mt-1 text-[10px] bg-amber-500/10 p-1.5 rounded-md border border-amber-500/20">
-                                                        <span class="text-amber-700 dark:text-amber-400 font-medium">1 unit =</span>
-                                                        <input
-                                                            type="number"
-                                                            step="any"
-                                                            min="0.0001"
-                                                            :name="`items[${i}][faktor_konversi]`"
-                                                            x-model.number="row.faktor_konversi"
-                                                            @input="updateRowQty(row)"
-                                                            class="w-16 text-right py-0.5 px-1.5 text-xs rounded-md border border-input bg-background font-mono text-foreground"
-                                                            placeholder="Faktor"
-                                                            required
-                                                        />
-                                                        <span class="text-amber-700 dark:text-amber-400 font-mono" x-text="row.satuan"></span>
-                                                    </div>
-                                                </template>
-                                                <template x-if="row.satuan_beli !== 'custom'">
-                                                    <input type="hidden" :name="`items[${i}][faktor_konversi]`" :value="row.faktor_konversi">
-                                                </template>
+                                                <input type="hidden" :name="`items[${i}][faktor_konversi]`" :value="row.faktor_konversi">
 
                                                 {{-- Live Indicator Kuantitas Fisik Masuk Gudang --}}
                                                 <div class="text-[10px] font-mono text-foreground bg-muted px-2 py-0.5 rounded-md border border-border flex items-center justify-between mt-1 select-none" x-show="row.qty > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
@@ -716,48 +696,14 @@
                         });
                     }
 
-                    // 2. Fallback kemasan standar industri jika belum ada di database
-                    const presets = [];
-                    if (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter') {
-                        presets.push(
-                            { code: 'ml', label: 'Mililiter (ml - Satuan Dasar)', factor: 1, isBase: true },
-                            { code: 'Liter', label: 'Liter (1.000 ml)', factor: 1000 },
-                            { code: 'Jerigen 5L', label: 'Jerigen 5L (5.000 ml)', factor: 5000 },
-                            { code: 'Galon 19L', label: 'Galon 19L (19.000 ml)', factor: 19000 },
-                            { code: 'Drum 200L', label: 'Drum 200L (200.000 ml)', factor: 200000 }
-                        );
-                    } else if (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg' || s === 'kilogram') {
-                        presets.push(
-                            { code: 'Gram', label: 'Gram (gr - Satuan Dasar)', factor: 1, isBase: true },
-                            { code: 'Kilogram', label: 'Kilogram (1.000 gr)', factor: 1000 },
-                            { code: 'Sak 25kg', label: 'Sak 25kg (25.000 gr)', factor: 25000 },
-                            { code: 'Sak 50kg', label: 'Sak 50kg (50.000 gr)', factor: 50000 },
-                            { code: 'Ton', label: 'Ton (1.000.000 gr)', factor: 1000000 }
-                        );
-                    } else {
-                        presets.push(
-                            { code: 'Pieces', label: 'Pieces (pcs - Satuan Dasar)', factor: 1, isBase: true },
-                            { code: 'Pack (10)', label: 'Pack (10 pcs)', factor: 10 },
-                            { code: 'Dus (100)', label: 'Dus / Box (100 pcs)', factor: 100 }
-                        );
-                    }
-
-                    presets.forEach(p => {
-                        const pKey = p.code.toLowerCase().trim();
-                        if (!seen.has(pKey)) {
-                            seen.add(pKey);
-                            options.push(p);
-                        }
-                    });
-
-                    // 3. Pastikan satuan dasar produk selalu ada di opsi jika belum ada
+                    // 2. Pastikan satuan dasar produk selalu ada di opsi jika belum ada di Master UOM
                     if (!seen.has(s) && baseSatuan) {
                         seen.add(s);
                         options.unshift({ code: baseSatuan, label: `${baseSatuan} (Satuan Dasar)`, factor: 1, isBase: true });
                     }
 
-                    // 4. Pastikan jika ada currentSatuanBeli yang belum tercantum, masukkan ke options
-                    if (curKey && curKey !== 'custom') {
+                    // 3. Pastikan jika ada currentSatuanBeli yang sudah terpasang, tetap ada di options
+                    if (curKey) {
                         const found = options.some(o => o.code.toLowerCase().trim() === curKey);
                         if (!found) {
                             seen.add(curKey);
@@ -779,9 +725,6 @@
                         if (!aIsBase && bIsBase) return 1;
                         return (parseFloat(a.factor) || 0) - (parseFloat(b.factor) || 0);
                     });
-
-                    // 5. Selalu sertakan opsi manual/kustom di paling akhir
-                    options.push({ code: 'custom', label: 'Kustom / Input Faktor Manual...', factor: null });
 
                     return options;
                 },
