@@ -47,6 +47,6 @@
     </div>
 
     <div class="md:col-span-2 pt-1">
-        <x-checkbox name="is_active" label="Status Aktif Satuan" :checked="old('is_active', $u?->is_active ?? true)" help="Satuan aktif dapat dipilih dalam pembuatan dan pengeditan master produk" />
+        <x-checkbox name="is_active" label="Status Aktif Satuan" :checked="filter_var(old('is_active', $u?->is_active ?? true), FILTER_VALIDATE_BOOLEAN)" help="Satuan aktif dapat dipilih dalam pembuatan dan pengeditan master produk" />
     </div>
 </div>

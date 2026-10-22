@@ -89,6 +89,47 @@ class UomManagementTest extends TestCase
         ]);
     }
 
+    public function test_manager_can_deactivate_and_activate_uom_status(): void
+    {
+        $this->actingAs($this->manager);
+
+        $uom = Uom::where('kode', 'botol')->firstOrFail();
+
+        // 1. Nonaktifkan UOM
+        $respDeactivate = $this->put(route('uom.update', $uom), [
+            'kode' => 'botol',
+            'nama' => $uom->nama,
+            'is_active' => '0',
+        ]);
+        $respDeactivate->assertRedirect(route('uom.index'));
+        $this->assertDatabaseHas('uom', [
+            'id' => $uom->id,
+            'is_active' => false,
+        ]);
+
+        $jsonDeactivated = $this->getJson(route('uom.data'))->json('data');
+        $itemDeactivated = collect($jsonDeactivated)->firstWhere('id', $uom->id);
+        $this->assertNotNull($itemDeactivated);
+        $this->assertEquals('Nonaktif', $itemDeactivated['is_active']);
+
+        // 2. Aktifkan kembali UOM
+        $respActivate = $this->put(route('uom.update', $uom), [
+            'kode' => 'botol',
+            'nama' => $uom->nama,
+            'is_active' => '1',
+        ]);
+        $respActivate->assertRedirect(route('uom.index'));
+        $this->assertDatabaseHas('uom', [
+            'id' => $uom->id,
+            'is_active' => true,
+        ]);
+
+        $jsonActivated = $this->getJson(route('uom.data'))->json('data');
+        $itemActivated = collect($jsonActivated)->firstWhere('id', $uom->id);
+        $this->assertNotNull($itemActivated);
+        $this->assertEquals('Aktif', $itemActivated['is_active']);
+    }
+
     public function test_uom_cannot_be_deleted_if_used_by_product(): void
     {
         $this->actingAs($this->manager);

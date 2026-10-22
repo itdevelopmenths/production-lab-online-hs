@@ -29,34 +29,31 @@ class UomController extends Controller
         $query = Uom::query()->select('uom.*')->withCount('produk');
 
         return DataTables::eloquent($query)
-            ->editColumn('kode', fn ($u) => '<span class="font-mono font-medium text-primary-700 bg-primary-50/60 px-1.5 py-0.5 rounded-sm border border-primary-100">' . e($u->kode) . '</span>')
-            ->editColumn('kategori', fn ($u) => $u->kategori ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">' . e($u->kategori) . '</span>' : '<span class="text-gray-400">—</span>')
+            ->editColumn('kode', fn ($u) => e($u->kode))
+            ->editColumn('kategori', fn ($u) => $u->kategori ? e($u->kategori) : '-')
             ->addColumn('konversi', function ($u) {
                 if (! $u->satuan_dasar || $u->satuan_dasar === $u->kode) {
-                    return '<span class="text-gray-400 text-xs font-mono">Satuan Pokok</span>';
+                    return 'Satuan Pokok';
                 }
                 $f = (float) ($u->faktor_konversi ?: 1);
                 $fFormatted = ($f == (int) $f) ? number_format($f, 0, ',', '.') : rtrim(rtrim(number_format($f, 4, ',', '.'), '0'), ',');
 
-                return '<span class="font-mono text-xs text-primary-700 bg-primary-50 px-2 py-0.5 rounded-xs border border-primary-200 font-semibold">1 ' . e($u->kode) . ' = ' . $fFormatted . ' ' . e($u->satuan_dasar) . '</span>';
+                return '1 ' . e($u->kode) . ' = ' . $fFormatted . ' ' . e($u->satuan_dasar);
             })
-            ->addColumn('produk_count', fn ($u) => '<span class="font-mono text-xs text-gray-700">' . number_format($u->produk_count) . ' SKU</span>')
-            ->editColumn('is_active', fn ($u) => $u->is_active
-                ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>'
-                : '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">Nonaktif</span>'
-            )
+            ->addColumn('produk_count', fn ($u) => number_format($u->produk_count) . ' SKU')
+            ->editColumn('is_active', fn ($u) => $u->is_active ? 'Aktif' : 'Nonaktif')
             ->addColumn('action', function ($u) use ($canEdit, $canDelete) {
                 $html = '<div class="flex items-center justify-center gap-3">';
                 if ($canEdit) {
-                    $html .= '<a href="' . e(route('uom.edit', $u)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-semibold">Edit</a>';
+                    $html .= '<a href="' . e(route('uom.edit', $u)) . '" class="text-primary hover:text-primary/80 text-xs font-semibold">Edit</a>';
                 }
                 if ($canDelete) {
-                    $html .= '<button type="button" onclick="hapus(\'' . e(route('uom.destroy', $u)) . '\')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold">Hapus</button>';
+                    $html .= '<button type="button" onclick="hapus(\'' . e(route('uom.destroy', $u)) . '\')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold cursor-pointer">Hapus</button>';
                 }
 
                 return $html . '</div>';
             })
-            ->rawColumns(['kode', 'kategori', 'konversi', 'produk_count', 'is_active', 'action'])
+            ->rawColumns(['action'])
             ->toJson();
     }
 
@@ -73,6 +70,7 @@ class UomController extends Controller
 
         $data = $this->validated($request);
         $data['kode'] = strtolower(trim($data['kode']));
+        $data['is_active'] = $request->boolean('is_active');
 
         Uom::create($data);
 
@@ -94,6 +92,7 @@ class UomController extends Controller
         $oldKode = $uom->kode;
         $newKode = strtolower(trim($data['kode']));
         $data['kode'] = $newKode;
+        $data['is_active'] = $request->boolean('is_active');
 
         $uom->update($data);
 

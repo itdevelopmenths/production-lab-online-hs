@@ -109,7 +109,7 @@
                 {
                     data: 'kategori',
                     render: function(data) {
-                        return data ? '<span class="text-muted-foreground">' + data + '</span>' : '-';
+                        return (data && data !== '-') ? '<span class="text-muted-foreground">' + data + '</span>' : '<span class="text-muted-foreground/60">—</span>';
                     }
                 },
                 {
@@ -118,12 +118,20 @@
                         return '<span class="font-mono text-muted-foreground text-[11px]">' + (data || '-') + '</span>';
                     }
                 },
-                { data: 'produk_count', orderable: false, searchable: false },
+                {
+                    data: 'produk_count',
+                    orderable: false,
+                    searchable: false,
+                    render: function(data) {
+                        return '<span class="font-mono text-xs text-muted-foreground">' + (data || '0 SKU') + '</span>';
+                    }
+                },
                 {
                     data: 'is_active',
                     className: 'text-center',
                     render: function(data) {
-                        const isAktif = String(data).toLowerCase() === 'aktif';
+                        const val = String(data || '').toLowerCase().trim();
+                        const isAktif = (data === true || data === 1 || data === '1' || val === 'aktif' || val === 'active' || val.includes('>aktif<'));
                         const cls = isAktif
                             ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
                             : 'bg-muted text-muted-foreground border-border';
