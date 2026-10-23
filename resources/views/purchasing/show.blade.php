@@ -130,6 +130,7 @@
                                     <th class="py-2.5 px-2 text-right">Diskon</th>
                                     <th class="py-2.5 px-2 text-right">PPN</th>
                                     <th class="py-2.5 px-2 text-right">Ongkir</th>
+                                    <th class="py-2.5 px-2 text-right">Adjustment</th>
                                     <th class="py-2.5 px-3 text-right">Net Total</th>
                                     <th class="py-2.5 px-3 text-right bg-primary-50/50 text-primary-900">HPP / Unit</th>
                                 @endif
@@ -172,6 +173,13 @@
                                     <td class="py-2.5 px-2 text-right font-mono text-gray-600">
                                         {{ (float)$it->ongkir > 0 ? '+Rp ' . number_format($it->ongkir, 0, ',', '.') : '—' }}
                                     </td>
+                                    <td class="py-2.5 px-2 text-right font-mono {{ (float)$it->adjustment < 0 ? 'text-rose-600' : 'text-gray-600' }}">
+                                        @if((float)$it->adjustment != 0)
+                                            {{ (float)$it->adjustment > 0 ? '+Rp ' . number_format($it->adjustment, 0, ',', '.') : '-Rp ' . number_format(abs($it->adjustment), 0, ',', '.') }}
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
                                     <td class="py-2.5 px-3 text-right font-mono font-semibold text-foreground">
                                         Rp {{ number_format($it->netTotal(), abs($it->netTotal() - round($it->netTotal())) < 0.00001 ? 0 : 2, ',', '.') }}
                                     </td>
@@ -210,6 +218,13 @@
                                 </td>
                                 <td class="py-2.5 px-2 text-right font-mono text-gray-700">
                                     {{ (float)$po->ongkos_kirim > 0 ? '+Rp ' . number_format($po->ongkos_kirim, 0, ',', '.') : '—' }}
+                                </td>
+                                <td class="py-2.5 px-2 text-right font-mono {{ (float)$po->adjustment < 0 ? 'text-rose-600' : 'text-gray-700' }}">
+                                    @if((float)$po->adjustment != 0)
+                                        {{ (float)$po->adjustment > 0 ? '+Rp ' . number_format($po->adjustment, 0, ',', '.') : '-Rp ' . number_format(abs($po->adjustment), 0, ',', '.') }}
+                                    @else
+                                        —
+                                    @endif
                                 </td>
                                 <td colspan="2" class="py-2.5 px-3 text-right font-mono text-foreground font-bold text-sm">
                                     Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}

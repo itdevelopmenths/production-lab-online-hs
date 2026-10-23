@@ -91,10 +91,10 @@
              x-transition:leave="transition-opacity ease-linear duration-200"
              x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
              @click="mobileOpen = false"
-             class="fixed inset-0 z-30 bg-black/40 lg:hidden"></div>
+             class="fixed inset-0 z-40 bg-black/40 lg:hidden"></div>
 
         {{-- DevScore Style Sidebar --}}
-        <div class="fixed inset-y-0 left-0 z-40 transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen"
+        <div class="fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-40"
              :class="[
                  mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0',
                  collapsed ? 'lg:w-[72px]' : 'lg:w-64'
@@ -528,7 +528,7 @@
 
         {{-- Main Canvas & DevScore Top Header --}}
         <div class="flex min-w-0 flex-1 flex-col transition-all duration-300">
-            <header class="bg-card sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border px-4 shadow-xs sm:px-8">
+            <header class="bg-card sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border px-4 shadow-xs sm:px-8">
                 <button type="button"
                         @click="mobileOpen = true"
                         class="text-muted-foreground hover:bg-accent rounded-md p-1.5 lg:hidden cursor-pointer"

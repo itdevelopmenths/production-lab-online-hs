@@ -74,4 +74,40 @@ class PurchasingCostCalculatorTest extends TestCase
         $this->assertEquals(380000, $totals['items'][1]['net_total']);
         $this->assertEquals(19000, $totals['items'][1]['hpp_per_satuan']);
     }
+
+    public function test_calculate_po_totals_with_negative_adjustment(): void
+    {
+        $items = [
+            [
+                'produk_id' => 1,
+                'qty' => 10,
+                'harga_total' => 100500,
+                'diskon' => 0,
+                'ppn' => 0,
+                'ongkir' => 0,
+                'adjustment' => 0,
+            ],
+        ];
+
+        // Header: Adjustment -500 (pembulatan ke bawah menjadi 100.000)
+        $totals = $this->calculator->calculatePoTotals($items, 0, 0, 0, -500);
+
+        $this->assertEquals(100500, $totals['subtotal_produk']);
+        $this->assertEquals(-500, $totals['adjustment']);
+        $this->assertEquals(100000, $totals['grand_total']);
+        $this->assertEquals(100000, $totals['items'][0]['net_total']);
+        $this->assertEquals(10000, $totals['items'][0]['hpp_per_satuan']);
+    }
+
+    public function test_calculate_item_net_with_negative_adjustment(): void
+    {
+        // 100 kg bahan, harga kotor Rp 1.000.500, diskon 0, ppn 0, ongkir 0, adj -500
+        // Net = 1.000.500 - 0 + 0 + 0 - 500 = 1.000.000
+        $net = $this->calculator->calculateItemNet(1000500, 0, 0, 0, -500);
+        $this->assertEquals(1000000, $net);
+
+        $hpp = $this->calculator->calculateHppPerSatuan($net, 100);
+        $this->assertEquals(10000, $hpp);
+    }
 }
+

@@ -126,13 +126,13 @@
                 </x-card>
 
                 {{-- Card 2: Rincian Bahan yang Dipesan --}}
-                <x-card title="Daftar Bahan Baku" subtitle="Input kuantitas dan total harga per bahan. Diskon, PPN, ongkir, dan adjustment diatur pada formulir Global di bawah dan dialokasikan ke HPP secara realtime." :noPadding="true" class="relative z-20" overflow="visible">
+                <x-card title="Daftar Bahan Baku" subtitle="Input kuantitas dan total harga per bahan. Diskon, PPN, ongkir, dan adjustment diatur pada formulir Global di bawah dan dialokasikan ke HPP secara realtime." :noPadding="true" class="relative z-10" overflow="visible">
                     <div class="overflow-visible min-h-[220px]">
                         <table class="w-full text-xs">
                             <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
                                 <tr>
                                     <th class="px-4 py-3 text-left w-[36%]">Bahan Baku <span class="text-destructive">*</span></th>
-                                    <th class="px-3 py-3 text-left w-56">Kuantitas & Satuan Beli <span class="text-destructive">*</span></th>
+                                    <th class="px-3 py-3 text-left w-64">Kuantitas & Satuan Beli <span class="text-destructive">*</span></th>
                                     <th class="px-3 py-3 text-right w-44">Total Harga <span class="text-destructive">*</span></th>
                                     <th class="px-4 py-3 text-right w-52 bg-muted/40 text-foreground">HPP / Satuan Dasar</th>
                                     <th class="px-2 py-3 text-center w-12">Aksi</th>
@@ -240,17 +240,24 @@
                                             <div class="space-y-1.5">
                                                 <div class="flex items-center gap-1.5">
                                                     {{-- Input Qty Satuan Beli --}}
-                                                    <input
-                                                        type="number"
-                                                        step="any"
-                                                        min="0.001"
-                                                        :name="`items[${i}][qty_satuan_beli]`"
-                                                        x-model.number="row.qty_satuan_beli"
-                                                        @input="updateRowQty(row)"
-                                                        placeholder="Qty"
-                                                        required
-                                                        class="w-24 rounded-lg border border-input bg-background text-xs py-2 px-2.5 font-mono text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
-                                                    />
+                                                    <div class="relative flex items-center shrink-0">
+                                                        <span class="absolute left-2.5 text-[10px] font-bold font-mono tracking-wider text-muted-foreground/70 uppercase select-none pointer-events-none">QTY</span>
+                                                        <input
+                                                            type="number"
+                                                            step="1"
+                                                            min="1"
+                                                            inputmode="numeric"
+                                                            pattern="[0-9]*"
+                                                            :name="`items[${i}][qty_satuan_beli]`"
+                                                            x-model.number="row.qty_satuan_beli"
+                                                            @keydown="if (['.', ',', 'e', 'E', '+', '-'].includes($event.key) || $event.keyCode === 188 || $event.keyCode === 190 || $event.keyCode === 110 || $event.keyCode === 194) $event.preventDefault()"
+                                                            @input="handleQtyInput(row, $event)"
+                                                            @paste="handleQtyPaste(row, $event)"
+                                                            placeholder="0"
+                                                            required
+                                                            class="w-28 rounded-lg border-2 border-primary/30 bg-background text-sm py-1.5 pl-10 pr-2.5 font-mono font-bold text-right text-foreground hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-xs transition-colors"
+                                                        />
+                                                    </div>
 
                                                     {{-- Dropdown Satuan Beli --}}
                                                     <select
@@ -337,7 +344,7 @@
                 </x-card>
 
                 {{-- Card 3: Rekapitulasi Biaya & Grand Total --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-0">
                     <x-card title="Biaya Tambahan Global (Opsional)" subtitle="Biaya tingkat PO yang otomatis dialokasikan ke HPP bahan baku">
                         <div class="space-y-3.5">
                             <div class="flex items-center justify-between gap-4">
@@ -439,7 +446,27 @@
                                 <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan (Rp)</label>
                                 <div class="w-48">
                                     <input type="hidden" name="adjustment" :value="headerAdj">
-                                    <input type="text" inputmode="numeric" :value="formatThousand(headerAdj)" @input="updateHeaderField('headerAdj', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background text-foreground font-mono focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
+                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
+                                        <button
+                                            type="button"
+                                            @click="toggleHeaderAdjSign()"
+                                            class="px-2.5 py-1.5 text-xs font-mono font-bold transition cursor-pointer select-none shrink-0"
+                                            :class="headerAdj < 0 ? 'bg-destructive/15 text-destructive' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'"
+                                            :title="'Klik untuk ganti tanda: ' + (headerAdj < 0 ? 'Minus (Pengurang)' : 'Plus (Penambah)')"
+                                        >
+                                            <span x-text="headerAdj < 0 ? '−' : '+'"></span>
+                                        </button>
+                                        <input
+                                            type="text"
+                                            inputmode="numeric"
+                                            :value="formatThousand(Math.abs(headerAdj))"
+                                            @input="updateHeaderAdj($event)"
+                                            @keydown="handleKeyDown($event)"
+                                            placeholder="0"
+                                            class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono border-0 focus:ring-0"
+                                            :class="headerAdj < 0 ? 'text-destructive font-semibold' : 'text-foreground'"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -463,9 +490,9 @@
                                 <span>Total Ongkos Kirim:</span>
                                 <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalOngkir())"></span>
                             </div>
-                            <div class="flex justify-between text-muted-foreground">
+                            <div class="flex justify-between" :class="totalAdj() < 0 ? 'text-destructive' : 'text-muted-foreground'">
                                 <span>Total Adjustment:</span>
-                                <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalAdj())"></span>
+                                <span class="font-mono font-semibold" :class="totalAdj() < 0 ? 'text-destructive' : 'text-foreground'" x-text="(totalAdj() >= 0 ? '+ Rp ' : '- Rp ') + formatThousand(Math.abs(totalAdj()))"></span>
                             </div>
                             <div class="pt-3 border-t border-border flex justify-between items-center text-sm">
                                 <span class="font-bold text-foreground">Grand Total Tagihan:</span>
@@ -638,7 +665,8 @@
                             }
 
                             if (row._lockedQtySatuanBeli !== '' && row._lockedQtySatuanBeli !== null && row._lockedQtySatuanBeli !== undefined) {
-                                row.qty_satuan_beli = row._lockedQtySatuanBeli;
+                                const parsed = parseFloat(row._lockedQtySatuanBeli);
+                                row.qty_satuan_beli = !isNaN(parsed) ? Math.round(parsed) : row._lockedQtySatuanBeli;
                             }
                             if (row._lockedQty !== '' && row._lockedQty !== null && row._lockedQty !== undefined) {
                                 row.qty = row._lockedQty;
@@ -776,8 +804,39 @@
                     this.updateRowQty(row);
                 },
 
+                handleQtyInput(row, event) {
+                    if (event && event.target) {
+                        let raw = event.target.value;
+                        if (typeof raw === 'string' && (raw.includes('.') || raw.includes(',') || /\D/.test(raw))) {
+                            const clean = raw.replace(/\D/g, '');
+                            event.target.value = clean;
+                            row.qty_satuan_beli = clean ? parseInt(clean, 10) : '';
+                        }
+                    }
+                    if (row.qty_satuan_beli !== '' && row.qty_satuan_beli !== null && row.qty_satuan_beli !== undefined) {
+                        const num = parseFloat(row.qty_satuan_beli);
+                        if (!isNaN(num) && num !== Math.round(num)) {
+                            row.qty_satuan_beli = Math.round(num);
+                        }
+                    }
+                    this.updateRowQty(row);
+                },
+
+                handleQtyPaste(row, event) {
+                    event.preventDefault();
+                    const pasteText = (event.clipboardData || window.clipboardData)?.getData('text') || '';
+                    const clean = pasteText.replace(/\D/g, '');
+                    if (clean) {
+                        const val = parseInt(clean, 10);
+                        row.qty_satuan_beli = val > 0 ? val : '';
+                    } else {
+                        row.qty_satuan_beli = '';
+                    }
+                    this.updateRowQty(row);
+                },
+
                 updateRowQty(row) {
-                    const qtyBeli = parseFloat(row.qty_satuan_beli) || 0;
+                    const qtyBeli = parseInt(row.qty_satuan_beli, 10) || 0;
                     const factor = parseFloat(row.faktor_konversi) || 1;
                     row.qty = Math.round(qtyBeli * factor * 100) / 100;
                     this.recalcAll();
@@ -945,6 +1004,39 @@
                     this[field] = isNaN(num) ? 0 : num;
                     
                     const formatted = this.formatThousand(rawDigits);
+                    input.value = formatted;
+                    this.repositionCursor(input, formatted, digitsBeforeCursor);
+                    this.recalcAll();
+                },
+
+                toggleHeaderAdjSign() {
+                    this.headerAdj = -1 * (parseFloat(this.headerAdj) || 0);
+                    this.recalcAll();
+                },
+
+                updateHeaderAdj(event) {
+                    const input = event.target;
+                    const oldVal = input.value;
+                    const oldPos = input.selectionEnd || 0;
+                    const digitsBeforeCursor = (oldVal.slice(0, oldPos).match(/\d/g) || []).length;
+                    
+                    const isNegative = oldVal.includes('-') || (this.headerAdj < 0 && !oldVal.includes('+'));
+                    let rawDigits = oldVal.replace(/\D/g, '');
+                    if (rawDigits === '') {
+                        this.headerAdj = 0;
+                        input.value = '';
+                        this.recalcAll();
+                        return;
+                    }
+                    if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
+                        rawDigits = String(parseInt(rawDigits, 10) || 0);
+                    }
+                    
+                    const num = parseInt(rawDigits, 10);
+                    const absNum = isNaN(num) ? 0 : num;
+                    this.headerAdj = isNegative ? -absNum : absNum;
+                    
+                    const formatted = this.formatThousand(absNum);
                     input.value = formatted;
                     this.repositionCursor(input, formatted, digitsBeforeCursor);
                     this.recalcAll();
