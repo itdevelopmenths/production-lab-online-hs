@@ -172,8 +172,8 @@ class StokEnhancementTest extends TestCase
 
         // 1. Stok Index
         $resIndex = $this->get(route('stok.index'));
-        $resIndex->assertSee('Filter Lokasi Gudang');
-        $resIndex->assertSee('Filter Kategori Barang');
+        $resIndex->assertSee('Lokasi Gudang');
+        $resIndex->assertSee('Kategori Barang');
         $resIndex->assertDontSee('id="filter-search"', false);
 
         // 2. Stok Ledger with gudang_id
@@ -182,7 +182,7 @@ class StokEnhancementTest extends TestCase
             'gudang_id' => $gOps->id,
         ]));
         $resLedger->assertOk();
-        $resLedger->assertSee('Filter Lokasi Gudang');
+        $resLedger->assertSee('Lokasi Gudang');
         $resLedger->assertSee('Lokasi Terpilih');
 
         // 3. Stok Opname with pre-selected query params

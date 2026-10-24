@@ -208,6 +208,10 @@ class PurchasingController extends Controller
             'termins.*.tanggal_tempo' => ['required_with:termins', 'date'],
             'termins.*.nominal_tagihan' => ['required_with:termins', 'numeric', 'gt:0'],
             'termins.*.keterangan' => ['nullable', 'string', 'max:255'],
+        ], [
+            'items.*.produk_id.distinct' => 'Bahan baku tidak boleh dipilih lebih dari satu kali dalam satu Purchase Order.',
+            'items.*.produk_id.required' => 'Bahan baku wajib dipilih untuk setiap baris.',
+            'items.*.produk_id.exists' => 'Bahan baku yang dipilih tidak valid atau tidak terdaftar.',
         ]);
 
         $totals = $this->calculator->calculatePoTotals(
@@ -315,6 +319,10 @@ class PurchasingController extends Controller
             'termins.*.tanggal_tempo' => ['required_with:termins', 'date'],
             'termins.*.nominal_tagihan' => ['required_with:termins', 'numeric', 'gt:0'],
             'termins.*.keterangan' => ['nullable', 'string', 'max:255'],
+        ], [
+            'items.*.produk_id.distinct' => 'Bahan baku tidak boleh dipilih lebih dari satu kali dalam satu Purchase Order.',
+            'items.*.produk_id.required' => 'Bahan baku wajib dipilih untuk setiap baris.',
+            'items.*.produk_id.exists' => 'Bahan baku yang dipilih tidak valid atau tidak terdaftar.',
         ]);
 
         $totals = $this->calculator->calculatePoTotals(
@@ -557,40 +565,73 @@ class PurchasingController extends Controller
             'tanggal_bayar' => ['required', 'date'],
             'nominal' => ['required', 'numeric', 'gt:0'],
             'termin_id' => ['nullable', 'exists:purchase_order_termins,id'],
+            'tanggal_tempo_baru' => ['nullable', 'date'],
         ]);
 
         $oldStatusBayar = $purchaseOrder->status_pembayaran;
         $this->paymentService->recordPayment($purchaseOrder, $data);
         $freshPo = $purchaseOrder->fresh();
 
+        $customChanges = ['status_pembayaran' => [$oldStatusBayar, $freshPo?->status_pembayaran ?? $oldStatusBayar]];
+
+        // Jika ada adjustment tanggal jatuh tempo pada skema tempo
+        if (!empty($data['tanggal_tempo_baru']) && $purchaseOrder->skema_bayar === 'tempo') {
+            $oldTempo = $purchaseOrder->tanggal_tempo?->format('Y-m-d');
+            $purchaseOrder->update(['tanggal_tempo' => $data['tanggal_tempo_baru']]);
+            $customChanges['tanggal_tempo'] = [$oldTempo, $data['tanggal_tempo_baru']];
+        }
+
         $purchaseOrder->recordAudit(
             event: 'paid',
             actionTitle: "Pencatatan pembayaran " . ucfirst($data['skema']) . " senilai Rp " . number_format($data['nominal'], 0, ',', '.') . " untuk PO {$purchaseOrder->no_po}",
-            customChanges: ['status_pembayaran' => [$oldStatusBayar, $freshPo?->status_pembayaran ?? $oldStatusBayar]],
+            customChanges: $customChanges,
             metadata: [
                 'skema' => $data['skema'],
                 'nominal' => (float) $data['nominal'],
                 'tanggal_bayar' => $data['tanggal_bayar'],
+                'tanggal_tempo_baru' => $data['tanggal_tempo_baru'] ?? null,
             ]
         );
 
         return back()->with('success', 'Pembayaran dicatat.');
     }
 
-    public function cancel(PurchaseOrder $purchaseOrder)
+    public function cancel(Request $request, PurchaseOrder $purchaseOrder)
     {
         $this->authorize('purchasing.cancel');
         $this->ensureStatus($purchaseOrder, ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']);
+
+        $data = $request->validate([
+            'alasan' => ['nullable', 'string', 'max:500'],
+        ], [
+            'alasan.max' => 'Alasan pembatalan maksimal 500 karakter.',
+        ]);
+
+        $alasan = !empty($data['alasan']) ? trim($data['alasan']) : 'Dibatalkan oleh pengguna';
+
         $oldStatus = $purchaseOrder->status;
-        $purchaseOrder->update(['status' => 'dibatalkan']);
+        $oldCatatan = $purchaseOrder->catatan;
+        $alasanEntry = "[Alasan Pembatalan: {$alasan}]";
+        $newCatatan = $oldCatatan ? ($oldCatatan . "\n" . $alasanEntry) : $alasanEntry;
+
+        $purchaseOrder->update([
+            'status' => 'dibatalkan',
+            'catatan' => $newCatatan,
+        ]);
 
         $purchaseOrder->recordAudit(
             event: 'cancelled',
-            actionTitle: "Pembatalan Dokumen PO {$purchaseOrder->no_po}",
-            customChanges: ['status' => [$oldStatus, 'dibatalkan']]
+            actionTitle: "Pembatalan Dokumen PO {$purchaseOrder->no_po}: {$alasan}",
+            customChanges: [
+                'status' => [$oldStatus, 'dibatalkan'],
+                'catatan' => [$oldCatatan, $newCatatan],
+            ],
+            metadata: [
+                'alasan_pembatalan' => $alasan,
+            ]
         );
 
-        return back()->with('success', 'PO dibatalkan.');
+        return back()->with('success', 'Purchase Order berhasil dibatalkan.');
     }
 
     private function ensureStatus(PurchaseOrder $po, array $allowed): void

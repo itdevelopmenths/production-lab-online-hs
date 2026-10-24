@@ -461,5 +461,277 @@ class PurchasingRevampFlowTest extends TestCase
         $resGudang->assertDontSee('Antrean Approval');
         $resGudang->assertDontSee('id="tblApproval"', false);
     }
+
+    public function test_duplicate_raw_material_in_purchasing_create_is_rejected(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+        $gudang = Gudang::firstOrFail();
+        $bahan = Produk::bahan()->firstOrFail();
+
+        $payload = [
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudang->id,
+            'tanggal' => now()->format('Y-m-d'),
+            'skema_bayar' => 'cash',
+            'items' => [
+                [
+                    'produk_id' => $bahan->id,
+                    'qty' => 10,
+                    'qty_satuan_beli' => 10,
+                    'satuan_beli' => $bahan->satuan,
+                    'faktor_konversi' => 1,
+                    'harga_total' => 100000,
+                ],
+                [
+                    'produk_id' => $bahan->id, // Duplikat bahan yang sama
+                    'qty' => 5,
+                    'qty_satuan_beli' => 5,
+                    'satuan_beli' => $bahan->satuan,
+                    'faktor_konversi' => 1,
+                    'harga_total' => 50000,
+                ],
+            ],
+        ];
+
+        $res = $this->actingAs($purchasing)->post(route('purchasing.store'), $payload);
+        $res->assertSessionHasErrors(['items.0.produk_id', 'items.1.produk_id']);
+    }
+
+    public function test_draft_po_does_not_leak_into_hpp_until_received_at_warehouse(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+        $gudang = Gudang::firstOrFail();
+        $stokService = app(\App\Services\StokService::class);
+
+        // 1. Buat produk bahan baru tanpa HPP
+        $newBahan = Produk::create([
+            'sku' => 'TEST-HPP-STAGE-' . uniqid(),
+            'nama' => 'Bahan Uji HPP Stage',
+            'tipe' => 'bahan',
+            'satuan' => 'KG',
+            'harga_hpp' => 0,
+            'status' => 'aktif',
+        ]);
+
+        // Verifikasi awal HPP = 0
+        $hppMapInit = $stokService->resolveHppMap([$newBahan->id]);
+        $this->assertEquals(0.0, (float) ($hppMapInit[$newBahan->id] ?? 0));
+
+        // 2. Buat PO berstatus 'draft'
+        $poDraft = PurchaseOrder::create([
+            'no_po' => 'PO-DRAFT-' . uniqid(),
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudang->id,
+            'tanggal' => now(),
+            'status' => 'draft',
+            'skema_bayar' => 'cash',
+            'grand_total' => 750000,
+            'created_by' => $purchasing->id,
+        ]);
+
+        $poDraft->items()->create([
+            'produk_id' => $newBahan->id,
+            'qty' => 10,
+            'harga_total' => 750000,
+            'hpp_per_satuan' => 75000.0,
+        ]);
+
+        // HPP HARUS TETAP 0 karena PO masih draft (belum diterima gudang)
+        $hppMapDraft = $stokService->resolveHppMap([$newBahan->id]);
+        $this->assertEquals(0.0, (float) ($hppMapDraft[$newBahan->id] ?? 0), 'PO status draft tidak boleh bocor ke HPP');
+
+        // Pastikan juga di endpoint produk/select-data HPP tetap 0
+        $this->actingAs($purchasing);
+        $selectRes = $this->getJson(route('produk.select-data', ['q' => $newBahan->sku]));
+        $selectRes->assertOk();
+        $found = collect($selectRes->json('items'))->firstWhere('id', $newBahan->id);
+        $this->assertNotNull($found);
+        $this->assertEquals(0.0, (float) $found['harga_hpp'], 'Endpoint produk/select-data tidak boleh menampilkan HPP dari PO draft');
+
+        // 3. Ubah status PO ke 'dikirim_ke_gudang' (masih belum diterima fisik)
+        $poDraft->update(['status' => 'dikirim_ke_gudang']);
+        $hppMapDikirim = $stokService->resolveHppMap([$newBahan->id]);
+        $this->assertEquals(0.0, (float) ($hppMapDikirim[$newBahan->id] ?? 0), 'PO status dikirim_ke_gudang belum diterima sehingga HPP tidak boleh muncul');
+
+        // 4. Tahap Diterima Gudang: PO diselesaikan (status 'selesai')
+        $poDraft->update(['status' => 'selesai']);
+        $hppMapReceived = $stokService->resolveHppMap([$newBahan->id]);
+        $this->assertEquals(75000.0, (float) ($hppMapReceived[$newBahan->id] ?? 0), 'HPP wajib muncul saat PO sudah diterima gudang (selesai)');
+
+        // Verifikasi kembali di endpoint produk/select-data
+        $selectResAfter = $this->getJson(route('produk.select-data', ['q' => $newBahan->sku]));
+        $selectResAfter->assertOk();
+        $foundAfter = collect($selectResAfter->json('items'))->firstWhere('id', $newBahan->id);
+        $this->assertNotNull($foundAfter);
+        $this->assertEquals(75000.0, (float) $foundAfter['harga_hpp'], 'HPP di endpoint select-data wajib terupdate setelah PO diterima di gudang');
+    }
+
+    public function test_cancel_po_with_reason_stores_reason_in_catatan_and_audit_trail(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::active()->firstOrFail();
+        $gudang = Gudang::firstOrFail();
+
+        $po = PurchaseOrder::create([
+            'no_po' => 'PO-TEST-CANCEL-' . uniqid(),
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudang->id,
+            'tanggal' => now(),
+            'status' => 'diajukan',
+            'skema_bayar' => 'tempo',
+            'grand_total' => 1500000,
+            'created_by' => $manager->id,
+            'catatan' => 'Catatan awal sebelum batal',
+        ]);
+
+        $this->actingAs($manager);
+
+        // Verify show view renders the cancel modal and redesigned nominal bayar
+        $showRes = $this->get(route('purchasing.show', $po));
+        $showRes->assertOk();
+        $showRes->assertSee('Batalkan Purchase Order');
+        $showRes->assertSee('Alasan Pembatalan');
+        $showRes->assertSee('openCancelModal');
+        $showRes->assertSee('Nominal Bayar');
+        $showRes->assertSee('displayNominal');
+
+        // Post cancel with specific reason
+        $cancelReason = 'Supplier menginformasikan bahan baku reject QC pabrik vendor.';
+        $response = $this->post(route('purchasing.cancel', $po), [
+            'alasan' => $cancelReason,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $po->refresh();
+        $this->assertEquals('dibatalkan', $po->status);
+        $this->assertStringContainsString('Catatan awal sebelum batal', $po->catatan);
+        $this->assertStringContainsString("[Alasan Pembatalan: {$cancelReason}]", $po->catatan);
+
+        // Verify audit log has the cancellation reason in title and metadata
+        $audit = \App\Models\OperationalAudit::where('auditable_type', PurchaseOrder::class)
+            ->where('auditable_id', (string) $po->id)
+            ->where('event', 'cancelled')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($audit, 'Log audit pembatalan PO wajib tercatat');
+        $this->assertStringContainsString($cancelReason, $audit->action_title);
+        $this->assertIsArray($audit->metadata);
+        $this->assertEquals($cancelReason, $audit->metadata['alasan_pembatalan']);
+    }
+
+    public function test_cancel_po_validation_rejects_excessive_reason(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::active()->firstOrFail();
+        $gudang = Gudang::firstOrFail();
+
+        $po = PurchaseOrder::create([
+            'no_po' => 'PO-TEST-CANCEL-MAX-' . uniqid(),
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudang->id,
+            'tanggal' => now(),
+            'status' => 'draft',
+            'skema_bayar' => 'cash',
+            'grand_total' => 500000,
+            'created_by' => $manager->id,
+        ]);
+
+        $this->actingAs($manager);
+
+        // Kirim alasan > 500 karakter
+        $longReason = str_repeat('A', 501);
+        $res = $this->post(route('purchasing.cancel', $po), [
+            'alasan' => $longReason,
+        ]);
+
+        $res->assertSessionHasErrors(['alasan']);
+
+        $po->refresh();
+        $this->assertEquals('draft', $po->status, 'Status PO tidak boleh berubah jika validasi alasan gagal');
+    }
+
+    public function test_payment_nominal_input_only_for_termin_tempo_and_supports_tempo_adjustment(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::active()->firstOrFail();
+        $gudang = Gudang::firstOrFail();
+
+        // 1. PO Cash: Tidak menampilkan custom nominal input yang diedit, langsung pelunasan penuh
+        $poCash = PurchaseOrder::create([
+            'no_po' => 'PO-CASH-' . uniqid(),
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudang->id,
+            'tanggal' => now(),
+            'status' => 'disetujui',
+            'skema_bayar' => 'cash',
+            'subtotal_produk' => 1000000,
+            'grand_total' => 1000000,
+            'created_by' => $manager->id,
+        ]);
+
+        $this->actingAs($manager);
+        $resCash = $this->get(route('purchasing.show', $poCash));
+        $resCash->assertOk();
+        $resCash->assertSee('Total Pembayaran Tunai');
+        $resCash->assertSee('Catat Pembayaran Tunai Penuh');
+        $resCash->assertDontSee('Nominal Bayar (Custom / Diedit)');
+
+        // 2. PO Tempo: Menampilkan input custom nominal dan fitur adjustment jatuh tempo
+        $originalTempoDate = now()->addDays(14)->toDateString();
+        $poTempo = PurchaseOrder::create([
+            'no_po' => 'PO-TEMPO-' . uniqid(),
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudang->id,
+            'tanggal' => now(),
+            'tanggal_tempo' => $originalTempoDate,
+            'status' => 'disetujui',
+            'skema_bayar' => 'tempo',
+            'subtotal_produk' => 2000000,
+            'grand_total' => 2000000,
+            'created_by' => $manager->id,
+        ]);
+
+        $resTempo = $this->get(route('purchasing.show', $poTempo));
+        $resTempo->assertOk();
+        $resTempo->assertSee('Nominal Bayar (Custom / Diedit)');
+        $resTempo->assertSee('Adjustment Jatuh Tempo PO');
+        $resTempo->assertSee('name="tanggal_tempo_baru"', false);
+
+        // 3. Eksekusi Pembayaran Parsial Tempo dengan Custom Nominal + Adjustment Tanggal Tempo
+        $newTempoDate = now()->addDays(30)->toDateString();
+        $payRes = $this->post(route('purchasing.pay', $poTempo), [
+            'skema' => 'tempo',
+            'tanggal_bayar' => now()->toDateString(),
+            'nominal' => 750000, // Custom nominal yang dibayar
+            'tanggal_tempo_baru' => $newTempoDate, // Adjustment tempo
+        ]);
+
+        $payRes->assertRedirect();
+        $payRes->assertSessionHas('success');
+
+        $poTempo->refresh();
+        $this->assertEquals('parsial', $poTempo->status_pembayaran);
+        $this->assertEquals(750000.0, (float) $poTempo->totalDibayar());
+        $this->assertEquals(1250000.0, (float) $poTempo->sisaTagihan());
+        $this->assertEquals($newTempoDate, $poTempo->tanggal_tempo->format('Y-m-d'), 'Tanggal tempo PO wajib diperbarui oleh fitur adjustment tempo');
+
+        // Verifikasi audit trail mencatat adjustment tempo
+        $audit = \App\Models\OperationalAudit::where('auditable_type', PurchaseOrder::class)
+            ->where('auditable_id', (string) $poTempo->id)
+            ->where('event', 'paid')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($audit);
+        $this->assertArrayHasKey('tanggal_tempo', $audit->new_values);
+        $this->assertEquals($originalTempoDate, $audit->old_values['tanggal_tempo']);
+        $this->assertEquals($newTempoDate, $audit->new_values['tanggal_tempo']);
+        $this->assertEquals($newTempoDate, $audit->metadata['tanggal_tempo_baru']);
+    }
 }
 

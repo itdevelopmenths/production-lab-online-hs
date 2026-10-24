@@ -125,20 +125,21 @@ class StokService
      */
     public function resolveHppMap(array $produkIds = []): array
     {
-        // 1. PO Items (prioritaskan PO valid, urutkan status & tanggal terbaru)
+        // 1. PO Items (HANYA PO yang telah mencapai stage diterima gudang: status selesai atau ada barang datang)
         $poItemsQuery = DB::table('purchase_order_items as poi')
             ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
-            ->where('po.status', '!=', 'dibatalkan')
+            ->where(function ($q) {
+                $q->where('po.status', 'selesai')
+                    ->orWhereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('barang_datang as bd')
+                            ->whereColumn('bd.po_id', 'po.id');
+                    });
+            })
             ->where(function ($q) {
                 $q->where('poi.hpp_per_satuan', '>', 0)
                     ->orWhere('poi.harga_total', '>', 0);
             })
-            ->orderByRaw("CASE 
-                WHEN po.status = 'selesai' THEN 1
-                WHEN po.status = 'dikirim_ke_gudang' THEN 2
-                WHEN po.status = 'disetujui' THEN 3
-                WHEN po.status = 'diajukan' THEN 4
-                ELSE 5 END ASC")
             ->orderByDesc('po.tanggal')
             ->orderByDesc('po.created_at')
             ->orderByDesc('poi.id')

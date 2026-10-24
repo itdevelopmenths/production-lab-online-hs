@@ -3,6 +3,8 @@
         $oldItems = old('items');
         $oldTermins = old('termins');
         $rows = [];
+        $oldProductIds = is_array($oldItems) ? array_filter(array_column($oldItems, 'produk_id')) : [];
+        $oldHppMap = !empty($oldProductIds) ? app(\App\Services\StokService::class)->resolveHppMap($oldProductIds) : [];
         if (is_array($oldItems)) {
             foreach ($oldItems as $item) {
                 $p = \App\Models\Produk::find($item['produk_id'] ?? null);
@@ -10,6 +12,7 @@
                 $satuanBeli = $item['satuan_beli'] ?? ($p?->satuan ?? '');
                 $faktorKonversi = (float) ($item['faktor_konversi'] ?? 1);
                 $baseQty = (float) ($item['qty'] ?? (($qtySatuanBeli !== '' ? (float)$qtySatuanBeli : 0) * $faktorKonversi));
+                $hppLama = $p ? (float) ($oldHppMap[$p->id] ?? $p->harga_hpp ?? 0) : 0;
                 $rows[] = [
                     'produk_id' => $item['produk_id'] ?? '',
                     'qty_satuan_beli' => $qtySatuanBeli,
@@ -23,7 +26,7 @@
                         'sku' => $p->sku,
                         'nama' => $p->nama,
                         'satuan' => $p->satuan,
-                        'harga_hpp' => (float) $p->harga_hpp,
+                        'harga_hpp' => $hppLama,
                     ] : null,
                 ];
             }
@@ -65,7 +68,7 @@
         </x-page-header>
 
         <div x-data="poForm({{ Js::from($initialData) }})" x-init="init()">
-            <form method="POST" action="{{ route('purchasing.store') }}">
+            <form method="POST" action="{{ route('purchasing.store') }}" @submit="handleSubmit($event)">
             @csrf
             <div class="space-y-6">
                 {{-- Card 1: Informasi Header PO & Lokasi --}}
@@ -145,7 +148,7 @@
                                         :style="'position: relative; z-index: ' + (activeRow === i ? 200 : (100 - i))"
                                         @hs-dropdown-opened.window="if ($event.detail === `items[${i}][produk_id]`) activeRow = i"
                                         @hs-dropdown-closed.window="if ($event.detail === `items[${i}][produk_id]` && activeRow === i) activeRow = null"
-                                        @product-selected="onProductSelected(row, $event.detail)"
+                                        @product-selected="onProductSelected(row, $event.detail, i)"
                                     >
                                         {{-- Kolom 1: Produk Search Select --}}
                                         <td class="px-4 py-3" :style="activeRow === i ? 'position: relative; z-index: 200;' : ''">
@@ -218,13 +221,25 @@
 
                                                     <div class="max-h-48 overflow-y-auto divide-y divide-border">
                                                         <template x-for="item in items" :key="item.id">
-                                                            <div @click="select(item)" :class="selectedId == item.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50'" class="px-3.5 py-2.5 cursor-pointer transition flex items-center justify-between gap-2 select-none">
+                                                            <div
+                                                                @click="isProductSelectedElsewhere(item.id, i) ? alertDuplicate(item) : select(item)"
+                                                                :class="isProductSelectedElsewhere(item.id, i) ? 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed opacity-60' : (selectedId == item.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50 cursor-pointer')"
+                                                                class="px-3.5 py-2.5 transition flex items-center justify-between gap-2 select-none"
+                                                            >
                                                                 <div class="flex items-center gap-2 truncate pointer-events-none">
                                                                     <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
-                                                                    <span class="truncate font-medium text-foreground" x-text="item.nama"></span>
+                                                                    <span class="truncate font-medium" :class="isProductSelectedElsewhere(item.id, i) ? 'text-muted-foreground' : 'text-foreground'" x-text="item.nama"></span>
+                                                                    <template x-if="isProductSelectedElsewhere(item.id, i)">
+                                                                        <span class="text-[9px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Sudah Dipilih</span>
+                                                                    </template>
                                                                 </div>
                                                                 <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
-                                                                    <span class="text-[9px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20" x-text="'HPP: Rp ' + formatHpp(item.harga_hpp || 0)"></span>
+                                                                    <template x-if="parseFloat(item.harga_hpp || 0) > 0">
+                                                                        <span class="text-[9px] font-mono text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20" x-text="'HPP: Rp ' + formatHpp(item.harga_hpp)"></span>
+                                                                    </template>
+                                                                    <template x-if="!parseFloat(item.harga_hpp || 0)">
+                                                                        <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border italic">Belum ada HPP</span>
+                                                                    </template>
                                                                     <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan"></span>
                                                                 </div>
                                                             </div>
@@ -625,7 +640,7 @@
                 _isInitialized: false,
             }));
 
-            return {
+            const form = {
                 uomList: @json($uomList ?? []),
                 skemaBayar: initial.skemaBayar || 'cash',
                 headerDiskonMode: 'nominal',
@@ -643,6 +658,57 @@
                     { tanggal_tempo: '', nominal_tagihan: 0, keterangan: 'Termin 1' }
                 ],
                 activeRow: null,
+
+                isProductSelectedElsewhere(productId, rowIndex) {
+                    if (!productId) return false;
+                    const pStr = String(productId);
+                    const currentRows = this.rows || form.rows || [];
+                    return currentRows.some((r, idx) => idx !== rowIndex && String(r.produk_id) === pStr);
+                },
+
+                alertDuplicate(item) {
+                    const nama = item && item.nama ? item.nama : 'Bahan baku ini';
+                    if (window.Swal) {
+                        window.Swal.fire({
+                            icon: 'warning',
+                            title: 'Bahan Baku Sudah Dipilih',
+                            text: `Bahan baku "${nama}" sudah ada di daftar baris lain. Setiap bahan baku hanya boleh diinput 1 kali per Purchase Order.`,
+                            confirmButtonColor: '#0284c7',
+                            confirmButtonText: 'Mengerti'
+                        });
+                    } else {
+                        alert(`Bahan baku "${nama}" sudah ada di daftar baris lain. Setiap bahan baku hanya boleh diinput 1 kali per Purchase Order.`);
+                    }
+                },
+
+                handleSubmit(event) {
+                    const currentRows = this.rows || form.rows || [];
+                    const seen = new Set();
+                    for (let idx = 0; idx < currentRows.length; idx++) {
+                        const pid = currentRows[idx].produk_id;
+                        if (pid) {
+                            const pStr = String(pid);
+                            if (seen.has(pStr)) {
+                                event.preventDefault();
+                                const nama = currentRows[idx].selectedItem?.nama || `Baris ke-${idx + 1}`;
+                                if (window.Swal) {
+                                    window.Swal.fire({
+                                        icon: 'error',
+                                        title: 'Duplikasi Bahan Baku',
+                                        text: `Bahan baku "${nama}" diinput lebih dari satu kali. Mohon hapus atau ganti baris yang duplikat sebelum menyimpan PO.`,
+                                        confirmButtonColor: '#ef4444',
+                                        confirmButtonText: 'Periksa Kembali'
+                                    });
+                                } else {
+                                    alert(`Bahan baku "${nama}" diinput lebih dari satu kali. Mohon hapus atau ganti baris yang duplikat sebelum menyimpan PO.`);
+                                }
+                                return false;
+                            }
+                            seen.add(pStr);
+                        }
+                    }
+                    return true;
+                },
 
                 init() {
                     this.$nextTick(() => {
@@ -757,8 +823,24 @@
                     return options;
                 },
 
-                onProductSelected(row, product) {
+                onProductSelected(row, product, rowIndex) {
                     if (product) {
+                        // Cegah memilih bahan baku yang sudah ada di baris lain
+                        if (this.isProductSelectedElsewhere(product.id, rowIndex)) {
+                            this.alertDuplicate(product);
+                            row.produk_id = '';
+                            row.satuan = '';
+                            row.selectedItem = null;
+                            row.satuan_beli = '';
+                            row.faktor_konversi = 1;
+                            row.qty = 0;
+                            row.qty_satuan_beli = '';
+                            row._lockedSatuanBeli = '';
+                            row._lockedFaktorKonversi = 1;
+                            this.recalcAll();
+                            return;
+                        }
+
                         const isSameProduct = (row.produk_id && String(row.produk_id) === String(product.id));
                         row.produk_id = product.id;
                         row.satuan = product.satuan;
@@ -1181,6 +1263,7 @@
                     }
                 }
             };
+            return form;
         }
     </script>
     @endpush
