@@ -409,126 +409,207 @@
                 {{-- Card 3: Rekapitulasi Biaya & Grand Total --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-0">
                     <x-card title="Biaya Tambahan Global (Opsional)" subtitle="Biaya tingkat PO yang otomatis dialokasikan ke HPP bahan baku">
-                        <div class="space-y-3.5">
-                            <div class="flex items-center justify-between gap-4">
+                        <div class="space-y-4">
+                            {{-- Baris 1: Diskon Global PO --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                                 <div class="flex items-center gap-1.5 min-w-0">
                                     <label class="text-xs text-foreground font-medium">Diskon Global PO</label>
                                     <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerDiskonMode === 'persen' && headerDiskon > 0" x-text="'(= Rp ' + formatThousand(headerDiskon) + ')'"></span>
                                 </div>
-                                <div class="w-48">
+                                <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                                     <input type="hidden" name="diskon_total" :value="headerDiskon">
-                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
+                                    {{-- Segmented Mode Switcher: Rp vs % --}}
+                                    <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none" role="group" aria-label="Mode Diskon">
                                         <button
                                             type="button"
-                                            @click="toggleHeaderDiskonMode()"
-                                            class="px-2.5 py-1.5 text-[10px] font-mono font-bold transition cursor-pointer select-none shrink-0"
-                                            :class="headerDiskonMode === 'persen' ? 'bg-destructive/15 text-destructive' : 'bg-muted text-muted-foreground'"
-                                            :title="'Klik untuk ganti mode: ' + (headerDiskonMode === 'persen' ? 'Persentase (%)' : 'Nominal (Rp)')"
+                                            @click="setHeaderDiskonMode('nominal')"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer"
+                                            :class="headerDiskonMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="Diskon dalam bentuk Nominal Rupiah"
                                         >
-                                            <span x-text="headerDiskonMode === 'persen' ? '%' : 'Rp'"></span>
+                                            Rp
                                         </button>
+                                        <button
+                                            type="button"
+                                            @click="setHeaderDiskonMode('persen')"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer"
+                                            :class="headerDiskonMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="Diskon dalam bentuk Persentase (%)"
+                                        >
+                                            %
+                                        </button>
+                                    </div>
+
+                                    {{-- Input Diskon --}}
+                                    <div class="relative w-36 sm:w-40">
                                         <template x-if="headerDiskonMode === 'persen'">
-                                            <input
-                                                type="number"
-                                                step="any"
-                                                min="0"
-                                                max="100"
-                                                x-model.number="headerDiskonVal"
-                                                @input="recalcHeaderDiskon()"
-                                                @keydown.enter.prevent
-                                                placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-destructive border-0 focus:ring-0"
-                                            />
+                                            <div class="relative flex items-center">
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    min="0"
+                                                    max="100"
+                                                    x-model.number="headerDiskonVal"
+                                                    @input="recalcHeaderDiskon()"
+                                                    @keydown.enter.prevent
+                                                    placeholder="0"
+                                                    class="w-full text-right text-xs py-1.5 pl-2.5 pr-6 rounded-lg border border-input bg-background font-mono text-destructive font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                />
+                                                <span class="absolute right-2.5 text-xs text-destructive font-mono font-bold pointer-events-none">%</span>
+                                            </div>
                                         </template>
                                         <template x-if="headerDiskonMode !== 'persen'">
-                                            <input
-                                                type="text"
-                                                inputmode="numeric"
-                                                :value="formatThousand(headerDiskon)"
-                                                @input="updateHeaderField('headerDiskon', $event)"
-                                                @keydown="handleKeyDown($event)"
-                                                placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-destructive border-0 focus:ring-0"
-                                            />
+                                            <div class="relative flex items-center">
+                                                <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
+                                                <input
+                                                    type="text"
+                                                    inputmode="numeric"
+                                                    :value="formatThousand(headerDiskon)"
+                                                    @input="updateHeaderField('headerDiskon', $event)"
+                                                    @keydown="handleKeyDown($event)"
+                                                    placeholder="0"
+                                                    class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background font-mono text-destructive font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                />
+                                            </div>
                                         </template>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between gap-4">
+
+                            {{-- Baris 2: PPN Global PO --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                                 <div class="flex items-center gap-1.5 min-w-0">
                                     <label class="text-xs text-foreground font-medium">PPN Global PO</label>
                                     <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerPpnMode === 'persen' && headerPpn > 0" x-text="'(= Rp ' + formatThousand(headerPpn) + ')'"></span>
                                 </div>
-                                <div class="w-48">
+                                <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                                     <input type="hidden" name="ppn_nominal" :value="headerPpn">
-                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
+                                    {{-- Segmented Mode Switcher: Rp vs % --}}
+                                    <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none" role="group" aria-label="Mode PPN">
                                         <button
                                             type="button"
-                                            @click="toggleHeaderPpnMode()"
-                                            class="px-2.5 py-1.5 text-[10px] font-mono font-bold transition cursor-pointer select-none shrink-0"
-                                            :class="headerPpnMode === 'persen' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'"
-                                            :title="'Klik untuk ganti mode: ' + (headerPpnMode === 'persen' ? 'Persentase (%)' : 'Nominal (Rp)')"
+                                            @click="setHeaderPpnMode('nominal')"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer"
+                                            :class="headerPpnMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="PPN dalam bentuk Nominal Rupiah"
                                         >
-                                            <span x-text="headerPpnMode === 'persen' ? '%' : 'Rp'"></span>
+                                            Rp
                                         </button>
+                                        <button
+                                            type="button"
+                                            @click="setHeaderPpnMode('persen')"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer"
+                                            :class="headerPpnMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="PPN dalam bentuk Persentase (%)"
+                                        >
+                                            %
+                                        </button>
+                                    </div>
+
+                                    {{-- Input PPN --}}
+                                    <div class="relative w-36 sm:w-40">
                                         <template x-if="headerPpnMode === 'persen'">
-                                            <input
-                                                type="number"
-                                                step="any"
-                                                min="0"
-                                                max="100"
-                                                x-model.number="headerPpnVal"
-                                                @input="recalcHeaderPpn()"
-                                                @keydown.enter.prevent
-                                                placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-foreground border-0 focus:ring-0"
-                                            />
+                                            <div class="relative flex items-center">
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    min="0"
+                                                    max="100"
+                                                    x-model.number="headerPpnVal"
+                                                    @input="recalcHeaderPpn()"
+                                                    @keydown.enter.prevent
+                                                    placeholder="0"
+                                                    class="w-full text-right text-xs py-1.5 pl-2.5 pr-6 rounded-lg border border-input bg-background font-mono text-foreground font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                />
+                                                <span class="absolute right-2.5 text-xs text-muted-foreground font-mono font-bold pointer-events-none">%</span>
+                                            </div>
                                         </template>
                                         <template x-if="headerPpnMode !== 'persen'">
-                                            <input
-                                                type="text"
-                                                inputmode="numeric"
-                                                :value="formatThousand(headerPpn)"
-                                                @input="updateHeaderField('headerPpn', $event)"
-                                                @keydown="handleKeyDown($event)"
-                                                placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-foreground border-0 focus:ring-0"
-                                            />
+                                            <div class="relative flex items-center">
+                                                <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
+                                                <input
+                                                    type="text"
+                                                    inputmode="numeric"
+                                                    :value="formatThousand(headerPpn)"
+                                                    @input="updateHeaderField('headerPpn', $event)"
+                                                    @keydown="handleKeyDown($event)"
+                                                    placeholder="0"
+                                                    class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background font-mono text-foreground font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                />
+                                            </div>
                                         </template>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between gap-4">
-                                <label class="text-xs text-foreground font-medium">Ongkos Kirim Global (Rp)</label>
-                                <div class="w-48">
+
+                            {{-- Baris 3: Ongkos Kirim Global --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                                <label class="text-xs text-foreground font-medium">Ongkos Kirim Global</label>
+                                <div class="relative w-36 sm:w-40 self-end sm:self-auto">
                                     <input type="hidden" name="ongkos_kirim" :value="headerOngkir">
-                                    <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background text-foreground font-mono focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between gap-4">
-                                <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan (Rp)</label>
-                                <div class="w-48">
-                                    <input type="hidden" name="adjustment" :value="headerAdj">
-                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
-                                        <button
-                                            type="button"
-                                            @click="toggleHeaderAdjSign()"
-                                            class="px-2.5 py-1.5 text-xs font-mono font-bold transition cursor-pointer select-none shrink-0"
-                                            :class="headerAdj < 0 ? 'bg-destructive/15 text-destructive' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'"
-                                            :title="'Klik untuk ganti tanda: ' + (headerAdj < 0 ? 'Minus (Pengurang)' : 'Plus (Penambah)')"
-                                        >
-                                            <span x-text="headerAdj < 0 ? '−' : '+'"></span>
-                                        </button>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
                                         <input
                                             type="text"
                                             inputmode="numeric"
-                                            :value="formatThousand(Math.abs(headerAdj))"
-                                            @input="updateHeaderAdj($event)"
+                                            :value="formatThousand(headerOngkir)"
+                                            @input="updateHeaderField('headerOngkir', $event)"
                                             @keydown="handleKeyDown($event)"
                                             placeholder="0"
-                                            class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono border-0 focus:ring-0"
-                                            :class="headerAdj < 0 ? 'text-destructive font-semibold' : 'text-foreground'"
+                                            class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background text-foreground font-mono font-medium focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                                         />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Baris 4: Adjustment / Pembulatan --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                                <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan</label>
+                                <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                                    <input type="hidden" name="adjustment" :value="headerAdj">
+                                    {{-- Segmented Sign Switcher: + Tambah vs - Kurang --}}
+                                    <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none" role="group" aria-label="Arah Penyesuaian">
+                                        <button
+                                            type="button"
+                                            @click="setHeaderAdjSign(1)"
+                                            class="px-2 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1"
+                                            :class="headerAdj >= 0 ? 'bg-background text-emerald-600 dark:text-emerald-400 font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="Penambah"
+                                        >
+                                            <span class="font-bold text-xs">+</span>
+                                            <span class="text-[11px]">Tambah</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="setHeaderAdjSign(-1)"
+                                            class="px-2 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1"
+                                            :class="headerAdj < 0 ? 'bg-background text-destructive font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="Pengurang"
+                                        >
+                                            <span class="font-bold text-xs">−</span>
+                                            <span class="text-[11px]">Kurang</span>
+                                        </button>
+                                    </div>
+
+                                    {{-- Input Nominal Adjustment --}}
+                                    <div class="relative w-36 sm:w-40">
+                                        <div class="relative flex items-center">
+                                            <span
+                                                class="absolute left-2.5 text-[10px] font-mono font-bold pointer-events-none"
+                                                :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')"
+                                                x-text="headerAdj < 0 ? '- Rp' : (headerAdj > 0 ? '+ Rp' : 'Rp')"
+                                            ></span>
+                                            <input
+                                                type="text"
+                                                inputmode="numeric"
+                                                :value="formatThousand(Math.abs(headerAdj))"
+                                                @input="updateHeaderAdj($event)"
+                                                @keydown="handleKeyDown($event)"
+                                                placeholder="0"
+                                                class="w-full text-right text-xs py-1.5 pl-10 pr-2.5 rounded-lg border border-input bg-background font-mono font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground')"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1011,17 +1092,20 @@
                     if (this.headerPpnMode === 'persen') this.recalcHeaderPpn();
                 },
 
-                toggleHeaderDiskonMode() {
-                    if (this.headerDiskonMode === 'persen') {
-                        this.headerDiskonMode = 'nominal';
-                    } else {
-                        this.headerDiskonMode = 'persen';
+                setHeaderDiskonMode(mode) {
+                    if (this.headerDiskonMode === mode) return;
+                    this.headerDiskonMode = mode;
+                    if (mode === 'persen') {
                         const sub = this.subtotalProduk();
                         if (!this.headerDiskonVal && this.headerDiskon > 0 && sub > 0) {
                             this.headerDiskonVal = Math.round(((parseFloat(this.headerDiskon) || 0) / sub) * 10000) / 100;
                         }
                     }
                     this.recalcHeaderDiskon();
+                },
+
+                toggleHeaderDiskonMode() {
+                    this.setHeaderDiskonMode(this.headerDiskonMode === 'persen' ? 'nominal' : 'persen');
                 },
 
                 recalcHeaderDiskon() {
@@ -1035,11 +1119,10 @@
                     }
                 },
 
-                toggleHeaderPpnMode() {
-                    if (this.headerPpnMode === 'persen') {
-                        this.headerPpnMode = 'nominal';
-                    } else {
-                        this.headerPpnMode = 'persen';
+                setHeaderPpnMode(mode) {
+                    if (this.headerPpnMode === mode) return;
+                    this.headerPpnMode = mode;
+                    if (mode === 'persen') {
                         const dpp = Math.max(0, this.subtotalProduk() - this.totalDiskon());
                         if (!this.headerPpnVal && this.headerPpn > 0 && dpp > 0) {
                             this.headerPpnVal = Math.round(((parseFloat(this.headerPpn) || 0) / dpp) * 10000) / 100;
@@ -1048,6 +1131,10 @@
                         }
                     }
                     this.recalcHeaderPpn();
+                },
+
+                toggleHeaderPpnMode() {
+                    this.setHeaderPpnMode(this.headerPpnMode === 'persen' ? 'nominal' : 'persen');
                 },
 
                 recalcHeaderPpn() {
@@ -1136,6 +1223,12 @@
                     const formatted = this.formatThousand(rawDigits);
                     input.value = formatted;
                     this.repositionCursor(input, formatted, digitsBeforeCursor);
+                    this.recalcAll();
+                },
+
+                setHeaderAdjSign(sign) {
+                    const currentAbs = Math.abs(parseFloat(this.headerAdj) || 0);
+                    this.headerAdj = sign >= 0 ? currentAbs : -currentAbs;
                     this.recalcAll();
                 },
 

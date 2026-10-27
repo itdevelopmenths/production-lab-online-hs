@@ -44,13 +44,22 @@
         }
 
         $initialData = [
+            'supplierId' => (string) old('supplier_id', ''),
+            'gudangId' => (string) old('gudang_id', ''),
+            'noInvoice' => old('no_invoice', ''),
+            'tanggal' => old('tanggal', date('Y-m-d')),
+            'eta' => old('eta', ''),
+            'sumberDana' => old('sumber_dana', 'BCA Operasional'),
             'skemaBayar' => old('skema_bayar', 'cash'),
+            'tanggalTempo' => old('tanggal_tempo', ''),
+            'catatan' => old('catatan', ''),
             'headerDiskon' => (float) old('diskon_total', 0),
             'headerPpn' => (float) old('ppn_nominal', 0),
             'headerOngkir' => (float) old('ongkos_kirim', 0),
             'headerAdj' => (float) old('adjustment', 0),
             'rows' => $rows,
             'termins' => $termins,
+            'hasOldInput' => !empty(old()),
         ];
     @endphp
 
@@ -71,11 +80,48 @@
             <form method="POST" action="{{ route('purchasing.store') }}" @submit="handleSubmit($event)">
             @csrf
             <div class="space-y-6">
+                {{-- Banner Pemulihan Draft Otomatis --}}
+                <div
+                    x-show="draftRestored"
+                    x-cloak
+                    x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    class="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-border bg-muted/60 text-xs text-foreground shadow-xs"
+                >
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="flex h-2 w-2 rounded-full bg-amber-500 shrink-0"></span>
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="font-medium text-foreground">Draft sebelumnya dipulihkan</span>
+                            <span class="text-muted-foreground hidden sm:inline">· Isian terakhir otomatis dimuat</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button
+                            type="button"
+                            @click="clearDraftConfirm()"
+                            class="px-2 py-1 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition"
+                        >
+                            Kosongkan
+                        </button>
+                        <button
+                            type="button"
+                            @click="draftRestored = false"
+                            class="p-1 text-muted-foreground hover:text-foreground rounded-md transition"
+                            title="Tutup"
+                        >
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
                 {{-- Card 1: Informasi Header PO & Lokasi --}}
                 <x-card title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <x-form-group name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
-                            <x-select name="supplier_id" placeholder="— Pilih Supplier —" :required="true">
+                            <x-select name="supplier_id" x-model="supplierId" placeholder="— Pilih Supplier —" :required="true">
                                 @foreach($suppliers as $s)
                                     <option value="{{ $s->id }}" @selected(old('supplier_id') == $s->id)>
                                         {{ $s->nama }} ({{ ucfirst($s->kategori) }})
@@ -85,7 +131,7 @@
                         </x-form-group>
 
                         <x-form-group name="gudang_id" label="Lokasi PO (Gudang Tujuan)" help="Gudang penerima saat barang datang">
-                            <x-select name="gudang_id" placeholder="— Pilih Gudang Penerima —">
+                            <x-select name="gudang_id" x-model="gudangId" placeholder="— Pilih Gudang Penerima —">
                                 @foreach($gudang as $g)
                                     <option value="{{ $g->id }}" @selected(old('gudang_id') == $g->id)>
                                         {{ $g->nama }} ({{ ucwords(str_replace('_', ' ', $g->tipe)) }})
@@ -95,19 +141,19 @@
                         </x-form-group>
 
                         <x-form-group name="no_invoice" label="No Invoice / Vendor Ref" help="Kosongkan jika ingin dibuat otomatis oleh sistem">
-                            <x-input type="text" name="no_invoice" value="{{ old('no_invoice') }}" placeholder="Otomatis (cth: INV/PO/202609/0001)" />
+                            <x-input type="text" name="no_invoice" x-model="noInvoice" value="{{ old('no_invoice') }}" placeholder="Otomatis (cth: INV/PO/202609/0001)" />
                         </x-form-group>
 
                         <x-form-group name="tanggal" label="Tanggal PO" :required="true">
-                            <x-input type="date" name="tanggal" value="{{ old('tanggal', date('Y-m-d')) }}" :required="true" />
+                            <x-input type="date" name="tanggal" x-model="tanggal" value="{{ old('tanggal', date('Y-m-d')) }}" :required="true" />
                         </x-form-group>
 
                         <x-form-group name="eta" label="Estimasi Kedatangan (ETA)" help="Perkiraan pesanan tiba di gudang">
-                            <x-input type="date" name="eta" value="{{ old('eta') }}" />
+                            <x-input type="date" name="eta" x-model="eta" value="{{ old('eta') }}" />
                         </x-form-group>
 
                         <x-form-group name="sumber_dana" label="Sumber Dana / Rekening">
-                            <x-input type="text" name="sumber_dana" value="{{ old('sumber_dana', 'BCA Operasional') }}" placeholder="Contoh: BCA Operasional" />
+                            <x-input type="text" name="sumber_dana" x-model="sumberDana" value="{{ old('sumber_dana', 'BCA Operasional') }}" placeholder="Contoh: BCA Operasional" />
                         </x-form-group>
                     </div>
 
@@ -122,7 +168,7 @@
 
                         <div x-show="skemaBayar === 'tempo'" x-cloak>
                             <x-form-group name="tanggal_tempo" label="Jatuh Tempo Pembayaran (Deadline)" :required="true" help="Batas akhir pelunasan tagihan tempo">
-                                <x-input type="date" name="tanggal_tempo" x-bind:required="skemaBayar === 'tempo'" value="{{ old('tanggal_tempo') }}" />
+                                <x-input type="date" name="tanggal_tempo" x-model="tanggalTempo" x-bind:required="skemaBayar === 'tempo'" value="{{ old('tanggal_tempo') }}" />
                             </x-form-group>
                         </div>
                     </div>
@@ -361,126 +407,207 @@
                 {{-- Card 3: Rekapitulasi Biaya & Grand Total --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-0">
                     <x-card title="Biaya Tambahan Global (Opsional)" subtitle="Biaya tingkat PO yang otomatis dialokasikan ke HPP bahan baku">
-                        <div class="space-y-3.5">
-                            <div class="flex items-center justify-between gap-4">
+                        <div class="space-y-4">
+                            {{-- Baris 1: Diskon Global PO --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                                 <div class="flex items-center gap-1.5 min-w-0">
                                     <label class="text-xs text-foreground font-medium">Diskon Global PO</label>
                                     <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerDiskonMode === 'persen' && headerDiskon > 0" x-text="'(= Rp ' + formatThousand(headerDiskon) + ')'"></span>
                                 </div>
-                                <div class="w-48">
+                                <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                                     <input type="hidden" name="diskon_total" :value="headerDiskon">
-                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
+                                    {{-- Segmented Mode Switcher: Rp vs % --}}
+                                    <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none" role="group" aria-label="Mode Diskon">
                                         <button
                                             type="button"
-                                            @click="toggleHeaderDiskonMode()"
-                                            class="px-2.5 py-1.5 text-[10px] font-mono font-bold transition cursor-pointer select-none shrink-0"
-                                            :class="headerDiskonMode === 'persen' ? 'bg-destructive/15 text-destructive' : 'bg-muted text-muted-foreground'"
-                                            :title="'Klik untuk ganti mode: ' + (headerDiskonMode === 'persen' ? 'Persentase (%)' : 'Nominal (Rp)')"
+                                            @click="setHeaderDiskonMode('nominal')"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer"
+                                            :class="headerDiskonMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="Diskon dalam bentuk Nominal Rupiah"
                                         >
-                                            <span x-text="headerDiskonMode === 'persen' ? '%' : 'Rp'"></span>
+                                            Rp
                                         </button>
+                                        <button
+                                            type="button"
+                                            @click="setHeaderDiskonMode('persen')"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer"
+                                            :class="headerDiskonMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="Diskon dalam bentuk Persentase (%)"
+                                        >
+                                            %
+                                        </button>
+                                    </div>
+
+                                    {{-- Input Diskon --}}
+                                    <div class="relative w-36 sm:w-40">
                                         <template x-if="headerDiskonMode === 'persen'">
-                                            <input
-                                                type="number"
-                                                step="any"
-                                                min="0"
-                                                max="100"
-                                                x-model.number="headerDiskonVal"
-                                                @input="recalcHeaderDiskon()"
-                                                @keydown.enter.prevent
-                                                placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-destructive border-0 focus:ring-0"
-                                            />
+                                            <div class="relative flex items-center">
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    min="0"
+                                                    max="100"
+                                                    x-model.number="headerDiskonVal"
+                                                    @input="recalcHeaderDiskon(); debounceSaveDraft();"
+                                                    @keydown.enter.prevent
+                                                    placeholder="0"
+                                                    class="w-full text-right text-xs py-1.5 pl-2.5 pr-6 rounded-lg border border-input bg-background font-mono text-destructive font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                />
+                                                <span class="absolute right-2.5 text-xs text-destructive font-mono font-bold pointer-events-none">%</span>
+                                            </div>
                                         </template>
                                         <template x-if="headerDiskonMode !== 'persen'">
-                                            <input
-                                                type="text"
-                                                inputmode="numeric"
-                                                :value="formatThousand(headerDiskon)"
-                                                @input="updateHeaderField('headerDiskon', $event)"
-                                                @keydown="handleKeyDown($event)"
-                                                placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-destructive border-0 focus:ring-0"
-                                            />
+                                            <div class="relative flex items-center">
+                                                <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
+                                                <input
+                                                    type="text"
+                                                    inputmode="numeric"
+                                                    :value="formatThousand(headerDiskon)"
+                                                    @input="updateHeaderField('headerDiskon', $event)"
+                                                    @keydown="handleKeyDown($event)"
+                                                    placeholder="0"
+                                                    class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background font-mono text-destructive font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                />
+                                            </div>
                                         </template>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between gap-4">
+
+                            {{-- Baris 2: PPN Global PO --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                                 <div class="flex items-center gap-1.5 min-w-0">
                                     <label class="text-xs text-foreground font-medium">PPN Global PO</label>
                                     <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerPpnMode === 'persen' && headerPpn > 0" x-text="'(= Rp ' + formatThousand(headerPpn) + ')'"></span>
                                 </div>
-                                <div class="w-48">
+                                <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                                     <input type="hidden" name="ppn_nominal" :value="headerPpn">
-                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
+                                    {{-- Segmented Mode Switcher: Rp vs % --}}
+                                    <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none" role="group" aria-label="Mode PPN">
                                         <button
                                             type="button"
-                                            @click="toggleHeaderPpnMode()"
-                                            class="px-2.5 py-1.5 text-[10px] font-mono font-bold transition cursor-pointer select-none shrink-0"
-                                            :class="headerPpnMode === 'persen' ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'"
-                                            :title="'Klik untuk ganti mode: ' + (headerPpnMode === 'persen' ? 'Persentase (%)' : 'Nominal (Rp)')"
+                                            @click="setHeaderPpnMode('nominal')"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer"
+                                            :class="headerPpnMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="PPN dalam bentuk Nominal Rupiah"
                                         >
-                                            <span x-text="headerPpnMode === 'persen' ? '%' : 'Rp'"></span>
+                                            Rp
                                         </button>
+                                        <button
+                                            type="button"
+                                            @click="setHeaderPpnMode('persen')"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer"
+                                            :class="headerPpnMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="PPN dalam bentuk Persentase (%)"
+                                        >
+                                            %
+                                        </button>
+                                    </div>
+
+                                    {{-- Input PPN --}}
+                                    <div class="relative w-36 sm:w-40">
                                         <template x-if="headerPpnMode === 'persen'">
-                                            <input
-                                                type="number"
-                                                step="any"
-                                                min="0"
-                                                max="100"
-                                                x-model.number="headerPpnVal"
-                                                @input="recalcHeaderPpn()"
-                                                @keydown.enter.prevent
-                                                placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-foreground border-0 focus:ring-0"
-                                            />
+                                            <div class="relative flex items-center">
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    min="0"
+                                                    max="100"
+                                                    x-model.number="headerPpnVal"
+                                                    @input="recalcHeaderPpn(); debounceSaveDraft();"
+                                                    @keydown.enter.prevent
+                                                    placeholder="0"
+                                                    class="w-full text-right text-xs py-1.5 pl-2.5 pr-6 rounded-lg border border-input bg-background font-mono text-foreground font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                />
+                                                <span class="absolute right-2.5 text-xs text-muted-foreground font-mono font-bold pointer-events-none">%</span>
+                                            </div>
                                         </template>
                                         <template x-if="headerPpnMode !== 'persen'">
-                                            <input
-                                                type="text"
-                                                inputmode="numeric"
-                                                :value="formatThousand(headerPpn)"
-                                                @input="updateHeaderField('headerPpn', $event)"
-                                                @keydown="handleKeyDown($event)"
-                                                placeholder="0"
-                                                class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono text-foreground border-0 focus:ring-0"
-                                            />
+                                            <div class="relative flex items-center">
+                                                <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
+                                                <input
+                                                    type="text"
+                                                    inputmode="numeric"
+                                                    :value="formatThousand(headerPpn)"
+                                                    @input="updateHeaderField('headerPpn', $event)"
+                                                    @keydown="handleKeyDown($event)"
+                                                    placeholder="0"
+                                                    class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background font-mono text-foreground font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                />
+                                            </div>
                                         </template>
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between gap-4">
-                                <label class="text-xs text-foreground font-medium">Ongkos Kirim Global (Rp)</label>
-                                <div class="w-48">
+
+                            {{-- Baris 3: Ongkos Kirim Global --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                                <label class="text-xs text-foreground font-medium">Ongkos Kirim Global</label>
+                                <div class="relative w-36 sm:w-40 self-end sm:self-auto">
                                     <input type="hidden" name="ongkos_kirim" :value="headerOngkir">
-                                    <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background text-foreground font-mono focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between gap-4">
-                                <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan (Rp)</label>
-                                <div class="w-48">
-                                    <input type="hidden" name="adjustment" :value="headerAdj">
-                                    <div class="relative flex rounded-lg shadow-xs overflow-hidden border border-input">
-                                        <button
-                                            type="button"
-                                            @click="toggleHeaderAdjSign()"
-                                            class="px-2.5 py-1.5 text-xs font-mono font-bold transition cursor-pointer select-none shrink-0"
-                                            :class="headerAdj < 0 ? 'bg-destructive/15 text-destructive' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'"
-                                            :title="'Klik untuk ganti tanda: ' + (headerAdj < 0 ? 'Minus (Pengurang)' : 'Plus (Penambah)')"
-                                        >
-                                            <span x-text="headerAdj < 0 ? '−' : '+'"></span>
-                                        </button>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
                                         <input
                                             type="text"
                                             inputmode="numeric"
-                                            :value="formatThousand(Math.abs(headerAdj))"
-                                            @input="updateHeaderAdj($event)"
+                                            :value="formatThousand(headerOngkir)"
+                                            @input="updateHeaderField('headerOngkir', $event)"
                                             @keydown="handleKeyDown($event)"
                                             placeholder="0"
-                                            class="w-full text-right text-xs py-1.5 px-2 bg-background font-mono border-0 focus:ring-0"
-                                            :class="headerAdj < 0 ? 'text-destructive font-semibold' : 'text-foreground'"
+                                            class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background text-foreground font-mono font-medium focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                                         />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Baris 4: Adjustment / Pembulatan --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                                <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan</label>
+                                <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                                    <input type="hidden" name="adjustment" :value="headerAdj">
+                                    {{-- Segmented Sign Switcher: + Tambah vs - Kurang --}}
+                                    <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none" role="group" aria-label="Arah Penyesuaian">
+                                        <button
+                                            type="button"
+                                            @click="setHeaderAdjSign(1)"
+                                            class="px-2 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1"
+                                            :class="headerAdj >= 0 ? 'bg-background text-emerald-600 dark:text-emerald-400 font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="Penambah"
+                                        >
+                                            <span class="font-bold text-xs">+</span>
+                                            <span class="text-[11px]">Tambah</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="setHeaderAdjSign(-1)"
+                                            class="px-2 py-1 text-xs font-medium rounded-md transition cursor-pointer flex items-center gap-1"
+                                            :class="headerAdj < 0 ? 'bg-background text-destructive font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground'"
+                                            title="Pengurang"
+                                        >
+                                            <span class="font-bold text-xs">−</span>
+                                            <span class="text-[11px]">Kurang</span>
+                                        </button>
+                                    </div>
+
+                                    {{-- Input Nominal Adjustment --}}
+                                    <div class="relative w-36 sm:w-40">
+                                        <div class="relative flex items-center">
+                                            <span
+                                                class="absolute left-2.5 text-[10px] font-mono font-bold pointer-events-none"
+                                                :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')"
+                                                x-text="headerAdj < 0 ? '- Rp' : (headerAdj > 0 ? '+ Rp' : 'Rp')"
+                                            ></span>
+                                            <input
+                                                type="text"
+                                                inputmode="numeric"
+                                                :value="formatThousand(Math.abs(headerAdj))"
+                                                @input="updateHeaderAdj($event)"
+                                                @keydown="handleKeyDown($event)"
+                                                placeholder="0"
+                                                class="w-full text-right text-xs py-1.5 pl-10 pr-2.5 rounded-lg border border-input bg-background font-mono font-semibold focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground')"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -592,6 +719,7 @@
                     <div class="p-4">
                         <textarea
                             name="catatan"
+                            x-model="catatan"
                             rows="3"
                             placeholder="Contoh: Pesanan mendesak dari hasil analisa stok mingguan. Mohon kirimkan COA bersamaan dengan barang fisik."
                             class="w-full text-xs rounded-lg border border-input bg-background text-foreground p-3 focus:ring-1 focus:ring-ring focus:border-ring shadow-xs"
@@ -618,18 +746,70 @@
     @push('scripts')
     <script>
         function poForm(initial = {}) {
-            const rawRows = (initial.rows && initial.rows.length > 0) ? initial.rows : [
-                {
-                    produk_id: '',
-                    qty_satuan_beli: '',
-                    satuan_beli: '',
-                    faktor_konversi: 1,
-                    qty: '',
-                    harga: '',
-                    satuan: '',
-                    selectedItem: null
+            const STORAGE_KEY = 'HS_PO_CREATE_DRAFT_V1';
+            let draft = null;
+
+            // Prioritas: Jika ada input dari server (validation error / old()), gunakan server input.
+            // Jika tidak ada server old input, periksa draft tersimpan di localStorage.
+            if (!initial.hasOldInput) {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && typeof parsed === 'object') {
+                            draft = parsed;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Gagal membaca draft PO dari localStorage:', e);
                 }
-            ];
+            }
+
+            const isRestored = draft !== null && (
+                !!draft.supplierId ||
+                !!draft.gudangId ||
+                !!draft.noInvoice ||
+                !!draft.eta ||
+                !!draft.catatan ||
+                (parseFloat(draft.headerDiskon) || 0) > 0 ||
+                (parseFloat(draft.headerPpn) || 0) > 0 ||
+                (parseFloat(draft.headerOngkir) || 0) > 0 ||
+                (parseFloat(draft.headerAdj) || 0) !== 0 ||
+                (Array.isArray(draft.rows) && draft.rows.some(r => r.produk_id || r.qty_satuan_beli || r.harga))
+            );
+
+            // Inisialisasi daftar baris bahan baku
+            let rawRows = [];
+            if (initial.rows && initial.rows.length > 0) {
+                rawRows = initial.rows;
+            } else if (isRestored && Array.isArray(draft.rows) && draft.rows.length > 0) {
+                rawRows = draft.rows;
+            } else {
+                rawRows = [
+                    {
+                        produk_id: '',
+                        qty_satuan_beli: '',
+                        satuan_beli: '',
+                        faktor_konversi: 1,
+                        qty: '',
+                        harga: '',
+                        satuan: '',
+                        selectedItem: null
+                    }
+                ];
+            }
+
+            // Inisialisasi daftar termin
+            let rawTermins = [];
+            if (initial.termins && initial.termins.length > 0) {
+                rawTermins = initial.termins;
+            } else if (isRestored && Array.isArray(draft.termins) && draft.termins.length > 0) {
+                rawTermins = draft.termins;
+            } else {
+                rawTermins = [
+                    { tanggal_tempo: '', nominal_tagihan: 0, keterangan: 'Termin 1' }
+                ];
+            }
 
             const rows = rawRows.map(r => ({
                 ...r,
@@ -642,22 +822,145 @@
 
             const form = {
                 uomList: @json($uomList ?? []),
-                skemaBayar: initial.skemaBayar || 'cash',
-                headerDiskonMode: 'nominal',
-                headerDiskonVal: 0,
-                headerDiskon: initial.headerDiskon || 0,
+                draftRestored: isRestored,
+                _saveTimer: null,
+                _isSubmitting: false,
 
-                headerPpnMode: 'nominal',
-                headerPpnVal: 0,
-                headerPpn: initial.headerPpn || 0,
+                // Header Fields
+                supplierId: isRestored ? (draft.supplierId || '') : (initial.supplierId || ''),
+                gudangId: isRestored ? (draft.gudangId || '') : (initial.gudangId || ''),
+                noInvoice: isRestored ? (draft.noInvoice || '') : (initial.noInvoice || ''),
+                tanggal: isRestored ? (draft.tanggal || initial.tanggal || '{{ date('Y-m-d') }}') : (initial.tanggal || '{{ date('Y-m-d') }}'),
+                eta: isRestored ? (draft.eta || '') : (initial.eta || ''),
+                sumberDana: isRestored ? (draft.sumberDana || 'BCA Operasional') : (initial.sumberDana || 'BCA Operasional'),
+                skemaBayar: isRestored ? (draft.skemaBayar || 'cash') : (initial.skemaBayar || 'cash'),
+                tanggalTempo: isRestored ? (draft.tanggalTempo || '') : (initial.tanggalTempo || ''),
+                catatan: isRestored ? (draft.catatan || '') : (initial.catatan || ''),
 
-                headerOngkir: initial.headerOngkir || 0,
-                headerAdj: initial.headerAdj || 0,
+                // Global Cost Adjustments
+                headerDiskonMode: isRestored ? (draft.headerDiskonMode || 'nominal') : 'nominal',
+                headerDiskonVal: isRestored ? (draft.headerDiskonVal || 0) : 0,
+                headerDiskon: isRestored ? (draft.headerDiskon || 0) : (initial.headerDiskon || 0),
+
+                headerPpnMode: isRestored ? (draft.headerPpnMode || 'nominal') : 'nominal',
+                headerPpnVal: isRestored ? (draft.headerPpnVal || 0) : 0,
+                headerPpn: isRestored ? (draft.headerPpn || 0) : (initial.headerPpn || 0),
+
+                headerOngkir: isRestored ? (draft.headerOngkir || 0) : (initial.headerOngkir || 0),
+                headerAdj: isRestored ? (draft.headerAdj || 0) : (initial.headerAdj || 0),
+
                 rows: rows,
-                termins: (initial.termins && initial.termins.length > 0) ? initial.termins : [
-                    { tanggal_tempo: '', nominal_tagihan: 0, keterangan: 'Termin 1' }
-                ],
+                termins: rawTermins,
                 activeRow: null,
+
+                hasMeaningfulData(d) {
+                    if (!d) return false;
+                    if (d.supplierId || d.gudangId || d.noInvoice || d.eta || d.catatan || d.tanggalTempo) return true;
+                    if ((parseFloat(d.headerDiskon) || 0) > 0 || (parseFloat(d.headerPpn) || 0) > 0 || (parseFloat(d.headerOngkir) || 0) > 0 || (parseFloat(d.headerAdj) || 0) !== 0) return true;
+                    if (Array.isArray(d.rows) && d.rows.some(r => r.produk_id || r.qty_satuan_beli || r.harga)) return true;
+                    return false;
+                },
+
+                debounceSaveDraft() {
+                    clearTimeout(this._saveTimer);
+                    this._saveTimer = setTimeout(() => {
+                        this.saveDraft();
+                    }, 300);
+                },
+
+                saveDraft() {
+                    if (this._isSubmitting) return;
+                    try {
+                        const payload = {
+                            supplierId: this.supplierId || '',
+                            gudangId: this.gudangId || '',
+                            noInvoice: this.noInvoice || '',
+                            tanggal: this.tanggal || '',
+                            eta: this.eta || '',
+                            sumberDana: this.sumberDana || '',
+                            skemaBayar: this.skemaBayar || 'cash',
+                            tanggalTempo: this.tanggalTempo || '',
+                            catatan: this.catatan || '',
+
+                            headerDiskonMode: this.headerDiskonMode || 'nominal',
+                            headerDiskonVal: this.headerDiskonVal || 0,
+                            headerDiskon: this.headerDiskon || 0,
+                            headerPpnMode: this.headerPpnMode || 'nominal',
+                            headerPpnVal: this.headerPpnVal || 0,
+                            headerPpn: this.headerPpn || 0,
+                            headerOngkir: this.headerOngkir || 0,
+                            headerAdj: this.headerAdj || 0,
+
+                            rows: (this.rows || []).map(r => ({
+                                produk_id: r.produk_id || '',
+                                qty_satuan_beli: r.qty_satuan_beli,
+                                satuan_beli: r.satuan_beli || '',
+                                faktor_konversi: r.faktor_konversi || 1,
+                                qty: r.qty,
+                                harga: r.harga,
+                                satuan: r.satuan || '',
+                                selectedItem: r.selectedItem ? {
+                                    id: r.selectedItem.id,
+                                    sku: r.selectedItem.sku,
+                                    nama: r.selectedItem.nama,
+                                    satuan: r.selectedItem.satuan,
+                                    harga_hpp: r.selectedItem.harga_hpp
+                                } : null
+                            })),
+
+                            termins: (this.termins || []).map(t => ({
+                                tanggal_tempo: t.tanggal_tempo || '',
+                                nominal_tagihan: t.nominal_tagihan || 0,
+                                keterangan: t.keterangan || ''
+                            }))
+                        };
+
+                        if (this.hasMeaningfulData(payload)) {
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                        } else {
+                            localStorage.removeItem(STORAGE_KEY);
+                        }
+                    } catch (e) {
+                        console.warn('Gagal menyimpan draft PO:', e);
+                    }
+                },
+
+                clearDraftConfirm() {
+                    const doClear = () => {
+                        this.clearDraft();
+                        window.location.reload();
+                    };
+
+                    if (window.Swal) {
+                        window.Swal.fire({
+                            title: 'Kosongkan Draft Formulir?',
+                            text: 'Semua isian bahan baku, harga, dan rincian yang belum disimpan akan dihapus permanen.',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#ef4444',
+                            cancelButtonColor: '#64748b',
+                            confirmButtonText: 'Ya, Kosongkan',
+                            cancelButtonText: 'Batal'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                doClear();
+                            }
+                        });
+                    } else {
+                        if (confirm('Kosongkan draft formulir? Semua isian yang belum disimpan akan dihapus.')) {
+                            doClear();
+                        }
+                    }
+                },
+
+                clearDraft() {
+                    try {
+                        localStorage.removeItem(STORAGE_KEY);
+                    } catch (e) {
+                        console.warn('Gagal menghapus draft PO:', e);
+                    }
+                    this.draftRestored = false;
+                },
 
                 isProductSelectedElsewhere(productId, rowIndex) {
                     if (!productId) return false;
@@ -707,10 +1010,33 @@
                             seen.add(pStr);
                         }
                     }
+                    this._isSubmitting = true;
+                    this.clearDraft();
                     return true;
                 },
 
                 init() {
+                    // Watchers untuk persistensi draft otomatis
+                    this.$watch('rows', () => this.debounceSaveDraft(), { deep: true });
+                    this.$watch('termins', () => this.debounceSaveDraft(), { deep: true });
+                    this.$watch('supplierId', () => this.debounceSaveDraft());
+                    this.$watch('gudangId', () => this.debounceSaveDraft());
+                    this.$watch('noInvoice', () => this.debounceSaveDraft());
+                    this.$watch('tanggal', () => this.debounceSaveDraft());
+                    this.$watch('eta', () => this.debounceSaveDraft());
+                    this.$watch('sumberDana', () => this.debounceSaveDraft());
+                    this.$watch('skemaBayar', () => this.debounceSaveDraft());
+                    this.$watch('tanggalTempo', () => this.debounceSaveDraft());
+                    this.$watch('catatan', () => this.debounceSaveDraft());
+                    this.$watch('headerDiskonMode', () => this.debounceSaveDraft());
+                    this.$watch('headerDiskonVal', () => this.debounceSaveDraft());
+                    this.$watch('headerDiskon', () => this.debounceSaveDraft());
+                    this.$watch('headerPpnMode', () => this.debounceSaveDraft());
+                    this.$watch('headerPpnVal', () => this.debounceSaveDraft());
+                    this.$watch('headerPpn', () => this.debounceSaveDraft());
+                    this.$watch('headerOngkir', () => this.debounceSaveDraft());
+                    this.$watch('headerAdj', () => this.debounceSaveDraft());
+
                     this.$nextTick(() => {
                         this.rows.forEach(row => {
                             const targetSatuanBeli = row._lockedSatuanBeli || row.satuan_beli;
@@ -760,11 +1086,6 @@
                             const uKat = (u.kategori || '').toLowerCase().trim();
                             const factor = parseFloat(u.faktor_konversi) || 1;
 
-                            // Cocokkan jika:
-                            // a) satuan_dasar sama dengan baseSatuan produk
-                            // b) kodenya persis sama dengan baseSatuan
-                            // c) kategori Volume jika produk ml/l/liter
-                            // d) kategori Massa jika produk gr/g/kg
                             let isMatch = (uBasis === s) || (uKode === s);
                             if (!isMatch && (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter')) {
                                 isMatch = (uBasis === 'ml' || uBasis === 'l' || uKat === 'volume' || uKode === 'galon' || uKode === 'drum');
@@ -838,6 +1159,7 @@
                             row._lockedSatuanBeli = '';
                             row._lockedFaktorKonversi = 1;
                             this.recalcAll();
+                            this.debounceSaveDraft();
                             return;
                         }
 
@@ -846,8 +1168,6 @@
                         row.satuan = product.satuan;
                         row.selectedItem = product;
 
-                        // Hanya inisialisasi satuan beli baru jika row sudah diinisialisasi DAN produk berbeda,
-                        // atau jika satuan_beli pada row masih kosong
                         if (row._isInitialized && !isSameProduct) {
                             row.satuan_beli = product.satuan || 'UNIT';
                             row.faktor_konversi = 1;
@@ -873,6 +1193,7 @@
                         row._lockedFaktorKonversi = 1;
                         this.recalcAll();
                     }
+                    this.debounceSaveDraft();
                 },
 
                 onSatuanBeliChange(row) {
@@ -884,6 +1205,7 @@
                     row._lockedSatuanBeli = row.satuan_beli;
                     row._lockedFaktorKonversi = row.faktor_konversi;
                     this.updateRowQty(row);
+                    this.debounceSaveDraft();
                 },
 
                 handleQtyInput(row, event) {
@@ -902,6 +1224,7 @@
                         }
                     }
                     this.updateRowQty(row);
+                    this.debounceSaveDraft();
                 },
 
                 handleQtyPaste(row, event) {
@@ -915,6 +1238,7 @@
                         row.qty_satuan_beli = '';
                     }
                     this.updateRowQty(row);
+                    this.debounceSaveDraft();
                 },
 
                 updateRowQty(row) {
@@ -922,6 +1246,7 @@
                     const factor = parseFloat(row.faktor_konversi) || 1;
                     row.qty = Math.round(qtyBeli * factor * 100) / 100;
                     this.recalcAll();
+                    this.debounceSaveDraft();
                 },
 
                 formatQty(val) {
@@ -956,6 +1281,7 @@
                         _lockedQty: '',
                         _isInitialized: true
                     });
+                    this.debounceSaveDraft();
                 },
 
                 recalcAll() {
@@ -963,17 +1289,21 @@
                     if (this.headerPpnMode === 'persen') this.recalcHeaderPpn();
                 },
 
-                toggleHeaderDiskonMode() {
-                    if (this.headerDiskonMode === 'persen') {
-                        this.headerDiskonMode = 'nominal';
-                    } else {
-                        this.headerDiskonMode = 'persen';
+                setHeaderDiskonMode(mode) {
+                    if (this.headerDiskonMode === mode) return;
+                    this.headerDiskonMode = mode;
+                    if (mode === 'persen') {
                         const sub = this.subtotalProduk();
                         if (!this.headerDiskonVal && this.headerDiskon > 0 && sub > 0) {
                             this.headerDiskonVal = Math.round(((parseFloat(this.headerDiskon) || 0) / sub) * 10000) / 100;
                         }
                     }
                     this.recalcHeaderDiskon();
+                    this.debounceSaveDraft();
+                },
+
+                toggleHeaderDiskonMode() {
+                    this.setHeaderDiskonMode(this.headerDiskonMode === 'persen' ? 'nominal' : 'persen');
                 },
 
                 recalcHeaderDiskon() {
@@ -987,11 +1317,10 @@
                     }
                 },
 
-                toggleHeaderPpnMode() {
-                    if (this.headerPpnMode === 'persen') {
-                        this.headerPpnMode = 'nominal';
-                    } else {
-                        this.headerPpnMode = 'persen';
+                setHeaderPpnMode(mode) {
+                    if (this.headerPpnMode === mode) return;
+                    this.headerPpnMode = mode;
+                    if (mode === 'persen') {
                         const dpp = Math.max(0, this.subtotalProduk() - this.totalDiskon());
                         if (!this.headerPpnVal && this.headerPpn > 0 && dpp > 0) {
                             this.headerPpnVal = Math.round(((parseFloat(this.headerPpn) || 0) / dpp) * 10000) / 100;
@@ -1000,6 +1329,11 @@
                         }
                     }
                     this.recalcHeaderPpn();
+                    this.debounceSaveDraft();
+                },
+
+                toggleHeaderPpnMode() {
+                    this.setHeaderPpnMode(this.headerPpnMode === 'persen' ? 'nominal' : 'persen');
                 },
 
                 recalcHeaderPpn() {
@@ -1050,6 +1384,7 @@
                         row[field] = 0;
                         input.value = '';
                         this.recalcAll();
+                        this.debounceSaveDraft();
                         return;
                     }
                     if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
@@ -1063,6 +1398,7 @@
                     input.value = formatted;
                     this.repositionCursor(input, formatted, digitsBeforeCursor);
                     this.recalcAll();
+                    this.debounceSaveDraft();
                 },
 
                 updateHeaderField(field, event) {
@@ -1076,6 +1412,7 @@
                         this[field] = 0;
                         input.value = '';
                         this.recalcAll();
+                        this.debounceSaveDraft();
                         return;
                     }
                     if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
@@ -1089,11 +1426,20 @@
                     input.value = formatted;
                     this.repositionCursor(input, formatted, digitsBeforeCursor);
                     this.recalcAll();
+                    this.debounceSaveDraft();
+                },
+
+                setHeaderAdjSign(sign) {
+                    const currentAbs = Math.abs(parseFloat(this.headerAdj) || 0);
+                    this.headerAdj = sign >= 0 ? currentAbs : -currentAbs;
+                    this.recalcAll();
+                    this.debounceSaveDraft();
                 },
 
                 toggleHeaderAdjSign() {
                     this.headerAdj = -1 * (parseFloat(this.headerAdj) || 0);
                     this.recalcAll();
+                    this.debounceSaveDraft();
                 },
 
                 updateHeaderAdj(event) {
@@ -1108,6 +1454,7 @@
                         this.headerAdj = 0;
                         input.value = '';
                         this.recalcAll();
+                        this.debounceSaveDraft();
                         return;
                     }
                     if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
@@ -1122,6 +1469,7 @@
                     input.value = formatted;
                     this.repositionCursor(input, formatted, digitsBeforeCursor);
                     this.recalcAll();
+                    this.debounceSaveDraft();
                 },
 
                 updateTerminNominal(tm, event) {
@@ -1134,6 +1482,7 @@
                     if (rawDigits === '') {
                         tm.nominal_tagihan = 0;
                         input.value = '';
+                        this.debounceSaveDraft();
                         return;
                     }
                     if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
@@ -1146,6 +1495,7 @@
                     const formatted = this.formatThousand(rawDigits);
                     input.value = formatted;
                     this.repositionCursor(input, formatted, digitsBeforeCursor);
+                    this.debounceSaveDraft();
                 },
 
                 repositionCursor(input, formatted, digitsBeforeCursor) {
@@ -1261,6 +1611,7 @@
                             keterangan: `Termin ${i + 1} (${Math.round((nom / total) * 100)}%)`
                         });
                     }
+                    this.debounceSaveDraft();
                 }
             };
             return form;
