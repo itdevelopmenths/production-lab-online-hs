@@ -197,6 +197,7 @@ class RequestTransferEnhancementTest extends TestCase
 
         $response = $this->post(route('rt.transition', $rt), [
             'aksi' => 'cancel',
+            'alasan' => 'Dibatalkan oleh pembuat sebelum disetujui.',
         ]);
 
         $response->assertRedirect();

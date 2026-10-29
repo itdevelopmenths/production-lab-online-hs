@@ -243,7 +243,7 @@
 
         <!-- Footer Watermark & Timestamp -->
         <div class="mt-8 pt-4 border-t border-gray-200 text-center text-[10px] text-gray-400">
-            Dicetak pada {{ now()->format('d/m/Y H:i') }} WIB &mdash; Harumnya POS &bull; Production Lab Online
+            Dicetak pada {{ now()->format('d/m/Y H:i') }} WIB &mdash; Production Lab Online
         </div>
     </div>
 

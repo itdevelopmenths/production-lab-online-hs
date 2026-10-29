@@ -20,11 +20,45 @@ class RequestTransfer extends Model
         'referensi_batch_id',
         'status',
         'catatan',
+        'alasan_batal',
         'created_by',
     ];
 
     public const JENIS = [
         'req_bahan', 'retur_bahan', 'kirim_produk_jadi', 'antar_fulfillment', 'retur_produk_jadi',
+    ];
+
+    public const JENIS_MATRIX = [
+        'req_bahan' => [
+            'label' => 'Request Bahan Baku',
+            'asal_tipe' => ['bahan_baku'],
+            'tujuan_tipe' => ['operasional'],
+            'allowed_initiator' => 'either', // Lab pemohon atau Gudang Bahan Baku
+        ],
+        'retur_bahan' => [
+            'label' => 'Retur Bahan Baku',
+            'asal_tipe' => ['operasional'],
+            'tujuan_tipe' => ['bahan_baku'],
+            'allowed_initiator' => 'asal', // Lab pemegang sisa bahan
+        ],
+        'kirim_produk_jadi' => [
+            'label' => 'Kirim Produk Jadi',
+            'asal_tipe' => ['operasional'],
+            'tujuan_tipe' => ['fulfillment'],
+            'allowed_initiator' => 'asal', // Lab yang menyelesaikan produksi
+        ],
+        'antar_fulfillment' => [
+            'label' => 'Transfer Antar Fulfillment',
+            'asal_tipe' => ['fulfillment'],
+            'tujuan_tipe' => ['fulfillment'],
+            'allowed_initiator' => 'asal', // Petugas fulfillment asal
+        ],
+        'retur_produk_jadi' => [
+            'label' => 'Retur Produk Jadi',
+            'asal_tipe' => ['fulfillment'],
+            'tujuan_tipe' => ['operasional'],
+            'allowed_initiator' => 'asal', // Petugas fulfillment pengirim retur
+        ],
     ];
 
     /** Jenis yang memakai pipeline 5-tahap dengan approval. */

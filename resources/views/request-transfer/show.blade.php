@@ -66,6 +66,17 @@
         </x-slot:actions>
     </x-page-header>
 
+    @if($rt->status === 'dibatalkan')
+    <div class="mb-5">
+        <x-alert type="danger" title="Dokumen Telah Dibatalkan">
+            <div class="mt-1 text-xs text-rose-800">
+                <span class="font-semibold">Alasan Pembatalan:</span>
+                <span class="italic">{{ $rt->alasan_batal ?: 'Tidak ada alasan pembatalan tercatat.' }}</span>
+            </div>
+        </x-alert>
+    </div>
+    @endif
+
     <!-- AdminLTE 4 KPI Small Boxes Ribbon (4 Cards) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         <x-stat-box
@@ -351,50 +362,53 @@
                         @if($canReceive)
                         <div class="border border-emerald-200 bg-emerald-50/50 rounded-sm p-3">
                             <h4 class="text-xs font-bold text-emerald-900 mb-2">Konfirmasi Penerimaan Barang</h4>
-                            <form method="POST" action="{{ route('rt.transition', $rt) }}" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
+                            <form method="POST" action="{{ route('rt.transition', $rt) }}"
+                                x-data="{
+                                    submitting: false,
+                                    items: [
+                                        @foreach($rt->items as $idx => $it)
+                                        @php $qtyKirim = (int) round($it->qty_dikirim ?? $it->qty_diminta); @endphp
+                                        {
+                                            id: {{ $it->id }},
+                                            maxQty: {{ $qtyKirim }},
+                                            qtyBaik: {{ $qtyKirim }},
+                                            qtyRusak: 0
+                                        }{{ !$loop->last ? ',' : '' }}
+                                        @endforeach
+                                    ],
+                                    get isReceiveValid() {
+                                        return this.items.length > 0 && this.items.every(it => {
+                                            const b = parseInt(it.qtyBaik, 10);
+                                            const r = parseInt(it.qtyRusak, 10);
+                                            return !isNaN(b) && !isNaN(r) && b >= 0 && r >= 0 && (b + r) === it.maxQty;
+                                        });
+                                    }
+                                }"
+                                @submit="if(submitting || !isReceiveValid) return false; submitting = true">
                                 @csrf
                                 <input type="hidden" name="aksi" value="receive">
                                 <div class="space-y-2.5 mb-3">
                                     @foreach($rt->items as $index => $it)
                                     @php
-                                        $qtyKirim = (float) ($it->qty_dikirim ?? $it->qty_diminta);
+                                        $qtyKirim = (int) round($it->qty_dikirim ?? $it->qty_diminta);
                                         $satuan = $it->produk->satuan ?? 'pcs';
-                                        $satuanLower = strtolower(trim($satuan));
-                                        $isDecimal = in_array($satuanLower, ['ml', 'l', 'liter', 'gr', 'gram', 'kg', 'kilogram'], true);
-                                        $step = $isDecimal ? '0.01' : '1';
-                                        $valBaik = $isDecimal ? $qtyKirim : (int) round($qtyKirim);
-                                        $valMax = $isDecimal ? $qtyKirim : (int) round($qtyKirim);
                                     @endphp
-                                    <div class="bg-white p-2.5 rounded-sm border border-emerald-100 text-xs" x-data="{
-                                        maxQty: {{ $valMax }},
-                                        qtyBaik: {{ $valBaik }},
-                                        qtyRusak: 0,
-                                        isDecimal: {{ $isDecimal ? 'true' : 'false' }},
-                                        onRusakChange() {
-                                            let r = parseFloat(this.qtyRusak) || 0;
-                                            if (r > this.maxQty) {
-                                                r = this.maxQty;
-                                            }
-                                            this.qtyRusak = this.isDecimal ? Number(r.toFixed(2)) : Math.round(r);
-                                            let remaining = Math.max(0, this.maxQty - this.qtyRusak);
-                                            this.qtyBaik = this.isDecimal ? Number(remaining.toFixed(2)) : Math.round(remaining);
-                                        }
-                                    }">
+                                    <div class="bg-white p-2.5 rounded-sm border border-emerald-100 text-xs">
                                         <input type="hidden" name="items[{{ $index }}][id]" value="{{ $it->id }}">
                                         <div class="font-bold text-gray-900">{{ $it->produk->nama }}</div>
-                                        <div class="text-[11px] text-gray-500 mb-2">Dikirim: <span class="font-semibold font-mono text-gray-800">{{ \App\Helpers\NumberHelper::formatQty($qtyKirim) }} {{ $satuan }}</span></div>
+                                        <div class="text-[11px] text-gray-500 mb-2">Dikirim: <span class="font-semibold font-mono text-gray-800">{{ $qtyKirim }} {{ $satuan }}</span></div>
                                         <div class="grid grid-cols-2 gap-2">
                                             <div>
                                                 <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">Qty Baik ({{ $satuan }})</label>
                                                 <input
                                                     type="number"
-                                                    step="{{ $step }}"
+                                                    step="1"
                                                     min="0"
-                                                    max="{{ $valMax }}"
+                                                    :max="items[{{ $index }}].maxQty"
                                                     name="items[{{ $index }}][qty_baik]"
-                                                    x-model.number="qtyBaik"
-                                                    value="{{ $valBaik }}"
-                                                    @if(!$isDecimal) onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()" @endif
+                                                    x-model.number="items[{{ $index }}].qtyBaik"
+                                                    value="{{ $qtyKirim }}"
+                                                    onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
                                                     class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
                                                     required
                                                 >
@@ -403,32 +417,54 @@
                                                 <label class="block text-[11px] font-semibold text-rose-800 mb-0.5">Qty Rusak ({{ $satuan }})</label>
                                                 <input
                                                     type="number"
-                                                    step="{{ $step }}"
+                                                    step="1"
                                                     min="0"
-                                                    max="{{ $valMax }}"
+                                                    :max="items[{{ $index }}].maxQty"
                                                     name="items[{{ $index }}][qty_rusak]"
-                                                    x-model.number="qtyRusak"
-                                                    @input="onRusakChange()"
+                                                    x-model.number="items[{{ $index }}].qtyRusak"
                                                     value="0"
-                                                    @if(!$isDecimal) onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()" @endif
+                                                    onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
                                                     class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 font-mono"
                                                     required
                                                 >
                                             </div>
                                         </div>
+
+                                        <!-- Indikator Validasi Selisih Real-time & Auto-hitung -->
+                                        <div class="mt-2 flex items-center justify-between text-[11px]">
+                                            <template x-if="(parseInt(items[{{ $index }}].qtyBaik, 10) || 0) + (parseInt(items[{{ $index }}].qtyRusak, 10) || 0) === items[{{ $index }}].maxQty">
+                                                <span class="text-emerald-700 font-medium inline-flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                    Pas (Total: <span x-text="items[{{ $index }}].maxQty"></span> {{ $satuan }})
+                                                </span>
+                                            </template>
+                                            <template x-if="(parseInt(items[{{ $index }}].qtyBaik, 10) || 0) + (parseInt(items[{{ $index }}].qtyRusak, 10) || 0) !== items[{{ $index }}].maxQty">
+                                                <span class="text-rose-600 font-semibold inline-flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                                    Selisih: <span x-text="((parseInt(items[{{ $index }}].qtyBaik, 10) || 0) + (parseInt(items[{{ $index }}].qtyRusak, 10) || 0)) - items[{{ $index }}].maxQty"></span> {{ $satuan }} (Wajib Pas)
+                                                </span>
+                                            </template>
+                                            <button type="button" class="text-gray-500 hover:text-indigo-600 underline text-[10px]" @click="items[{{ $index }}].qtyRusak = Math.max(0, items[{{ $index }}].maxQty - (parseInt(items[{{ $index }}].qtyBaik, 10) || 0))">
+                                                Hitung Rusak Otomatis
+                                            </button>
+                                        </div>
+
                                         <div class="mt-2">
                                             <input type="text" name="items[{{ $index }}][keterangan_rusak]" placeholder="Catatan kerusakan transit (jika ada)..." class="w-full rounded-sm border-gray-300 text-[11px] py-1 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
                                         </div>
                                     </div>
                                     @endforeach
                                 </div>
-                                <x-button type="submit" variant="success" size="md" class="w-full" ::disabled="submitting" ::class="{ 'opacity-75 cursor-not-allowed pointer-events-none': submitting }">
+                                <x-button type="submit" variant="success" size="md" class="w-full" ::disabled="submitting || !isReceiveValid" ::class="{ 'opacity-50 cursor-not-allowed': !isReceiveValid, 'opacity-75 cursor-not-allowed pointer-events-none': submitting }">
                                     <span x-show="!submitting">Konfirmasi Terima (Stok IN)</span>
                                     <span x-show="submitting" x-cloak class="inline-flex items-center justify-center gap-1.5">
                                         <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                         Memproses...
                                     </span>
                                 </x-button>
+                                <p x-show="!isReceiveValid" x-cloak class="text-[11px] text-rose-600 text-center font-medium mt-1">
+                                    Periksa kuantitas: Total (Baik + Rusak) harus tepat sama dengan kuantitas dikirim.
+                                </p>
                             </form>
                             <p class="text-[11px] text-gray-500 text-center mt-1.5">Hanya kuantitas baik yang masuk ke saldo stok fisik gudang.</p>
                         </div>
@@ -446,21 +482,90 @@
                     @endif
 
                     @php
-                        $canCancelThis = auth()->user()->can('rt.cancel') || (in_array($rt->status, ['draft', 'diajukan'], true) && (int)$rt->created_by === (int)auth()->id() && auth()->user()->can('rt.create'));
+                        $cancellable = in_array($rt->status, ['draft', 'diajukan', 'disetujui'], true);
+                        $canCancelThis = $cancellable && (auth()->user()->can('rt.cancel') || (in_array($rt->status, ['draft', 'diajukan'], true) && (int)$rt->created_by === (int)auth()->id() && auth()->user()->can('rt.create')));
                     @endphp
 
-                    @if(!in_array($rt->status, ['selesai', 'dibatalkan'], true) && $canCancelThis)
-                    <form method="POST" action="{{ route('rt.transition', $rt) }}" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan dokumen transfer {{ $rt->no_transaksi }}?');" class="pt-2 border-t border-gray-100" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
-                        @csrf
-                        <input type="hidden" name="aksi" value="cancel">
-                        <x-button type="submit" variant="danger" size="xs" class="w-full" ::disabled="submitting">
-                            <span x-show="!submitting" class="flex items-center justify-center gap-1.5">
+                    @if($canCancelThis)
+                    <div class="pt-2 border-t border-gray-100" x-data="{ openCancelModal: false, alasan: '', isSubmitting: false }">
+                        <x-button type="button" variant="danger" size="xs" class="w-full" @click="openCancelModal = true">
+                            <span class="flex items-center justify-center gap-1.5">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 Batalkan Transfer / Request
                             </span>
-                            <span x-show="submitting" x-cloak>Membatalkan...</span>
                         </x-button>
-                    </form>
+
+                        <x-modal name="openCancelModal" maxWidth="md">
+                            <x-slot:header>
+                                <div class="px-6 py-5 border-b border-border/60 bg-destructive/5 flex items-center justify-between">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="size-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0 border border-destructive/20">
+                                            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <h3 class="text-base font-bold text-foreground tracking-tight">Batalkan Dokumen Mutasi</h3>
+                                            <p class="text-xs text-muted-foreground truncate">{{ $rt->no_transaksi }} &middot; {{ ucwords(str_replace('_', ' ', $rt->jenis)) }}</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" @click="openCancelModal = false" class="text-muted-foreground hover:text-foreground transition cursor-pointer p-1.5 rounded-lg hover:bg-accent shrink-0">
+                                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                            </x-slot:header>
+
+                            <form method="POST" action="{{ route('rt.transition', $rt) }}" @submit="if(alasan.trim().length >= 5) { isSubmitting = true } else { $event.preventDefault() }" class="space-y-4">
+                                @csrf
+                                <input type="hidden" name="aksi" value="cancel">
+
+                                <div class="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl text-xs text-destructive space-y-1">
+                                    <div class="font-bold flex items-center gap-1.5">
+                                        <svg class="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Peringatan Pembatalan Dokumen
+                                    </div>
+                                    <p class="text-destructive/90 leading-relaxed text-[11px]">
+                                        Setelah dibatalkan, status dokumen transfer akan menjadi <strong>Dibatalkan</strong>. Pengeluaran dan penerimaan fisik barang tidak dapat dilanjutkan.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <div class="flex items-center justify-between mb-1.5">
+                                        <label for="alasan_pembatalan_show" class="text-xs font-semibold text-foreground">
+                                            Alasan Pembatalan <span class="text-destructive">*</span>
+                                        </label>
+                                        <span class="text-[10px] text-muted-foreground">Wajib diisi</span>
+                                    </div>
+                                    <textarea
+                                        id="alasan_pembatalan_show"
+                                        name="alasan"
+                                        x-model="alasan"
+                                        rows="3"
+                                        required
+                                        minlength="5"
+                                        maxlength="500"
+                                        placeholder="Tuliskan alasan pembatalan dokumen mutasi ini (minimal 5 karakter)..."
+                                        class="w-full rounded-xl border border-border bg-card p-3 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-destructive focus:ring-2 focus:ring-destructive/20 outline-none transition"
+                                    ></textarea>
+                                    <div class="flex items-center justify-between mt-1 text-[11px]">
+                                        <span class="text-muted-foreground">Minimal 5 karakter</span>
+                                        <span :class="alasan.trim().length >= 5 ? 'text-emerald-600 font-semibold' : 'text-muted-foreground'" x-text="alasan.trim().length + ' / 500 karakter'"></span>
+                                    </div>
+                                </div>
+
+                                <div class="pt-3 border-t border-border/60 flex items-center justify-end gap-2.5">
+                                    <x-button type="button" variant="secondary" size="sm" @click="openCancelModal = false">
+                                        Kembali
+                                    </x-button>
+                                    <x-button type="submit" variant="danger" size="sm" ::disabled="isSubmitting || alasan.trim().length < 5" ::class="{ 'opacity-50 cursor-not-allowed': alasan.trim().length < 5, 'opacity-75 cursor-not-allowed pointer-events-none': isSubmitting }">
+                                        <span x-show="!isSubmitting">Konfirmasi Batalkan Dokumen</span>
+                                        <span x-show="isSubmitting" x-cloak class="inline-flex items-center gap-1.5">
+                                            <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            Membatalkan...
+                                        </span>
+                                    </x-button>
+                                </div>
+                            </form>
+                        </x-modal>
+                    </div>
                     @endif
 
                     @if(in_array($rt->status, ['selesai', 'dibatalkan'], true))
@@ -490,6 +595,12 @@
                     <div class="flex justify-between">
                         <span>Operator</span>
                         <span class="text-gray-900 font-medium">{{ $rt->creator->name }}</span>
+                    </div>
+                    @endif
+                    @if($rt->alasan_batal)
+                    <div class="flex justify-between text-rose-600 pt-1 border-t border-gray-100">
+                        <span>Alasan Batal</span>
+                        <span class="font-medium text-right max-w-[60%]">{{ $rt->alasan_batal }}</span>
                     </div>
                     @endif
                 </div>

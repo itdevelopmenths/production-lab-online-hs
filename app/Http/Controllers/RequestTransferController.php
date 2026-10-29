@@ -95,15 +95,14 @@ class RequestTransferController extends Controller
                     $html .= $sep . '<a href="' . e(route('rt.edit', $rt)) . '" class="text-amber-600 hover:text-amber-800 text-xs font-semibold hover:underline" title="Edit dokumen draft">Edit</a>';
                 }
 
-                $cancellable = in_array($rt->status, ['draft', 'diajukan'], true);
+                $cancellable = in_array($rt->status, ['draft', 'diajukan', 'disetujui'], true);
                 $canCancel = $canCancelAny || ($cancellable && (int) $rt->created_by === $userId && $canCreate);
                 if ($cancellable && $canCancel) {
+                    $actionUrl = e(route('rt.transition', $rt));
+                    $noTransaksi = e($rt->no_transaksi);
                     $html .= $sep
-                        . '<form method="POST" action="' . e(route('rt.transition', $rt)) . '" onsubmit="return confirm(\'Apakah Anda yakin ingin membatalkan dokumen ' . e($rt->no_transaksi) . '?\');" class="inline">'
-                        . '<input type="hidden" name="_token" value="' . e($csrf) . '" autocomplete="off">'
-                        . '<input type="hidden" name="aksi" value="cancel">'
-                        . '<button type="submit" class="text-rose-600 hover:text-rose-800 text-xs font-semibold hover:underline cursor-pointer" title="Batalkan pengajuan sebelum disetujui">Batalkan</button>'
-                        . '</form>';
+                        . "<button type=\"button\" class=\"text-rose-600 hover:text-rose-800 text-xs font-semibold hover:underline cursor-pointer btn-cancel-rt\" "
+                        . "data-action=\"{$actionUrl}\" data-no=\"{$noTransaksi}\" title=\"Batalkan dokumen mutasi\">Batalkan</button>";
                 }
 
                 if (in_array($rt->status, ['diproses', 'dikirim', 'selesai'], true)) {
@@ -123,6 +122,9 @@ class RequestTransferController extends Controller
     {
         $this->authorize('rt.create');
         $user = auth()->user();
+        $allowedJenis = $this->locationScope->getAllowedTransferJenis($user);
+        abort_if(empty($allowedJenis), 403, 'Akses Ditolak: Anda tidak memiliki wewenang gudang (LBAC) untuk menginisiasi transfer barang apapun.');
+
         $accessibleIds = $this->locationScope->getAccessibleWarehouseIds($user);
 
         $gudang = Gudang::active()
@@ -135,6 +137,9 @@ class RequestTransferController extends Controller
 
         $prefilledRows = [];
         $defaultJenis = 'req_bahan';
+        if (! in_array($defaultJenis, $allowedJenis, true)) {
+            $defaultJenis = $allowedJenis[0] ?? 'req_bahan';
+        }
         $defaultGudangAsalId = null;
         $defaultGudangTujuanId = null;
         $defaultCatatan = null;
@@ -231,7 +236,9 @@ class RequestTransferController extends Controller
             'defaultGudangAsalId',
             'defaultGudangTujuanId',
             'defaultCatatan',
-            'batch'
+            'batch',
+            'allowedJenis',
+            'accessibleIds'
         ));
     }
 
@@ -241,13 +248,30 @@ class RequestTransferController extends Controller
 
         $data = $request->validate([
             'jenis' => ['required', Rule::in(RequestTransfer::JENIS)],
-            'gudang_asal_id' => ['nullable', 'exists:gudang,id'],
-            'gudang_tujuan_id' => ['nullable', 'exists:gudang,id'],
+            'gudang_asal_id' => ['required', 'exists:gudang,id'],
+            'gudang_tujuan_id' => ['required', 'exists:gudang,id', 'different:gudang_asal_id'],
             'catatan' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.produk_id' => ['required', 'distinct', 'exists:produk,id'],
-            'items.*.qty_diminta' => ['required', 'numeric', 'gt:0'],
+            'items.*.qty_diminta' => ['required', 'integer', 'min:1'],
         ]);
+
+        $asal = Gudang::findOrFail($data['gudang_asal_id']);
+        $tujuan = Gudang::findOrFail($data['gudang_tujuan_id']);
+
+        $authorityError = $this->locationScope->validateTransferAuthority(
+            auth()->user(),
+            $data['jenis'],
+            $asal,
+            $tujuan
+        );
+
+        if ($authorityError) {
+            if (str_starts_with($authorityError, 'Akses Ditolak:')) {
+                abort(403, $authorityError);
+            }
+            throw \Illuminate\Validation\ValidationException::withMessages(['jenis' => $authorityError]);
+        }
 
         $rt = DB::transaction(function () use ($data) {
             $rt = RequestTransfer::create([
@@ -306,6 +330,11 @@ class RequestTransferController extends Controller
         abort_unless($requestTransfer->status === 'draft', 422, 'Hanya dokumen mutasi berstatus Draft yang dapat diedit.');
 
         $user = auth()->user();
+        if (! $this->locationScope->canViewTransfer($user, $requestTransfer)) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki wewenang untuk mengakses dokumen transfer ini.');
+        }
+
+        $allowedJenis = $this->locationScope->getAllowedTransferJenis($user);
         $accessibleIds = $this->locationScope->getAccessibleWarehouseIds($user);
 
         $allGudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
@@ -350,6 +379,8 @@ class RequestTransferController extends Controller
             'defaultGudangAsalId' => $requestTransfer->gudang_asal_id,
             'defaultGudangTujuanId' => $requestTransfer->gudang_tujuan_id,
             'defaultCatatan' => $requestTransfer->catatan,
+            'allowedJenis' => $allowedJenis,
+            'accessibleIds' => $accessibleIds,
         ]);
     }
 
@@ -359,15 +390,37 @@ class RequestTransferController extends Controller
 
         abort_unless($requestTransfer->status === 'draft', 422, 'Hanya dokumen mutasi berstatus Draft yang dapat diubah.');
 
+        $user = auth()->user();
+        if (! $this->locationScope->canViewTransfer($user, $requestTransfer)) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki wewenang untuk mengubah dokumen transfer ini.');
+        }
+
         $data = $request->validate([
             'jenis' => ['required', Rule::in(RequestTransfer::JENIS)],
-            'gudang_asal_id' => ['nullable', 'exists:gudang,id'],
-            'gudang_tujuan_id' => ['nullable', 'exists:gudang,id'],
+            'gudang_asal_id' => ['required', 'exists:gudang,id'],
+            'gudang_tujuan_id' => ['required', 'exists:gudang,id', 'different:gudang_asal_id'],
             'catatan' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.produk_id' => ['required', 'distinct', 'exists:produk,id'],
-            'items.*.qty_diminta' => ['required', 'numeric', 'gt:0'],
+            'items.*.qty_diminta' => ['required', 'integer', 'min:1'],
         ]);
+
+        $asal = Gudang::findOrFail($data['gudang_asal_id']);
+        $tujuan = Gudang::findOrFail($data['gudang_tujuan_id']);
+
+        $authorityError = $this->locationScope->validateTransferAuthority(
+            $user,
+            $data['jenis'],
+            $asal,
+            $tujuan
+        );
+
+        if ($authorityError) {
+            if (str_starts_with($authorityError, 'Akses Ditolak:')) {
+                abort(403, $authorityError);
+            }
+            throw \Illuminate\Validation\ValidationException::withMessages(['jenis' => $authorityError]);
+        }
 
         DB::transaction(function () use ($requestTransfer, $data) {
             $requestTransfer->update([
@@ -393,6 +446,10 @@ class RequestTransferController extends Controller
     public function suratJalan(RequestTransfer $requestTransfer)
     {
         $this->authorize('rt.view');
+        $user = auth()->user();
+        if (! $this->locationScope->canViewTransfer($user, $requestTransfer)) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki wewenang untuk mengakses dokumen transfer ini.');
+        }
 
         $requestTransfer->load([
             'items.produk:id,sku,nama,satuan',
@@ -407,6 +464,11 @@ class RequestTransferController extends Controller
     public function show(RequestTransfer $requestTransfer)
     {
         $this->authorize('rt.view');
+        $user = auth()->user();
+        if (! $this->locationScope->canViewTransfer($user, $requestTransfer)) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki wewenang untuk mengakses dokumen transfer ini.');
+        }
+
         $requestTransfer->load([
             'items.produk:id,sku,nama,satuan',
             'gudangAsal',
@@ -467,6 +529,7 @@ class RequestTransferController extends Controller
     {
         $data = $request->validate([
             'aksi' => ['required', Rule::in(['submit', 'approve', 'process', 'ship', 'receive', 'cancel'])],
+            'alasan' => ['required_if:aksi,cancel', 'nullable', 'string', 'min:5', 'max:500'],
             'items' => ['nullable', 'array'],
             'items.*.id' => ['required', 'exists:request_transfer_items,id'],
             'items.*.qty' => ['nullable', 'numeric', 'min:0'],
@@ -475,9 +538,14 @@ class RequestTransferController extends Controller
             'items.*.keterangan_rusak' => ['nullable', 'string', 'max:500'],
         ]);
         $aksi = $data['aksi'];
+        $alasan = trim((string) ($data['alasan'] ?? ''));
 
         $rt = $requestTransfer;
         $user = auth()->user();
+
+        if (! $this->locationScope->canViewTransfer($user, $rt)) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki wewenang untuk mengakses dokumen transfer ini.');
+        }
 
         if ($aksi === 'cancel') {
             $isCreatorBeforeApproval = in_array($rt->status, ['draft', 'diajukan'], true) && (int) $rt->created_by === (int) $user->id;
@@ -503,7 +571,7 @@ class RequestTransferController extends Controller
         $qtyMap = collect($request->input('items', []))->keyBy('id');
 
         try {
-            DB::transaction(function () use ($requestTransfer, $aksi, $qtyMap) {
+            DB::transaction(function () use ($requestTransfer, $aksi, $qtyMap, $alasan) {
                 // Lock baris untuk mencegah race condition
                 $rt = RequestTransfer::where('id', $requestTransfer->id)->lockForUpdate()->firstOrFail();
 
@@ -528,7 +596,7 @@ class RequestTransferController extends Controller
                     'process' => $this->doProcessOrShip($rt, $qtyMap, 'diproses', ['disetujui']),
                     'ship' => $this->doProcessOrShip($rt, $qtyMap, 'dikirim', ['draft']),
                     'receive' => $this->doReceive($rt, $qtyMap),
-                    'cancel' => $this->doCancel($rt),
+                    'cancel' => $this->doCancel($rt, $alasan),
                 };
             });
         } catch (\RuntimeException $e) {
@@ -580,7 +648,11 @@ class RequestTransferController extends Controller
         $oldStatus = $rt->status;
 
         foreach ($rt->items as $item) {
-            $qty = (float) ($qtyMap[$item->id]['qty'] ?? $item->qty_diminta);
+            $rawQty = $qtyMap[$item->id]['qty'] ?? $item->qty_diminta;
+            if (! is_numeric($rawQty) || abs((float)$rawQty - round((float)$rawQty)) > 0.00001) {
+                throw new \RuntimeException("Kuantitas untuk {$item->produk->nama} harus berupa bilangan bulat (tanpa desimal).");
+            }
+            $qty = (int) round((float) $rawQty);
             $item->update(['qty_dikirim' => $qty]);
             if ($qty > 0 && $rt->gudang_asal_id) {
                 $this->stok->keluar($item->produk_id, $rt->gudang_asal_id, $qty, 'request_transfer', $rt->id, "Kirim {$rt->no_transaksi}");
@@ -608,28 +680,34 @@ class RequestTransferController extends Controller
         $rt->loadMissing('items.produk');
 
         foreach ($rt->items as $item) {
-            $row = $qtyMap[$item->id] ?? [];
+            if (! isset($qtyMap[$item->id])) {
+                throw new \RuntimeException("Data penerimaan untuk {$item->produk->nama} tidak ditemukan dalam submisi.");
+            }
+
+            $row = $qtyMap[$item->id];
             $hasQualityInput = isset($row['qty_baik']) || isset($row['qty_rusak']);
+            $qtyKirim = (int) round((float) ($item->qty_dikirim ?? $item->qty_diminta));
 
             if ($hasQualityInput) {
-                $qtyBaik = (float) ($row['qty_baik'] ?? 0);
-                $qtyRusak = (float) ($row['qty_rusak'] ?? 0);
-                $qtyTotal = $qtyBaik + $qtyRusak;
-                $qtyKirim = (float) ($item->qty_dikirim ?? $item->qty_diminta);
+                $rawBaik = $row['qty_baik'] ?? 0;
+                $rawRusak = $row['qty_rusak'] ?? 0;
 
-                if ($qtyTotal > $qtyKirim) {
-                    throw new \RuntimeException("Total kuantitas diterima ({$qtyTotal}) untuk {$item->produk->nama} tidak boleh melebihi kuantitas dikirim ({$qtyKirim}).");
+                // Tolak nilai pecahan/desimal untuk semua produk
+                if (! is_numeric($rawBaik) || ! is_numeric($rawRusak) || abs((float)$rawBaik - round((float)$rawBaik)) > 0.00001 || abs((float)$rawRusak - round((float)$rawRusak)) > 0.00001) {
+                    throw new \RuntimeException("Kuantitas untuk {$item->produk->nama} harus berupa bilangan bulat (tanpa desimal).");
                 }
 
-                $satuanLower = strtolower(trim($item->produk->satuan ?? 'pcs'));
-                $isDecimal = in_array($satuanLower, ['ml', 'l', 'liter', 'gr', 'gram', 'kg', 'kilogram'], true);
-                if (! $isDecimal) {
-                    if (abs($qtyBaik - round($qtyBaik)) > 0.00001 || abs($qtyRusak - round($qtyRusak)) > 0.00001) {
-                        throw new \RuntimeException("Kuantitas untuk {$item->produk->nama} ({$item->produk->satuan}) harus berupa bilangan bulat (satuan), bukan pecahan/desimal.");
-                    }
-                    $qtyBaik = (float) round($qtyBaik);
-                    $qtyRusak = (float) round($qtyRusak);
-                    $qtyTotal = $qtyBaik + $qtyRusak;
+                $qtyBaik = (int) round((float) $rawBaik);
+                $qtyRusak = (int) round((float) $rawRusak);
+
+                if ($qtyBaik < 0 || $qtyRusak < 0) {
+                    throw new \RuntimeException("Kuantitas untuk {$item->produk->nama} tidak boleh bernilai negatif.");
+                }
+
+                $qtyTotal = $qtyBaik + $qtyRusak;
+
+                if ($qtyTotal !== $qtyKirim) {
+                    throw new \RuntimeException("Validasi Kuantitas Gagal untuk {$item->produk->nama}: Jumlah Kondisi Baik ({$qtyBaik}) + Kondisi Rusak ({$qtyRusak}) = {$qtyTotal} {$item->produk->satuan}, harus sama persis dengan jumlah dikirim ({$qtyKirim} {$item->produk->satuan}).");
                 }
 
                 $keteranganRusak = $row['keterangan_rusak'] ?? null;
@@ -647,7 +725,15 @@ class RequestTransferController extends Controller
                     $this->stok->masuk($item->produk_id, $rt->gudang_tujuan_id, $qtyBaik, 'request_transfer', $rt->id, $note);
                 }
             } else {
-                $qty = (float) ($row['qty'] ?? $item->qty_dikirim ?? $item->qty_diminta);
+                $rawQty = $row['qty'] ?? null;
+                if ($rawQty === null || ! is_numeric($rawQty) || abs((float)$rawQty - round((float)$rawQty)) > 0.00001) {
+                    throw new \RuntimeException("Kuantitas untuk {$item->produk->nama} harus berupa bilangan bulat (tanpa desimal).");
+                }
+                $qty = (int) round((float) $rawQty);
+                if ($qty !== $qtyKirim) {
+                    throw new \RuntimeException("Validasi Kuantitas Gagal untuk {$item->produk->nama}: Kuantitas diterima ({$qty}) harus sama persis dengan kuantitas dikirim ({$qtyKirim}).");
+                }
+
                 $item->update([
                     'qty_diterima' => $qty,
                     'qty_baik' => $qty,
@@ -673,16 +759,26 @@ class RequestTransferController extends Controller
         );
     }
 
-    private function doCancel(RequestTransfer $rt): void
+    private function doCancel(RequestTransfer $rt, string $alasan): void
     {
-        abort_if(in_array($rt->status, ['selesai', 'dibatalkan'], true), 422, 'Dokumen tidak dapat dibatalkan.');
+        abort_unless(in_array($rt->status, ['draft', 'diajukan', 'disetujui'], true), 422, 'Dokumen yang sudah diproses atau dalam perjalanan tidak dapat dibatalkan.');
         $oldStatus = $rt->status;
-        $rt->update(['status' => 'dibatalkan']);
+        $rt->update([
+            'status' => 'dibatalkan',
+            'alasan_batal' => $alasan,
+        ]);
 
         $rt->recordAudit(
             event: 'cancelled',
-            actionTitle: "Pembatalan dokumen {$rt->no_transaksi}",
-            customChanges: ['status' => [$oldStatus, 'dibatalkan']]
+            actionTitle: "Pembatalan dokumen {$rt->no_transaksi}: {$alasan}",
+            customChanges: [
+                'status' => [$oldStatus, 'dibatalkan'],
+                'alasan_batal' => [null, $alasan],
+            ],
+            metadata: [
+                'alasan_pembatalan' => $alasan,
+                'dibatalkan_oleh' => auth()->user()->name,
+            ]
         );
     }
 

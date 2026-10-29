@@ -1,4 +1,9 @@
 <x-app-layout title="Buat Request/Transfer">
+    @php
+        $allowedJenis = $allowedJenis ?? \App\Models\RequestTransfer::JENIS;
+        $accessibleIds = $accessibleIds ?? null;
+        $allGudang = $allGudang ?? [];
+    @endphp
     <div class="max-w-5xl mx-auto space-y-6">
         <x-page-header
             title="Buat Request & Transfer"
@@ -26,6 +31,10 @@
             'gudangAsalId' => (string) old('gudang_asal_id', $defaultGudangAsalId ?? ''),
             'gudangTujuanId' => (string) old('gudang_tujuan_id', $defaultGudangTujuanId ?? ''),
             'rows' => $prefilledRows ?? [],
+            'allGudang' => $allGudang,
+            'allowedJenis' => $allowedJenis,
+            'accessibleIds' => $accessibleIds,
+            'jenisMatrix' => \App\Models\RequestTransfer::JENIS_MATRIX,
         ]) }})">
             <form method="POST" action="{{ route('rt.store') }}" x-data="{ submitting: false }" @submit="if(submitting) return false; submitting = true">
             @csrf
@@ -34,12 +43,10 @@
                 <x-card title="Parameter Dokumen Mutasi" subtitle="Tentukan jenis transfer logistik dan alur gudang asal ke gudang tujuan">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <x-form-group name="jenis" label="Jenis Mutasi" :required="true">
-                            <x-select name="jenis" x-model="jenis" :required="true">
-                                <option value="req_bahan">Request Bahan (Approval 5-Tahap)</option>
-                                <option value="retur_bahan">Retur Bahan ke Gudang Asal</option>
-                                <option value="kirim_produk_jadi">Kirim Produk Jadi ke FF</option>
-                                <option value="antar_fulfillment">Antar Fulfillment</option>
-                                <option value="retur_produk_jadi">Retur Produk Jadi</option>
+                            <x-select name="jenis" x-model="jenis" :required="true" @change="onJenisChange()">
+                                @foreach($allowedJenis as $jKey)
+                                    <option value="{{ $jKey }}">{{ \App\Models\RequestTransfer::JENIS_MATRIX[$jKey]['label'] }}</option>
+                                @endforeach
                             </x-select>
                             <x-slot:help>
                                 <span class="inline-flex items-center gap-1 font-mono text-[10px] text-foreground bg-muted px-2 py-0.5 rounded-md border border-border mt-1"
@@ -47,19 +54,19 @@
                             </x-slot:help>
                         </x-form-group>
 
-                        <x-form-group name="gudang_asal_id" label="Gudang Asal" help="Gudang pengirim / sumber stok">
-                            <x-select name="gudang_asal_id" x-model="gudangAsalId" placeholder="— Pilih Gudang Asal —">
-                                @foreach($allGudang as $g)
-                                    <option value="{{ $g->id }}" @selected((string)old('gudang_asal_id', $defaultGudangAsalId ?? '') === (string)$g->id)>{{ $g->nama }} ({{ ucfirst($g->tipe) }})</option>
-                                @endforeach
+                        <x-form-group name="gudang_asal_id" label="Gudang Asal" help="Gudang pengirim / sumber stok" :required="true">
+                            <x-select name="gudang_asal_id" x-model="gudangAsalId" placeholder="— Pilih Gudang Asal —" :required="true">
+                                <template x-for="g in allowedAsalGudangs" :key="g.id">
+                                    <option :value="String(g.id)" x-text="`${g.nama} (${g.tipe.replace('_', ' ')})`" :selected="String(gudangAsalId) === String(g.id)"></option>
+                                </template>
                             </x-select>
                         </x-form-group>
 
-                        <x-form-group name="gudang_tujuan_id" label="Gudang Tujuan" help="Gudang penerima alokasi fisik (gudang operasional batch)">
-                            <x-select name="gudang_tujuan_id" x-model="gudangTujuanId" placeholder="— Pilih Gudang Tujuan —">
-                                @foreach($allGudang as $g)
-                                    <option value="{{ $g->id }}" @selected((string)old('gudang_tujuan_id', $defaultGudangTujuanId ?? '') === (string)$g->id)>{{ $g->nama }} ({{ ucfirst($g->tipe) }})</option>
-                                @endforeach
+                        <x-form-group name="gudang_tujuan_id" label="Gudang Tujuan" help="Gudang penerima alokasi fisik" :required="true">
+                            <x-select name="gudang_tujuan_id" x-model="gudangTujuanId" placeholder="— Pilih Gudang Tujuan —" :required="true">
+                                <template x-for="g in allowedTujuanGudangs" :key="g.id">
+                                    <option :value="String(g.id)" x-text="`${g.nama} (${g.tipe.replace('_', ' ')})`" :selected="String(gudangTujuanId) === String(g.id)"></option>
+                                </template>
                             </x-select>
                         </x-form-group>
                     </div>
@@ -201,11 +208,12 @@
                                             <div class="relative flex items-center">
                                                 <input
                                                     type="number"
-                                                    step="0.01"
-                                                    min="0.01"
+                                                    step="1"
+                                                    min="1"
                                                     :name="`items[${i}][qty_diminta]`"
                                                     x-model="row.qty"
-                                                    placeholder="0.00"
+                                                    placeholder="0"
+                                                    onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
                                                     required
                                                     class="w-full rounded-lg border-input bg-background text-xs py-2 pr-16 font-mono text-right focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                                                 />
@@ -261,9 +269,13 @@
     <script>
         function rtForm(initial = {}) {
             return {
-                jenis: initial.jenis || '{{ old("jenis", "req_bahan") }}',
+                jenis: initial.jenis || '{{ old("jenis", $defaultJenis ?? "req_bahan") }}',
                 gudangAsalId: initial.gudangAsalId !== undefined ? String(initial.gudangAsalId) : '{{ old("gudang_asal_id", $defaultGudangAsalId ?? "") }}',
                 gudangTujuanId: initial.gudangTujuanId !== undefined ? String(initial.gudangTujuanId) : '{{ old("gudang_tujuan_id", $defaultGudangTujuanId ?? "") }}',
+                allGudang: initial.allGudang || [],
+                allowedJenis: initial.allowedJenis || [],
+                accessibleIds: initial.accessibleIds !== undefined ? initial.accessibleIds : null,
+                jenisMatrix: initial.jenisMatrix || {},
                 rows: (initial.rows && initial.rows.length > 0) ? initial.rows : [
                     { produk_id: '', qty: '', satuan: '', selectedItem: null }
                 ],
@@ -271,10 +283,66 @@
                 stokMap: initial.stokMap || {},
                 loadingStok: false,
 
-                init() {
-                    this.$watch('gudangAsalId', (newVal) => {
+                get allowedAsalGudangs() {
+                    const matrix = this.jenisMatrix[this.jenis];
+                    if (!matrix) return [];
+                    return this.allGudang.filter(g => {
+                        if (!matrix.asal_tipe.includes(g.tipe)) return false;
+                        if (this.accessibleIds !== null && matrix.allowed_initiator === 'asal') {
+                            return this.accessibleIds.includes(Number(g.id));
+                        }
+                        return true;
+                    });
+                },
+
+                get allowedTujuanGudangs() {
+                    const matrix = this.jenisMatrix[this.jenis];
+                    if (!matrix) return [];
+                    const asalId = Number(this.gudangAsalId);
+                    return this.allGudang.filter(g => {
+                        if (!matrix.tujuan_tipe.includes(g.tipe)) return false;
+                        if (Number(g.id) === asalId) return false;
+                        if (this.accessibleIds !== null && matrix.allowed_initiator === 'either') {
+                            const hasAsalAccess = this.accessibleIds.includes(asalId);
+                            if (!hasAsalAccess && !this.accessibleIds.includes(Number(g.id))) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                },
+
+                onJenisChange() {
+                    this.$nextTick(() => {
+                        const asal = this.allowedAsalGudangs;
+                        if (!asal.some(g => String(g.id) === String(this.gudangAsalId))) {
+                            this.gudangAsalId = asal.length === 1 ? String(asal[0].id) : '';
+                        }
+                        const tujuan = this.allowedTujuanGudangs;
+                        if (!tujuan.some(g => String(g.id) === String(this.gudangTujuanId))) {
+                            this.gudangTujuanId = tujuan.length === 1 ? String(tujuan[0].id) : '';
+                        }
                         this.refreshAllStok();
                     });
+                },
+
+                init() {
+                    this.$watch('gudangAsalId', (newVal) => {
+                        const tujuan = this.allowedTujuanGudangs;
+                        if (!tujuan.some(g => String(g.id) === String(this.gudangTujuanId))) {
+                            this.gudangTujuanId = tujuan.length === 1 ? String(tujuan[0].id) : '';
+                        }
+                        this.refreshAllStok();
+                    });
+
+                    // Auto-pilih jika hanya tersedia 1 opsi gudang
+                    if (!this.gudangAsalId && this.allowedAsalGudangs.length === 1) {
+                        this.gudangAsalId = String(this.allowedAsalGudangs[0].id);
+                    }
+                    if (!this.gudangTujuanId && this.allowedTujuanGudangs.length === 1) {
+                        this.gudangTujuanId = String(this.allowedTujuanGudangs[0].id);
+                    }
+
                     if (this.gudangAsalId) {
                         this.refreshAllStok();
                     }

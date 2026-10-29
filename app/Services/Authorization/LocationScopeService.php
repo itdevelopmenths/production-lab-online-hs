@@ -3,6 +3,7 @@
 namespace App\Services\Authorization;
 
 use App\Models\Gudang;
+use App\Models\RequestTransfer;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -80,5 +81,99 @@ class LocationScopeService
         }
 
         return $query->get(['id', 'kode', 'nama', 'tipe']);
+    }
+
+    /**
+     * Mengembalikan daftar jenis mutasi (RequestTransfer::JENIS) yang diizinkan untuk diinisiasi user
+     * berdasarkan wewenang gudang (LBAC).
+     *
+     * @return array<string>
+     */
+    public function getAllowedTransferJenis(User $user): array
+    {
+        if ($this->isGlobal($user)) {
+            return array_keys(RequestTransfer::JENIS_MATRIX);
+        }
+
+        $accessibleIds = $this->getAccessibleWarehouseIds($user) ?? [];
+        if (empty($accessibleIds)) {
+            return [];
+        }
+
+        $myGudangs = Gudang::active()->whereIn('id', $accessibleIds)->get(['id', 'tipe']);
+        $myTypes = $myGudangs->pluck('tipe')->unique()->all();
+
+        $allowed = [];
+        foreach (RequestTransfer::JENIS_MATRIX as $jenis => $matrix) {
+            $canInitiate = false;
+            if ($matrix['allowed_initiator'] === 'asal') {
+                $canInitiate = ! empty(array_intersect($matrix['asal_tipe'], $myTypes));
+            } elseif ($matrix['allowed_initiator'] === 'either') {
+                $canInitiate = ! empty(array_intersect(array_merge($matrix['asal_tipe'], $matrix['tujuan_tipe']), $myTypes));
+            }
+
+            if ($canInitiate) {
+                $allowed[] = $jenis;
+            }
+        }
+
+        return $allowed;
+    }
+
+    /**
+     * Memvalidasi wewenang inisiasi transfer berdasarkan jenis, gudang asal, dan gudang tujuan.
+     * Mengembalikan null jika valid, atau pesan kesalahan jika wewenang ditolak.
+     */
+    public function validateTransferAuthority(User $user, string $jenis, Gudang $asal, Gudang $tujuan): ?string
+    {
+        if (! isset(RequestTransfer::JENIS_MATRIX[$jenis])) {
+            return 'Jenis transfer tidak valid.';
+        }
+
+        $matrix = RequestTransfer::JENIS_MATRIX[$jenis];
+
+        if (! in_array($asal->tipe, $matrix['asal_tipe'], true)) {
+            return "Gudang asal '{$asal->nama}' ({$asal->tipe}) tidak valid untuk jenis {$matrix['label']}. Tipe yang diizinkan: " . implode(', ', $matrix['asal_tipe']) . '.';
+        }
+
+        if (! in_array($tujuan->tipe, $matrix['tujuan_tipe'], true)) {
+            return "Gudang tujuan '{$tujuan->nama}' ({$tujuan->tipe}) tidak valid untuk jenis {$matrix['label']}. Tipe yang diizinkan: " . implode(', ', $matrix['tujuan_tipe']) . '.';
+        }
+
+        if ((int) $asal->id === (int) $tujuan->id) {
+            return 'Gudang asal dan gudang tujuan tidak boleh sama.';
+        }
+
+        // LBAC Authorization
+        if (! $this->isGlobal($user)) {
+            $accessibleIds = $this->getAccessibleWarehouseIds($user) ?? [];
+
+            if ($matrix['allowed_initiator'] === 'asal') {
+                if (! in_array((int) $asal->id, $accessibleIds, true)) {
+                    return "Akses Ditolak: Anda tidak memiliki wewenang untuk membuat transfer dari gudang asal '{$asal->nama}'.";
+                }
+            } elseif ($matrix['allowed_initiator'] === 'either') {
+                if (! in_array((int) $asal->id, $accessibleIds, true) && ! in_array((int) $tujuan->id, $accessibleIds, true)) {
+                    return "Akses Ditolak: Anda tidak memiliki wewenang untuk gudang asal ('{$asal->nama}') maupun tujuan ('{$tujuan->nama}') transfer ini.";
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Memeriksa apakah user berwewenang melihat atau memantau dokumen RequestTransfer tertentu.
+     */
+    public function canViewTransfer(User $user, RequestTransfer $rt): bool
+    {
+        if ($this->isGlobal($user)) {
+            return true;
+        }
+
+        $accessibleIds = $this->getAccessibleWarehouseIds($user) ?? [];
+
+        return in_array((int) $rt->gudang_asal_id, $accessibleIds, true) ||
+               in_array((int) $rt->gudang_tujuan_id, $accessibleIds, true);
     }
 }

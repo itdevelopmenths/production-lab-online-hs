@@ -227,17 +227,19 @@ class RequestTransferFlowTest extends TestCase
         $rt->refresh();
         $this->assertEquals(95, (float) $rt->items->first()->qty_dikirim);
 
-        // Receiver receives 93 (2 pieces broken in transit)
+        // Receiver receives 93 good, 2 broken in transit (total 95 matches sent)
         $this->actingAs($fulfillment);
         $this->post(route('rt.transition', $rt), [
             'aksi' => 'receive',
             'items' => [
-                ['id' => $rtItem->id, 'qty' => 93],
+                ['id' => $rtItem->id, 'qty_baik' => 93, 'qty_rusak' => 2, 'keterangan_rusak' => '2 pecah di jalan'],
             ],
-        ]);
+        ])->assertSessionHas('success');
         $rt->refresh();
         $this->assertEquals('selesai', $rt->status);
-        $this->assertEquals(93, (float) $rt->items->first()->qty_diterima);
+        $this->assertEquals(95, (float) $rt->items->first()->qty_diterima);
+        $this->assertEquals(93, (float) $rt->items->first()->qty_baik);
+        $this->assertEquals(2, (float) $rt->items->first()->qty_rusak);
         $this->assertEquals(93, $stokService->saldo($produk->id, $gudangFf->id));
     }
 
@@ -363,7 +365,10 @@ class RequestTransferFlowTest extends TestCase
         ]);
 
         $this->actingAs($manager);
-        $response = $this->post(route('rt.transition', $rt), ['aksi' => 'cancel']);
+        $response = $this->post(route('rt.transition', $rt), [
+            'aksi' => 'cancel',
+            'alasan' => 'Dibatalkan oleh manager',
+        ]);
         $response->assertSessionHas('error');
 
         $rt->refresh();
@@ -396,10 +401,14 @@ class RequestTransferFlowTest extends TestCase
 
         // Manager has rt.cancel permission to cancel transfer
         $this->actingAs($manager);
-        $this->post(route('rt.transition', $rt), ['aksi' => 'cancel'])->assertSessionHas('success');
+        $this->post(route('rt.transition', $rt), [
+            'aksi' => 'cancel',
+            'alasan' => 'Dibatalkan oleh manager sebelum diproses',
+        ])->assertSessionHas('success');
 
         $rt->refresh();
         $this->assertEquals('dibatalkan', $rt->status);
+        $this->assertEquals('Dibatalkan oleh manager sebelum diproses', $rt->alasan_batal);
     }
 
     public function test_request_transfer_show_displays_critical_warning_when_origin_stock_is_insufficient(): void

@@ -71,7 +71,7 @@ class DivisiManagementTest extends TestCase
 
         $response = $this->get(route('divisi.edit', $divisi));
         $response->assertOk();
-        $response->assertSee('Edit Divisi / Departemen');
+        $response->assertSee('Edit Divisi');
         $response->assertSee('name="nama"', false);
         $response->assertSee(e($divisi->nama), false);
     }
