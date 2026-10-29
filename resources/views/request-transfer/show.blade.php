@@ -360,113 +360,148 @@
 
                     @if(in_array($rt->status, ['diproses', 'dikirim'], true))
                         @if($canReceive)
-                        <div class="border border-emerald-200 bg-emerald-50/50 rounded-sm p-3">
-                            <h4 class="text-xs font-bold text-emerald-900 mb-2">Konfirmasi Penerimaan Barang</h4>
+                        @php
+                            $receiveItems = $rt->items->values()->map(function($it) {
+                                $qtyKirim = (int) round($it->qty_dikirim ?? $it->qty_diminta);
+                                return [
+                                    'id' => (string) $it->id,
+                                    'maxQty' => $qtyKirim,
+                                    'qtyBaik' => $qtyKirim,
+                                    'qtyRusak' => 0,
+                                ];
+                            })->values()->all();
+                        @endphp
+                        <div class="border border-emerald-200 bg-emerald-50/50 rounded-lg p-3.5 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span>Konfirmasi Penerimaan Barang</span>
+                                </h4>
+                                <span class="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Inbound QC</span>
+                            </div>
                             <form method="POST" action="{{ route('rt.transition', $rt) }}"
                                 x-data="{
                                     submitting: false,
-                                    items: [
-                                        @foreach($rt->items as $idx => $it)
-                                        @php $qtyKirim = (int) round($it->qty_dikirim ?? $it->qty_diminta); @endphp
-                                        {
-                                            id: {{ $it->id }},
-                                            maxQty: {{ $qtyKirim }},
-                                            qtyBaik: {{ $qtyKirim }},
-                                            qtyRusak: 0
-                                        }{{ !$loop->last ? ',' : '' }}
-                                        @endforeach
-                                    ],
+                                    items: {{ Js::from($receiveItems) }},
                                     get isReceiveValid() {
                                         return this.items.length > 0 && this.items.every(it => {
                                             const b = parseInt(it.qtyBaik, 10);
                                             const r = parseInt(it.qtyRusak, 10);
                                             return !isNaN(b) && !isNaN(r) && b >= 0 && r >= 0 && (b + r) === it.maxQty;
                                         });
+                                    },
+                                    autoCalculateRusak(index) {
+                                        const it = this.items[index];
+                                        if (!it) return;
+                                        const b = parseInt(it.qtyBaik, 10) || 0;
+                                        it.qtyRusak = Math.max(0, it.maxQty - b);
                                     }
                                 }"
-                                @submit="if(submitting || !isReceiveValid) return false; submitting = true">
+                                @submit="if(submitting || !isReceiveValid) { $event.preventDefault(); return false; } submitting = true">
                                 @csrf
                                 <input type="hidden" name="aksi" value="receive">
-                                <div class="space-y-2.5 mb-3">
-                                    @foreach($rt->items as $index => $it)
+                                <div class="space-y-3 mb-3">
+                                    @foreach($rt->items->values() as $index => $it)
                                     @php
                                         $qtyKirim = (int) round($it->qty_dikirim ?? $it->qty_diminta);
                                         $satuan = $it->produk->satuan ?? 'pcs';
                                     @endphp
-                                    <div class="bg-white p-2.5 rounded-sm border border-emerald-100 text-xs">
+                                    <div class="bg-card p-3 rounded-lg border border-emerald-200/80 shadow-xs text-xs space-y-2">
                                         <input type="hidden" name="items[{{ $index }}][id]" value="{{ $it->id }}">
-                                        <div class="font-bold text-gray-900">{{ $it->produk->nama }}</div>
-                                        <div class="text-[11px] text-gray-500 mb-2">Dikirim: <span class="font-semibold font-mono text-gray-800">{{ $qtyKirim }} {{ $satuan }}</span></div>
-                                        <div class="grid grid-cols-2 gap-2">
+                                        <div class="flex items-start justify-between gap-2">
                                             <div>
-                                                <label class="block text-[11px] font-semibold text-emerald-800 mb-0.5">Qty Baik ({{ $satuan }})</label>
+                                                <div class="font-bold text-foreground text-xs leading-snug">{{ $it->produk->nama }}</div>
+                                                <div class="text-[11px] text-muted-foreground mt-0.5">
+                                                    Dikirim: <span class="font-semibold font-mono text-foreground">{{ $qtyKirim }} {{ $satuan }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2.5 pt-1">
+                                            <div>
+                                                <label class="block text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mb-1">
+                                                    Qty Baik ({{ $satuan }})
+                                                </label>
                                                 <input
                                                     type="number"
                                                     step="1"
                                                     min="0"
-                                                    :max="items[{{ $index }}].maxQty"
+                                                    :max="items[{{ $index }}]?.maxQty"
                                                     name="items[{{ $index }}][qty_baik]"
                                                     x-model.number="items[{{ $index }}].qtyBaik"
                                                     value="{{ $qtyKirim }}"
                                                     onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                                    class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-mono"
+                                                    class="w-full rounded-lg border border-emerald-300 bg-background text-foreground text-xs py-1.5 px-2.5 font-mono text-right focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-xs"
                                                     required
                                                 >
                                             </div>
                                             <div>
-                                                <label class="block text-[11px] font-semibold text-rose-800 mb-0.5">Qty Rusak ({{ $satuan }})</label>
+                                                <label class="block text-[11px] font-semibold text-rose-700 dark:text-rose-400 mb-1">
+                                                    Qty Rusak ({{ $satuan }})
+                                                </label>
                                                 <input
                                                     type="number"
                                                     step="1"
                                                     min="0"
-                                                    :max="items[{{ $index }}].maxQty"
+                                                    :max="items[{{ $index }}]?.maxQty"
                                                     name="items[{{ $index }}][qty_rusak]"
                                                     x-model.number="items[{{ $index }}].qtyRusak"
                                                     value="0"
                                                     onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                                    class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 font-mono"
+                                                    class="w-full rounded-lg border border-rose-300 bg-background text-foreground text-xs py-1.5 px-2.5 font-mono text-right focus:border-rose-600 focus:ring-1 focus:ring-rose-600 shadow-xs"
                                                     required
                                                 >
                                             </div>
                                         </div>
 
                                         <!-- Indikator Validasi Selisih Real-time & Auto-hitung -->
-                                        <div class="mt-2 flex items-center justify-between text-[11px]">
-                                            <template x-if="(parseInt(items[{{ $index }}].qtyBaik, 10) || 0) + (parseInt(items[{{ $index }}].qtyRusak, 10) || 0) === items[{{ $index }}].maxQty">
-                                                <span class="text-emerald-700 font-medium inline-flex items-center gap-1">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                                    Pas (Total: <span x-text="items[{{ $index }}].maxQty"></span> {{ $satuan }})
+                                        <div class="pt-2 border-t border-border flex items-center justify-between text-[11px]">
+                                            <template x-if="(parseInt(items[{{ $index }}]?.qtyBaik, 10) || 0) + (parseInt(items[{{ $index }}]?.qtyRusak, 10) || 0) === items[{{ $index }}]?.maxQty">
+                                                <span class="text-emerald-700 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                    <span>Pas (Total: <span x-text="items[{{ $index }}]?.maxQty"></span> {{ $satuan }})</span>
                                                 </span>
                                             </template>
-                                            <template x-if="(parseInt(items[{{ $index }}].qtyBaik, 10) || 0) + (parseInt(items[{{ $index }}].qtyRusak, 10) || 0) !== items[{{ $index }}].maxQty">
-                                                <span class="text-rose-600 font-semibold inline-flex items-center gap-1">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                                    Selisih: <span x-text="((parseInt(items[{{ $index }}].qtyBaik, 10) || 0) + (parseInt(items[{{ $index }}].qtyRusak, 10) || 0)) - items[{{ $index }}].maxQty"></span> {{ $satuan }} (Wajib Pas)
+                                            <template x-if="(parseInt(items[{{ $index }}]?.qtyBaik, 10) || 0) + (parseInt(items[{{ $index }}]?.qtyRusak, 10) || 0) !== items[{{ $index }}]?.maxQty">
+                                                <span class="text-rose-600 dark:text-rose-400 font-semibold inline-flex items-center gap-1">
+                                                    <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                                    <span>Selisih: <span x-text="((parseInt(items[{{ $index }}]?.qtyBaik, 10) || 0) + (parseInt(items[{{ $index }}]?.qtyRusak, 10) || 0)) - items[{{ $index }}]?.maxQty"></span> {{ $satuan }} (Wajib Pas)</span>
                                                 </span>
                                             </template>
-                                            <button type="button" class="text-gray-500 hover:text-indigo-600 underline text-[10px]" @click="items[{{ $index }}].qtyRusak = Math.max(0, items[{{ $index }}].maxQty - (parseInt(items[{{ $index }}].qtyBaik, 10) || 0))">
+                                            <button type="button" class="text-[11px] text-primary hover:underline font-medium cursor-pointer" @click="autoCalculateRusak({{ $index }})">
                                                 Hitung Rusak Otomatis
                                             </button>
                                         </div>
 
-                                        <div class="mt-2">
-                                            <input type="text" name="items[{{ $index }}][keterangan_rusak]" placeholder="Catatan kerusakan transit (jika ada)..." class="w-full rounded-sm border-gray-300 text-[11px] py-1 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                                        <div>
+                                            <input
+                                                type="text"
+                                                name="items[{{ $index }}][keterangan_rusak]"
+                                                placeholder="Catatan kerusakan transit (jika ada)..."
+                                                class="w-full rounded-lg border border-border bg-background text-foreground text-xs py-1.5 px-2.5 focus:border-ring focus:ring-1 focus:ring-ring shadow-xs placeholder:text-muted-foreground"
+                                            >
                                         </div>
                                     </div>
                                     @endforeach
                                 </div>
-                                <x-button type="submit" variant="success" size="md" class="w-full" ::disabled="submitting || !isReceiveValid" ::class="{ 'opacity-50 cursor-not-allowed': !isReceiveValid, 'opacity-75 cursor-not-allowed pointer-events-none': submitting }">
-                                    <span x-show="!submitting">Konfirmasi Terima (Stok IN)</span>
-                                    <span x-show="submitting" x-cloak class="inline-flex items-center justify-center gap-1.5">
-                                        <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                        Memproses...
+                                <x-button
+                                    type="submit"
+                                    variant="success"
+                                    size="default"
+                                    class="w-full justify-center"
+                                    ::disabled="submitting || !isReceiveValid"
+                                    ::class="{ 'opacity-50 cursor-not-allowed': !isReceiveValid, 'opacity-75 cursor-not-allowed pointer-events-none': submitting }"
+                                >
+                                    <span class="inline-flex items-center justify-center gap-1.5">
+                                        <svg x-show="submitting" x-cloak class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        <span x-text="submitting ? 'Memproses...' : 'Konfirmasi Terima (Stok IN)'">Konfirmasi Terima (Stok IN)</span>
                                     </span>
                                 </x-button>
-                                <p x-show="!isReceiveValid" x-cloak class="text-[11px] text-rose-600 text-center font-medium mt-1">
+                                <p x-show="!isReceiveValid" x-cloak class="text-[11px] text-rose-600 text-center font-medium mt-1.5">
                                     Periksa kuantitas: Total (Baik + Rusak) harus tepat sama dengan kuantitas dikirim.
                                 </p>
                             </form>
-                            <p class="text-[11px] text-gray-500 text-center mt-1.5">Hanya kuantitas baik yang masuk ke saldo stok fisik gudang.</p>
+                            <p class="text-[11px] text-muted-foreground text-center">Hanya kuantitas baik yang masuk ke saldo stok fisik gudang.</p>
                         </div>
                         @else
                         <div class="py-3 px-3.5 bg-amber-50 border border-amber-200 rounded-sm text-xs text-amber-900">
