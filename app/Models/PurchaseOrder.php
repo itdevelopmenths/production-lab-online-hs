@@ -15,12 +15,18 @@ class PurchaseOrder extends Model
     protected $fillable = [
         'no_po',
         'no_invoice',
+        'no_referensi_supplier',
         'supplier_id',
         'gudang_id',
         'tanggal',
         'eta',
+        'eta_supplier',
         'sumber_dana',
         'status',
+        'stage_aktif',
+        'revisi_ke',
+        'alasan_batal',
+        'dibatalkan_oleh',
         'dari_analisa',
         'created_by',
         'skema_bayar',
@@ -38,8 +44,10 @@ class PurchaseOrder extends Model
     protected $casts = [
         'tanggal' => 'date',
         'eta' => 'date',
+        'eta_supplier' => 'date',
         'tanggal_tempo' => 'date',
         'dari_analisa' => 'boolean',
+        'revisi_ke' => 'integer',
         'subtotal_produk' => 'decimal:2',
         'diskon_total' => 'decimal:2',
         'ppn_nominal' => 'decimal:2',
@@ -48,9 +56,48 @@ class PurchaseOrder extends Model
         'grand_total' => 'decimal:2',
     ];
 
-    public const STATUS = ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang', 'selesai', 'dibatalkan'];
-    public const SKEMA_BAYAR = ['cash', 'tempo', 'termin'];
+    public const STATUS = ['draft', 'berjalan', 'diajukan', 'disetujui', 'dikirim_ke_gudang', 'selesai', 'dibatalkan'];
+    public const SKEMA_BAYAR = ['tempo', 'termin', 'pelunasan', 'cash'];
     public const STATUS_PEMBAYARAN = ['belum_lunas', 'parsial', 'lunas', 'overdue'];
+
+    public function stages(): HasMany
+    {
+        return $this->hasMany(PoStage::class, 'po_id')->orderBy('urutan')->orderBy('putaran');
+    }
+
+    public function pengiriman(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PoPengiriman::class, 'po_id');
+    }
+
+    public function revisis(): HasMany
+    {
+        return $this->hasMany(PoRevisi::class, 'po_id')->orderBy('revisi_ke');
+    }
+
+    public function logPerubahan(): HasMany
+    {
+        return $this->hasMany(PoLogPerubahan::class, 'po_id')->orderByDesc('diubah_pada');
+    }
+
+    public function leadTime(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PoLeadTime::class, 'po_id');
+    }
+
+    public function canceller(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dibatalkan_oleh');
+    }
+
+    public function currentStageRow(): ?PoStage
+    {
+        return $this->stages()
+            ->where('stage', $this->stage_aktif)
+            ->where('status', 'berjalan')
+            ->latest('putaran')
+            ->first();
+    }
 
     public function supplier(): BelongsTo
     {

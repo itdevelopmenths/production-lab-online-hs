@@ -15,12 +15,14 @@ class BarangDatangItem extends Model
     protected $fillable = [
         'bardat_id',
         'po_item_id',
+        'qty_fisik',
         'qty_diterima',
         'selisih',
         'keterangan_selisih',
     ];
 
     protected $casts = [
+        'qty_fisik' => 'decimal:2',
         'qty_diterima' => 'decimal:2',
         'selisih' => 'decimal:2',
     ];

@@ -16,12 +16,18 @@ class BarangDatang extends Model
     protected $fillable = [
         'po_id',
         'tanggal_terima',
+        'waktu_tiba',
         'kondisi',
+        'status_posting',
+        'diposting_oleh',
+        'diposting_pada',
         'created_by',
     ];
 
     protected $casts = [
         'tanggal_terima' => 'date',
+        'waktu_tiba' => 'datetime',
+        'diposting_pada' => 'datetime',
     ];
 
     public function purchaseOrder(): BelongsTo

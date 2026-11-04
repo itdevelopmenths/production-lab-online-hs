@@ -144,6 +144,17 @@ Route::middleware('auth')->group(function () {
             ->middleware('can:purchasing.pay')->name('pay');
         Route::post('{purchaseOrder}/cancel', [PurchasingController::class, 'cancel'])
             ->middleware('can:purchasing.cancel')->name('cancel');
+
+        // Purchasing 9-Stage & Revisions (PRD v2.4)
+        Route::post('{purchaseOrder}/stages/approval/reject', [\App\Http\Controllers\PurchasingStageController::class, 'rejectStage2'])->name('stages.reject-stage2');
+        Route::post('{purchaseOrder}/stages/payment/dibayarkan', [\App\Http\Controllers\PurchasingStageController::class, 'dibayarkan'])->name('stages.dibayarkan');
+        Route::post('{purchaseOrder}/stages/payment/lanjut-tempo', [\App\Http\Controllers\PurchasingStageController::class, 'lanjutTempo'])->name('stages.lanjut-tempo');
+        Route::post('{purchaseOrder}/stages/{stage}/complete', [\App\Http\Controllers\PurchasingStageController::class, 'completeStage'])->name('stages.complete');
+        Route::post('{purchaseOrder}/direct-edit', [\App\Http\Controllers\PurchasingStageController::class, 'directEdit'])->name('direct-edit');
+        Route::post('{purchaseOrder}/revisi/submit', [\App\Http\Controllers\PurchasingStageController::class, 'submitRevisi'])->name('revisi.submit');
+        Route::post('revisi/{revisi}/approve', [\App\Http\Controllers\PurchasingStageController::class, 'approveRevisi'])->name('revisi.approve');
+        Route::post('revisi/{revisi}/reject', [\App\Http\Controllers\PurchasingStageController::class, 'rejectRevisi'])->name('revisi.reject');
+        Route::post('lead-time/{poLeadTime}/invalidate', [\App\Http\Controllers\PurchasingStageController::class, 'invalidateLeadTime'])->name('lead-time.invalidate');
     });
 
     // ===== Request & Transfer =====

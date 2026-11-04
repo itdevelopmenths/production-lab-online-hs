@@ -276,6 +276,8 @@ class PurchasingController extends Controller
                 $this->paymentService->createTerminsForPo($po, $data['termins']);
             }
 
+            app(\App\Services\Purchasing\PurchasingStageService::class)->initializePoStages($po, now(), auth()->user());
+
             return $po;
         });
 
@@ -435,6 +437,12 @@ class PurchasingController extends Controller
             'items.bardatItems',
             'payments',
             'termins',
+            'stages.picUser:id,name',
+            'stages.recordedBy:id,name',
+            'pengiriman',
+            'revisis.requester:id,name',
+            'revisis.decider:id,name',
+            'leadTime',
             'barangDatang.creator:id,name',
             'barangDatang.items.poItem.produk:id,sku,nama,satuan',
             'creator:id,name',
@@ -660,7 +668,17 @@ class PurchasingController extends Controller
 
         $purchaseOrder->update([
             'status' => 'dibatalkan',
+            'alasan_batal' => $alasan,
+            'dibatalkan_oleh' => auth()->id(),
             'catatan' => $newCatatan,
+        ]);
+
+        $purchaseOrder->stages()->where('status', 'berjalan')->update([
+            'status' => 'dibatalkan',
+            'catatan' => 'Dibatalkan: ' . $alasan,
+            'waktu_selesai' => now(),
+            'dicatat_oleh' => auth()->id(),
+            'dicatat_pada' => now(),
         ]);
 
         $purchaseOrder->recordAudit(
