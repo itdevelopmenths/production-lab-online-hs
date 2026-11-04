@@ -56,6 +56,22 @@ class Produk extends Model
                 }
             }
         });
+
+        static::saved(function ($produk) {
+            if (!empty($produk->supplier_id)) {
+                \Illuminate\Support\Facades\DB::table('produk_supplier')->updateOrInsert(
+                    [
+                        'produk_id' => $produk->id,
+                        'supplier_id' => $produk->supplier_id,
+                    ],
+                    [
+                        'status' => 'aktif',
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            }
+        });
     }
 
     public function getNamaAttribute(?string $value): string
@@ -91,6 +107,23 @@ class Produk extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    public function suppliers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Supplier::class, 'produk_supplier', 'produk_id', 'supplier_id')
+            ->withPivot('status')
+            ->withTimestamps();
+    }
+
+    public function activeSuppliers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->suppliers()->wherePivot('status', 'aktif');
+    }
+
+    public function produkSuppliers(): HasMany
+    {
+        return $this->hasMany(ProdukSupplier::class, 'produk_id');
     }
 
     /** Relasi master UOM berdasarkan kolom kode satuan. */

@@ -35,6 +35,16 @@ class MasterDataSeeder extends Seeder
         $cap = Produk::firstOrCreate(['sku' => 'CAP-01'], ['nama' => 'Tutup Botol', 'tipe' => 'kemas', 'satuan' => 'pcs', 'satuan_order_moq' => 1000, 'profil_analisa' => 'impor', 'supplier_id' => $sImpor->id]);
         $goh = Produk::firstOrCreate(['sku' => 'GOH-P50'], ['nama' => 'Parfum GOH 50ml', 'tipe' => 'produk_jadi', 'satuan' => 'pcs', 'satuan_order_moq' => 12]);
 
+        // Multi-supplier relasi aktif
+        foreach ([$alk, $oil, $btl, $cap] as $p) {
+            if ($p->supplier_id) {
+                \Illuminate\Support\Facades\DB::table('produk_supplier')->updateOrInsert(
+                    ['produk_id' => $p->id, 'supplier_id' => $p->supplier_id],
+                    ['status' => 'aktif', 'created_at' => now(), 'updated_at' => now()]
+                );
+            }
+        }
+
         // ===== BOM Parfum GOH 50ml =====
         foreach ([[$alk->id, 40], [$oil->id, 8], [$btl->id, 1], [$cap->id, 1]] as [$bahanId, $qty]) {
             Bom::firstOrCreate(['produk_jadi_id' => $goh->id, 'bahan_id' => $bahanId], ['qty_per_unit' => $qty]);

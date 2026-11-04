@@ -214,6 +214,28 @@ class PurchasingController extends Controller
             'items.*.produk_id.exists' => 'Bahan baku yang dipilih tidak valid atau tidak terdaftar.',
         ]);
 
+        $supplierId = (int) $data['supplier_id'];
+        $itemProdukIds = collect($data['items'])->pluck('produk_id')->unique()->all();
+
+        $invalidProdukNames = Produk::whereIn('id', $itemProdukIds)
+            ->where(function ($query) use ($supplierId) {
+                $query->whereDoesntHave('suppliers', function ($q) use ($supplierId) {
+                    $q->where('supplier.id', $supplierId)
+                      ->where('produk_supplier.status', 'aktif');
+                })
+                ->where(function ($q) use ($supplierId) {
+                    $q->whereNull('supplier_id')
+                      ->orWhere('supplier_id', '!=', $supplierId);
+                });
+            })
+            ->pluck('nama');
+
+        if ($invalidProdukNames->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'items' => 'Item produk berikut tidak terdaftar aktif pada supplier yang dipilih: ' . $invalidProdukNames->implode(', ') . '.',
+            ]);
+        }
+
         $totals = $this->calculator->calculatePoTotals(
             $data['items'],
             (float) ($data['diskon_total'] ?? 0),
@@ -324,6 +346,28 @@ class PurchasingController extends Controller
             'items.*.produk_id.required' => 'Bahan baku wajib dipilih untuk setiap baris.',
             'items.*.produk_id.exists' => 'Bahan baku yang dipilih tidak valid atau tidak terdaftar.',
         ]);
+
+        $supplierId = (int) $data['supplier_id'];
+        $itemProdukIds = collect($data['items'])->pluck('produk_id')->unique()->all();
+
+        $invalidProdukNames = Produk::whereIn('id', $itemProdukIds)
+            ->where(function ($query) use ($supplierId) {
+                $query->whereDoesntHave('suppliers', function ($q) use ($supplierId) {
+                    $q->where('supplier.id', $supplierId)
+                      ->where('produk_supplier.status', 'aktif');
+                })
+                ->where(function ($q) use ($supplierId) {
+                    $q->whereNull('supplier_id')
+                      ->orWhere('supplier_id', '!=', $supplierId);
+                });
+            })
+            ->pluck('nama');
+
+        if ($invalidProdukNames->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'items' => 'Item produk berikut tidak terdaftar aktif pada supplier yang dipilih: ' . $invalidProdukNames->implode(', ') . '.',
+            ]);
+        }
 
         $totals = $this->calculator->calculatePoTotals(
             $data['items'],

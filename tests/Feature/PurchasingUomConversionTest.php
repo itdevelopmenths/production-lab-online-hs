@@ -53,6 +53,7 @@ class PurchasingUomConversionTest extends TestCase
             'isi_per_kemasan' => 1,
             'kategori_id' => $kategori->id,
             'varian_id' => $varian->id,
+            'supplier_id' => $this->supplier->id,
             'harga_hpp' => 120.0,
             'is_active' => true,
         ]);
@@ -64,6 +65,7 @@ class PurchasingUomConversionTest extends TestCase
             'satuan' => 'gr',
             'isi_per_kemasan' => 1,
             'kategori_id' => $kategori->id,
+            'supplier_id' => $this->supplier->id,
             'harga_hpp' => 20.0,
             'is_active' => true,
         ]);

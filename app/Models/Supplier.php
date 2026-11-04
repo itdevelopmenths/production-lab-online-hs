@@ -34,6 +34,23 @@ class Supplier extends Model
         return $this->hasMany(Produk::class, 'supplier_id');
     }
 
+    public function produks(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Produk::class, 'produk_supplier', 'supplier_id', 'produk_id')
+            ->withPivot('status')
+            ->withTimestamps();
+    }
+
+    public function activeProduks(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->produks()->wherePivot('status', 'aktif');
+    }
+
+    public function produkSuppliers(): HasMany
+    {
+        return $this->hasMany(ProdukSupplier::class, 'supplier_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
