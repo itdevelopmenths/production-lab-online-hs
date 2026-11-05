@@ -225,8 +225,8 @@
             { data: 'nama', orderable: false, searchable: true },
             { data: 'gudang_nama', orderable: false, searchable: true },
             { data: 'batas_minimum', className: 'text-right font-mono', orderable: false, searchable: false },
-            { data: 'kolom_stok', className: 'text-right font-mono', searchable: false },
-            { data: 'kolom_rencana', className: 'text-right font-mono', searchable: false }
+            { data: 'kolom_stok', className: 'text-right font-mono', orderable: false, searchable: false },
+            { data: 'kolom_rencana', className: 'text-right font-mono', orderable: false, searchable: false }
         ];
 
         if (canSeePrice) {

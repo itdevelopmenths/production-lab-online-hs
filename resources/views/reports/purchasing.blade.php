@@ -12,43 +12,67 @@
     </x-page-header>
 
     @php
+        $activePos = $pos->where('status', '!=', 'dibatalkan');
         $totalPoCount = $pos->count();
-        $totalNilai = $pos->sum('total_nilai');
-        $totalDibayar = $pos->sum('total_dibayar');
-        $totalSisa = $pos->sum(fn($p) => ($p->total_nilai ?? 0) - ($p->total_dibayar ?? 0));
+        $totalNilai = $activePos->sum(fn($p) => $p->totalNilai());
+        $totalDibayar = $activePos->sum(fn($p) => $p->totalDibayar());
+        $totalSisa = $activePos->sum(fn($p) => $p->sisaTagihan());
     @endphp
 
-    <!-- Financial KPI Summary Cards -->
+    <!-- Financial KPI Summary Cards (Excluding Batal PO) -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
             <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Pesanan (PO)</p>
             <p class="text-xl font-bold font-mono text-foreground mt-1">{{ number_format($totalPoCount) }} <span class="text-xs font-normal text-muted-foreground">PO</span></p>
+            @if($pos->where('status', 'dibatalkan')->count() > 0)
+                <p class="text-[10px] text-muted-foreground mt-0.5">({{ $pos->where('status', 'dibatalkan')->count() }} dibatalkan)</p>
+            @endif
         </div>
         <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
             <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Nilai Komitmen</p>
-            <p class="text-xl font-bold font-mono text-foreground mt-1">Rp {{ number_format($totalNilai, 0, ',', '.') }}</p>
+            <p class="text-xl font-bold font-mono text-foreground mt-1">
+                @if($canSeePrice)
+                    Rp {{ number_format($totalNilai, 0, ',', '.') }}
+                @else
+                    <span class="text-muted-foreground">Rp ••••••</span>
+                @endif
+            </p>
+            <p class="text-[10px] text-muted-foreground mt-0.5">Kecuali PO Dibatalkan</p>
         </div>
         <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
             <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Realisasi Bayar</p>
-            <p class="text-xl font-bold font-mono text-emerald-600 mt-1">Rp {{ number_format($totalDibayar, 0, ',', '.') }}</p>
+            <p class="text-xl font-bold font-mono text-emerald-600 mt-1">
+                @if($canSeePrice)
+                    Rp {{ number_format($totalDibayar, 0, ',', '.') }}
+                @else
+                    <span class="text-muted-foreground">Rp ••••••</span>
+                @endif
+            </p>
+            <p class="text-[10px] text-muted-foreground mt-0.5">Realisasi Termin Kas</p>
         </div>
         <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
             <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Sisa Hutang Berjalan</p>
             <p class="text-xl font-bold font-mono {{ $totalSisa > 0 ? 'text-destructive' : 'text-muted-foreground' }} mt-1">
-                Rp {{ number_format($totalSisa, 0, ',', '.') }}
+                @if($canSeePrice)
+                    Rp {{ number_format($totalSisa, 0, ',', '.') }}
+                @else
+                    <span class="text-muted-foreground">Rp ••••••</span>
+                @endif
             </p>
+            <p class="text-[10px] text-muted-foreground mt-0.5">Liabilitas Terbuka</p>
         </div>
     </div>
 
     <!-- Table Card -->
-    <x-card title="Rekapitulasi Purchase Order & Liabilitas" subtitle="Daftar transaksi pengadaan bahan baku beserta status pembayaran termin">
-        <div class="-mx-4 -my-4 overflow-x-auto">
-            <table class="w-full text-xs text-left border-collapse">
+    <x-card title="Rekapitulasi Purchase Order & Liabilitas" subtitle="Daftar transaksi pengadaan bahan baku beserta status tahapan alur 9-stage dan pembayaran termin">
+        <div tabindex="0" role="region" aria-label="Rekapitulasi Purchase Order dan Liabilitas Hutang" class="-mx-4 -my-4 overflow-x-auto focus:outline-none focus:ring-1 focus:ring-primary/30">
+            <table class="w-full text-xs text-left border-collapse min-w-[850px]">
                 <thead class="bg-muted/70 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
                     <tr>
-                        <th class="px-4 py-3 w-40">No. PO</th>
+                        <th class="px-4 py-3 w-36">No. PO</th>
                         <th class="px-4 py-3">Supplier</th>
                         <th class="px-4 py-3 text-center">Status PO</th>
+                        <th class="px-4 py-3 text-center">Stage Aktif</th>
                         <th class="px-4 py-3 text-right">Nilai Total</th>
                         <th class="px-4 py-3 text-right">Sudah Dibayar</th>
                         <th class="px-4 py-3 text-right">Sisa Tagihan</th>
@@ -57,18 +81,21 @@
                 <tbody class="divide-y divide-border">
                     @forelse($pos as $po)
                     @php
-                        $sisa = ($po->total_nilai ?? 0) - ($po->total_dibayar ?? 0);
+                        $poNilai = $po->totalNilai();
+                        $poDibayar = $po->totalDibayar();
+                        $poSisa = $po->sisaTagihan();
+                        $stageLabel = $po->stage_aktif ? (\App\Models\PoStage::STAGE_LABELS[$po->stage_aktif] ?? ucwords(str_replace('_', ' ', $po->stage_aktif))) : null;
                     @endphp
-                    <tr class="hover:bg-muted/40 transition-colors">
+                    <tr class="hover:bg-muted/40 transition-colors {{ $po->status === 'dibatalkan' ? 'opacity-60 bg-muted/20' : '' }}">
                         <td class="px-4 py-2.5 font-mono font-medium text-foreground">
                             @can('purchasing.view')
-                                <a href="{{ route('purchasing.show', $po) }}" class="hover:underline font-semibold">{{ $po->no_po }}</a>
+                                <a href="{{ route('purchasing.show', $po) }}" class="hover:underline font-semibold text-primary">{{ $po->no_po }}</a>
                             @else
                                 {{ $po->no_po }}
                             @endcan
                         </td>
                         <td class="px-4 py-2.5 font-medium text-foreground">
-                            {{ $po->supplier->nama }}
+                            {{ $po->supplier?->nama ?? '—' }}
                         </td>
                         <td class="px-4 py-2.5 text-center">
                             @php
@@ -82,23 +109,44 @@
                                     default => 'bg-muted text-muted-foreground border-border'
                                 };
                             @endphp
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border {{ $badgeClass }} uppercase tracking-wider">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border {{ $badgeClass }} uppercase tracking-wider">
                                 {{ ucwords(str_replace('_', ' ', $po->status)) }}
                             </span>
                         </td>
+                        <td class="px-4 py-2.5 text-center">
+                            @if($stageLabel)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                                    {{ $stageLabel }}
+                                </span>
+                            @else
+                                <span class="text-muted-foreground">—</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-2.5 text-right font-mono text-foreground font-medium">
-                            Rp {{ number_format($po->total_nilai, 0, ',', '.') }}
+                            @if($canSeePrice)
+                                Rp {{ number_format($poNilai, 0, ',', '.') }}
+                            @else
+                                <span class="text-muted-foreground font-mono">Rp ••••••</span>
+                            @endif
                         </td>
                         <td class="px-4 py-2.5 text-right font-mono text-emerald-600 font-medium">
-                            Rp {{ number_format($po->total_dibayar ?? 0, 0, ',', '.') }}
+                            @if($canSeePrice)
+                                Rp {{ number_format($poDibayar, 0, ',', '.') }}
+                            @else
+                                <span class="text-muted-foreground font-mono">Rp ••••••</span>
+                            @endif
                         </td>
-                        <td class="px-4 py-2.5 text-right font-mono font-semibold {{ $sisa > 0 ? 'text-destructive' : 'text-muted-foreground' }}">
-                            Rp {{ number_format($sisa, 0, ',', '.') }}
+                        <td class="px-4 py-2.5 text-right font-mono font-semibold {{ $poSisa > 0 ? 'text-destructive' : 'text-muted-foreground' }}">
+                            @if($canSeePrice)
+                                Rp {{ number_format($poSisa, 0, ',', '.') }}
+                            @else
+                                <span class="text-muted-foreground font-mono">Rp ••••••</span>
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-12 text-center text-xs text-muted-foreground">
+                        <td colspan="7" class="px-4 py-12 text-center text-xs text-muted-foreground">
                             <svg class="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                             Belum ada riwayat purchase order.
                         </td>

@@ -279,6 +279,7 @@ Route::middleware('auth')->group(function () {
         Route::get('defect', [ReportController::class, 'defect'])->name('defect');
         Route::get('low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
         Route::get('purchasing', [ReportController::class, 'purchasing'])->name('purchasing');
+        Route::get('lead-time', [ReportController::class, 'leadTime'])->name('lead-time');
         Route::get('fulfillment', [ReportController::class, 'fulfillment'])->name('fulfillment');
     });
 

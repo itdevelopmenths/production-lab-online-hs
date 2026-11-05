@@ -41,7 +41,7 @@ class PermissionSeeder extends Seeder
             'batch.complete', 'batch.cancel', 'batch.opname',
 
             // Laporan
-            'report.view', 'report.export',
+            'report.view', 'reports.view', 'report.export',
 
             // Admin
             'user.manage', 'role.manage',

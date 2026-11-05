@@ -342,6 +342,14 @@ class TransferService
     }
 
     /**
+     * Alias method untuk getMonthlyWarehouseDefectAnalytics untuk konsistensi pelaporan defect.
+     */
+    public function getMonthlyDefectAnalytics(int $year, ?int $month = null, ?int $gudangId = null): array
+    {
+        return $this->getMonthlyWarehouseDefectAnalytics($year, $month, $gudangId);
+    }
+
+    /**
      * Engine Kalkulasi & Rekapitulasi Barang Rusak Bulanan per Gudang (TC-42, User Override).
      */
     public function getMonthlyWarehouseDefectAnalytics(int $year, ?int $month = null, ?int $gudangId = null): array

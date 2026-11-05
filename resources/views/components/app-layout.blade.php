@@ -202,7 +202,7 @@
                             </li>
                             @endcan
 
-                            @can('rt.view')
+                            @canany(['request.view', 'rt.view'])
                             <li class="w-full" x-show="!menuQuery || 'request permintaan bahan produk jadi'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ route('requests.index') }}" :active="request()->routeIs('requests.*')">
                                     <x-slot:icon>
@@ -211,7 +211,9 @@
                                     Permintaan Barang
                                 </x-nav-item>
                             </li>
+                            @endcanany
 
+                            @canany(['transfer.view', 'rt.view'])
                             <li class="w-full" x-show="!menuQuery || 'transfer mutasi kirim logistik defect'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ route('transfers.index') }}" :active="request()->routeIs('transfers.*') || request()->routeIs('rt.*')">
                                     <x-slot:icon>
@@ -220,7 +222,7 @@
                                     Transfer Barang
                                 </x-nav-item>
                             </li>
-                            @endcan
+                            @endcanany
 
                             @can('analisa.view')
                             <li class="w-full" x-show="!menuQuery || 'analisa stok kpi analitik'.includes(menuQuery.toLowerCase())">
@@ -374,7 +376,7 @@
                     </div>
 
                     {{-- Section: LAPORAN --}}
-                    @can('report.view')
+                    @canany(['reports.view', 'report.view'])
                     <div :class="collapsed && 'flex flex-col items-center'">
                         <p :class="collapsed ? 'text-[10px] text-center' : 'text-xs px-3'"
                            class="text-muted-foreground font-semibold uppercase tracking-wider mb-2 select-none">
@@ -382,16 +384,26 @@
                         </p>
                         <ul class="space-y-1 w-full">
                             <li class="w-full" x-show="!menuQuery || 'laporan report rekapitulasi audit'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('reports.index') }}" :active="request()->routeIs('reports.*')">
+                                <x-nav-item href="{{ route('reports.index') }}" :active="request()->routeIs('reports.index')">
                                     <x-slot:icon>
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                     </x-slot:icon>
                                     Laporan
                                 </x-nav-item>
                             </li>
+                            @canany(['reports.view', 'report.view'])
+                            <li class="w-full" x-show="!menuQuery || 'lead time supplier laporan'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('reports.lead-time') }}" :active="request()->routeIs('reports.lead-time')">
+                                    <x-slot:icon>
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    </x-slot:icon>
+                                    Lead Time Supplier
+                                </x-nav-item>
+                            </li>
+                            @endcanany
                         </ul>
                     </div>
-                    @endcan
+                    @endcanany
 
                     {{-- Section: SISTEM --}}
                     @if(auth()->user()->can('user.manage') || auth()->user()->can('role.manage'))

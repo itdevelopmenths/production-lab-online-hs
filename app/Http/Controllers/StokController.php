@@ -87,17 +87,54 @@ class StokController extends Controller
         }
 
         // 4. Rencana Batch Produksi aktif (penambah ketersediaan produk jadi mendatang)
-        $rencanaBatch = DB::table('batch_produksi')
-            ->whereIn('status', ['rencana', 'release'])
-            ->select('produk_id', 'gudang_tujuan_rencana_id', 'gudang_operasional_id', DB::raw('SUM(qty_rencana) as total_rencana'))
-            ->groupBy('produk_id', 'gudang_tujuan_rencana_id', 'gudang_operasional_id')
+        // Mendukung multi-produk dari batch_produksi_outputs dengan fallback ke batch_produksi (single-product legacy)
+        $rencanaBatchMap = [];
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('batch_produksi_outputs')) {
+            $multiOutputs = DB::table('batch_produksi_outputs as bpo')
+                ->join('batch_produksi as bp', 'bp.id', '=', 'bpo.batch_id')
+                ->whereIn('bp.status', ['rencana', 'release'])
+                ->select(
+                    'bpo.produk_id',
+                    DB::raw('COALESCE(bpo.gudang_tujuan_rencana_id, bp.gudang_tujuan_rencana_id, bp.gudang_operasional_id) as gudang_id'),
+                    DB::raw('SUM(bpo.qty_rencana) as total_rencana')
+                )
+                ->groupBy('bpo.produk_id', DB::raw('COALESCE(bpo.gudang_tujuan_rencana_id, bp.gudang_tujuan_rencana_id, bp.gudang_operasional_id)'))
+                ->get();
+
+            foreach ($multiOutputs as $b) {
+                if ($b->gudang_id) {
+                    $key = "{$b->produk_id}_{$b->gudang_id}";
+                    $rencanaBatchMap[$key] = ($rencanaBatchMap[$key] ?? 0) + (float) $b->total_rencana;
+                }
+            }
+        }
+
+        // Fallback untuk batch legacy yang belum memiliki baris output di batch_produksi_outputs
+        $legacyBatchesQuery = DB::table('batch_produksi as bp')
+            ->whereIn('bp.status', ['rencana', 'release'])
+            ->whereNotNull('bp.produk_id');
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('batch_produksi_outputs')) {
+            $legacyBatchesQuery->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('batch_produksi_outputs as bpo')
+                    ->whereColumn('bpo.batch_id', 'bp.id');
+            });
+        }
+
+        $legacyBatches = $legacyBatchesQuery
+            ->select(
+                'bp.produk_id',
+                DB::raw('COALESCE(bp.gudang_tujuan_rencana_id, bp.gudang_operasional_id) as gudang_id'),
+                DB::raw('SUM(bp.qty_rencana) as total_rencana')
+            )
+            ->groupBy('bp.produk_id', DB::raw('COALESCE(bp.gudang_tujuan_rencana_id, bp.gudang_operasional_id)'))
             ->get();
 
-        $rencanaBatchMap = [];
-        foreach ($rencanaBatch as $b) {
-            $whId = $b->gudang_tujuan_rencana_id ?? $b->gudang_operasional_id;
-            if ($whId) {
-                $key = "{$b->produk_id}_{$whId}";
+        foreach ($legacyBatches as $b) {
+            if ($b->gudang_id) {
+                $key = "{$b->produk_id}_{$b->gudang_id}";
                 $rencanaBatchMap[$key] = ($rencanaBatchMap[$key] ?? 0) + (float) $b->total_rencana;
             }
         }
@@ -307,6 +344,10 @@ class StokController extends Controller
             'catatan' => ['nullable', 'string', 'max:255'],
         ]);
 
+        if (! $this->locationScope->canAccessWarehouse(auth()->user(), (int) $data['gudang_id'])) {
+            abort(403, 'Anda tidak memiliki wewenang mengakses gudang ini.');
+        }
+
         try {
             if ($data['tipe'] === 'in') {
                 $this->stok->masuk($data['produk_id'], $data['gudang_id'], (float) $data['qty'], 'mutasi_manual', null, $data['catatan'] ?? null);
@@ -323,8 +364,9 @@ class StokController extends Controller
     public function opname(Request $request)
     {
         $this->authorize('stok.opname');
+        $user = auth()->user();
         $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
-        $gudang = Gudang::active()->orderBy('nama')->get(['id', 'kode', 'nama']);
+        $gudang = $this->locationScope->getAccessibleGudangs($user);
 
         $selectedProdukId = $request->query('produk_id');
         $selectedGudangId = $request->query('gudang_id');
@@ -345,6 +387,10 @@ class StokController extends Controller
                 'gudang_id' => $gudangId ? (int) $gudangId : null,
                 'qty' => 0,
             ]);
+        }
+
+        if (! $this->locationScope->canAccessWarehouse(auth()->user(), (int) $gudangId)) {
+            return response()->json(['error' => 'Akses gudang tidak diizinkan.'], 403);
         }
 
         $stok = Stok::where('produk_id', $produkId)
@@ -368,6 +414,10 @@ class StokController extends Controller
             'qty_fisik' => ['required', 'numeric', 'min:0'],
             'catatan' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if (! $this->locationScope->canAccessWarehouse(auth()->user(), (int) $data['gudang_id'])) {
+            abort(403, 'Anda tidak memiliki wewenang mengakses gudang ini.');
+        }
 
         $this->stok->setAbsolut(
             $data['produk_id'],
@@ -408,7 +458,8 @@ class StokController extends Controller
             ->editColumn('tipe', fn ($k) => strtoupper($k->tipe))
             ->editColumn('qty', fn ($k) => $this->formatQty((float) $k->qty) . ' ' . $produk->satuan)
             ->editColumn('saldo_setelah', fn ($k) => $this->formatQty((float) $k->saldo_setelah) . ' ' . $produk->satuan)
-            ->editColumn('referensi_tipe', fn ($k) => ucwords(str_replace('_', ' ', $k->referensi_tipe)))
+            ->editColumn('referensi_tipe', fn ($k) => $this->formatReferenceLink($k->referensi_tipe, $k->referensi_id))
+            ->rawColumns(['referensi_tipe'])
             ->toJson();
     }
 
@@ -472,10 +523,10 @@ class StokController extends Controller
             })
             ->addColumn('lokasi_gudang', fn ($k) => e($k->gudang?->nama ?? '—'))
             ->addColumn('ref', function ($k) {
-                $tipe = ucwords(str_replace('_', ' ', $k->referensi_tipe));
-                $refId = $k->referensi_id ? ' #' . substr($k->referensi_id, 0, 8) : '';
+                $refHtml = $this->formatReferenceLink($k->referensi_tipe, $k->referensi_id);
                 $catatan = $k->catatan ? '<div class="text-[10px] text-gray-400 truncate max-w-[200px]" title="' . e($k->catatan) . '">' . e($k->catatan) . '</div>' : '';
-                return '<div class="font-semibold text-gray-700">' . $tipe . '<span class="font-mono text-gray-500 text-[11px]">' . $refId . '</span></div>' . $catatan;
+
+                return $refHtml . $catatan;
             })
             ->editColumn('qty', function ($k) {
                 $isMasuk = strtolower($k->tipe) === 'in';
@@ -499,5 +550,41 @@ class StokController extends Controller
             })
             ->rawColumns(['tipe', 'item', 'ref', 'qty', 'sebelum_sesudah', 'tanggal', 'oleh'])
             ->toJson();
+    }
+
+    private function formatReferenceLink(?string $type, string|int|null $id): string
+    {
+        if (! $type) {
+            return '—';
+        }
+        $label = ucwords(str_replace('_', ' ', $type));
+        $idShort = $id ? ' #' . substr((string) $id, 0, 8) : '';
+
+        $url = null;
+        if ($id) {
+            try {
+                if ($type === 'purchase_order' && \Illuminate\Support\Facades\Route::has('purchasing.show')) {
+                    $url = route('purchasing.show', $id);
+                } elseif (in_array($type, ['transfer', 'request_transfer'], true)) {
+                    if ($type === 'transfer' && \Illuminate\Support\Facades\Route::has('transfers.show')) {
+                        $url = route('transfers.show', $id);
+                    } elseif (\Illuminate\Support\Facades\Route::has('transfers.show') && \Illuminate\Support\Facades\Schema::hasTable('transfers') && DB::table('transfers')->where('id', $id)->exists()) {
+                        $url = route('transfers.show', $id);
+                    } elseif (\Illuminate\Support\Facades\Route::has('rt.show')) {
+                        $url = route('rt.show', $id);
+                    }
+                } elseif ($type === 'batch_produksi' && \Illuminate\Support\Facades\Route::has('batches.show')) {
+                    $url = route('batches.show', $id);
+                }
+            } catch (\Throwable) {
+                $url = null;
+            }
+        }
+
+        if ($url) {
+            return '<a href="' . e($url) . '" class="text-primary-600 hover:text-primary-800 hover:underline font-semibold inline-flex items-center gap-1">' . e($label) . '<span class="font-mono text-gray-500 text-[11px]">' . e($idShort) . '</span></a>';
+        }
+
+        return '<div class="font-semibold text-gray-700">' . e($label) . '<span class="font-mono text-gray-500 text-[11px]">' . e($idShort) . '</span></div>';
     }
 }

@@ -265,8 +265,8 @@
     function batchCreateForm() {
         return {
             activeRow: null,
-            bomMap: @json($bomMap ?? []),
-            rows: @json($initialRows),
+            bomMap: @js($bomMap ?? []),
+            rows: @js($initialRows),
             getBomPreview() {
                 const aggregated = {};
                 (this.rows || []).forEach(row => {

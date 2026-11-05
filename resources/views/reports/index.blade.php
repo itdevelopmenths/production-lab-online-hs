@@ -115,6 +115,20 @@
                         <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Rekapitulasi nilai komitmen purchase order, pembayaran termin, dan outstanding hutang.</p>
                     </div>
                 </a>
+
+                <!-- Lead Time Supplier (PRD v2.4 Sub-Menu Ke-7) -->
+                <a href="{{ route('reports.lead-time') }}" class="group relative rounded-xl border border-border bg-card p-4.5 shadow-xs hover:border-foreground/30 hover:shadow-sm transition flex items-start gap-4">
+                    <div class="p-2.5 rounded-lg border border-border bg-muted/60 text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <h5 class="text-sm font-semibold text-foreground group-hover:text-foreground transition">Laporan Lead Time Supplier</h5>
+                            <span class="text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-transform text-xs font-semibold">&rarr;</span>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Analisis performa durasi pengiriman supplier 9-stage, deviasi per produk, dan histori transaksi PO.</p>
+                    </div>
+                </a>
             </div>
         </div>
     </div>

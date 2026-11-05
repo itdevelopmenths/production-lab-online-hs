@@ -43,8 +43,8 @@
 
     <!-- Table Card -->
     <x-card title="Rekapitulasi Batch Produksi" subtitle="Menampilkan riwayat batch berstatus selesai">
-        <div class="-mx-4 -my-4 overflow-x-auto">
-            <table class="w-full text-xs text-left border-collapse">
+        <div tabindex="0" role="region" aria-label="Rekapitulasi Batch Produksi dan Capaian Yield" class="-mx-4 -my-4 overflow-x-auto focus:outline-none focus:ring-1 focus:ring-primary/30">
+            <table class="w-full text-xs text-left border-collapse min-w-[700px]">
                 <thead class="bg-muted/70 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
                     <tr>
                         <th class="px-4 py-3">No. Batch</th>
@@ -60,18 +60,24 @@
                     @forelse($batches as $b)
                     @php
                         $yieldVal = $b->yield();
+                        $produkLabel = $b->outputs->isNotEmpty()
+                            ? $b->outputs->map(fn($o) => $o->produk?->nama)->filter()->join(', ')
+                            : ($b->produk?->nama ?? '—');
+                        $qtyRencana = $b->outputs->isNotEmpty() && $b->outputs->sum('qty_rencana') > 0
+                            ? $b->outputs->sum('qty_rencana')
+                            : $b->qty_rencana;
                     @endphp
                     <tr class="hover:bg-muted/40 transition-colors">
                         <td class="px-4 py-2.5 font-mono font-medium text-foreground">
                             @can('batch.view')
-                                <a href="{{ route('batches.show', $b) }}" class="hover:underline font-semibold">{{ $b->no_batch }}</a>
+                                <a href="{{ route('batches.show', $b) }}" class="hover:underline font-semibold text-primary">{{ $b->no_batch }}</a>
                             @else
                                 {{ $b->no_batch }}
                             @endcan
                         </td>
-                        <td class="px-4 py-2.5 font-medium text-foreground">{{ $b->produk->nama }}</td>
+                        <td class="px-4 py-2.5 font-medium text-foreground">{{ $produkLabel }}</td>
                         <td class="px-4 py-2.5 text-muted-foreground">{{ $b->tanggal->format('d/m/Y') }}</td>
-                        <td class="px-4 py-2.5 text-right font-mono text-foreground">{{ number_format($b->qty_rencana, 0, ',', '.') }}</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-foreground">{{ number_format($qtyRencana, 0, ',', '.') }}</td>
                         <td class="px-4 py-2.5 text-right font-mono text-emerald-600 font-semibold">{{ number_format($b->qty_baik, 0, ',', '.') }}</td>
                         <td class="px-4 py-2.5 text-right font-mono {{ $b->qty_rusak > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground' }}">{{ number_format($b->qty_rusak, 0, ',', '.') }}</td>
                         <td class="px-4 py-2.5 text-center">

@@ -90,14 +90,14 @@
                 }
             },
             columns: [
-                { data: 'tipe', className: 'text-center' },
-                { data: 'item' },
-                { data: 'lokasi_gudang' },
-                { data: 'ref' },
-                { data: 'qty', className: 'text-right' },
-                { data: 'sebelum_sesudah' },
+                { data: 'tipe', className: 'text-center', orderable: false, searchable: false },
+                { data: 'item', orderable: false, searchable: false },
+                { data: 'lokasi_gudang', orderable: false, searchable: false },
+                { data: 'ref', orderable: false, searchable: false },
+                { data: 'qty', className: 'text-right', orderable: false, searchable: false },
+                { data: 'sebelum_sesudah', orderable: false, searchable: false },
                 { data: 'tanggal' },
-                { data: 'oleh' }
+                { data: 'oleh', orderable: false, searchable: false }
             ]
         });
 
