@@ -246,3 +246,4 @@ class PurchasingStageController extends Controller
         return back()->with('success', 'Data lead time transaksi telah diinvalidasi.');
     }
 }
+

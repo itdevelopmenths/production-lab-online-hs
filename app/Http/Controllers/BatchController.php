@@ -265,12 +265,15 @@ class BatchController extends Controller
             ];
         }
 
+        $rekapBahan = $batch->rekapBahan();
+
         return view('batches.show', compact(
             'batch',
             'earlyWarnings',
             'hasDeficitFisik',
             'hasDeficitRencana',
-            'gudangPusat'
+            'gudangPusat',
+            'rekapBahan'
         ));
     }
 

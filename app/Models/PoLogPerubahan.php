@@ -32,3 +32,4 @@ class PoLogPerubahan extends Model
         return $this->belongsTo(User::class, 'diubah_oleh');
     }
 }
+

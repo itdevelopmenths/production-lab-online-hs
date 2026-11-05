@@ -50,3 +50,4 @@ class PoLeadTime extends Model
         return $this->belongsTo(User::class, 'divalidasi_oleh');
     }
 }
+

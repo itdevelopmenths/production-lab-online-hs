@@ -51,3 +51,4 @@ class PoRevisi extends Model
         return $this->belongsTo(User::class, 'diputuskan_oleh');
     }
 }
+

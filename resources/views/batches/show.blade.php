@@ -240,6 +240,61 @@
                 </div>
             </x-card>
 
+            <!-- Rekap Pemenuhan Bahan per Batch (FR-PRD-05, TC-41) -->
+            @if(!empty($rekapBahan))
+            <x-card title="Progres Pemenuhan Bahan Baku" subtitle="Perbandingan Kebutuhan BOM vs Total Diminta (Request) vs Total Diterima (Transfer) untuk batch ini." :noPadding="true">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-border">
+                                <th class="py-2.5 px-3.5">Bahan Baku</th>
+                                <th class="py-2.5 px-3 text-right">Kebutuhan BOM</th>
+                                <th class="py-2.5 px-3 text-right">Total Diminta</th>
+                                <th class="py-2.5 px-3 text-right">Total Diterima</th>
+                                <th class="py-2.5 px-3 text-right">Sisa Kekurangan</th>
+                                <th class="py-2.5 px-3 text-center">Status Pemenuhan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border">
+                            @foreach($rekapBahan as $rb)
+                            @php
+                                $sisa = max(0, $rb['kebutuhan'] - $rb['diterima']);
+                                $persen = $rb['kebutuhan'] > 0 ? min(100, round(($rb['diterima'] / $rb['kebutuhan']) * 100)) : 100;
+                            @endphp
+                            <tr class="hover:bg-gray-50/70 transition">
+                                <td class="py-2.5 px-3.5">
+                                    <div class="font-bold text-gray-900">{{ $rb['nama'] }}</div>
+                                    <div class="font-mono text-[11px] text-gray-400">{{ $rb['sku'] }}</div>
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-semibold text-gray-900">
+                                    {{ \App\Helpers\NumberHelper::formatQty($rb['kebutuhan']) }} {{ $rb['satuan'] }}
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-medium text-blue-700">
+                                    {{ \App\Helpers\NumberHelper::formatQty($rb['diminta']) }} {{ $rb['satuan'] }}
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-bold text-emerald-700">
+                                    {{ \App\Helpers\NumberHelper::formatQty($rb['diterima']) }} {{ $rb['satuan'] }}
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-medium {{ $sisa > 0 ? 'text-amber-700' : 'text-gray-400' }}">
+                                    {{ $sisa > 0 ? \App\Helpers\NumberHelper::formatQty($sisa) . ' ' . $rb['satuan'] : 'Terpenuhi' }}
+                                </td>
+                                <td class="py-2.5 px-3 text-center">
+                                    @if($rb['diterima'] >= $rb['kebutuhan'])
+                                        <x-badge variant="success" size="xs">Lengkap (100%)</x-badge>
+                                    @elseif($rb['diminta'] >= $rb['kebutuhan'])
+                                        <x-badge variant="primary" size="xs">Dalam Pengiriman ({{ $persen }}%)</x-badge>
+                                    @else
+                                        <x-badge variant="warning" size="xs">Kurang Permintaan ({{ $persen }}%)</x-badge>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
+            @endif
+
             <!-- Form Selesaikan Batch (Khusus status release) -->
             @can('batch.complete')
             @if($batch->status === 'release')

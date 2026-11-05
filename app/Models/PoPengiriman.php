@@ -32,3 +32,4 @@ class PoPengiriman extends Model
         return $this->belongsTo(PurchaseOrder::class, 'po_id');
     }
 }
+

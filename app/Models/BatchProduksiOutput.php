@@ -19,7 +19,13 @@ class BatchProduksiOutput extends Model
         'qty_baik',
         'qty_rusak',
         'catatan',
+        'gudang_tujuan_rencana_id',
     ];
+
+    public function gudangTujuan(): BelongsTo
+    {
+        return $this->belongsTo(Gudang::class, 'gudang_tujuan_rencana_id');
+    }
 
     protected $casts = [
         'qty_rencana' => 'decimal:2',
