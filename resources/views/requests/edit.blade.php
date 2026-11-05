@@ -1,13 +1,16 @@
 <x-app-layout title="Edit Permintaan Barang" subtitle="Perbarui rincian permintaan barang">
+    @php
+        $initialItems = old('items', $stockRequest->items->map(fn($it) => [
+            'produk_id' => $it->produk_id,
+            'qty_diminta' => (float) $it->qty_diminta,
+            'keterangan' => $it->keterangan ?? '',
+        ])->values()->toArray());
+    @endphp
     <div x-data="{
         jenis: '{{ old('jenis', $stockRequest->jenis) }}',
         gudangPemohonId: '{{ old('gudang_pemohon_id', $stockRequest->gudang_pemohon_id) }}',
         gudangTujuanId: '{{ old('gudang_tujuan_id', $stockRequest->gudang_tujuan_id) }}',
-        items: @json(old('items', $stockRequest->items->map(fn($it) => [
-            'produk_id' => $it->produk_id,
-            'qty_diminta' => (float) $it->qty_diminta,
-            'keterangan' => $it->keterangan ?? '',
-        ]))),
+        items: @json($initialItems),
         products: @json($produk),
         addItem() {
             this.items.push({ produk_id: '', qty_diminta: 1, keterangan: '' });

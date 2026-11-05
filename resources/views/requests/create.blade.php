@@ -1,11 +1,14 @@
 <x-app-layout title="Buat Permintaan Barang" subtitle="Inisiasi pengajuan permintaan stok antar divisi/gudang">
+    @php
+        $initialItems = old('items', !empty($prefilledItems) ? $prefilledItems : [
+            ['produk_id' => '', 'qty_diminta' => 1, 'keterangan' => '']
+        ]);
+    @endphp
     <div x-data="{
         jenis: '{{ old('jenis', $allowedJenis[0] ?? 'request_bahan') }}',
         gudangPemohonId: '{{ old('gudang_pemohon_id', $defaultGudangPemohonId ?? '') }}',
         gudangTujuanId: '{{ old('gudang_tujuan_id', $defaultGudangTujuanId ?? '') }}',
-        items: @json(old('items', !empty($prefilledItems) ? $prefilledItems : [
-            ['produk_id' => '', 'qty_diminta' => 1, 'keterangan' => '']
-        ])),
+        items: @json($initialItems),
         products: @json($produk),
         addItem() {
             this.items.push({ produk_id: '', qty_diminta: 1, keterangan: '' });

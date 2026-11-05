@@ -20,6 +20,7 @@ class StockRequest extends Model
         'jenis',
         'referensi_batch_id',
         'gudang_asal_id',
+        'gudang_pemohon_id',
         'gudang_tujuan_id',
         'status',
         'catatan',

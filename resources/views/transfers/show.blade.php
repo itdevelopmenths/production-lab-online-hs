@@ -1,9 +1,6 @@
 <x-app-layout title="Detail Transfer Barang" subtitle="{{ $transfer->no_transfer }}">
-    <div x-data="{
-        openReceiveModal: false,
-        openCancelModal: false,
-        alasanCancel: '',
-        items: @json($transfer->items->map(fn($it) => [
+    @php
+        $transferItemsData = $transfer->items->map(fn($it) => [
             'id' => $it->id,
             'nama' => $it->produk?->nama,
             'sku' => $it->produk?->sku,
@@ -12,7 +9,13 @@
             'qty_baik' => (float) ($it->qty_baik ?? $it->qty_dikirim),
             'qty_rusak' => (float) ($it->qty_rusak ?? 0),
             'keterangan_rusak' => $it->keterangan_rusak ?? '',
-        ])),
+        ])->values()->toArray();
+    @endphp
+    <div x-data="{
+        openReceiveModal: false,
+        openCancelModal: false,
+        alasanCancel: '',
+        items: @json($transferItemsData),
         isReceiveValid() {
             for (let i = 0; i < this.items.length; i++) {
                 const it = this.items[i];

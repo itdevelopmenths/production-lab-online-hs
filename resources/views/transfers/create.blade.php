@@ -1,12 +1,15 @@
 <x-app-layout title="Buat Transfer Barang" subtitle="Inisiasi pengiriman / mutasi fisik barang antar gudang">
+    @php
+        $initialItems = old('items', !empty($prefilledItems) ? $prefilledItems : [
+            ['produk_id' => '', 'qty_dikirim' => 1, 'keterangan' => '']
+        ]);
+    @endphp
     <div x-data="{
         requestId: '{{ $stockRequest?->id ?? '' }}',
         gudangAsalId: '{{ old('gudang_asal_id', $defaultGudangAsalId ?? '') }}',
         gudangTujuanId: '{{ old('gudang_tujuan_id', $defaultGudangTujuanId ?? '') }}',
         jenis: '{{ old('jenis', $defaultJenis ?? 'distribusi') }}',
-        items: @json(old('items', !empty($prefilledItems) ? $prefilledItems : [
-            ['produk_id' => '', 'qty_dikirim' => 1, 'keterangan' => '']
-        ])),
+        items: @json($initialItems),
         products: @json($products),
         addItem() {
             this.items.push({ produk_id: '', qty_dikirim: 1, keterangan: '' });

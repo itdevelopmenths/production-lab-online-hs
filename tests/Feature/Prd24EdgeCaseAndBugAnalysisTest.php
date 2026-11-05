@@ -428,4 +428,55 @@ class Prd24EdgeCaseAndBugAnalysisTest extends TestCase
         // But not rt.approve
         $this->assertFalse($user->can('rt.approve'));
     }
+
+    /**
+     * Test 12: Views rendering for requests/create, requests/edit, transfers/create, transfers/show
+     */
+    public function test_request_and_transfer_blade_views_render_without_syntax_error(): void
+    {
+        // 1. GET requests.create
+        $resReqCreate = $this->actingAs($this->operasional)->get(route('requests.create'));
+        $resReqCreate->assertOk();
+        $resReqCreate->assertSee('Formulir Permintaan Barang');
+
+        // 2. GET requests.edit
+        $stockReq = StockRequest::create([
+            'no_request' => 'REQ-TEST-VIEW-01',
+            'jenis' => 'request_bahan',
+            'gudang_asal_id' => $this->gudangLab->id,
+            'gudang_pemohon_id' => $this->gudangLab->id,
+            'gudang_tujuan_id' => $this->gudangPusat->id,
+            'status' => 'draft',
+            'created_by' => $this->operasional->id,
+        ]);
+        $stockReq->items()->create([
+            'produk_id' => $this->bahanBaku->id,
+            'qty_diminta' => 10,
+        ]);
+        $resReqEdit = $this->actingAs($this->operasional)->get(route('requests.edit', $stockReq));
+        $resReqEdit->assertOk();
+        $resReqEdit->assertSee('Edit Permintaan Barang');
+
+        // 3. GET transfers.create
+        $resTrfCreate = $this->actingAs($this->gudang)->get(route('transfers.create'));
+        $resTrfCreate->assertOk();
+        $resTrfCreate->assertSee('Buat Transfer Barang');
+
+        // 4. GET transfers.show
+        $transfer = Transfer::create([
+            'no_transaksi' => 'TRF-TEST-VIEW-01',
+            'jenis' => 'distribusi',
+            'gudang_asal_id' => $this->gudangPusat->id,
+            'gudang_tujuan_id' => $this->gudangLab->id,
+            'status' => 'draft',
+            'created_by' => $this->gudang->id,
+        ]);
+        $transfer->items()->create([
+            'produk_id' => $this->bahanBaku->id,
+            'qty_dikirim' => 5,
+        ]);
+        $resTrfShow = $this->actingAs($this->gudang)->get(route('transfers.show', $transfer));
+        $resTrfShow->assertOk();
+        $resTrfShow->assertSee('TRF-TEST-VIEW-01');
+    }
 }
