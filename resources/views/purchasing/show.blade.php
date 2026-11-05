@@ -517,7 +517,7 @@
             {{-- Formulir Pemeriksaan Fisik & Unloading (Stage 8 PRD v2.4) --}}
             @can('purchasing.receive')
             @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_8)
-            <x-card title="Pemeriksaan Fisik & Unloading di Gudang (Tahap 8)" subtitle="Hitung kuantitas fisik aktual yang diturunkan di gudang. Selisih wajib dicatat dengan keterangan." variant="primary">
+            <x-card title="Pemeriksaan Fisik & Unloading di Gudang (Tahap 8)" subtitle="Hitung kuantitas fisik aktual yang diturunkan di gudang. Jika ada bahan rusak/kurang, input kuantitas riil yang diterima dan catat keterangan selisih." variant="primary">
                 <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_8]) }}" class="space-y-4" x-data="bardatForm()">
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -531,7 +531,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-foreground mb-1">Kondisi Fisik Muatan <span class="text-destructive">*</span></label>
-                            <select name="physical_check[kondisi]" class="w-full rounded-lg border border-border bg-card text-xs p-2">
+                            <select name="physical_check[kondisi]" x-model="kondisiMuatan" class="w-full rounded-lg border border-border bg-card text-xs p-2">
                                 <option value="baik">Baik (Sesuai Standar)</option>
                                 <option value="rusak_sebagian">Rusak Sebagian</option>
                             </select>
@@ -539,13 +539,22 @@
                     </div>
 
                     <div class="border-t border-border pt-3 space-y-3">
-                        <p class="text-xs font-bold text-foreground uppercase tracking-wider">Perhitungan Fisik Bahan Baku:</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs font-bold text-foreground uppercase tracking-wider">Perhitungan Fisik Bahan Baku Masuk:</p>
+                            <template x-if="kondisiMuatan === 'rusak_sebagian'">
+                                <span class="text-[11px] text-amber-700 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 px-2 py-0.5 rounded font-medium">
+                                    Muatan rusak sebagian: sesuaikan Qty Fisik yang layak terima & wajib isi keterangan
+                                </span>
+                            </template>
+                        </div>
+
                         @foreach($po->items as $i => $it)
                         <div class="p-3 bg-muted/40 border border-border rounded-lg text-xs space-y-2">
+                            <input type="hidden" name="physical_check[items][{{ $it->id }}][po_item_id]" value="{{ $it->id }}">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div>
                                     <span class="font-bold text-foreground">{{ $it->produk->nama }}</span>
-                                    <span class="font-mono text-muted-foreground text-[11px]">({{ $it->produk->sku }}) · Order: {{ $it->qty }} {{ $it->produk->satuan }}</span>
+                                    <span class="font-mono text-muted-foreground text-[11px]">({{ $it->produk->sku }}) · Order PO: {{ $it->qty }} {{ $it->produk->satuan }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <span class="text-muted-foreground font-medium">Qty Fisik:</span>
@@ -568,15 +577,15 @@
                                 </div>
                             </div>
 
-                            <div x-show="getDiff({{ $i }}) !== 0" x-cloak class="pt-2 border-t border-border">
-                                <label class="block text-[11px] font-semibold text-rose-700 mb-1">
-                                    Keterangan Alasan Selisih <span class="text-destructive">*</span>:
+                            <div x-show="isDiscrepancyRequired({{ $i }})" x-cloak class="pt-2 border-t border-border">
+                                <label class="block text-[11px] font-semibold text-rose-700 dark:text-rose-400 mb-1">
+                                    Keterangan Alasan Selisih / Kerusakan <span class="text-destructive">*</span>:
                                 </label>
                                 <input type="text"
                                     name="physical_check[items][{{ $it->id }}][keterangan_selisih]"
-                                    :required="getDiff({{ $i }}) !== 0"
-                                    placeholder="Contoh: Bocor dalam perjalanan / Vendor mengirim kurang"
-                                    class="w-full rounded-lg border border-rose-300 text-xs p-1.5 bg-card">
+                                    :required="isDiscrepancyRequired({{ $i }})"
+                                    placeholder="Contoh: 2 botol pecah saat unloading / vendor mengirim kurang"
+                                    class="w-full rounded-lg border border-rose-300 dark:border-rose-800 text-xs p-1.5 bg-card text-foreground">
                             </div>
                         </div>
                         @endforeach
@@ -589,6 +598,81 @@
                     </div>
                 </form>
             </x-card>
+            @endif
+
+            {{-- Panel Konfirmasi & Posting Stok (Stage 9 PRD v2.4) --}}
+            @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_9)
+            @php
+                $latestBardat = $po->barangDatang()->where('status_posting', 'belum')->latest()->first() ?? $po->barangDatang()->latest()->first();
+            @endphp
+            @if($latestBardat)
+            <x-card title="Verifikasi & Input Sistem Penerimaan (Tahap 9)" subtitle="Hasil unloading fisik telah tersimpan. Verifikasi data sebelum memposting stok ke inventori gudang." variant="success">
+                <div class="space-y-4 text-xs">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50">
+                        <div class="flex items-center gap-2.5">
+                            <span class="font-bold text-foreground">Kondisi Hasil Bongkar:</span>
+                            <span class="uppercase font-bold px-2 py-0.5 rounded text-[11px] {{ $latestBardat->kondisi === 'baik' ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900 border border-amber-300' }}">
+                                {{ str_replace('_', ' ', $latestBardat->kondisi) }}
+                            </span>
+                            <span class="text-muted-foreground text-[11px] hidden sm:inline">
+                                · Waktu: {{ $latestBardat->created_at?->format('d/m/Y H:i') }}
+                            </span>
+                        </div>
+                        <span class="text-muted-foreground text-[11px]">
+                            Dicatat oleh: <strong class="text-foreground">{{ $latestBardat->creator?->name ?? 'Gudang' }}</strong>
+                        </span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-border">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-muted/60 text-muted-foreground font-semibold text-[10px] uppercase">
+                                <tr>
+                                    <th class="p-2.5">Bahan Baku</th>
+                                    <th class="p-2.5 text-right">Dipesan (PO)</th>
+                                    <th class="p-2.5 text-right font-bold text-foreground">Fisik Diterima</th>
+                                    <th class="p-2.5 text-right">Selisih</th>
+                                    <th class="p-2.5">Keterangan Selisih / Kerusakan</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                @foreach($latestBardat->items as $bItem)
+                                @php
+                                    $pItem = $bItem->poItem;
+                                @endphp
+                                <tr>
+                                    <td class="p-2.5 font-medium text-foreground">{{ $pItem?->produk?->nama ?? '—' }}</td>
+                                    <td class="p-2.5 text-right font-mono text-muted-foreground">{{ number_format($pItem?->qty ?? 0, 2, ',', '.') }} {{ $pItem?->produk?->satuan }}</td>
+                                    <td class="p-2.5 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                                        {{ number_format($bItem->qty_fisik, 2, ',', '.') }} {{ $pItem?->produk?->satuan }}
+                                    </td>
+                                    <td class="p-2.5 text-right font-mono font-semibold">
+                                        @if((float)$bItem->selisih < 0)
+                                            <span class="text-destructive">{{ number_format($bItem->selisih, 2, ',', '.') }} (Kurang/Rusak)</span>
+                                        @elseif((float)$bItem->selisih > 0)
+                                            <span class="text-blue-600">+{{ number_format($bItem->selisih, 2, ',', '.') }} (Lebih)</span>
+                                        @else
+                                            <span class="text-emerald-600">✓ Sesuai</span>
+                                        @endif
+                                    </td>
+                                    <td class="p-2.5 text-muted-foreground italic">{{ $bItem->keterangan_selisih ?? '—' }}</td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                        @csrf
+                        <p class="text-[11px] text-muted-foreground">
+                            Memposting stok fisik aktual di atas ke <strong>{{ $po->gudang?->nama ?? 'Gudang' }}</strong>, mengunci durasi Lead Time, dan menutup status PO menjadi <strong>Selesai</strong>.
+                        </p>
+                        <x-button type="submit" variant="success" size="md">
+                            Posting Stok ke Gudang &amp; Selesaikan PO
+                        </x-button>
+                    </form>
+                </div>
+            </x-card>
+            @endif
             @endif
             @endcan
         </div>
@@ -1496,6 +1580,7 @@
     <script>
         function bardatForm() {
             return {
+                kondisiMuatan: 'baik',
                 receiptItems: [
                     @foreach($po->items as $it)
                     { qty_po: {{ (float)$it->qty }}, qty_terima: {{ (float)$it->qty }} },
@@ -1506,6 +1591,9 @@
                     if (!item) return 0;
                     const diff = (parseFloat(item.qty_terima) || 0) - (parseFloat(item.qty_po) || 0);
                     return Math.round(diff * 100) / 100;
+                },
+                isDiscrepancyRequired(idx) {
+                    return this.getDiff(idx) !== 0 || this.kondisiMuatan === 'rusak_sebagian';
                 }
             };
         }

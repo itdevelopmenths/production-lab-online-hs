@@ -7,7 +7,7 @@
 
 @if(!$hasStages)
     {{-- =========================================================================
-         Graceful Fallback: Legacy 6-Step Stepper (PO Warisan / Belum Punya 9 Stage)
+         Graceful Fallback: Legacy 6-Step Stepper (PO Warisan)
          ========================================================================= --}}
     @php
         $legacySteps = [
@@ -30,19 +30,17 @@
         };
     @endphp
 
-    <div class="bg-card rounded-xl border border-border p-6 shadow-xs">
+    <div class="bg-card rounded-2xl border border-border/80 p-5 shadow-xs">
         @if($isCancelled)
-            <div class="flex items-center justify-between p-4 bg-red-50/80 border border-red-200 rounded-xl">
+            <div class="flex items-center justify-between p-3.5 bg-rose-50/80 border border-rose-200 rounded-xl">
                 <div class="flex items-center gap-3">
-                    <div class="size-9 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-sm">
-                        ✕
-                    </div>
+                    <div class="size-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-xs">✕</div>
                     <div>
-                        <h4 class="text-sm font-semibold text-red-900">Purchase Order Dibatalkan</h4>
-                        <p class="text-xs text-red-600 mt-0.5">{{ $po->alasan_batal ?? 'Dokumen ini telah dibatalkan.' }}</p>
+                        <h4 class="text-xs font-bold text-rose-900">Purchase Order Dibatalkan</h4>
+                        <p class="text-[11px] text-rose-600 mt-0.5">{{ $po->alasan_batal ?? 'Dokumen ini telah dibatalkan.' }}</p>
                     </div>
                 </div>
-                <x-badge variant="danger" size="sm">Dibatalkan</x-badge>
+                <x-badge variant="danger" size="xs">Dibatalkan</x-badge>
             </div>
         @else
             <nav aria-label="Tahapan Purchase Order Legacy">
@@ -53,7 +51,7 @@
                             $isActive = $st['step'] == $currentStep && $po->status !== 'selesai';
                         @endphp
                         <li class="flex flex-col items-center text-center group" @if($isActive) aria-current="step" @endif>
-                            <div class="size-8 rounded-full flex items-center justify-center text-xs font-bold transition shadow-xs {{ $isCompleted ? 'bg-emerald-600 text-white ring-4 ring-emerald-50' : ($isActive ? 'bg-primary text-primary-foreground ring-4 ring-primary/10' : 'bg-card border border-border text-muted-foreground') }}">
+                            <div class="size-8 rounded-full flex items-center justify-center text-xs font-bold transition shadow-xs {{ $isCompleted ? 'bg-emerald-600 text-white ring-4 ring-emerald-50' : ($isActive ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 ring-4 ring-primary/20' : 'bg-card border border-border text-muted-foreground') }}">
                                 @if($isCompleted)
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                 @else
@@ -76,22 +74,22 @@
     </div>
 @else
     {{-- =========================================================================
-         PRD v2.4 9-Stage Progress Stepper & Lead Time Summary
+         PRD v2.4 9-Stage Progress Stepper (Redesigned: Clean, Simpel & Elegan)
          ========================================================================= --}}
     @php
         $stageDefs = [
-            1 => ['key' => \App\Models\PoStage::STAGE_1, 'label' => '1. Perencanaan', 'cat' => 'internal'],
-            2 => ['key' => \App\Models\PoStage::STAGE_2, 'label' => '2. Approval', 'cat' => 'internal'],
-            3 => ['key' => \App\Models\PoStage::STAGE_3, 'label' => '3. Konfirmasi Supplier', 'cat' => 'supplier'],
-            4 => ['key' => \App\Models\PoStage::STAGE_4, 'label' => '4. Pembayaran / DP', 'cat' => 'internal'],
-            5 => ['key' => \App\Models\PoStage::STAGE_5, 'label' => '5. PO Terbit', 'cat' => 'internal'],
-            6 => ['key' => \App\Models\PoStage::STAGE_6, 'label' => '6. Pengemasan', 'cat' => 'supplier'],
-            7 => ['key' => \App\Models\PoStage::STAGE_7, 'label' => '7. Pengiriman', 'cat' => 'logistik'],
-            8 => ['key' => \App\Models\PoStage::STAGE_8, 'label' => '8. Unloading', 'cat' => 'internal'],
-            9 => ['key' => \App\Models\PoStage::STAGE_9, 'label' => '9. Input Sistem', 'cat' => 'internal'],
+            1 => ['key' => \App\Models\PoStage::STAGE_1, 'short' => 'Perencanaan', 'sub' => 'Draft PO', 'cat' => 'internal'],
+            2 => ['key' => \App\Models\PoStage::STAGE_2, 'short' => 'Approval', 'sub' => 'Manager', 'cat' => 'internal'],
+            3 => ['key' => \App\Models\PoStage::STAGE_3, 'short' => 'Konfirmasi', 'sub' => 'Supplier', 'cat' => 'supplier'],
+            4 => ['key' => \App\Models\PoStage::STAGE_4, 'short' => 'Pembayaran', 'sub' => 'Keuangan / DP', 'cat' => 'internal'],
+            5 => ['key' => \App\Models\PoStage::STAGE_5, 'short' => 'PO Terbit', 'sub' => 'Rilis Resmi', 'cat' => 'internal'],
+            6 => ['key' => \App\Models\PoStage::STAGE_6, 'short' => 'Pengemasan', 'sub' => 'Packing Vendor', 'cat' => 'supplier'],
+            7 => ['key' => \App\Models\PoStage::STAGE_7, 'short' => 'Pengiriman', 'sub' => 'Ekspedisi Tiba', 'cat' => 'logistik'],
+            8 => ['key' => \App\Models\PoStage::STAGE_8, 'short' => 'Unloading', 'sub' => 'Fisik Gudang', 'cat' => 'internal'],
+            9 => ['key' => \App\Models\PoStage::STAGE_9, 'short' => 'Input Sistem', 'sub' => 'Posting Stok', 'cat' => 'internal'],
         ];
 
-        // Hitung Subtotal Durasi per Kategori
+        // Durasi Subtotal
         $internalMenit = 0;
         $supplierMenit = 0;
         $logistikMenit = 0;
@@ -107,29 +105,48 @@
             }
         }
         $totalLtMenit = $internalMenit + $supplierMenit + $logistikMenit;
-
-        // Ambil benchmark supplier jika ada
         $benchmarks = $stageBenchmarks ?? ($po->supplier?->stageSummaries?->keyBy('stage') ?? collect());
+
+        $activeStageNum = null;
+        $activeStageLabel = null;
+        $activeStageState = null;
+        $activePic = null;
+        $activeStartTime = null;
+
+        foreach ($stageDefs as $num => $def) {
+            if ($po->stage_aktif === $def['key']) {
+                $activeStageNum = $num;
+                $activeStageLabel = $def['short'];
+                $rec = $po->stages->where('stage', $def['key'])->last();
+                $activePic = $rec?->picUser?->name ?? $rec?->recordedBy?->name;
+                $activeStartTime = $rec?->waktu_mulai;
+                break;
+            }
+        }
     @endphp
 
-    <div class="space-y-4">
-        {{-- Card Stepper 9 Stage --}}
-        <div class="bg-card rounded-xl border border-border p-4 sm:p-5 shadow-xs">
-            @if($isCancelled)
-                <div class="mb-4 flex items-center justify-between p-3.5 bg-rose-50/90 border border-rose-200 rounded-xl">
-                    <div class="flex items-center gap-3">
-                        <div class="size-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-xs">✕</div>
-                        <div>
-                            <h4 class="text-xs font-bold text-rose-900">Purchase Order Dibatalkan</h4>
-                            <p class="text-[11px] text-rose-700 mt-0.5">{{ $po->alasan_batal ?? 'Dibatalkan oleh manajemen.' }}</p>
-                        </div>
+    <div class="bg-card rounded-2xl border border-border/80 p-5 shadow-xs space-y-4">
+        {{-- Banner jika Dibatalkan --}}
+        @if($isCancelled)
+            <div class="flex items-center justify-between p-3.5 bg-rose-50/90 border border-rose-200 rounded-xl">
+                <div class="flex items-center gap-3">
+                    <div class="size-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-xs">✕</div>
+                    <div>
+                        <h4 class="text-xs font-bold text-rose-900">Purchase Order Dibatalkan</h4>
+                        <p class="text-[11px] text-rose-700 mt-0.5">{{ $po->alasan_batal ?? 'Dibatalkan oleh manajemen.' }}</p>
                     </div>
-                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-rose-200 text-rose-900">Dibatalkan</span>
                 </div>
-            @endif
+                <x-badge variant="danger" size="xs">Dibatalkan</x-badge>
+            </div>
+        @endif
 
-            <nav aria-label="Tahapan Purchase Order">
-                <ol class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-9 gap-3 list-none m-0 p-0">
+        {{-- Progress Timeline 9-Stage --}}
+        <div class="overflow-x-auto pb-2 scrollbar-none">
+            <nav aria-label="Tahapan Purchase Order" class="min-w-[760px] sm:min-w-0">
+                <ol class="flex items-start justify-between relative list-none m-0 p-0">
+                    {{-- Continuous Connecting Line behind nodes --}}
+                    <div class="absolute top-4 left-6 right-6 h-0.5 bg-border -z-0"></div>
+
                     @foreach($stageDefs as $num => $def)
                         @php
                             $stageKey = $def['key'];
@@ -138,12 +155,6 @@
                             $putaran = $records->max('putaran') ?? 1;
                             $durasiMenit = (int) $records->sum('durasi_menit');
 
-                            // Tentukan State & Skema Warna
-                            // 1. Abu-abu (belum mulai)
-                            // 2. Biru (berjalan)
-                            // 3. Merah (terlambat)
-                            // 4. Oranye (dikembalikan)
-                            // 5. Hijau (selesai)
                             $state = 'belum_mulai';
                             if ($latestRecord) {
                                 if ($latestRecord->status === 'selesai') {
@@ -152,7 +163,6 @@
                                     $state = 'dikembalikan';
                                 } elseif ($latestRecord->status === 'berjalan') {
                                     $state = 'berjalan';
-                                    // Cek indikator terlambat terhadap average stage supplier
                                     if ($latestRecord->waktu_mulai) {
                                         $bm = $benchmarks->get($stageKey);
                                         if ($bm && $bm->jumlah_transaksi > 0 && $bm->total_menit > 0) {
@@ -167,103 +177,62 @@
                             }
 
                             $isCurrent = ($po->stage_aktif === $stageKey) && !$isCancelled && $po->status !== 'selesai';
-
-                            // Tampilan Durasi
-                            $displayJam = null;
-                            $displayHari = null;
-                            if ($durasiMenit > 0) {
-                                $displayJam = \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($durasiMenit);
-                                $displayHari = \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($durasiMenit);
-                            } elseif ($latestRecord && $latestRecord->status === 'berjalan' && $latestRecord->waktu_mulai) {
-                                $runMin = $latestRecord->waktu_mulai->diffInMinutes(now());
-                                $displayJam = \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($runMin);
-                                $displayHari = \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($runMin);
+                            if ($isCurrent) {
+                                $activeStageState = $state;
                             }
 
-                            // PIC & Waktu
-                            $picName = $latestRecord?->picUser?->name ?? $latestRecord?->recordedBy?->name;
-                            $waktuMulai = $latestRecord?->waktu_mulai?->format('d/m H:i');
-                            $waktuSelesai = $latestRecord?->waktu_selesai?->format('d/m H:i');
-
-                            // Styling badge & box
-                            $boxStyles = match($state) {
-                                'selesai' => 'bg-emerald-50/60 border-emerald-300 text-emerald-950',
-                                'berjalan' => 'bg-blue-50/80 border-blue-400 text-blue-950 ring-2 ring-blue-400/20',
-                                'terlambat' => 'bg-rose-50/90 border-rose-400 text-rose-950 ring-2 ring-rose-400/20',
-                                'dikembalikan' => 'bg-amber-50/80 border-amber-400 text-amber-950',
-                                default => 'bg-muted/40 border-border/80 text-muted-foreground',
+                            $nodeClass = match($state) {
+                                'selesai' => 'bg-emerald-600 text-white ring-4 ring-emerald-50 dark:ring-emerald-950/40 shadow-xs',
+                                'berjalan' => 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 ring-4 ring-primary/20 shadow-md animate-pulse',
+                                'terlambat' => 'bg-rose-600 text-white ring-4 ring-rose-100 dark:ring-rose-950/40 shadow-md animate-bounce',
+                                'dikembalikan' => 'bg-amber-500 text-white ring-4 ring-amber-100 dark:ring-amber-950/40 shadow-xs',
+                                default => 'bg-card border-2 border-border text-muted-foreground',
                             };
 
-                            $circleStyles = match($state) {
-                                'selesai' => 'bg-emerald-600 text-white font-bold',
-                                'berjalan' => 'bg-blue-600 text-white font-bold animate-pulse',
-                                'terlambat' => 'bg-rose-600 text-white font-bold animate-bounce',
-                                'dikembalikan' => 'bg-amber-500 text-white font-bold',
-                                default => 'bg-muted border border-border text-muted-foreground',
+                            $textClass = match($state) {
+                                'selesai' => 'text-foreground font-semibold',
+                                'berjalan' => 'text-primary font-bold',
+                                'terlambat' => 'text-rose-600 font-bold',
+                                'dikembalikan' => 'text-amber-600 font-bold',
+                                default => 'text-muted-foreground font-normal',
                             };
                         @endphp
 
-                        <li class="flex flex-col p-2.5 rounded-xl border {{ $boxStyles }} transition-all text-xs"
+                        <li class="flex flex-col items-center text-center group flex-1 px-1 relative z-10"
                             @if($isCurrent) aria-current="step" @endif>
                             
-                            {{-- Header Step: Nomor & Badge Putaran --}}
-                            <div class="flex items-center justify-between gap-1 mb-1.5">
-                                <div class="size-6 rounded-full flex items-center justify-center text-[11px] shrink-0 {{ $circleStyles }}">
-                                    @if($state === 'selesai')
-                                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                                    @else
-                                        {{ $num }}
-                                    @endif
-                                </div>
-
-                                @if($putaran > 1)
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-200 text-amber-900 border border-amber-300" title="Melewati {{ $putaran }} putaran">
-                                        P-{{ $putaran }}
-                                    </span>
-                                @endif
-                            </div>
-
-                            {{-- Nama Tahap --}}
-                            <div class="font-bold text-[11px] leading-tight mb-1 truncate" title="{{ $def['label'] }}">
-                                {{ $def['label'] }}
-                            </div>
-
-                            {{-- Waktu & Status Badge --}}
-                            <div class="space-y-0.5 text-[10px] opacity-90 mt-auto pt-1 border-t border-border/40">
+                            {{-- Step Node Circle --}}
+                            <div class="size-8 rounded-full flex items-center justify-center text-xs font-bold transition {{ $nodeClass }}"
+                                 title="Tahap {{ $num }}: {{ $def['short'] }} ({{ ucfirst(str_replace('_',' ',$state)) }})">
                                 @if($state === 'selesai')
-                                    <span class="text-emerald-700 font-semibold block">✓ Selesai</span>
-                                    @if($waktuSelesai)
-                                        <span class="font-mono text-muted-foreground block">{{ $waktuSelesai }}</span>
-                                    @endif
-                                @elseif($state === 'terlambat')
-                                    <span class="text-rose-700 font-bold block">⚠️ Terlambat</span>
-                                    @if($waktuMulai)
-                                        <span class="font-mono text-rose-600 block">Mulai: {{ $waktuMulai }}</span>
-                                    @endif
-                                @elseif($state === 'berjalan')
-                                    <span class="text-blue-700 font-semibold block">● Berjalan</span>
-                                    @if($waktuMulai)
-                                        <span class="font-mono text-muted-foreground block">Mulai: {{ $waktuMulai }}</span>
-                                    @endif
+                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                 @elseif($state === 'dikembalikan')
-                                    <span class="text-amber-700 font-semibold block">↩ Dikembalikan</span>
+                                    <span class="text-xs">↩</span>
+                                @elseif($state === 'terlambat')
+                                    <span class="text-xs font-black">!</span>
                                 @else
-                                    <span class="text-muted-foreground italic block">Belum mulai</span>
+                                    {{ $num }}
                                 @endif
+                            </div>
 
-                                {{-- PIC --}}
-                                @if($picName)
-                                    <span class="truncate block text-muted-foreground text-[9px]" title="PIC: {{ $picName }}">
-                                        PIC: {{ Str::limit($picName, 12) }}
-                                    </span>
-                                @endif
-
-                                {{-- Durasi (Jam 2 desimal, Hari 1 desimal) --}}
-                                @if($displayHari !== null)
-                                    <div class="font-mono text-[9px] font-semibold text-foreground/80 pt-0.5">
-                                        {{ $displayHari }} hr <span class="text-muted-foreground font-normal">({{ $displayJam }} j)</span>
-                                    </div>
-                                @endif
+                            {{-- Step Title & Subtitle --}}
+                            <div class="mt-2 space-y-0.5">
+                                <span class="block text-[11px] leading-tight {{ $textClass }} truncate max-w-[85px] sm:max-w-none">
+                                    {{ $def['short'] }}
+                                </span>
+                                <span class="hidden sm:block text-[10px] text-muted-foreground truncate max-w-[85px] sm:max-w-none">
+                                    @if($state === 'selesai')
+                                        ✓ Selesai
+                                    @elseif($state === 'berjalan')
+                                        ● Berjalan
+                                    @elseif($state === 'terlambat')
+                                        ⚠️ Terlambat
+                                    @elseif($state === 'dikembalikan')
+                                        ↩ Ditolak
+                                    @else
+                                        {{ $def['sub'] }}
+                                    @endif
+                                </span>
                             </div>
                         </li>
                     @endforeach
@@ -271,38 +240,55 @@
             </nav>
         </div>
 
-        {{-- Bar Ringkasan Subtotal Lead Time --}}
-        <div class="bg-card rounded-xl border border-border p-3.5 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">LT Internal (1,2,4,5,8,9)</span>
-                <p class="font-mono text-sm font-bold text-foreground mt-0.5">
-                    {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($internalMenit) }} hari
-                    <span class="text-[11px] font-normal text-muted-foreground font-mono">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($internalMenit) }} jam)</span>
-                </p>
+        {{-- Strip Ringkasan Terpadu: Tahap Aktif & Subtotal Lead Time --}}
+        <div class="border-t border-border/60 pt-3 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+            {{-- Kiri: Highlight Tahap Aktif --}}
+            <div class="flex items-center gap-2">
+                @if($po->status === 'selesai')
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300">
+                        <svg class="size-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        Seluruh 9 Tahap Selesai (PO Closed)
+                    </span>
+                @elseif($isCancelled)
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                        PO Dibatalkan
+                    </span>
+                @elseif($activeStageNum)
+                    <div class="flex items-center gap-2">
+                        <span class="text-muted-foreground text-[11px]">Tahap Aktif:</span>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold {{ $activeStageState === 'terlambat' ? 'bg-rose-100 text-rose-900 border border-rose-300' : 'bg-primary/10 text-primary border border-primary/20' }}">
+                            <span class="size-2 rounded-full {{ $activeStageState === 'terlambat' ? 'bg-rose-600 animate-ping' : 'bg-primary animate-pulse' }}"></span>
+                            Tahap {{ $activeStageNum }}: {{ $activeStageLabel }}
+                        </span>
+                        @if($activePic)
+                            <span class="text-[11px] text-muted-foreground hidden sm:inline">
+                                · PIC: <strong>{{ $activePic }}</strong>
+                            </span>
+                        @endif
+                        @if($activeStartTime)
+                            <span class="text-[11px] text-muted-foreground hidden sm:inline">
+                                · Mulai: {{ $activeStartTime->format('d/m H:i') }}
+                            </span>
+                        @endif
+                    </div>
+                @endif
             </div>
 
-            <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">LT Supplier (3, 6)</span>
-                <p class="font-mono text-sm font-bold text-foreground mt-0.5">
-                    {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($supplierMenit) }} hari
-                    <span class="text-[11px] font-normal text-muted-foreground font-mono">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($supplierMenit) }} jam)</span>
-                </p>
-            </div>
-
-            <div class="p-2.5 rounded-lg bg-muted/40 border border-border">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">LT Logistik (7)</span>
-                <p class="font-mono text-sm font-bold text-foreground mt-0.5">
-                    {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($logistikMenit) }} hari
-                    <span class="text-[11px] font-normal text-muted-foreground font-mono">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($logistikMenit) }} jam)</span>
-                </p>
-            </div>
-
-            <div class="p-2.5 rounded-lg bg-primary-50/50 border border-primary-200">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-primary-900 block">Total Lead Time</span>
-                <p class="font-mono text-sm font-bold text-primary-700 mt-0.5">
-                    {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($totalLtMenit) }} hari
-                    <span class="text-[11px] font-normal text-primary-600 font-mono">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($totalLtMenit) }} jam)</span>
-                </p>
+            {{-- Kanan: Metrik Lead Time Bersih (Internal, Supplier, Logistik, Total) --}}
+            <div class="flex flex-wrap items-center gap-2 text-[11px]">
+                <div class="px-2 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Stage 1, 2, 4, 5, 8, 9">
+                    Internal: <strong class="text-foreground">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($internalMenit) }} hr</strong>
+                </div>
+                <div class="px-2 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Stage 3, 6">
+                    Supplier: <strong class="text-foreground">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($supplierMenit) }} hr</strong>
+                </div>
+                <div class="px-2 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Stage 7">
+                    Logistik: <strong class="text-foreground">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($logistikMenit) }} hr</strong>
+                </div>
+                <div class="px-2.5 py-1 rounded-md bg-primary-50/70 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800/40 font-mono font-bold text-primary-700 dark:text-primary-300">
+                    Total LT: {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($totalLtMenit) }} Hari
+                    <span class="font-normal text-[10px] text-muted-foreground">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($totalLtMenit) }} j)</span>
+                </div>
             </div>
         </div>
     </div>

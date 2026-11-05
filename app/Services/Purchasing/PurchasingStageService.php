@@ -586,10 +586,16 @@ class PurchasingStageService
 
             $itemsData = $physicalCheckData['items'] ?? [];
             foreach ($po->items as $poItem) {
-                $inputItem = collect($itemsData)->firstWhere('po_item_id', $poItem->id) ?? [];
-                $qtyFisik = (float) ($inputItem['qty_fisik'] ?? $poItem->qty);
-                $selisih = $qtyFisik - (float) $poItem->qty;
-                $keteranganSelisih = $inputItem['keterangan_selisih'] ?? null;
+                $inputItem = $itemsData[$poItem->id]
+                    ?? collect($itemsData)->firstWhere('po_item_id', $poItem->id)
+                    ?? [];
+
+                $qtyFisik = isset($inputItem['qty_fisik']) && $inputItem['qty_fisik'] !== ''
+                    ? (float) $inputItem['qty_fisik']
+                    : (float) $poItem->qty;
+
+                $selisih = round($qtyFisik - (float) $poItem->qty, 2);
+                $keteranganSelisih = !empty($inputItem['keterangan_selisih']) ? trim((string) $inputItem['keterangan_selisih']) : null;
 
                 $bardat->items()->create([
                     'po_item_id' => $poItem->id,
@@ -666,20 +672,22 @@ class PurchasingStageService
 
             // 1. Posting stok dan set qty_diterima
             foreach ($bardat->items as $item) {
-                $finalQty = (float) ($item->qty_fisik > 0 ? $item->qty_fisik : ($item->poItem?->qty ?? 0));
+                $finalQty = $item->qty_fisik !== null ? (float) $item->qty_fisik : (float) ($item->poItem?->qty ?? 0);
                 $item->qty_diterima = $finalQty;
                 $item->save();
 
-                $produkId = $item->poItem->produk_id;
-                $this->stokService->masuk(
-                    $produkId,
-                    $gudangId,
-                    $finalQty,
-                    'pembelian',
-                    $po->id,
-                    'Penerimaan PO ' . $po->no_po,
-                    $selesai
-                );
+                if ($finalQty > 0) {
+                    $produkId = $item->poItem->produk_id;
+                    $this->stokService->masuk(
+                        $produkId,
+                        $gudangId,
+                        $finalQty,
+                        'pembelian',
+                        $po->id,
+                        'Penerimaan PO ' . $po->no_po,
+                        $selesai
+                    );
+                }
             }
 
             // 2. Update status posting dokumen penerimaan

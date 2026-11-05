@@ -321,6 +321,89 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
     }
 
     /**
+     * Uji unloading dengan kondisi rusak sebagian & associative items key dari form Blade.
+     * Memastikan qty_fisik aktual yang rusak sebagian tidak ter-reset ke kuantitas PO saat Stage 9 selesai.
+     */
+    public function test_stage_8_unloading_partial_damage_with_associative_items_persists_qty_fisik_and_posts_correct_stock_in_stage_9(): void
+    {
+        $po = $this->createSamplePo('tempo');
+        $po->stage_aktif = PoStage::STAGE_8;
+        $po->save();
+        $po->stages()->create([
+            'stage' => PoStage::STAGE_8,
+            'urutan' => 8,
+            'putaran' => 1,
+            'status' => 'berjalan',
+            'waktu_mulai' => now()->subHours(2),
+        ]);
+
+        $stokAwal1 = app(StokService::class)->saldo($this->produk1->id, $this->gudang->id);
+        $stokAwal2 = app(StokService::class)->saldo($this->produk2->id, $this->gudang->id);
+
+        $item1 = $po->items[0]; // qty = 100
+        $item2 = $po->items[1]; // qty = 50
+
+        // Kirim payload dengan struktur associative array persis seperti yang dikirim oleh form HTML Blade
+        $this->actingAs($this->gudangUser);
+        $response = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_8]), [
+            'physical_check' => [
+                'kondisi' => 'rusak_sebagian',
+                'items' => [
+                    $item1->id => [
+                        'qty_fisik' => 80, // 20 rusak
+                        'keterangan_selisih' => '20 unit rusak dalam perjalanan',
+                    ],
+                    $item2->id => [
+                        'qty_fisik' => 50, // lengkap
+                        'keterangan_selisih' => null,
+                    ],
+                ],
+            ],
+            'waktu_selesai' => now()->toDateTimeString(),
+            'catatan' => 'Unloading fisik dengan 20 unit rusak pada item 1',
+        ]);
+        $response->assertSessionHasNoErrors();
+
+        $bardat = $po->barangDatang()->where('status_posting', 'belum')->first();
+        $this->assertNotNull($bardat);
+        $this->assertEquals('rusak_sebagian', $bardat->kondisi);
+
+        $bItem1 = $bardat->items()->where('po_item_id', $item1->id)->firstOrFail();
+        $bItem2 = $bardat->items()->where('po_item_id', $item2->id)->firstOrFail();
+
+        $this->assertEquals(80, (float) $bItem1->qty_fisik);
+        $this->assertEquals(-20, (float) $bItem1->selisih);
+        $this->assertEquals('20 unit rusak dalam perjalanan', $bItem1->keterangan_selisih);
+
+        $this->assertEquals(50, (float) $bItem2->qty_fisik);
+        $this->assertEquals(0, (float) $bItem2->selisih);
+
+        // Stage 9: Posting Stok
+        $this->assertEquals(PoStage::STAGE_9, $po->fresh()->stage_aktif);
+        $response9 = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_9]), [
+            'waktu_selesai' => now()->toDateTimeString(),
+            'catatan' => 'Posting stok hasil unloading',
+        ]);
+        $response9->assertSessionHasNoErrors();
+
+        $bardat->refresh();
+        $this->assertEquals('diposting', $bardat->status_posting);
+        $bItem1->refresh();
+        $bItem2->refresh();
+
+        // qty_diterima harus 80 (bukan 100!), dan 50
+        $this->assertEquals(80, (float) $bItem1->qty_diterima);
+        $this->assertEquals(50, (float) $bItem2->qty_diterima);
+
+        // Stok di gudang hanya bertambah 80 untuk produk 1 (bukan 100!)
+        $this->assertEquals($stokAwal1 + 80, app(StokService::class)->saldo($this->produk1->id, $this->gudang->id));
+        $this->assertEquals($stokAwal2 + 50, app(StokService::class)->saldo($this->produk2->id, $this->gudang->id));
+
+        // qtyDiterima di PO item harus 80
+        $this->assertEquals(80, $item1->fresh()->qtyDiterima());
+    }
+
+    /**
      * TC-12: Reject pada Stage 2 mencatat riwayat putaran.
      */
     public function test_tc12_stage_2_rejection_creates_new_round_from_stage_1(): void
