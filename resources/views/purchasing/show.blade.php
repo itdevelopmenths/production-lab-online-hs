@@ -399,7 +399,14 @@
         <!-- Kolom Kanan: Aksi & Status Pembayaran -->
         <div class="space-y-5">
             <!-- Panel Kontrol Status PO & Modal Pembatalan -->
-            <div x-data="{ openCancelModal: false, alasan: '', isSubmitting: false }">
+            <div x-data="{
+                openCancelModal: false,
+                alasan: '',
+                isSubmitting: false,
+                isCancelDisabled() {
+                    return this.alasan.trim().length < 5 || this.isSubmitting;
+                }
+            }">
                 <x-card title="Kontrol Purchase Order" variant="default">
                     <div class="space-y-2">
                         @can('purchasing.submit')
@@ -519,7 +526,7 @@
                             <x-button type="button" variant="secondary" size="sm" @click="openCancelModal = false">
                                 Kembali
                             </x-button>
-                            <x-button type="submit" variant="danger" size="sm" x-bind:disabled="alasan.trim().length < 5 || isSubmitting">
+                            <x-button type="submit" variant="danger" size="sm" x-bind:disabled="isCancelDisabled()">
                                 <x-slot:icon>
                                     <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </x-slot:icon>
@@ -820,7 +827,7 @@
                     </div>
                     @endif
 
-                    <x-button type="submit" variant="primary" size="sm" class="w-full" x-bind:disabled="nominal <= 0 || nominal > sisa">
+                    <x-button type="submit" variant="primary" size="sm" class="w-full" x-bind:disabled="isPayDisabled()">
                         <x-slot:icon>
                             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                         </x-slot:icon>
@@ -884,6 +891,9 @@
                 skema: defaultSkema || 'tempo',
                 nominal: defaultNominal !== undefined && defaultNominal !== null ? Math.round(Number(defaultNominal)) : Math.round(Number(sisaTagihan)),
                 displayNominal: '',
+                isPayDisabled() {
+                    return this.nominal <= 0 || this.nominal > this.sisa;
+                },
                 get sisaAfterPay() {
                     return Math.round(this.sisa - (Number(this.nominal) || 0));
                 },

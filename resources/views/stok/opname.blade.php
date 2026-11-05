@@ -104,22 +104,17 @@
                                             <div class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Estimasi Deviasi</div>
                                             <div class="mt-1.5 flex items-baseline gap-1.5">
                                                 <span class="text-xl font-bold font-mono"
-                                                      :class="{
-                                                          'text-emerald-600 dark:text-emerald-400': hasFetched && variance() !== null && variance() === 0,
-                                                          'text-foreground': hasFetched && variance() !== null && variance() > 0,
-                                                          'text-destructive': hasFetched && variance() !== null && variance() < 0,
-                                                          'text-muted-foreground': !hasFetched || variance() === null
-                                                      }"
-                                                      x-text="hasFetched && variance() !== null ? (variance() > 0 ? '+' : '') + formatQty(variance()) : '—'"
+                                                      :class="varianceClass()"
+                                                      x-text="varianceText()"
                                                 ></span>
                                                 <span class="text-xs font-mono text-muted-foreground font-semibold uppercase" x-text="uom || 'Unit'"></span>
                                             </div>
                                             <div class="text-[10px] mt-0.5 font-medium">
                                                 <template x-if="hasFetched && variance() !== null">
                                                     <span>
-                                                        <span x-show="variance() === 0" class="text-emerald-600 dark:text-emerald-400 font-semibold">Saldo Fisik Sesuai Buku</span>
-                                                        <span x-show="variance() > 0" class="text-foreground font-semibold">Surplus / Fisik Lebih Banyak</span>
-                                                        <span x-show="variance() < 0" class="text-destructive font-semibold">Defisit / Fisik Kurang</span>
+                                                        <span x-show="varianceStatus() === 'zero'" class="text-emerald-600 dark:text-emerald-400 font-semibold">Saldo Fisik Sesuai Buku</span>
+                                                        <span x-show="varianceStatus() === 'surplus'" class="text-foreground font-semibold">Surplus / Fisik Lebih Banyak</span>
+                                                        <span x-show="varianceStatus() === 'deficit'" class="text-destructive font-semibold">Defisit / Fisik Kurang</span>
                                                     </span>
                                                 </template>
                                                 <template x-if="!hasFetched || variance() === null">
@@ -241,6 +236,27 @@
                 }
                 const sys = this.systemQty !== null ? this.systemQty : 0;
                 return Number(this.physicalQty) - sys;
+            },
+
+            varianceStatus() {
+                const v = this.variance();
+                if (!this.hasFetched || v === null) return 'none';
+                if (v === 0) return 'zero';
+                return v > 0 ? 'surplus' : 'deficit';
+            },
+
+            varianceClass() {
+                const status = this.varianceStatus();
+                if (status === 'zero') return 'text-emerald-600 dark:text-emerald-400';
+                if (status === 'surplus') return 'text-foreground';
+                if (status === 'deficit') return 'text-destructive';
+                return 'text-muted-foreground';
+            },
+
+            varianceText() {
+                const v = this.variance();
+                if (!this.hasFetched || v === null) return '—';
+                return (v > 0 ? '+' : '') + this.formatQty(v);
             },
 
             formatQty(val) {

@@ -74,26 +74,30 @@
             </x-card>
 
             {{-- Card 2: Peran Utama & Akses Lokasi Fisik Gudang (LBAC) --}}
-            <div x-data="{
-                accessType: '{{ old('warehouse_access_type', $isGlobalWarehouse ? 'global' : 'restricted') }}',
-                selectedGudangs: {{ json_encode(array_map('intval', (array) old('gudang_ids', $assignedGudangIds))) }},
-                primaryGudang: '{{ old('primary_gudang_id', $primaryGudangId ?? '') }}',
-                
-                toggleGudang(id) {
-                    id = parseInt(id);
-                    if (this.selectedGudangs.includes(id)) {
-                        this.selectedGudangs = this.selectedGudangs.filter(g => g !== id);
-                        if (parseInt(this.primaryGudang) === id) {
-                            this.primaryGudang = this.selectedGudangs.length > 0 ? this.selectedGudangs[0] : '';
+            <script>
+                function userWarehouseAccessState(accessType, selectedGudangs, primaryGudang) {
+                    return {
+                        accessType: accessType || 'global',
+                        selectedGudangs: selectedGudangs || [],
+                        primaryGudang: primaryGudang ? String(primaryGudang) : '',
+                        toggleGudang(id) {
+                            id = parseInt(id, 10);
+                            if (this.selectedGudangs.includes(id)) {
+                                this.selectedGudangs = this.selectedGudangs.filter(function(g) { return g !== id; });
+                                if (parseInt(this.primaryGudang, 10) === id) {
+                                    this.primaryGudang = this.selectedGudangs.length > 0 ? String(this.selectedGudangs[0]) : '';
+                                }
+                            } else {
+                                this.selectedGudangs.push(id);
+                                if (!this.primaryGudang) {
+                                    this.primaryGudang = String(id);
+                                }
+                            }
                         }
-                    } else {
-                        this.selectedGudangs.push(id);
-                        if (!this.primaryGudang) {
-                            this.primaryGudang = id;
-                        }
-                    }
+                    };
                 }
-            }">
+            </script>
+            <div x-data="userWarehouseAccessState('{{ old('warehouse_access_type', $isGlobalWarehouse ? 'global' : 'restricted') }}', {{ Js::from(array_map('intval', (array) old('gudang_ids', $assignedGudangIds))) }}, '{{ old('primary_gudang_id', $primaryGudangId ?? '') }}')">
                 <x-card title="Peran & Hak Akses Fasilitas Gudang" subtitle="Tentukan peran wewenang sistem dan batas wilayah/lokasi operasional staf">
                     <div class="space-y-6">
                         {{-- Role Utama --}}

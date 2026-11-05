@@ -7,36 +7,56 @@
     $displayMoq = ($floatMoq == (int) $floatMoq) ? (int) $floatMoq : rtrim(rtrim(number_format($floatMoq, 2, '.', ''), '0'), '.');
 @endphp
 
-<div x-data="{
-    categories: {{ Js::from($categories) }},
-    selectedKategoriId: '{{ old('kategori_id', $p?->kategori_id) }}',
-    selectedVarianId: '{{ old('varian_id', $p?->varian_id) }}',
-    namaProduk: '{{ addslashes(old('nama_produk', $p?->nama_produk ?? $p?->nama ?? '')) }}',
-    
-    get currentVarians() {
-        const cat = this.categories.find(c => String(c.id) === String(this.selectedKategoriId));
-        return cat && cat.varians ? cat.varians : [];
-    },
+<script>
+function produkFormState(categories, initialKategoriId, initialVarianId, initialNamaProduk) {
+    return {
+        categories: categories || [],
+        selectedKategoriId: initialKategoriId || '',
+        selectedVarianId: initialVarianId || '',
+        namaProduk: initialNamaProduk || '',
 
-    get currentVarianName() {
-        const v = this.currentVarians.find(item => String(item.id) === String(this.selectedVarianId));
-        return v ? v.nama : '';
-    },
+        get currentVarians() {
+            var catId = String(this.selectedKategoriId);
+            var cat = this.categories.find(function(c) {
+                return String(c.id) === catId;
+            });
+            return (cat && cat.varians) ? cat.varians : [];
+        },
 
-    get fullNamePreview() {
-        const base = (this.namaProduk || '').trim();
-        const varian = (this.currentVarianName || '').trim();
-        if (!base) return '— Belum diisi —';
-        return varian ? `${base} ${varian}` : base;
-    },
+        get currentVarianName() {
+            var varId = String(this.selectedVarianId);
+            var v = this.currentVarians.find(function(item) {
+                return String(item.id) === varId;
+            });
+            return v ? v.nama : '';
+        },
 
-    onKategoriChange() {
-        const exists = this.currentVarians.some(v => String(v.id) === String(this.selectedVarianId));
-        if (!exists) {
-            this.selectedVarianId = '';
+        get fullNamePreview() {
+            var base = (this.namaProduk || '').trim();
+            var varian = (this.currentVarianName || '').trim();
+            if (!base) return '— Belum diisi —';
+            return varian ? (base + ' ' + varian) : base;
+        },
+
+        onKategoriChange() {
+            var varId = String(this.selectedVarianId);
+            var exists = this.currentVarians.some(function(v) {
+                return String(v.id) === varId;
+            });
+            if (!exists) {
+                this.selectedVarianId = '';
+            }
         }
-    }
-}" class="space-y-6">
+    };
+}
+</script>
+
+<div x-data="produkFormState(
+    {{ Js::from($categories) }},
+    '{{ addslashes(old('kategori_id', $p?->kategori_id ?? '')) }}',
+    '{{ addslashes(old('varian_id', $p?->varian_id ?? '')) }}',
+    '{{ addslashes(old('nama_produk', $p?->nama_produk ?? $p?->nama ?? '')) }}'
+)" class="space-y-6">
 
     <!-- Preview Box -->
     <div class="p-4 bg-muted/40 border border-border rounded-xl flex flex-wrap items-center justify-between gap-4">

@@ -305,9 +305,9 @@
             isSubmitting: false,
 
             init() {
-                const pjList = @json($produkJadiList);
-                const bhList = @json($bahanList);
-                const existingList = @json($existingBoms ?? []);
+                const pjList = @js($produkJadiList);
+                const bhList = @js($bahanList);
+                const existingList = @js($existingBoms ?? []);
 
                 pjList.forEach(item => {
                     this.produkJadiMap[item.sku.trim().toUpperCase()] = item.nama;

@@ -379,24 +379,30 @@
                                 </h4>
                                 <span class="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">Inbound QC</span>
                             </div>
+                            <script>
+                                function rtReceiveFormState(receiveItems) {
+                                    return {
+                                        submitting: false,
+                                        items: receiveItems || [],
+                                        get isReceiveValid() {
+                                            if (!this.items || this.items.length === 0) return false;
+                                            return this.items.every(function(it) {
+                                                var b = parseInt(it.qtyBaik, 10);
+                                                var r = parseInt(it.qtyRusak, 10);
+                                                return !isNaN(b) && !isNaN(r) && b >= 0 && r >= 0 && (b + r) === it.maxQty;
+                                            });
+                                        },
+                                        autoCalculateRusak(index) {
+                                            var it = this.items[index];
+                                            if (!it) return;
+                                            var b = parseInt(it.qtyBaik, 10) || 0;
+                                            it.qtyRusak = Math.max(0, it.maxQty - b);
+                                        }
+                                    };
+                                }
+                            </script>
                             <form method="POST" action="{{ route('rt.transition', $rt) }}"
-                                x-data="{
-                                    submitting: false,
-                                    items: {{ Js::from($receiveItems) }},
-                                    get isReceiveValid() {
-                                        return this.items.length > 0 && this.items.every(it => {
-                                            const b = parseInt(it.qtyBaik, 10);
-                                            const r = parseInt(it.qtyRusak, 10);
-                                            return !isNaN(b) && !isNaN(r) && b >= 0 && r >= 0 && (b + r) === it.maxQty;
-                                        });
-                                    },
-                                    autoCalculateRusak(index) {
-                                        const it = this.items[index];
-                                        if (!it) return;
-                                        const b = parseInt(it.qtyBaik, 10) || 0;
-                                        it.qtyRusak = Math.max(0, it.maxQty - b);
-                                    }
-                                }"
+                                x-data="rtReceiveFormState({{ Js::from($receiveItems) }})"
                                 @submit="if(submitting || !isReceiveValid) { $event.preventDefault(); return false; } submitting = true">
                                 @csrf
                                 <input type="hidden" name="aksi" value="receive">
@@ -522,7 +528,20 @@
                     @endphp
 
                     @if($canCancelThis)
-                    <div class="pt-2 border-t border-gray-100" x-data="{ openCancelModal: false, alasan: '', isSubmitting: false }">
+                    <div class="pt-2 border-t border-gray-100" x-data="{
+                        openCancelModal: false,
+                        alasan: '',
+                        isSubmitting: false,
+                        isCancelDisabled() {
+                            return this.isSubmitting || this.alasan.trim().length < 5;
+                        },
+                        cancelButtonClass() {
+                            return {
+                                'opacity-50 cursor-not-allowed': this.alasan.trim().length < 5,
+                                'opacity-75 cursor-not-allowed pointer-events-none': this.isSubmitting
+                            };
+                        }
+                    }">
                         <x-button type="button" variant="danger" size="xs" class="w-full" @click="openCancelModal = true">
                             <span class="flex items-center justify-center gap-1.5">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -590,7 +609,7 @@
                                     <x-button type="button" variant="secondary" size="sm" @click="openCancelModal = false">
                                         Kembali
                                     </x-button>
-                                    <x-button type="submit" variant="danger" size="sm" ::disabled="isSubmitting || alasan.trim().length < 5" ::class="{ 'opacity-50 cursor-not-allowed': alasan.trim().length < 5, 'opacity-75 cursor-not-allowed pointer-events-none': isSubmitting }">
+                                    <x-button type="submit" variant="danger" size="sm" ::disabled="isCancelDisabled()" ::class="cancelButtonClass()">
                                         <span x-show="!isSubmitting">Konfirmasi Batalkan Dokumen</span>
                                         <span x-show="isSubmitting" x-cloak class="inline-flex items-center gap-1.5">
                                             <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>

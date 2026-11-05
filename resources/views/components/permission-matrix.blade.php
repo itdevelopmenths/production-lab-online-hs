@@ -16,41 +16,61 @@
     $totalCount = count($allKeys);
 @endphp
 
-<div x-data="{
-    selected: {{ json_encode(array_values($activePermissions)) }},
-    allKeys: {{ json_encode($allKeys) }},
-    activeDomain: 'all',
+<script>
+    function permissionMatrixState(activePermissions, allKeys) {
+        return {
+            selected: activePermissions || [],
+            allKeys: allKeys || [],
+            activeDomain: 'all',
 
-    selectAll() {
-        this.selected = [...this.allKeys];
-    },
-    deselectAll() {
-        this.selected = [];
-    },
-    toggleModule(actions) {
-        const actionKeys = Object.keys(actions);
-        const allSelected = actionKeys.every(k => this.selected.includes(k));
-        if (allSelected) {
-            this.selected = this.selected.filter(k => !actionKeys.includes(k));
-        } else {
-            const toAdd = actionKeys.filter(k => !this.selected.includes(k));
-            this.selected = [...this.selected, ...toAdd];
-        }
-    },
-    isModuleAllSelected(actions) {
-        const actionKeys = Object.keys(actions);
-        return actionKeys.length > 0 && actionKeys.every(k => this.selected.includes(k));
-    },
-    isModulePartiallySelected(actions) {
-        const actionKeys = Object.keys(actions);
-        const count = actionKeys.filter(k => this.selected.includes(k)).length;
-        return count > 0 && count < actionKeys.length;
-    },
-    moduleSelectedCount(actions) {
-        const actionKeys = Object.keys(actions);
-        return actionKeys.filter(k => this.selected.includes(k)).length;
+            selectAll() {
+                this.selected = this.allKeys.slice();
+            },
+            deselectAll() {
+                this.selected = [];
+            },
+            toggleModule(actions) {
+                const actionKeys = Object.keys(actions);
+                const self = this;
+                const allSelected = actionKeys.every(function(k) { return self.selected.includes(k); });
+                if (allSelected) {
+                    this.selected = this.selected.filter(function(k) { return !actionKeys.includes(k); });
+                } else {
+                    const toAdd = actionKeys.filter(function(k) { return !self.selected.includes(k); });
+                    this.selected = this.selected.concat(toAdd);
+                }
+            },
+            isModuleAllSelected(actions) {
+                const actionKeys = Object.keys(actions);
+                const self = this;
+                return actionKeys.length > 0 && actionKeys.every(function(k) { return self.selected.includes(k); });
+            },
+            isModulePartiallySelected(actions) {
+                const actionKeys = Object.keys(actions);
+                const self = this;
+                const count = actionKeys.filter(function(k) { return self.selected.includes(k); }).length;
+                return count > 0 && count < actionKeys.length;
+            },
+            moduleSelectedCount(actions) {
+                const actionKeys = Object.keys(actions);
+                const self = this;
+                return actionKeys.filter(function(k) { return self.selected.includes(k); }).length;
+            },
+            moduleBadgeClass(actions, total) {
+                const count = this.moduleSelectedCount(actions);
+                if (count === total) {
+                    return 'bg-primary text-primary-foreground border-primary';
+                }
+                if (count > 0) {
+                    return 'bg-muted text-foreground border-border';
+                }
+                return 'bg-muted/50 text-muted-foreground border-border';
+            }
+        };
     }
-}" class="space-y-6">
+</script>
+
+<div x-data="permissionMatrixState({{ Js::from(array_values($activePermissions)) }}, {{ Js::from($allKeys) }})" class="space-y-6">
 
     {{-- Top Action & Filter Toolbar --}}
     <div class="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -114,7 +134,7 @@
                             <div class="flex items-center gap-2.5">
                                 <span class="text-sm font-semibold text-foreground">{{ $moduleData['label'] }}</span>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-tight border"
-                                      :class="moduleSelectedCount({{ $jsActions }}) === {{ $actionCount }} ? 'bg-primary text-primary-foreground border-primary' : (moduleSelectedCount({{ $jsActions }}) > 0 ? 'bg-muted text-foreground border-border' : 'bg-muted/50 text-muted-foreground border-border')">
+                                      :class="moduleBadgeClass({{ $jsActions }}, {{ $actionCount }})">
                                     <span x-text="moduleSelectedCount({{ $jsActions }})"></span>/{{ $actionCount }}
                                 </span>
                             </div>

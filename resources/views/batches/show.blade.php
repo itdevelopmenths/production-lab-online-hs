@@ -301,6 +301,29 @@
             <x-card title="Selesaikan Batch Produksi" subtitle="Input hasil QC produk jadi. Kuantitas baik otomatis masuk ke saldo stok gudang." variant="success" :noPadding="true">
                 <form method="POST" action="{{ route('batches.complete', $batch) }}" class="p-3.5">
                     @csrf
+                    <script>
+                        function batchOutputSync(target, defaultBaik, defaultRusak) {
+                            return {
+                                target: parseInt(target, 10) || 0,
+                                baik: parseInt(defaultBaik, 10) || 0,
+                                rusak: parseInt(defaultRusak, 10) || 0,
+                                syncFromRusak() {
+                                    let r = parseInt(this.rusak, 10);
+                                    if (isNaN(r) || r < 0) r = 0;
+                                    if (r > this.target) r = this.target;
+                                    this.rusak = r;
+                                    this.baik = this.target - r;
+                                },
+                                syncFromBaik() {
+                                    let b = parseInt(this.baik, 10);
+                                    if (isNaN(b) || b < 0) b = 0;
+                                    if (b > this.target) b = this.target;
+                                    this.baik = b;
+                                    this.rusak = this.target - b;
+                                }
+                            };
+                        }
+                    </script>
                     @if($batch->outputs->count() > 1)
                     <table class="w-full text-left text-xs mb-3">
                         <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
@@ -319,25 +342,7 @@
                                 $defaultBaikOut = old("outputs.{$index}.qty_baik", $targetOut);
                                 $defaultRusakOut = old("outputs.{$index}.qty_rusak", 0);
                             @endphp
-                            <tr x-data="{
-                                target: {{ $targetOut }},
-                                baik: {{ (int) $defaultBaikOut }},
-                                rusak: {{ (int) $defaultRusakOut }},
-                                syncFromRusak() {
-                                    let r = parseInt(this.rusak);
-                                    if (isNaN(r) || r < 0) r = 0;
-                                    if (r > this.target) r = this.target;
-                                    this.rusak = r;
-                                    this.baik = this.target - r;
-                                },
-                                syncFromBaik() {
-                                    let b = parseInt(this.baik);
-                                    if (isNaN(b) || b < 0) b = 0;
-                                    if (b > this.target) b = this.target;
-                                    this.baik = b;
-                                    this.rusak = this.target - b;
-                                }
-                            }">
+                            <tr x-data="batchOutputSync({{ $targetOut }}, {{ (int) $defaultBaikOut }}, {{ (int) $defaultRusakOut }})">
                                 <td class="py-2 px-3 font-medium text-gray-800">
                                     <input type="hidden" name="outputs[{{ $index }}][id]" value="{{ $out->id }}">
                                     <div class="font-bold">{{ $out->produk?->nama }}</div>
@@ -392,25 +397,7 @@
                         $defaultBaik = old('qty_baik', old('outputs.0.qty_baik', $targetRencana));
                         $defaultRusak = old('qty_rusak', old('outputs.0.qty_rusak', 0));
                     @endphp
-                    <div x-data="{
-                        target: {{ $targetRencana }},
-                        baik: {{ (int) $defaultBaik }},
-                        rusak: {{ (int) $defaultRusak }},
-                        syncFromRusak() {
-                            let r = parseInt(this.rusak);
-                            if (isNaN(r) || r < 0) r = 0;
-                            if (r > this.target) r = this.target;
-                            this.rusak = r;
-                            this.baik = this.target - r;
-                        },
-                        syncFromBaik() {
-                            let b = parseInt(this.baik);
-                            if (isNaN(b) || b < 0) b = 0;
-                            if (b > this.target) b = this.target;
-                            this.baik = b;
-                            this.rusak = this.target - b;
-                        }
-                    }">
+                    <div x-data="batchOutputSync({{ $targetRencana }}, {{ (int) $defaultBaik }}, {{ (int) $defaultRusak }})">
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end mb-1">
                             @if($batch->outputs->isNotEmpty())
                                 <input type="hidden" name="outputs[0][id]" value="{{ $batch->outputs->first()->id }}">

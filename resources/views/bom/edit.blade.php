@@ -208,7 +208,7 @@
                 ];
             })->values()->all();
         @endphp
-        const init = @json($initialRows);
+        const init = @js($initialRows);
 
         return {
             rows: init.length ? init : [{ bahan_id: '', qty: '', satuan: '', selectedItem: null }],

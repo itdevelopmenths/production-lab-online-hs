@@ -821,7 +821,7 @@
             }));
 
             const form = {
-                uomList: @json($uomList ?? []),
+                uomList: @js($uomList ?? []),
                 draftRestored: isRestored,
                 _saveTimer: null,
                 _isSubmitting: false,

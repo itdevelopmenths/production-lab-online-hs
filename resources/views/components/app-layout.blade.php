@@ -55,33 +55,38 @@
     @endphp
     <link rel="stylesheet" href="{{ $vendorAsset('vendor/datatables/jquery.dataTables.min.css') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>
+        function appSidebarState() {
+            return {
+                collapsed: (function() {
+                    try {
+                        return localStorage.getItem('devscore.sidebar-collapsed') === '1';
+                    } catch(e) {
+                        return false;
+                    }
+                })(),
+                mobileOpen: false,
+                menuQuery: '',
+                toggleCollapsed() {
+                    this.collapsed = !this.collapsed;
+                    try {
+                        localStorage.setItem('devscore.sidebar-collapsed', this.collapsed ? '1' : '0');
+                    } catch(e) {}
+                    setTimeout(function() {
+                        try {
+                            if (typeof $ !== 'undefined' && $.fn.dataTable) {
+                                $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+                            }
+                            window.dispatchEvent(new Event('resize'));
+                        } catch(e) {}
+                    }, 250);
+                }
+            };
+        }
+    </script>
 </head>
 <body class="min-h-screen font-sans antialiased text-foreground bg-background flex flex-col"
-      x-data="{
-          collapsed: (function() {
-              try {
-                  return localStorage.getItem('devscore.sidebar-collapsed') === '1';
-              } catch(e) {
-                  return false;
-              }
-          })(),
-          mobileOpen: false,
-          menuQuery: '',
-          toggleCollapsed() {
-              this.collapsed = !this.collapsed;
-              try {
-                  localStorage.setItem('devscore.sidebar-collapsed', this.collapsed ? '1' : '0');
-              } catch(e) {}
-              setTimeout(() => {
-                  try {
-                      if (typeof $ !== 'undefined' && $.fn.dataTable) {
-                          $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
-                      }
-                      window.dispatchEvent(new Event('resize'));
-                  } catch(e) {}
-              }, 250);
-          }
-      }">
+      x-data="appSidebarState()">
     
     <div class="flex min-h-screen">
         {{-- Mobile Overlay --}}
@@ -570,7 +575,7 @@
                 <div class="mx-auto w-full max-w-7xl">
                     {{-- Flash Alert Messages --}}
                     @if(session('success'))
-                        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)" x-transition class="mb-6">
+                        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 4000)" x-transition class="mb-6">
                             <div class="rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900 flex items-center justify-between shadow-xs">
                                 <div class="flex items-center gap-2.5">
                                     <svg class="size-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -584,7 +589,7 @@
                     @endif
 
                     @if(session('error'))
-                        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 6000)" x-transition class="mb-6">
+                        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 6000)" x-transition class="mb-6">
                             <div class="rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-900 flex items-center justify-between shadow-xs">
                                 <div class="flex items-center gap-2.5">
                                     <svg class="size-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>

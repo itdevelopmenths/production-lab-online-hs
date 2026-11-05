@@ -348,5 +348,42 @@ class ViewRenderingSafetyTest extends TestCase
             }
         }
     }
+
+    public function test_all_blade_views_compile_without_syntax_errors(): void
+    {
+        \Illuminate\Support\Facades\Artisan::call('view:clear');
+        $exitCode = \Illuminate\Support\Facades\Artisan::call('view:cache');
+        $this->assertSame(0, $exitCode, 'Artisan view:cache failed: ' . \Illuminate\Support\Facades\Artisan::output());
+        \Illuminate\Support\Facades\Artisan::call('view:clear');
+    }
+
+    public function test_no_risky_blade_directives_or_raw_comparison_operators_in_component_attributes(): void
+    {
+        $viewsPath = resource_path('views');
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($viewsPath));
+
+        $violations = [];
+
+        foreach ($files as $file) {
+            if ($file->isDir() || !str_ends_with($file->getFilename(), '.blade.php')) {
+                continue;
+            }
+
+            $content = file_get_contents($file->getPathname());
+            $relPath = str_replace($viewsPath . DIRECTORY_SEPARATOR, '', $file->getPathname());
+
+            // 1. Periksa pemanggilan @json( dengan literal array/bracket rentan parse error
+            if (preg_match('/@json\s*\([^)]*\[/i', $content, $matches)) {
+                $violations[] = "[{$relPath}] Ditemukan pemanggilan @json dengan literal array/bracket: {$matches[0]} -> gunakan @js(...)";
+            }
+
+            // 2. Periksa tag komponen <x- dengan atribut x-bind/:: memuat operator perbandingan mentah < atau >
+            if (preg_match('/<x-[^>]*?\s(?:x-bind:[\w\-]+|::[a-zA-Z][\w\-]*)\s*=\s*(["\'])(?:(?!\1).)*?[<>].*?\1/s', $content, $matches)) {
+                $violations[] = "[{$relPath}] Ditemukan operator mentah (< atau >) pada atribut komponen: {$matches[0]} -> ekstrak ke helper boolean";
+            }
+        }
+
+        $this->assertEmpty($violations, "Pelanggaran sintaks Blade terdeteksi:\n" . implode("\n", $violations));
+    }
 }
 

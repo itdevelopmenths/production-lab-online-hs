@@ -672,7 +672,7 @@
             }));
 
             return {
-                uomList: @json($uomList ?? []),
+                uomList: @js($uomList ?? []),
                 skemaBayar: initial.skemaBayar || 'cash',
                 submitting: false,
                 headerDiskonMode: 'nominal',

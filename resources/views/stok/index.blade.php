@@ -73,11 +73,11 @@
 
         {{-- Modal Mutasi Manual (AdminLTE Sharp Modal) --}}
         @can('stok.mutasi')
-        <x-modal name="openMutasi" title="Mutasi Stok Manual" maxWidth="md">
-            <form method="POST" action="{{ route('stok.mutasi') }}" id="form-mutasi-manual" class="space-y-3"
-                x-data="{
+        <script>
+            function stokMutasiForm(defaultGudangId, currentStockUrl) {
+                return {
                     produkId: '',
-                    gudangId: '{{ $gudang->first()->id ?? '' }}',
+                    gudangId: defaultGudangId || '',
                     mutasiUom: '',
                     tipe: 'in',
                     qty: '',
@@ -103,15 +103,17 @@
                             return;
                         }
                         this.loading = true;
-                        fetch(`{{ route('stok.current-stock') }}?produk_id=${this.produkId}&gudang_id=${this.gudangId}`)
-                            .then(res => res.json())
-                            .then(data => {
-                                this.loading = false;
-                                this.systemQty = Number(data.qty);
-                                this.hasFetched = true;
+                        var url = currentStockUrl + '?produk_id=' + encodeURIComponent(this.produkId) + '&gudang_id=' + encodeURIComponent(this.gudangId);
+                        var self = this;
+                        fetch(url)
+                            .then(function(res) { return res.json(); })
+                            .then(function(data) {
+                                self.loading = false;
+                                self.systemQty = Number(data.qty);
+                                self.hasFetched = true;
                             })
-                            .catch(() => {
-                                this.loading = false;
+                            .catch(function() {
+                                self.loading = false;
                             });
                     },
                     formatNumber(val) {
@@ -123,7 +125,12 @@
                         const q = parseFloat(this.qty) || 0;
                         return this.tipe === 'in' ? (this.systemQty + q) : (this.systemQty - q);
                     }
-                }"
+                };
+            }
+        </script>
+        <x-modal name="openMutasi" title="Mutasi Stok Manual" maxWidth="md">
+            <form method="POST" action="{{ route('stok.mutasi') }}" id="form-mutasi-manual" class="space-y-3"
+                x-data="stokMutasiForm('{{ $gudang->first()->id ?? '' }}', '{{ route('stok.current-stock') }}')"
                 @product-selected="onProductSelected($event.detail)"
             >
                 @csrf

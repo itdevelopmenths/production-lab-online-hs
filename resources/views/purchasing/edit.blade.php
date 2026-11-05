@@ -770,7 +770,7 @@
             }));
 
             const form = {
-                uomList: @json($uomList ?? []),
+                uomList: @js($uomList ?? []),
                 skemaBayar: initial.skemaBayar || 'cash',
                 headerDiskonMode: 'nominal',
                 headerDiskonVal: 0,
