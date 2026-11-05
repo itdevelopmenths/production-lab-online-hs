@@ -59,7 +59,13 @@
                                         <div class="font-mono text-[10px] text-muted-foreground" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
                                     </td>
                                     <td class="py-3 px-4">
-                                        <div class="font-medium text-foreground" x-text="r.supplier_nama || '-'"></div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <button type="button" @click="openCompareSupplier(r)" class="font-medium text-primary hover:underline text-left cursor-pointer flex items-center gap-1" title="Bandingkan & Ganti Supplier">
+                                                <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
+                                                <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
+                                            </button>
+                                            <span x-show="r.sumber_lt === 'otomatis'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200">AUTO LT</span>
+                                        </div>
                                     </td>
                                     <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.batas_minimum)"></td>
                                     <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.target_stock)"></td>
@@ -179,10 +185,16 @@
                                         <div class="font-mono text-[10px] text-muted-foreground" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
                                     </td>
                                     <td class="py-3 px-4">
-                                        <div class="font-medium text-foreground" x-text="r.supplier_nama || '-'"></div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <button type="button" @click="openCompareSupplier(r)" class="font-medium text-primary hover:underline text-left cursor-pointer flex items-center gap-1" title="Bandingkan & Ganti Supplier">
+                                                <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
+                                                <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
+                                            </button>
+                                            <span x-show="r.sumber_lt === 'otomatis'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200">AUTO LT</span>
+                                        </div>
                                     </td>
-                                    <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="r.total_avg_lead_time"></td>
-                                    <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="r.safety_stock"></td>
+                                    <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.total_avg_lead_time)"></td>
+                                    <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.safety_stock)"></td>
                                     <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.terjual_rata_rata_4bulan)"></td>
                                     <td class="py-3 px-4 text-right font-mono font-bold text-foreground bg-muted/40" x-text="formatNumber(r.adu)"></td>
                                     <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="r.review_period + ' Hari'"></td>
@@ -283,12 +295,18 @@
                                         <div class="font-mono text-[10px] text-muted-foreground" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
                                     </td>
                                     <td class="py-3 px-4">
-                                        <div class="font-medium text-foreground" x-text="r.supplier_nama || '-'"></div>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <button type="button" @click="openCompareSupplier(r)" class="font-medium text-primary hover:underline text-left cursor-pointer flex items-center gap-1" title="Bandingkan & Ganti Supplier">
+                                                <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
+                                                <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
+                                            </button>
+                                            <span x-show="r.sumber_lt === 'otomatis'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200">AUTO LT</span>
+                                        </div>
                                     </td>
-                                    <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="r.total_avg_lead_time + ' Hari'"></td>
-                                    <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="r.total_max_lead_time + ' Hari'"></td>
-                                    <td class="py-3 px-4 text-right font-mono text-foreground" x-text="r.tambahan_buffer_hari + ' Hari'"></td>
-                                    <td class="py-3 px-4 text-right font-mono font-bold text-foreground bg-muted/40" x-text="r.safety_stock + ' Hari'"></td>
+                                    <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.total_avg_lead_time) + ' Hari'"></td>
+                                    <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.total_max_lead_time) + ' Hari'"></td>
+                                    <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatLt(r.tambahan_buffer_hari) + ' Hari'"></td>
+                                    <td class="py-3 px-4 text-right font-mono font-bold text-foreground bg-muted/40" x-text="formatLt(r.safety_stock) + ' Hari'"></td>
                                     <td class="py-3 px-3 text-center">
                                         <div class="flex items-center justify-center gap-1.5">
                                             <button type="button" @click="openManualLokalModal(r)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border text-[10px] font-medium transition cursor-pointer" title="Edit Tambahan Buffer">

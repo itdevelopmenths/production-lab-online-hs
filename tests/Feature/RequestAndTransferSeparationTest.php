@@ -386,3 +386,4 @@ class RequestAndTransferSeparationTest extends TestCase
         $this->assertEquals(75, (float) $request->items->first()->qty_diminta);
     }
 }
+

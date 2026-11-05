@@ -11,6 +11,8 @@ class AnalisaImpor extends Model
 
     protected $fillable = [
         'produk_id',
+        'supplier_terpilih_id',
+        'sumber_lt',
         'out',
         'periode_mulai',
         'periode_akhir',
@@ -48,11 +50,11 @@ class AnalisaImpor extends Model
         'klasifikasi_abc_id' => 'integer',
         'adu_base' => 'decimal:4',
         'adu_eta' => 'decimal:4',
-        'lead_time' => 'decimal:2',
+        'lead_time' => 'float',
         'review_period' => 'integer',
-        'tambahan_buffer_hari' => 'integer',
-        'buffer_days' => 'decimal:2',
-        'safety_stock' => 'decimal:2',
+        'tambahan_buffer_hari' => 'float',
+        'buffer_days' => 'float',
+        'safety_stock' => 'float',
         'minimum_stock' => 'decimal:2',
         'target_stock' => 'decimal:2',
         'stok_saat_ini' => 'decimal:2',
@@ -77,6 +79,11 @@ class AnalisaImpor extends Model
     public function produk(): BelongsTo
     {
         return $this->belongsTo(Produk::class, 'produk_id');
+    }
+
+    public function supplierTerpilih(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_terpilih_id');
     }
 
     public function klasifikasiAbc(): BelongsTo

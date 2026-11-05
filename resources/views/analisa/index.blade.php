@@ -211,6 +211,7 @@
         @include('analisa.partials.modal-stage-lead-time')
         @include('analisa.partials.modal-manual-lokal')
         @include('analisa.partials.modal-manual-impor')
+        @include('analisa.partials.modal-compare-supplier')
     </div>
 
     @push('scripts')
@@ -373,6 +374,73 @@
           impor: '{{ route('analisa.impor.data') }}',
           fulfillment: '{{ route('analisa.fulfillment.data') }}',
           riwayat: '{{ route('analisa.riwayat.data') }}'
+        },
+        showCompareSupplierModal: false,
+        loadingCompareSupplier: false,
+        savingSelectSupplier: false,
+        compareProduct: {
+          id: null,
+          nama: '',
+          sku: '',
+          suppliers: []
+        },
+        async openCompareSupplier(row) {
+          this.compareProduct = {
+            id: row.produk_id,
+            nama: row.nama,
+            sku: row.sku,
+            suppliers: []
+          };
+          this.showCompareSupplierModal = true;
+          this.loadingCompareSupplier = true;
+          try {
+            const res = await fetch(`/analisa/compare-suppliers/${row.produk_id}`, {
+              headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.success) {
+              this.compareProduct.suppliers = data.data.suppliers || [];
+            }
+          } catch (e) {
+            console.error('Failed to load supplier comparison', e);
+          } finally {
+            this.loadingCompareSupplier = false;
+          }
+        },
+        async selectSupplier(supplierId) {
+          if (!this.compareProduct.id || !supplierId) return;
+          this.savingSelectSupplier = true;
+          try {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const res = await fetch('{{ route('analisa.select-supplier') }}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf
+              },
+              body: JSON.stringify({
+                produk_id: this.compareProduct.id,
+                supplier_id: supplierId
+              })
+            });
+            const data = await res.json();
+            if (data.success) {
+              this.showCompareSupplierModal = false;
+              await this.load();
+            } else {
+              alert(data.message || 'Gagal memilih supplier');
+            }
+          } catch (e) {
+            console.error('Failed to select supplier', e);
+            alert('Terjadi kesalahan koneksi saat memilih supplier.');
+          } finally {
+            this.savingSelectSupplier = false;
+          }
+        },
+        formatLt(v){
+          if (v === null || v === undefined || isNaN(v)) return '0.0';
+          return Number(v).toFixed(1);
         },
         formatNumber(v){
           if (v === null || v === undefined || isNaN(v)) return '0';

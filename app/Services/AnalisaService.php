@@ -17,6 +17,9 @@ use App\Models\PurchaseOrderItem;
 use App\Models\RekomendasiOrderLokal;
 use App\Models\RiwayatAnalisa;
 use App\Models\Stok;
+use App\Models\Supplier;
+use App\Models\SupplierProdukLtStageSummary;
+use App\Models\SupplierProdukLtSummary;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -28,6 +31,209 @@ use Illuminate\Support\Str;
  */
 class AnalisaService
 {
+    /**
+     * Pembulatan hari lead time dengan toleransi strictly 1 angka desimal half-up.
+     * Digit 2+ bernilai < 5 menjadi 0, >= 5 menjadi +0.1 (user override).
+     */
+    public static function roundLeadTimeDays(float $days): float
+    {
+        return round($days, 1, PHP_ROUND_HALF_UP);
+    }
+
+    /**
+     * Resolusi Lead Time Lokal berdasarkan Produk & Supplier Terpilih (TC-16, user override).
+     * Jika transaksi PO selesai >= 1 pada supplier_produk_lt_summary, gunakan data empiris otomatis (1 desimal half-up).
+     * Jika belum ada data historis, fallback ke setting manual lead_time_lokal_stage.
+     */
+    public function resolveSupplierProdukLeadTimeLokal(int $produkId, ?int $supplierId = null): array
+    {
+        $produk = Produk::with(['activeSuppliers', 'supplier'])->find($produkId);
+        if (! $produk) {
+            return [
+                'supplier_id' => null,
+                'sumber_lt' => 'manual',
+                'total_average_lead_time' => 0.0,
+                'total_max_lead_time' => 0.0,
+                'tambahan_buffer_hari' => 0.0,
+                'safety_stock' => 0.0,
+            ];
+        }
+
+        if (! $supplierId) {
+            $existingAnalisa = AnalisaLokal::where('produk_id', $produkId)->first();
+            $supplierId = $existingAnalisa?->supplier_terpilih_id 
+                ?? $produk->supplier_id 
+                ?? $produk->activeSuppliers->first()?->id;
+        }
+
+        $summary = null;
+        if ($supplierId) {
+            $summary = SupplierProdukLtSummary::where('supplier_id', $supplierId)
+                ->where('produk_id', $produkId)
+                ->first();
+        }
+
+        $existingLt = LeadTimeLokal::where('produk_id', $produkId)->first();
+        $buffer = $existingLt && $existingLt->tambahan_buffer_hari !== null
+            ? (float) $existingLt->tambahan_buffer_hari
+            : (float) (Schema::hasTable('lead_time_stage') ? (DB::table('lead_time_stage')->where('produk_id', $produkId)->sum('tambahan_buffer_hari') ?? 0) : 0);
+
+        $trxCount = (int) ($summary->jumlah_transaksi ?? $summary->total_po_selesai ?? 0);
+        if ($summary && $trxCount >= 1) {
+            $totalAvg = self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0));
+            $totalMax = self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0));
+            $sumberLt = 'otomatis';
+        } else {
+            $avgStage = LeadTimeLokalStage::where('produk_id', $produkId)->where('skenario', 'average')->first();
+            $maxStage = LeadTimeLokalStage::where('produk_id', $produkId)->where('skenario', 'max')->first();
+            $totalAvg = $avgStage ? $avgStage->totalHari() : (float) (LeadTimeLokal::where('produk_id', $produkId)->value('total_average_lead_time') ?? 0);
+            $totalMax = $maxStage ? $maxStage->totalHari() : (float) (LeadTimeLokal::where('produk_id', $produkId)->value('total_max_lead_time') ?? 0);
+            $sumberLt = 'manual';
+        }
+
+        $safetyStock = max(0.0, self::roundLeadTimeDays(($totalMax - $totalAvg) + $buffer));
+
+        return [
+            'supplier_id' => $supplierId,
+            'sumber_lt' => $sumberLt,
+            'total_average_lead_time' => self::roundLeadTimeDays($totalAvg),
+            'total_max_lead_time' => self::roundLeadTimeDays($totalMax),
+            'tambahan_buffer_hari' => self::roundLeadTimeDays($buffer),
+            'safety_stock' => $safetyStock,
+        ];
+    }
+
+    /**
+     * Resolusi Lead Time Impor berdasarkan Produk & Supplier Terpilih (TC-16, user override).
+     */
+    public function resolveSupplierProdukLeadTimeImpor(int $produkId, ?int $supplierId = null): array
+    {
+        $produk = Produk::with(['activeSuppliers', 'supplier'])->find($produkId);
+        if (! $produk) {
+            return [
+                'supplier_id' => null,
+                'sumber_lt' => 'manual',
+                'lead_time_average' => 45.0,
+                'lead_time_max' => 60.0,
+            ];
+        }
+
+        if (! $supplierId) {
+            $existingAnalisa = AnalisaImpor::where('produk_id', $produkId)->first();
+            $supplierId = $existingAnalisa?->supplier_terpilih_id 
+                ?? $produk->supplier_id 
+                ?? $produk->activeSuppliers->first()?->id;
+        }
+
+        $summary = null;
+        if ($supplierId) {
+            $summary = SupplierProdukLtSummary::where('supplier_id', $supplierId)
+                ->where('produk_id', $produkId)
+                ->first();
+        }
+
+        $trxCount = (int) ($summary->jumlah_transaksi ?? $summary->total_po_selesai ?? 0);
+        if ($summary && $trxCount >= 1) {
+            $ltAvg = self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0));
+            $ltMax = self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0));
+            $sumberLt = 'otomatis';
+        } else {
+            $ltImpor = LeadTimeImpor::where('produk_id', $produkId)->first();
+            $meta = AnalisaImporMeta::where('produk_id', $produkId)->first();
+            $ltAvg = (float) ($ltImpor ? $ltImpor->lead_time_average : ($meta?->lead_time_average ?? 45));
+            $ltMax = (float) ($ltImpor ? $ltImpor->lead_time_max : ($meta?->lead_time_max ?? 60));
+            $sumberLt = 'manual';
+        }
+
+        return [
+            'supplier_id' => $supplierId,
+            'sumber_lt' => $sumberLt,
+            'lead_time_average' => self::roundLeadTimeDays($ltAvg),
+            'lead_time_max' => self::roundLeadTimeDays($ltMax),
+        ];
+    }
+
+    /**
+     * Perbandingan multi-supplier untuk satu produk (Bab 5, perbandingan vendor).
+     */
+    public function compareSuppliersForProduct(Produk $produk): array
+    {
+        $currentLokal = AnalisaLokal::where('produk_id', $produk->id)->first();
+        $currentImpor = AnalisaImpor::where('produk_id', $produk->id)->first();
+        $currentSupplierId = $currentLokal?->supplier_terpilih_id ?? $currentImpor?->supplier_terpilih_id ?? $produk->supplier_id;
+
+        $suppliers = $produk->suppliers()->withPivot(['status'])->get();
+
+        if ($suppliers->isEmpty() && $produk->supplier) {
+            $suppliers = collect([$produk->supplier]);
+        }
+
+        $result = [];
+        foreach ($suppliers as $s) {
+            $pivot = $s->pivot ?? null;
+            $summary = SupplierProdukLtSummary::where('supplier_id', $s->id)
+                ->where('produk_id', $produk->id)
+                ->first();
+
+            $result[] = [
+                'supplier_id' => $s->id,
+                'supplier_nama' => $s->nama,
+                'is_current' => (int) $s->id === (int) $currentSupplierId,
+                'harga_terakhir' => (float) ($produk->harga_hpp ?: 0),
+                'min_order_qty' => (float) ($produk->satuan_order_moq ?: 1),
+                'avg_lt_days' => $summary ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0)) : null,
+                'max_lt_days' => $summary ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0)) : null,
+                'total_po_selesai' => $summary ? (int) ($summary->jumlah_transaksi ?? $summary->total_po_selesai ?? 0) : 0,
+                'status' => $pivot ? $pivot->status : 'aktif',
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Pilih Supplier untuk Produk & Recalculate (TC-31).
+     * Strictly maintains 1 active row per produk_id in working table.
+     */
+    public function selectSupplierForProduct(int $produkId, int $supplierId, ?int $userId = null): array
+    {
+        $produk = Produk::findOrFail($produkId);
+        $isImpor = $produk->profil_analisa === 'bahan_impor' || AnalisaImpor::where('produk_id', $produkId)->exists();
+
+        if ($isImpor) {
+            $lt = $this->resolveSupplierProdukLeadTimeImpor($produkId, $supplierId);
+            LeadTimeImpor::updateOrCreate(
+                ['produk_id' => $produkId],
+                [
+                    'lead_time_average' => $lt['lead_time_average'],
+                    'lead_time_max' => $lt['lead_time_max'],
+                ]
+            );
+            AnalisaImpor::where('produk_id', $produkId)->update([
+                'supplier_terpilih_id' => $supplierId,
+                'sumber_lt' => $lt['sumber_lt'],
+            ]);
+
+            return $this->generateImpor($produkId, $userId);
+        } else {
+            $lt = $this->resolveSupplierProdukLeadTimeLokal($produkId, $supplierId);
+            LeadTimeLokal::updateOrCreate(
+                ['produk_id' => $produkId],
+                [
+                    'total_average_lead_time' => $lt['total_average_lead_time'],
+                    'total_max_lead_time' => $lt['total_max_lead_time'],
+                    'safety_stock' => $lt['safety_stock'],
+                ]
+            );
+            AnalisaLokal::where('produk_id', $produkId)->update([
+                'supplier_terpilih_id' => $supplierId,
+                'sumber_lt' => $lt['sumber_lt'],
+            ]);
+
+            return $this->generateLokal($produkId, $userId);
+        }
+    }
+
     /**
      * Engine Generate Analisa Lokal:
      * Menghitung dan menyimpan hasil ke 4 tabel data kerja:
@@ -96,16 +302,17 @@ class AnalisaService
                 }
             }
 
-            $totalAvg = $avgStage ? $avgStage->totalHari() : 0;
-            $totalMax = $maxStage ? $maxStage->totalHari() : 0;
+            // 2. Summary Lead Time & Safety Stock via multi-supplier resolution
+            $existingAnalisa = AnalisaLokal::where('produk_id', $p->id)->first();
+            $ltData = $this->resolveSupplierProdukLeadTimeLokal($p->id, $existingAnalisa?->supplier_terpilih_id);
+            $totalAvg = $ltData['total_average_lead_time'];
+            $totalMax = $ltData['total_max_lead_time'];
+            $buffer = $ltData['tambahan_buffer_hari'];
+            $safetyStock = $ltData['safety_stock'];
+            $supplierTerpilihId = $ltData['supplier_id'];
+            $sumberLt = $ltData['sumber_lt'];
 
-            // 2. Summary Lead Time & Safety Stock
             $ltLokal = LeadTimeLokal::firstOrNew(['produk_id' => $p->id]);
-            $buffer = $ltLokal->exists
-                ? (int) ($ltLokal->tambahan_buffer_hari ?? 0)
-                : (int) (DB::table('lead_time_stage')->where('produk_id', $p->id)->sum('tambahan_buffer_hari') ?? 0);
-            $safetyStock = max(0, $totalMax - $totalAvg) + $buffer;
-
             $ltLokal->fill([
                 'total_average_lead_time' => $totalAvg,
                 'total_max_lead_time' => $totalMax,
@@ -114,7 +321,6 @@ class AnalisaService
             ])->save();
 
             // 3. Analisa Lokal (Working Table)
-            $existingAnalisa = AnalisaLokal::where('produk_id', $p->id)->first();
             $existingInput = AnalisaLokalInput::where('produk_id', $p->id)->first();
 
             $terjual = (float) ($existingInput?->terjual_rata_rata_4bulan ?? $existingAnalisa?->terjual_rata_rata_4bulan ?? 0);
@@ -130,6 +336,8 @@ class AnalisaService
             $analisaLokal = AnalisaLokal::updateOrCreate(
                 ['produk_id' => $p->id],
                 [
+                    'supplier_terpilih_id' => $supplierTerpilihId,
+                    'sumber_lt' => $sumberLt,
                     'total_average_lead_time' => $totalAvg,
                     'safety_stock' => $safetyStock,
                     'terjual_rata_rata_4bulan' => $terjual,
@@ -413,11 +621,14 @@ class AnalisaService
 
         foreach ($products as $p) {
             $meta = AnalisaImporMeta::where('produk_id', $p->id)->first();
-            $ltImpor = LeadTimeImpor::firstOrNew(['produk_id' => $p->id]);
             $existingAnalisa = AnalisaImpor::where('produk_id', $p->id)->first();
 
-            $ltAvg = (float) ($ltImpor->exists ? $ltImpor->lead_time_average : ($meta?->lead_time_average ?? 45));
-            $ltMax = (float) ($ltImpor->exists ? $ltImpor->lead_time_max : ($meta?->lead_time_max ?? 60));
+            $ltData = $this->resolveSupplierProdukLeadTimeImpor($p->id, $existingAnalisa?->supplier_terpilih_id);
+            $ltAvg = $ltData['lead_time_average'];
+            $ltMax = $ltData['lead_time_max'];
+            $supplierTerpilihId = $ltData['supplier_id'];
+            $sumberLt = $ltData['sumber_lt'];
+
             $reviewPeriod = (int) ($existingAnalisa?->review_period ?? $meta?->review_period ?? 30);
             if ($reviewPeriod <= 0) {
                 $reviewPeriod = 30;
@@ -436,10 +647,11 @@ class AnalisaService
             }
             $klasifikasiAbc = $abcRecord ? $abcRecord->kode : 'c';
             $klasifikasiAbcId = $abcRecord?->id;
-            $tambahanHari = $abcRecord ? (int) $abcRecord->tambahan_buffer_hari : ($abcBonusMap[$klasifikasiAbc] ?? 0);
-            $bufferDays = max(0, $ltMax - $ltAvg) + $tambahanHari;
+            $tambahanHari = $abcRecord ? (float) $abcRecord->tambahan_buffer_hari : (float) ($abcBonusMap[$klasifikasiAbc] ?? 0);
+            $bufferDays = self::roundLeadTimeDays(max(0.0, $ltMax - $ltAvg) + $tambahanHari);
 
             // 1. Simpan LeadTimeImpor
+            $ltImpor = LeadTimeImpor::firstOrNew(['produk_id' => $p->id]);
             $ltImpor->fill([
                 'lead_time_average' => $ltAvg,
                 'lead_time_max' => $ltMax,
@@ -490,6 +702,8 @@ class AnalisaService
             $analisaImpor = AnalisaImpor::updateOrCreate(
                 ['produk_id' => $p->id],
                 [
+                    'supplier_terpilih_id' => $supplierTerpilihId,
+                    'sumber_lt' => $sumberLt,
                     'out' => round($out),
                     'periode_mulai' => $periodeMulai,
                     'periode_akhir' => $periodeAkhir,
@@ -554,12 +768,27 @@ class AnalisaService
             // 1. Finalisasi Bahan Lokal
             if ($tipe === 'bahan_lokal' || $tipe === 'all') {
                 $rekomendasiList = RekomendasiOrderLokal::with('produk.supplier')->get();
+                $analisaMap = AnalisaLokal::with('supplierTerpilih')->get()->keyBy('produk_id');
+                $ltMap = LeadTimeLokal::all()->keyBy('produk_id');
+
                 foreach ($rekomendasiList as $rek) {
+                    $an = $analisaMap->get($rek->produk_id);
+                    $lt = $ltMap->get($rek->produk_id);
+                    $supId = $an?->supplier_terpilih_id ?? $rek->produk?->supplier_id;
+                    $supNama = $an?->supplierTerpilih?->nama ?? $rek->produk?->supplier?->nama ?? '-';
+                    $avgLt = $an?->total_average_lead_time !== null ? (float) $an->total_average_lead_time : null;
+                    $maxLt = $lt?->total_max_lead_time !== null ? (float) $lt->total_max_lead_time : null;
+                    $sumber = $an?->sumber_lt ?? 'manual';
+
                     RiwayatAnalisa::create([
                         'session_id' => $sessionId,
                         'tanggal' => $today,
                         'tipe' => 'bahan_lokal',
                         'item_label' => $rek->produk?->sku ?? '-',
+                        'supplier_id' => $supId,
+                        'average_lt_dipakai' => $avgLt,
+                        'max_lt_dipakai' => $maxLt,
+                        'sumber_lt' => $sumber,
                         'batas_minimum' => (float) $rek->batas_minimum,
                         'target_stock' => (float) $rek->target_stock,
                         'status' => $rek->status,
@@ -569,8 +798,11 @@ class AnalisaService
                         'detail_payload' => [
                             'nama' => $rek->produk?->nama,
                             'satuan' => $rek->produk?->satuan,
-                            'supplier_id' => $rek->produk?->supplier_id,
-                            'supplier_nama' => $rek->produk?->supplier?->nama ?? '-',
+                            'supplier_id' => $supId,
+                            'supplier_nama' => $supNama,
+                            'sumber_lt' => $sumber,
+                            'average_lt' => $avgLt,
+                            'max_lt' => $maxLt,
                             'stok_saat_ini' => (float) $rek->stok_saat_ini,
                             'akan_datang' => (float) $rek->akan_datang,
                             'selisih' => (float) $rek->selisih,
@@ -586,13 +818,26 @@ class AnalisaService
 
             // 2. Finalisasi Bahan Impor
             if ($tipe === 'bahan_impor' || $tipe === 'all') {
-                $analisaImporList = AnalisaImpor::with('produk.supplier')->get();
+                $analisaImporList = AnalisaImpor::with(['produk.supplier', 'supplierTerpilih'])->get();
+                $ltImporMap = LeadTimeImpor::all()->keyBy('produk_id');
+
                 foreach ($analisaImporList as $ai) {
+                    $ltImp = $ltImporMap->get($ai->produk_id);
+                    $supId = $ai->supplier_terpilih_id ?? $ai->produk?->supplier_id;
+                    $supNama = $ai->supplierTerpilih?->nama ?? $ai->produk?->supplier?->nama ?? '-';
+                    $avgLt = (float) $ai->lead_time;
+                    $maxLt = $ltImp?->lead_time_max !== null ? (float) $ltImp->lead_time_max : null;
+                    $sumber = $ai->sumber_lt ?? 'manual';
+
                     RiwayatAnalisa::create([
                         'session_id' => $sessionId,
                         'tanggal' => $today,
                         'tipe' => 'bahan_impor',
                         'item_label' => $ai->produk?->sku ?? '-',
+                        'supplier_id' => $supId,
+                        'average_lt_dipakai' => $avgLt,
+                        'max_lt_dipakai' => $maxLt,
+                        'sumber_lt' => $sumber,
                         'batas_minimum' => (float) $ai->minimum_stock,
                         'target_stock' => (float) $ai->target_stock,
                         'status' => $ai->status,
@@ -601,8 +846,11 @@ class AnalisaService
                         'is_locked' => true,
                         'detail_payload' => [
                             'nama' => $ai->produk?->nama,
-                            'supplier_id' => $ai->produk?->supplier_id,
-                            'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
+                            'supplier_id' => $supId,
+                            'supplier_nama' => $supNama,
+                            'sumber_lt' => $sumber,
+                            'average_lt' => $avgLt,
+                            'max_lt' => $maxLt,
                             'klasifikasi_abc' => $ai->klasifikasi_abc,
                             'buffer_days' => (float) $ai->buffer_days,
                             'safety_stock' => (float) $ai->safety_stock,

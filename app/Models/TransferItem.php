@@ -45,3 +45,4 @@ class TransferItem extends Model
         return $this->belongsTo(StockRequestItem::class, 'request_item_id');
     }
 }
+

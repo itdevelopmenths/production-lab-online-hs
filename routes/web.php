@@ -239,6 +239,10 @@ Route::middleware('auth')->group(function () {
             ->middleware('can:analisa.snapshot')->name('snapshot');
         Route::post('finalisasi', [AnalisaController::class, 'finalisasi'])
             ->middleware('can:analisa.snapshot')->name('finalisasi');
+        Route::post('select-supplier', [AnalisaController::class, 'selectSupplier'])
+            ->middleware('can:analisa.manage')->name('select-supplier');
+        Route::get('compare-suppliers/{produk}', [AnalisaController::class, 'compareSuppliers'])
+            ->name('compare-suppliers');
         Route::get('create-po', [AnalisaController::class, 'createPoForm'])
             ->middleware('can:analisa.create_po')->name('create-po');
         Route::post('create-po', [AnalisaController::class, 'createPo'])

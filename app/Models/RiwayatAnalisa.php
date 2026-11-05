@@ -14,6 +14,10 @@ class RiwayatAnalisa extends Model
 
     protected $fillable = [
         'session_id',
+        'supplier_id',
+        'average_lt_dipakai',
+        'max_lt_dipakai',
+        'sumber_lt',
         'tanggal',
         'tipe',
         'item_label',
@@ -27,6 +31,9 @@ class RiwayatAnalisa extends Model
     ];
 
     protected $casts = [
+        'supplier_id' => 'integer',
+        'average_lt_dipakai' => 'decimal:1',
+        'max_lt_dipakai' => 'decimal:1',
         'tanggal' => 'date',
         'batas_minimum' => 'decimal:2',
         'target_stock' => 'decimal:2',
@@ -38,5 +45,10 @@ class RiwayatAnalisa extends Model
     public function pencatat(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dicatat_oleh');
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_id');
     }
 }

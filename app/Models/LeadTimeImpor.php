@@ -16,8 +16,8 @@ class LeadTimeImpor extends Model
     ];
 
     protected $casts = [
-        'lead_time_average' => 'decimal:2',
-        'lead_time_max' => 'decimal:2',
+        'lead_time_average' => 'float',
+        'lead_time_max' => 'float',
     ];
 
     public function produk(): BelongsTo

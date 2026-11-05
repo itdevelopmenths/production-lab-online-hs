@@ -11,6 +11,8 @@ class AnalisaLokal extends Model
 
     protected $fillable = [
         'produk_id',
+        'supplier_terpilih_id',
+        'sumber_lt',
         'total_average_lead_time',
         'safety_stock',
         'terjual_rata_rata_4bulan',
@@ -23,8 +25,8 @@ class AnalisaLokal extends Model
     ];
 
     protected $casts = [
-        'total_average_lead_time' => 'integer',
-        'safety_stock' => 'integer',
+        'total_average_lead_time' => 'float',
+        'safety_stock' => 'float',
         'terjual_rata_rata_4bulan' => 'decimal:2',
         'adu' => 'decimal:4',
         'review_period' => 'integer',
@@ -36,6 +38,11 @@ class AnalisaLokal extends Model
     public function produk(): BelongsTo
     {
         return $this->belongsTo(Produk::class, 'produk_id');
+    }
+
+    public function supplierTerpilih(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'supplier_terpilih_id');
     }
 
     public function generator(): BelongsTo

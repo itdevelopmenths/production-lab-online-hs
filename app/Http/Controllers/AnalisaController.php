@@ -69,6 +69,7 @@ class AnalisaController extends Controller
             'produk' => function ($q) {
                 $q->select('id', 'sku', 'nama', 'satuan', 'supplier_id')->with('supplier:id,nama,kategori');
             },
+            'supplierTerpilih:id,nama,kategori',
             'generator:id,name'
         ])->get()->keyBy('produk_id');
         $leadTime = LeadTimeLokal::with([
@@ -93,15 +94,16 @@ class AnalisaController extends Controller
                 'sku' => $rek->produk?->sku,
                 'nama' => $rek->produk?->nama,
                 'satuan' => $rek->produk?->satuan,
-                'supplier_id' => $rek->produk?->supplier_id,
-                'supplier_nama' => $rek->produk?->supplier?->nama ?? '-',
-                'supplier_kategori' => $rek->produk?->supplier?->kategori ?? '-',
+                'supplier_id' => $al?->supplier_terpilih_id ?? $rek->produk?->supplier_id,
+                'supplier_nama' => $al?->supplierTerpilih?->nama ?? $rek->produk?->supplier?->nama ?? '-',
+                'supplier_kategori' => $al?->supplierTerpilih?->kategori ?? $rek->produk?->supplier?->kategori ?? '-',
+                'sumber_lt' => $al?->sumber_lt ?? 'manual',
                 'faktor_konversi' => (float) ($rek->produk?->faktor_konversi ?: 1),
-                'total_avg_lead_time' => (int) ($lt?->total_average_lead_time ?? $al?->total_average_lead_time ?? 0),
-                'total_max_lead_time' => (int) ($lt?->total_max_lead_time ?? 0),
-                'tambahan_buffer_hari' => (int) ($lt?->tambahan_buffer_hari ?? 0),
-                'safety_stock' => (int) ($lt?->safety_stock ?? $al?->safety_stock ?? 0),
-                'safety_stock_hari' => (int) ($lt?->safety_stock ?? $al?->safety_stock ?? 0),
+                'total_avg_lead_time' => (float) ($lt?->total_average_lead_time ?? $al?->total_average_lead_time ?? 0),
+                'total_max_lead_time' => (float) ($lt?->total_max_lead_time ?? 0),
+                'tambahan_buffer_hari' => (float) ($lt?->tambahan_buffer_hari ?? 0),
+                'safety_stock' => (float) ($lt?->safety_stock ?? $al?->safety_stock ?? 0),
+                'safety_stock_hari' => (float) ($lt?->safety_stock ?? $al?->safety_stock ?? 0),
                 'terjual_rata_rata_4bulan' => (float) round($al?->terjual_rata_rata_4bulan ?? 0),
                 'adu' => (float) round($al?->adu ?? 0),
                 'review_period' => (int) ($al?->review_period ?? 15),
@@ -448,6 +450,7 @@ class AnalisaController extends Controller
                 $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'supplier_id')
                     ->with('supplier:id,nama,kategori');
             },
+            'supplierTerpilih:id,nama,kategori',
             'klasifikasiAbc',
             'generator:id,name'
         ])->get();
@@ -465,9 +468,10 @@ class AnalisaController extends Controller
                 'sku' => $ai->produk?->sku,
                 'nama' => $ai->produk?->nama,
                 'satuan' => $ai->produk?->satuan,
-                'supplier_id' => $ai->produk?->supplier_id,
-                'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
-                'supplier_kategori' => $ai->produk?->supplier?->kategori ?? '-',
+                'supplier_id' => $ai->supplier_terpilih_id ?? $ai->produk?->supplier_id,
+                'supplier_nama' => $ai->supplierTerpilih?->nama ?? $ai->produk?->supplier?->nama ?? '-',
+                'supplier_kategori' => $ai->supplierTerpilih?->kategori ?? $ai->produk?->supplier?->kategori ?? '-',
+                'sumber_lt' => $ai->sumber_lt ?? 'manual',
                 'satuan_order_moq' => $ai->produk?->satuan_order_moq,
                 'faktor_konversi' => (float) ($ai->produk?->faktor_konversi ?: 1),
                 'periode_mulai' => $ai->periode_mulai?->format('Y-m-d'),
@@ -691,7 +695,12 @@ class AnalisaController extends Controller
             }
 
             // Susun item awal untuk form Alpine.js
-            $prefilledLokal = $rekomendasiList->map(function ($r) {
+            $analisaLokalMap = AnalisaLokal::with('supplierTerpilih:id,nama')->get()->keyBy('produk_id');
+            $prefilledLokal = $rekomendasiList->map(function ($r) use ($analisaLokalMap) {
+                $al = $analisaLokalMap->get($r->produk_id);
+                $supId = $al?->supplier_terpilih_id ?? $r->produk?->supplier_id;
+                $supNama = $al?->supplierTerpilih?->nama ?? $r->produk?->supplier?->nama ?? '-';
+
                 $qty = (float) ($r->rumus_moq ?: $r->rekomendasi_order);
                 $satuan = $r->produk?->satuan ?? 'pcs';
                 $hargaSatuan = (float) $r->harga_ml_pcs;
@@ -705,8 +714,8 @@ class AnalisaController extends Controller
                     'produk_id' => $r->produk_id,
                     'sku' => $r->produk?->sku ?? '-',
                     'nama' => $r->produk?->nama ?? '-',
-                    'supplier_id' => $r->produk?->supplier_id,
-                    'supplier_nama' => $r->produk?->supplier?->nama ?? '-',
+                    'supplier_id' => $supId,
+                    'supplier_nama' => $supNama,
                     'satuan_dasar' => $satuan,
                     'satuan_beli' => $satuan,
                     'qty_satuan_beli' => $qty,
@@ -726,7 +735,7 @@ class AnalisaController extends Controller
             $imporQuery = AnalisaImpor::with(['produk' => function ($q) {
                 $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
                     ->with('supplier:id,nama');
-            }]);
+            }, 'supplierTerpilih:id,nama']);
 
             if (! empty($ids)) {
                 $imporQuery->where(function ($q) use ($ids) {
@@ -744,6 +753,8 @@ class AnalisaController extends Controller
 
             $prefilledImpor = collect();
             foreach ($imporItems as $ai) {
+                $supId = $ai->supplier_terpilih_id ?? $ai->produk?->supplier_id;
+                $supNama = $ai->supplierTerpilih?->nama ?? $ai->produk?->supplier?->nama ?? '-';
                 $satuan = $ai->produk?->satuan ?? 'pcs';
                 $hargaSatuan = (float) $ai->harga_per_satuan;
 
@@ -759,8 +770,8 @@ class AnalisaController extends Controller
                     'produk_id' => $ai->produk_id,
                     'sku' => $ai->produk?->sku ?? '-',
                     'nama' => $ai->produk?->nama ?? '-',
-                    'supplier_id' => $ai->produk?->supplier_id,
-                    'supplier_nama' => $ai->produk?->supplier?->nama ?? '-',
+                    'supplier_id' => $supId,
+                    'supplier_nama' => $supNama,
                     'satuan_dasar' => $satuan,
                     'satuan_beli' => $satuan,
                     'qty_satuan_beli' => $qty,
@@ -886,6 +897,41 @@ class AnalisaController extends Controller
         $count = PurchaseOrder::whereYear('tanggal', now()->year)->whereMonth('tanggal', now()->month)->count() + 1;
 
         return sprintf('INV/PO/%s%s/%04d', $year, $month, $count);
+    }
+
+    public function selectSupplier(Request $request): JsonResponse
+    {
+        $this->authorize('analisa.manage');
+
+        $validated = $request->validate([
+            'produk_id' => 'required|exists:produk,id',
+            'supplier_id' => 'required|exists:supplier,id',
+        ]);
+
+        $result = $this->analisa->selectSupplierForProduct(
+            (int) $validated['produk_id'],
+            (int) $validated['supplier_id'],
+            auth()->id()
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Supplier terpilih berhasil diubah dan analisa telah diperbarui.',
+            'data' => $result,
+        ]);
+    }
+
+    public function compareSuppliers(Request $request, Produk $produk): JsonResponse
+    {
+        $this->authorize('analisa.view');
+
+        $comparison = $this->analisa->compareSuppliersForProduct($produk);
+
+        return response()->json([
+            'produk_id' => $produk->id,
+            'produk_nama' => $produk->nama,
+            'suppliers' => $comparison,
+        ]);
     }
 
     private function simpanRiwayat(string $tipe, string $label, float $batasMin, float $target, string $status, float $qtyOrder): void

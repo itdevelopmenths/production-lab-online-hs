@@ -174,3 +174,4 @@ class TransferMonthlyWarehouseDefectDashboardTest extends TestCase
         $this->assertEquals(12, (float) $soloRow['total_tahunan']);
     }
 }
+

@@ -18,6 +18,9 @@ class SupplierProdukLtSummary extends Model
         'average_lt_hari',
         'max_lt_hari',
         'diperbarui_pada',
+        'total_po_selesai',
+        'average_lt_days',
+        'max_lt_days',
     ];
 
     protected $casts = [
@@ -27,6 +30,36 @@ class SupplierProdukLtSummary extends Model
         'max_lt_hari' => 'decimal:1',
         'diperbarui_pada' => 'datetime',
     ];
+
+    public function getTotalPoSelesaiAttribute(): int
+    {
+        return (int) ($this->jumlah_transaksi ?? 0);
+    }
+
+    public function setTotalPoSelesaiAttribute($value): void
+    {
+        $this->attributes['jumlah_transaksi'] = $value;
+    }
+
+    public function getAverageLtDaysAttribute(): float
+    {
+        return (float) ($this->average_lt_hari ?? 0);
+    }
+
+    public function setAverageLtDaysAttribute($value): void
+    {
+        $this->attributes['average_lt_hari'] = $value;
+    }
+
+    public function getMaxLtDaysAttribute(): float
+    {
+        return (float) ($this->max_lt_hari ?? 0);
+    }
+
+    public function setMaxLtDaysAttribute($value): void
+    {
+        $this->attributes['max_lt_hari'] = $value;
+    }
 
     public function supplier(): BelongsTo
     {

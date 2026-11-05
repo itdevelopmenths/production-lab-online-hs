@@ -24,15 +24,15 @@ class LeadTimeLokalStage extends Model
     ];
 
     protected $casts = [
-        'perencanaan' => 'integer',
-        'approval' => 'integer',
-        'supplier_confirm' => 'integer',
-        'payment' => 'integer',
-        'po' => 'integer',
-        'pengemasan' => 'integer',
-        'pengiriman' => 'integer',
-        'unloading' => 'integer',
-        'input' => 'integer',
+        'perencanaan' => 'float',
+        'approval' => 'float',
+        'supplier_confirm' => 'float',
+        'payment' => 'float',
+        'po' => 'float',
+        'pengemasan' => 'float',
+        'pengiriman' => 'float',
+        'unloading' => 'float',
+        'input' => 'float',
     ];
 
     public const STAGE_COLUMNS = [
@@ -53,20 +53,20 @@ class LeadTimeLokalStage extends Model
     }
 
     /**
-     * Hitung total hari dari 9 tahap
+     * Hitung total hari dari 9 tahap (toleransi 1 angka desimal half-up)
      */
-    public function totalHari(): int
+    public function totalHari(): float
     {
-        return (int) (
-            $this->perencanaan +
-            $this->approval +
-            $this->supplier_confirm +
-            $this->payment +
-            $this->po +
-            $this->pengemasan +
-            $this->pengiriman +
-            $this->unloading +
-            $this->input
-        );
+        $sum = (float) $this->perencanaan +
+            (float) $this->approval +
+            (float) $this->supplier_confirm +
+            (float) $this->payment +
+            (float) $this->po +
+            (float) $this->pengemasan +
+            (float) $this->pengiriman +
+            (float) $this->unloading +
+            (float) $this->input;
+
+        return round($sum, 1, PHP_ROUND_HALF_UP);
     }
 }

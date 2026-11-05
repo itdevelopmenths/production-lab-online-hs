@@ -58,7 +58,13 @@
                                 </td>
 
                                 <td class="py-3 px-4">
-                                    <div class="font-medium text-foreground" x-text="r.supplier_nama || '-'"></div>
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <button type="button" @click="openCompareSupplier(r)" class="font-medium text-primary hover:underline text-left cursor-pointer flex items-center gap-1" title="Bandingkan & Ganti Supplier">
+                                            <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
+                                            <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
+                                        </button>
+                                        <span x-show="r.sumber_lt === 'otomatis'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200">AUTO LT</span>
+                                    </div>
                                     <template x-if="r.supplier_kategori && r.supplier_kategori !== '-'">
                                         <div class="text-[10px] text-muted-foreground font-mono mt-0.5" x-text="r.supplier_kategori"></div>
                                     </template>
@@ -66,7 +72,7 @@
                                 <td class="py-3 px-3 text-center font-mono">
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" :class="abcBadgeClass(r.klasifikasi_abc)" :title="r.klasifikasi_abc_nama || r.klasifikasi_abc" x-text="r.klasifikasi_abc"></span>
                                 </td>
-                                <td class="py-3 px-4 text-center font-mono text-muted-foreground" x-text="formatNumber(r.lead_time_average) + ' / ' + formatNumber(r.lead_time_max) + ' hr'"></td>
+                                <td class="py-3 px-4 text-center font-mono text-muted-foreground" x-text="formatLt(r.lead_time_average) + ' / ' + formatLt(r.lead_time_max) + ' hr'"></td>
                                 <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatNumber(r.buffer_days) + ' hr'"></td>
                                 <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.safety_stock)"></td>
                                 <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.minimum_stock)"></td>
