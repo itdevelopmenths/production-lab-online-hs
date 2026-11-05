@@ -516,7 +516,7 @@
 
             {{-- Formulir Pemeriksaan Fisik & Unloading (Stage 8 PRD v2.4) --}}
             @can('purchasing.receive')
-            @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_8)
+            @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_8 && !in_array($po->status, ['selesai', 'dibatalkan']))
             <x-card title="Pemeriksaan Fisik & Unloading di Gudang (Tahap 8)" subtitle="Hitung kuantitas fisik aktual yang diturunkan di gudang. Jika ada bahan rusak/kurang, input kuantitas riil yang diterima dan catat keterangan selisih." variant="primary">
                 <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_8]) }}" class="space-y-4" x-data="bardatForm()">
                     @csrf
@@ -603,10 +603,13 @@
             {{-- Panel Konfirmasi & Posting Stok (Stage 9 PRD v2.4) --}}
             @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_9)
             @php
-                $latestBardat = $po->barangDatang()->where('status_posting', 'belum')->latest()->first() ?? $po->barangDatang()->latest()->first();
+                $latestBardat = $po->barangDatang->where('status_posting', 'belum')->sortByDesc('created_at')->first() ?? $po->barangDatang->sortByDesc('created_at')->first();
+                $isPostingCompleted = $po->status === 'selesai' || ($latestBardat && $latestBardat->status_posting === 'diposting');
             @endphp
             @if($latestBardat)
-            <x-card title="Verifikasi & Input Sistem Penerimaan (Tahap 9)" subtitle="Hasil unloading fisik telah tersimpan. Verifikasi data sebelum memposting stok ke inventori gudang." variant="success">
+            <x-card :title="$isPostingCompleted ? 'Audit Penerimaan dan Posting Stok (Tahap 9 - Selesai)' : 'Verifikasi dan Input Sistem Penerimaan (Tahap 9)'" 
+                    :subtitle="$isPostingCompleted ? 'Kuantitas fisik aktual telah selesai diverifikasi dan pergerakan stok telah dibukukan ke gudang.' : 'Hasil unloading fisik telah tersimpan. Verifikasi data sebelum memposting stok ke inventori gudang.'" 
+                    variant="success">
                 <div class="space-y-4 text-xs">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50">
                         <div class="flex items-center gap-2.5">
@@ -618,9 +621,16 @@
                                 · Waktu: {{ $latestBardat->created_at?->format('d/m/Y H:i') }}
                             </span>
                         </div>
-                        <span class="text-muted-foreground text-[11px]">
-                            Dicatat oleh: <strong class="text-foreground">{{ $latestBardat->creator?->name ?? 'Gudang' }}</strong>
-                        </span>
+                        <div class="flex items-center gap-2 text-muted-foreground text-[11px]">
+                            @if($isPostingCompleted)
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold text-[10px] border border-emerald-300 dark:border-emerald-700">
+                                    <svg class="size-3 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    Stok Diposting
+                                </span>
+                            @else
+                                <span>Dicatat oleh: <strong class="text-foreground">{{ $latestBardat->creator?->name ?? 'Gudang' }}</strong></span>
+                            @endif
+                        </div>
                     </div>
 
                     <div class="overflow-x-auto rounded-xl border border-border">
@@ -661,15 +671,31 @@
                         </table>
                     </div>
 
-                    <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-                        @csrf
-                        <p class="text-[11px] text-muted-foreground">
-                            Memposting stok fisik aktual di atas ke <strong>{{ $po->gudang?->nama ?? 'Gudang' }}</strong>, mengunci durasi Lead Time, dan menutup status PO menjadi <strong>Selesai</strong>.
-                        </p>
-                        <x-button type="submit" variant="success" size="md">
-                            Posting Stok ke Gudang &amp; Selesaikan PO
-                        </x-button>
-                    </form>
+                    @if($isPostingCompleted)
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-muted/40 border border-border text-[11px] text-muted-foreground">
+                            <div class="flex items-center gap-2">
+                                <svg class="size-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <span>Pergerakan stok telah berhasil dibukukan ke gudang <strong>{{ $po->gudang?->nama ?? 'Gudang' }}</strong>. Status dokumen PO telah Selesai.</span>
+                            </div>
+                            @if($latestBardat->diposting_pada)
+                                <span class="font-mono text-[10px]">Waktu Posting: {{ $latestBardat->diposting_pada->format('d/m/Y H:i') }}</span>
+                            @endif
+                        </div>
+                    @else
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
+                            @csrf
+                            <p class="text-[11px] text-muted-foreground">
+                                Memposting stok fisik aktual di atas ke <strong>{{ $po->gudang?->nama ?? 'Gudang' }}</strong>, mengunci durasi Lead Time, dan menutup status PO menjadi <strong>Selesai</strong>.
+                            </p>
+                            <x-button type="submit" variant="success" size="md" x-bind:disabled="submitting">
+                                <span x-show="!submitting">Posting Stok ke Gudang &amp; Selesaikan PO</span>
+                                <span x-show="submitting" class="flex items-center gap-2" style="display: none;">
+                                    <svg class="animate-spin size-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                                    Memproses...
+                                </span>
+                            </x-button>
+                        </form>
+                    @endif
                 </div>
             </x-card>
             @endif
@@ -872,15 +898,15 @@
                     {{-- STAGE 9: Input Sistem & Posting Stok --}}
                     @elseif($stgAktif === \App\Models\PoStage::STAGE_9)
                         @can('purchasing.receive')
-                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="space-y-3 text-xs">
-                            @csrf
+                        <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs space-y-2">
+                            <div class="flex items-center gap-2 font-semibold text-emerald-900 dark:text-emerald-300">
+                                <span class="size-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                                Siap Posting Stok
+                            </div>
                             <p class="text-[11px] text-muted-foreground leading-relaxed">
-                                Unloading fisik telah selesai. Klik tombol di bawah untuk memposting pergerakan stok ke ledger gudang dan mengunci durasi Lead Time supplier.
+                                Unloading fisik telah dicatat. Silakan verifikasi kuantitas fisik pada panel verifikasi di sebelah kiri, lalu klik <strong>Posting Stok ke Gudang</strong> untuk menyelesaikan transaksi.
                             </p>
-                            <x-button type="submit" variant="success" size="sm" class="w-full">
-                                Posting Stok ke Gudang &amp; Selesaikan PO
-                            </x-button>
-                        </form>
+                        </div>
                         @else
                         <p class="text-xs text-muted-foreground italic">Menunggu staf Gudang memposting transaksi ke sistem persediaan.</p>
                         @endcan

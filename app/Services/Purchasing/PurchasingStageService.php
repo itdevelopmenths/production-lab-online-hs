@@ -3,7 +3,6 @@
 namespace App\Services\Purchasing;
 
 use App\Models\BarangDatang;
-use App\Models\BarangDatangItem;
 use App\Models\PoPengiriman;
 use App\Models\PoRevisi;
 use App\Models\PoStage;
@@ -55,6 +54,18 @@ class PurchasingStageService
      */
     public function validateExpectedStage(PurchaseOrder $po, string $expectedStage): PoStage
     {
+        if ($po->status === 'selesai') {
+            throw ValidationException::withMessages([
+                'stage' => 'Purchase Order ini telah berstatus Selesai. Seluruh tahapan telah rampung dan tidak dapat diproses ulang.',
+            ]);
+        }
+
+        if ($po->status === 'dibatalkan') {
+            throw ValidationException::withMessages([
+                'stage' => 'Purchase Order ini telah Dibatalkan dan tidak dapat diproses lebih lanjut.',
+            ]);
+        }
+
         if ($po->stage_aktif !== $expectedStage) {
             throw ValidationException::withMessages([
                 'stage' => sprintf(
@@ -72,6 +83,21 @@ class PurchasingStageService
             ->first();
 
         if (! $activeStageRow) {
+            $completedStageRow = $po->stages()
+                ->where('stage', $expectedStage)
+                ->where('status', 'selesai')
+                ->latest('putaran')
+                ->first();
+
+            if ($completedStageRow) {
+                throw ValidationException::withMessages([
+                    'stage' => sprintf(
+                        "Tahap '%s' sudah selesai diproses sebelumnya.",
+                        PoStage::STAGE_LABELS[$expectedStage] ?? $expectedStage
+                    ),
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'stage' => "Data stage '{$expectedStage}' yang aktif tidak ditemukan.",
             ]);

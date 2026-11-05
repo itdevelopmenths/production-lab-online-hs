@@ -401,6 +401,21 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
 
         // qtyDiterima di PO item harus 80
         $this->assertEquals(80, $item1->fresh()->qtyDiterima());
+
+        // Verifikasi Idempotensi & UI Safety:
+        // 1. Tampilan view setelah Stage 9 selesai harus menampilkan kartu audit read-only tanpa form submit posting ulang
+        $viewResponse = $this->get(route('purchasing.show', $po));
+        $viewResponse->assertOk();
+        $viewResponse->assertSee('Audit Penerimaan dan Posting Stok (Tahap 9 - Selesai)');
+        $viewResponse->assertSee('Stok Diposting');
+        $viewResponse->assertDontSee('Posting Stok ke Gudang & Selesaikan PO');
+
+        // 2. Jika route completeStage9 dipanggil ulang (double-submission), sistem menolak secara elegan
+        $repeatResponse = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_9]), [
+            'waktu_selesai' => now()->toDateTimeString(),
+        ]);
+        $repeatResponse->assertSessionHasErrors('stage');
+        $this->assertStringContainsString('telah berstatus Selesai', session('errors')->first('stage'));
     }
 
     /**
