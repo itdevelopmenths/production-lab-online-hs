@@ -198,12 +198,21 @@
                             @endcan
 
                             @can('rt.view')
-                            <li class="w-full" x-show="!menuQuery || 'request transfer logistik rt'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('rt.index') }}" :active="request()->routeIs('rt.*')">
+                            <li class="w-full" x-show="!menuQuery || 'request permintaan bahan produk jadi'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('requests.index') }}" :active="request()->routeIs('requests.*')">
+                                    <x-slot:icon>
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    </x-slot:icon>
+                                    Permintaan Barang
+                                </x-nav-item>
+                            </li>
+
+                            <li class="w-full" x-show="!menuQuery || 'transfer mutasi kirim logistik defect'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('transfers.index') }}" :active="request()->routeIs('transfers.*') || request()->routeIs('rt.*')">
                                     <x-slot:icon>
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                                     </x-slot:icon>
-                                    Request & Transfer
+                                    Transfer Barang
                                 </x-nav-item>
                             </li>
                             @endcan
