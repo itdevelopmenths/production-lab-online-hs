@@ -212,6 +212,7 @@
         @include('analisa.partials.modal-manual-lokal')
         @include('analisa.partials.modal-manual-impor')
         @include('analisa.partials.modal-compare-supplier')
+        @include('analisa.partials.modal-varian')
     </div>
 
     @push('scripts')
@@ -234,6 +235,12 @@
         selectedItemIds: [],
         showSnapshotModal: false,
         activeSnapshot: null,
+        showVarianModal: false,
+        activeVarianProduct: null,
+        openVarianModal(item) {
+          this.activeVarianProduct = item;
+          this.showVarianModal = true;
+        },
         showStageModal: false,
         savingStage: false,
         stageForm: {
@@ -688,10 +695,29 @@
             });
             return;
           }
-          let url = '{{ route('analisa.create-po') }}?ids=' + encodeURIComponent(this.selectedItemIds.join(',')) + '&tipe=' + encodeURIComponent(this.tab);
           const selectedItems = this.getSelectedItems();
+          if (selectedItems.some(r => !r.supplier_id)) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Supplier Belum Ditentukan',
+              text: 'Sebagian item yang dipilih belum memiliki supplier yang ditentukan. Harap tentukan supplier untuk semua item terlebih dahulu.',
+              confirmButtonColor: '#0284c7'
+            });
+            return;
+          }
           const supIds = selectedItems.map(r => r.supplier_id).filter(Boolean);
           const uniqueSupIds = Array.from(new Set(supIds));
+          if (uniqueSupIds.length > 1) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Supplier Tidak Konsisten',
+              text: 'Item yang dipilih memiliki supplier yang berbeda-beda. Harap pilih item dari satu supplier yang sama untuk membuat Purchase Order.',
+              confirmButtonColor: '#0284c7'
+            });
+            return;
+          }
+
+          let url = '{{ route('analisa.create-po') }}?ids=' + encodeURIComponent(this.selectedItemIds.join(',')) + '&tipe=' + encodeURIComponent(this.tab);
           if (uniqueSupIds.length === 1) {
             url += '&supplier_id=' + encodeURIComponent(uniqueSupIds[0]);
           }

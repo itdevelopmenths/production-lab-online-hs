@@ -25,6 +25,7 @@
                         <th class="px-4 py-3 text-left">Kategori</th>
                         <th class="px-4 py-3 text-left">Kontak</th>
                         <th class="px-4 py-3 text-left">Termin Default</th>
+                        <th class="px-4 py-3 text-center w-28">Produk Dipasok</th>
                         <th class="px-4 py-3 text-center w-28">Status</th>
                         <th class="px-4 py-3 text-center w-28">Aksi</th>
                     </tr>
@@ -99,6 +100,12 @@
                     render: function(data) {
                         return '<span class="font-mono text-xs text-muted-foreground">' + (data || '-') + '</span>';
                     }
+                },
+                {
+                    data: 'produk_count',
+                    className: 'text-center',
+                    orderable: false,
+                    searchable: false
                 },
                 {
                     data: 'is_active',

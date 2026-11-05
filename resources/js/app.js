@@ -17,6 +17,7 @@ window.productSearchSelect = function(config) {
         selectedId: config ? (config.selectedId || '') : '',
         selectedItem: config ? (config.selectedItem || null) : null,
         filterTipe: config ? (config.filterTipe || null) : null,
+        supplierId: config ? (config.supplierId || null) : null,
         placeholder: config ? (config.placeholder || '— Pilih Produk —') : '— Pilih Produk —',
         url: config ? (config.url || '/produk/select-data') : '/produk/select-data',
 
@@ -55,6 +56,16 @@ window.productSearchSelect = function(config) {
                     } else {
                         url += `&tipe[]=${encodeURIComponent(this.filterTipe)}`;
                     }
+                }
+                let sId = (typeof this.supplierId === 'function') ? this.supplierId() : this.supplierId;
+                if (!sId) {
+                    const suppSelect = document.querySelector('select[name="supplier_id"]');
+                    if (suppSelect && suppSelect.value) {
+                        sId = suppSelect.value;
+                    }
+                }
+                if (sId) {
+                    url += `&supplier_id=${encodeURIComponent(sId)}`;
                 }
                 const res = await fetch(url, {
                     headers: { 'Accept': 'application/json' }

@@ -44,7 +44,7 @@ class RequestController extends Controller
         $accessibleIds = $this->locationScope->getAccessibleWarehouseIds($user);
 
         $query = StockRequest::query()
-            ->with(['gudangPemohon:id,nama,kode', 'gudangTujuan:id,nama,kode', 'creator:id,name', 'batch:id,no_batch'])
+            ->with(['gudangPemohon:id,nama,kode', 'gudangTujuan:id,nama,kode', 'creator:id,name', 'batch:id,no_batch', 'transfers:id,request_id,status'])
             ->when($accessibleIds !== null, function ($q) use ($accessibleIds) {
                 $q->where(function ($sub) use ($accessibleIds) {
                     $sub->whereIn('gudang_pemohon_id', $accessibleIds)
@@ -56,6 +56,7 @@ class RequestController extends Controller
             ->latest('id');
 
         return DataTables::eloquent($query)
+            ->orderColumn('tanggal_request', fn ($q, $order) => $q->orderBy('created_at', $order))
             ->editColumn('jenis', fn ($r) => match ($r->jenis) {
                 'request_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">Bahan Baku (Operasional)</span>',
                 'request_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200">Produk Jadi (Fulfillment)</span>',
@@ -79,9 +80,9 @@ class RequestController extends Controller
             ->addColumn('pemohon', fn ($r) => $r->gudangPemohon?->nama ?? '-')
             ->addColumn('tujuan', fn ($r) => $r->gudangTujuan?->nama ?? '-')
             ->addColumn('batch_no', fn ($r) => $r->batch?->no_batch ?? '-')
-            ->addColumn('action', function ($r) use ($userId, $isManager) {
+            ->addColumn('action', function ($r) use ($userId, $isManager, $user) {
                 $detailUrl = route('requests.show', $r);
-                $html = '<div class="flex items-center justify-center gap-1.5">';
+                $html = '<div class="flex items-center justify-center gap-1.5 flex-wrap">';
                 $html .= '<a href="' . e($detailUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">Detail</a>';
 
                 if ($r->status === 'draft' && ((int) $r->created_by === $userId || $isManager)) {
@@ -89,10 +90,28 @@ class RequestController extends Controller
                     $html .= '<a href="' . e($editUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded border border-amber-300">Edit</a>';
                 }
 
-                if ($r->status === 'disetujui' && ((int) $r->created_by === $userId || $isManager)) {
-                    // FR-REQ-08: Edit post-approval
-                    $editUrl = route('requests.edit', $r);
-                    $html .= '<a href="' . e($editUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded border border-purple-300" title="Edit ulang request disetujui (status akan kembali diajukan)">Revisi</a>';
+                if ($r->status === 'diajukan' && $isManager) {
+                    $csrf = csrf_field();
+                    $approveUrl = route('requests.approve', $r);
+                    $html .= '<form method="POST" action="' . e($approveUrl) . '" class="inline" onsubmit="return confirm(\'Setujui request ' . e($r->no_request) . '?\')">' . $csrf . '<button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-300">Setujui</button></form>';
+                    $html .= '<button type="button" class="btn-reject-req inline-flex items-center px-2 py-1 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 rounded border border-rose-300" data-action="' . e(route('requests.reject', $r)) . '" data-no="' . e($r->no_request) . '">Tolak</button>';
+                }
+
+                if ($r->status === 'disetujui') {
+                    $hasActiveTransfer = $r->transfers->where('status', '!=', 'dibatalkan')->isNotEmpty();
+                    if (! $hasActiveTransfer && $user->can('rt.create')) {
+                        $trfUrl = route('transfers.create', ['request_id' => $r->id]);
+                        $html .= '<a href="' . e($trfUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded border border-blue-300">Buat Transfer</a>';
+                    }
+
+                    if ((int) $r->created_by === $userId || $isManager) {
+                        $editUrl = route('requests.edit', $r);
+                        $html .= '<a href="' . e($editUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded border border-purple-300" title="Edit ulang request disetujui (status akan kembali diajukan)">Revisi</a>';
+                    }
+                }
+
+                if (in_array($r->status, ['draft', 'diajukan', 'disetujui'], true) && ((int) $r->created_by === $userId || $isManager)) {
+                    $html .= '<button type="button" class="btn-cancel-req inline-flex items-center px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded border border-amber-300" data-action="' . e(route('requests.cancel', $r)) . '" data-no="' . e($r->no_request) . '">Batalkan</button>';
                 }
 
                 $html .= '</div>';
@@ -120,6 +139,7 @@ class RequestController extends Controller
 
         $gudang = Gudang::active()->orderBy('nama')->get();
         $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
+        $activeBatches = BatchProduksi::whereIn('status', ['rencana', 'release'])->orderByDesc('id')->get(['id', 'no_batch', 'status']);
 
         $batch = null;
         $defaultGudangPemohonId = null;
@@ -135,17 +155,33 @@ class RequestController extends Controller
                     ?? Gudang::where('kode', 'GD-PUSAT')->first();
                 $defaultGudangTujuanId = $gudangPusat?->id;
 
-                foreach ($batch->alokasi as $alokasi) {
-                    $prefilledItems[] = [
-                        'produk_id' => $alokasi->bahan_id,
-                        'qty_diminta' => (float) $alokasi->qty_kebutuhan,
-                        'keterangan' => 'Alokasi batch ' . $batch->no_batch,
-                    ];
+                $rekap = $batch->rekapBahan();
+                if (!empty($rekap)) {
+                    foreach ($rekap as $item) {
+                        $sisa = max(0.0, (float) $item['kebutuhan'] - (float) $item['diterima']);
+                        $qty = $sisa > 0 ? $sisa : (float) $item['kebutuhan'];
+                        if ($qty > 0) {
+                            $prefilledItems[] = [
+                                'produk_id' => $item['bahan_id'],
+                                'qty_diminta' => $qty,
+                                'keterangan' => 'Alokasi batch ' . $batch->no_batch,
+                            ];
+                        }
+                    }
+                }
+                if (empty($prefilledItems)) {
+                    foreach ($batch->alokasi as $alokasi) {
+                        $prefilledItems[] = [
+                            'produk_id' => $alokasi->bahan_id,
+                            'qty_diminta' => (float) $alokasi->qty_dialokasikan,
+                            'keterangan' => 'Alokasi batch ' . $batch->no_batch,
+                        ];
+                    }
                 }
             }
         }
 
-        return view('requests.create', compact('gudang', 'produk', 'batch', 'allowedJenis', 'defaultGudangPemohonId', 'defaultGudangTujuanId', 'prefilledItems'));
+        return view('requests.create', compact('gudang', 'produk', 'batch', 'allowedJenis', 'defaultGudangPemohonId', 'defaultGudangTujuanId', 'prefilledItems', 'activeBatches'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -215,7 +251,9 @@ class RequestController extends Controller
         $canSubmit = ((int) $stockRequest->created_by === (int) $user->id || $isManager) && $stockRequest->status === 'draft';
         $canCancel = in_array($stockRequest->status, ['draft', 'diajukan', 'disetujui'], true) &&
             (((int) $stockRequest->created_by === (int) $user->id) || $isManager);
-        $canCreateTransfer = $stockRequest->status === 'disetujui' && $stockRequest->transfers->where('status', '!=', 'dibatalkan')->isEmpty();
+        $canCreateTransfer = $stockRequest->status === 'disetujui' &&
+            $stockRequest->transfers->where('status', '!=', 'dibatalkan')->isEmpty() &&
+            $user->can('rt.create');
 
         return view('requests.show', compact('stockRequest', 'canApprove', 'canSubmit', 'canCancel', 'canCreateTransfer', 'isManager'));
     }
@@ -236,8 +274,9 @@ class RequestController extends Controller
         $stockRequest->load(['items.produk.uom', 'gudangPemohon', 'gudangTujuan', 'batch']);
         $gudang = Gudang::active()->orderBy('nama')->get();
         $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
+        $activeBatches = BatchProduksi::whereIn('status', ['rencana', 'release'])->orderByDesc('id')->get(['id', 'no_batch', 'status']);
 
-        return view('requests.edit', compact('stockRequest', 'gudang', 'produk'));
+        return view('requests.edit', compact('stockRequest', 'gudang', 'produk', 'activeBatches'));
     }
 
     public function update(Request $request, StockRequest $stockRequest): RedirectResponse

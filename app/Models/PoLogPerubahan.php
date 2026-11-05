@@ -31,5 +31,10 @@ class PoLogPerubahan extends Model
     {
         return $this->belongsTo(User::class, 'diubah_oleh');
     }
+
+    public function changer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'diubah_oleh');
+    }
 }
 

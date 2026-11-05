@@ -28,7 +28,7 @@ class Supplier extends Model
     {
         static::deleting(function (Supplier $supplier) {
             $hasActivePo = $supplier->purchaseOrders()
-                ->whereIn('status', ['draft', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
+                ->whereIn('status', ['draft', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial', 'berjalan'])
                 ->exists();
 
             if ($hasActivePo) {
@@ -62,6 +62,11 @@ class Supplier extends Model
     public function produkSuppliers(): HasMany
     {
         return $this->hasMany(ProdukSupplier::class, 'supplier_id');
+    }
+
+    public function stageSummaries(): HasMany
+    {
+        return $this->hasMany(SupplierLtStageSummary::class, 'supplier_id');
     }
 
     public function scopeActive($query)

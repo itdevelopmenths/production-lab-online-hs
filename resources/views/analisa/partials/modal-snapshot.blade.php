@@ -18,7 +18,7 @@
                 <template x-for="[key, val] in Object.entries(activeSnapshot.detail).filter(([k]) => k !== 'varian_detail')" :key="key">
                     <div class="bg-muted/40 p-3 rounded-xl border border-border shadow-xs">
                         <dt class="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider" x-text="key.replace(/_/g, ' ')"></dt>
-                        <dd class="mt-1 font-mono text-foreground font-bold text-sm" x-text="typeof val === 'number' ? formatNumber(val) : (val ?? '-')"></dd>
+                        <dd class="mt-1 font-mono text-foreground font-bold text-sm" x-text="typeof val === 'number' ? (/(lead_time|buffer|lt|hari)/i.test(key) ? formatLt(val) + ' Hari' : formatNumber(val)) : (val ?? '-')"></dd>
                     </div>
                 </template>
             </template>

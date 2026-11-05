@@ -98,6 +98,10 @@
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Konfirmasi Penerimaan Barang
                     </button>
+                @elseif($transfer->status === 'dikirim')
+                    <span class="text-[11px] text-muted-foreground italic px-2.5 py-1.5 bg-muted rounded-lg border border-border">
+                        Penerimaan memerlukan petugas gudang yang berbeda (Segregation of Duties).
+                    </span>
                 @endif
 
                 @if($canCancelDraft)
@@ -139,7 +143,7 @@
                         <span class="text-muted-foreground">Transfer Mandiri</span>
                     @endif
                 </div>
-                <div class="text-[10px] text-muted-foreground">{{ ucfirst($transfer->jenis) }}</div>
+                <div class="text-[10px] text-muted-foreground font-medium">{{ \App\Models\Transfer::JENIS_LABELS[$transfer->jenis] ?? ucfirst(str_replace('_', ' ', $transfer->jenis)) }}</div>
             </x-card>
 
             <x-card class="p-4">
@@ -263,10 +267,10 @@
                                     </td>
                                     <td class="px-3 py-3 text-right font-bold text-foreground" x-text="item.qty_dikirim"></td>
                                     <td class="px-3 py-3">
-                                        <input type="number" step="1" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_baik]`" x-model.number="item.qty_baik" class="w-full h-8 rounded border border-border px-2 text-right font-semibold text-emerald-700 text-xs" required>
+                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_baik]`" x-model.number="item.qty_baik" class="w-full h-8 rounded border border-border px-2 text-right font-semibold text-emerald-700 text-xs" required>
                                     </td>
                                     <td class="px-3 py-3">
-                                        <input type="number" step="1" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_rusak]`" x-model.number="item.qty_rusak" class="w-full h-8 rounded border border-border px-2 text-right font-semibold text-rose-700 text-xs" required>
+                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_rusak]`" x-model.number="item.qty_rusak" class="w-full h-8 rounded border border-border px-2 text-right font-semibold text-rose-700 text-xs" required>
                                     </td>
                                     <td class="px-3 py-3">
                                         <input type="text" :name="`items[${idx}][keterangan_rusak]`" x-model="item.keterangan_rusak" :required="item.qty_rusak > 0" placeholder="Pecah, bocor, kadaluarsa..." class="w-full h-8 rounded border border-border px-2 text-xs">
@@ -312,6 +316,9 @@
                 </div>
             </form>
         </x-modal>
+
+        {{-- Jejak Audit Operasional Transfer --}}
+        <x-operational-audit-history :auditable="$transfer" title="Jejak Riwayat Audit Transfer {{ $transfer->no_transfer }}" />
     </div>
 </x-app-layout>
 

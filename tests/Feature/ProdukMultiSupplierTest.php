@@ -18,11 +18,13 @@ class ProdukMultiSupplierTest extends TestCase
     use RefreshDatabase;
 
     private User $purchasingUser;
+    private User $adminUser;
     private Supplier $supplierA;
     private Supplier $supplierB;
     private Gudang $gudangPusat;
     private Produk $produkA;
     private Produk $produkB;
+    private Kategori $kategori;
 
     protected function setUp(): void
     {
@@ -30,8 +32,9 @@ class ProdukMultiSupplierTest extends TestCase
         $this->seed();
 
         $this->purchasingUser = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $this->adminUser = User::where('email', 'admin@heavenscent.id')->firstOrFail();
 
-        $kategori = Kategori::firstOrCreate([
+        $this->kategori = Kategori::firstOrCreate([
             'kode' => 'BB',
         ], [
             'nama' => 'Bahan Baku',
@@ -57,7 +60,7 @@ class ProdukMultiSupplierTest extends TestCase
             'sku' => 'MAT-01',
             'nama' => 'Bahan Baku A',
             'nama_produk' => 'Bahan Baku A',
-            'kategori_id' => $kategori->id,
+            'kategori_id' => $this->kategori->id,
             'tipe' => 'bahan',
             'satuan' => 'L',
             'satuan_order_moq' => 100,
@@ -68,7 +71,7 @@ class ProdukMultiSupplierTest extends TestCase
             'sku' => 'MAT-02',
             'nama' => 'Bahan Baku B',
             'nama_produk' => 'Bahan Baku B',
-            'kategori_id' => $kategori->id,
+            'kategori_id' => $this->kategori->id,
             'tipe' => 'bahan',
             'satuan' => 'L',
             'satuan_order_moq' => 50,
@@ -191,5 +194,192 @@ class ProdukMultiSupplierTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('items');
+    }
+
+    public function test_store_produk_with_supplier_assignments_creates_pivot_and_sets_primary_supplier(): void
+    {
+        $response = $this->actingAs($this->adminUser)->post(route('produk.store'), [
+            'sku' => 'MAT-MULTI-01',
+            'nama_produk' => 'Bahan Campuran',
+            'kategori_id' => $this->kategori->id,
+            'tipe' => 'bahan',
+            'satuan' => 'l',
+            'satuan_order_moq' => 10,
+            'is_active' => 1,
+            'supplier_assignments' => [
+                ['supplier_id' => $this->supplierA->id, 'status' => 'aktif'],
+                ['supplier_id' => $this->supplierB->id, 'status' => 'nonaktif'],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('produk.index'));
+
+        $produk = Produk::where('sku', 'MAT-MULTI-01')->firstOrFail();
+        $this->assertEquals($this->supplierA->id, $produk->supplier_id);
+        $this->assertEquals(1, $produk->activeSuppliers()->count());
+        $this->assertEquals(2, $produk->suppliers()->count());
+        $this->assertDatabaseHas('produk_supplier', [
+            'produk_id' => $produk->id,
+            'supplier_id' => $this->supplierA->id,
+            'status' => 'aktif',
+        ]);
+        $this->assertDatabaseHas('produk_supplier', [
+            'produk_id' => $produk->id,
+            'supplier_id' => $this->supplierB->id,
+            'status' => 'nonaktif',
+        ]);
+    }
+
+    public function test_update_produk_with_supplier_assignments_syncs_pivot(): void
+    {
+        ProdukSupplier::create([
+            'produk_id' => $this->produkA->id,
+            'supplier_id' => $this->supplierA->id,
+            'status' => 'aktif',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->put(route('produk.update', $this->produkA), [
+            'sku' => $this->produkA->sku,
+            'nama_produk' => 'Bahan Baku A Update',
+            'kategori_id' => $this->kategori->id,
+            'tipe' => 'bahan',
+            'satuan' => 'l',
+            'satuan_order_moq' => 15,
+            'is_active' => 1,
+            'supplier_assignments' => [
+                ['supplier_id' => $this->supplierB->id, 'status' => 'aktif'],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('produk.index'));
+
+        $this->assertDatabaseHas('produk_supplier', [
+            'produk_id' => $this->produkA->id,
+            'supplier_id' => $this->supplierB->id,
+            'status' => 'aktif',
+        ]);
+        $this->assertDatabaseMissing('produk_supplier', [
+            'produk_id' => $this->produkA->id,
+            'supplier_id' => $this->supplierA->id,
+        ]);
+    }
+
+    public function test_store_supplier_with_produk_ids_syncs_pivot(): void
+    {
+        $response = $this->actingAs($this->adminUser)->post(route('supplier.store'), [
+            'nama' => 'PT Pemasok Baru',
+            'kategori' => 'lokal',
+            'is_active' => 1,
+            'produk_ids' => [$this->produkA->id, $this->produkB->id],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('supplier.index'));
+
+        $supplier = Supplier::where('nama', 'PT Pemasok Baru')->firstOrFail();
+        $this->assertEquals(2, $supplier->activeProduks()->count());
+        $this->assertDatabaseHas('produk_supplier', [
+            'supplier_id' => $supplier->id,
+            'produk_id' => $this->produkA->id,
+            'status' => 'aktif',
+        ]);
+        $this->assertDatabaseHas('produk_supplier', [
+            'supplier_id' => $supplier->id,
+            'produk_id' => $this->produkB->id,
+            'status' => 'aktif',
+        ]);
+    }
+
+    public function test_update_supplier_with_produk_ids_syncs_pivot(): void
+    {
+        ProdukSupplier::create([
+            'produk_id' => $this->produkA->id,
+            'supplier_id' => $this->supplierA->id,
+            'status' => 'aktif',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->put(route('supplier.update', $this->supplierA), [
+            'nama' => $this->supplierA->nama,
+            'kategori' => $this->supplierA->kategori,
+            'is_active' => 1,
+            'produk_ids' => [$this->produkB->id],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('supplier.index'));
+
+        $this->assertDatabaseHas('produk_supplier', [
+            'supplier_id' => $this->supplierA->id,
+            'produk_id' => $this->produkB->id,
+            'status' => 'aktif',
+        ]);
+        $this->assertDatabaseMissing('produk_supplier', [
+            'supplier_id' => $this->supplierA->id,
+            'produk_id' => $this->produkA->id,
+        ]);
+    }
+
+    public function test_select_data_produk_filters_by_supplier_id(): void
+    {
+        ProdukSupplier::create([
+            'produk_id' => $this->produkA->id,
+            'supplier_id' => $this->supplierA->id,
+            'status' => 'aktif',
+        ]);
+
+        ProdukSupplier::create([
+            'produk_id' => $this->produkB->id,
+            'supplier_id' => $this->supplierB->id,
+            'status' => 'aktif',
+        ]);
+
+        // Filter by supplierA -> should only return produkA
+        $response = $this->actingAs($this->adminUser)->getJson(route('produk.select-data', ['supplier_id' => $this->supplierA->id]));
+        $response->assertOk();
+        $items = collect($response->json('items'));
+        $this->assertTrue($items->contains('id', $this->produkA->id));
+        $this->assertFalse($items->contains('id', $this->produkB->id));
+
+        // When status is nonaktif -> should not return produkA
+        ProdukSupplier::where('produk_id', $this->produkA->id)
+            ->where('supplier_id', $this->supplierA->id)
+            ->update(['status' => 'nonaktif']);
+
+        $response2 = $this->actingAs($this->adminUser)->getJson(route('produk.select-data', ['supplier_id' => $this->supplierA->id]));
+        $response2->assertOk();
+        $items2 = collect($response2->json('items'));
+        $this->assertFalse($items2->contains('id', $this->produkA->id));
+    }
+
+    public function test_delete_supplier_rejected_if_has_po_with_status_berjalan(): void
+    {
+        PurchaseOrder::create([
+            'no_po' => 'PO-BERJALAN-001',
+            'supplier_id' => $this->supplierA->id,
+            'gudang_id' => $this->gudangPusat->id,
+            'tanggal' => now()->toDateString(),
+            'skema_bayar' => 'termin',
+            'status' => 'berjalan',
+            'subtotal_produk' => 500000,
+            'grand_total' => 500000,
+            'created_by' => $this->adminUser->id,
+        ]);
+
+        // JSON Request
+        $responseJson = $this->actingAs($this->adminUser)->deleteJson(route('supplier.destroy', $this->supplierA));
+        $responseJson->assertStatus(422);
+        $responseJson->assertJsonFragment([
+            'message' => "Supplier '{$this->supplierA->nama}' tidak dapat dihapus karena masih terikat pada Purchase Order aktif.",
+        ]);
+
+        // Supplier still exists
+        $this->assertDatabaseHas('supplier', ['id' => $this->supplierA->id]);
+
+        // Non-JSON Request
+        $responseWeb = $this->actingAs($this->adminUser)->delete(route('supplier.destroy', $this->supplierA));
+        $responseWeb->assertSessionHas('error');
+        $this->assertDatabaseHas('supplier', ['id' => $this->supplierA->id]);
     }
 }

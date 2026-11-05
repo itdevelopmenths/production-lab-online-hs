@@ -69,6 +69,8 @@ class TransferController extends Controller
             ->latest('id');
 
         return DataTables::eloquent($query)
+            ->orderColumn('tanggal_transfer', fn ($q, $order) => $q->orderBy('created_at', $order))
+            ->orderColumn('no_transfer', fn ($q, $order) => $q->orderBy('no_transaksi', $order))
             ->addColumn('no_transfer', fn ($t) => $t->no_transaksi)
             ->editColumn('status', function ($t) {
                 $badge = match ($t->status) {
@@ -88,12 +90,17 @@ class TransferController extends Controller
                 return "<span class=\"inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border {$badge}\">{$label}</span>";
             })
             ->editColumn('jenis', fn ($t) => match ($t->jenis) {
+                'pemenuhan_request_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">Bahan Baku</span>',
+                'retur_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-50 text-orange-800 border border-orange-200">Retur Bahan</span>',
+                'kirim_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200">Produk Jadi</span>',
+                'antar_fulfillment' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-800 border border-indigo-200">Antar Fulfillment</span>',
+                'retur_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-50 text-rose-800 border border-rose-200">Retur Produk Jadi</span>',
                 'request_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">Bahan Baku</span>',
                 'request_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200">Produk Jadi</span>',
                 'distribusi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-800 border border-indigo-200">Distribusi</span>',
-                default => e($t->jenis),
+                default => e(Transfer::JENIS_LABELS[$t->jenis] ?? $t->jenis),
             })
-            ->editColumn('tanggal_transfer', fn ($t) => $t->tanggal_transfer ? $t->tanggal_transfer->format('d/m/Y') : '-')
+            ->editColumn('tanggal_transfer', fn ($t) => $t->tanggal_transfer ? $t->tanggal_transfer->format('d/m/Y') : ($t->created_at ? $t->created_at->format('d/m/Y') : '-'))
             ->addColumn('asal', fn ($t) => $t->gudangAsal?->nama ?? '-')
             ->addColumn('tujuan', fn ($t) => $t->gudangTujuan?->nama ?? '-')
             ->addColumn('request_no', fn ($t) => $t->stockRequest ? '<a href="' . route('requests.show', $t->stockRequest) . '" class="text-blue-600 hover:underline font-mono text-xs">' . e($t->stockRequest->no_request) . '</a>' : '-')
@@ -143,13 +150,15 @@ class TransferController extends Controller
         $products = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
 
         $stockRequest = null;
+        $batch = null;
+        $referensiBatchId = null;
         $defaultGudangAsalId = null;
         $defaultGudangTujuanId = null;
-        $defaultJenis = 'distribusi';
+        $defaultJenis = 'antar_fulfillment';
         $prefilledItems = [];
 
         if ($request->filled('request_id')) {
-            $stockRequest = StockRequest::with(['items.produk.uom', 'gudangPemohon', 'gudangTujuan'])->findOrFail($request->request_id);
+            $stockRequest = StockRequest::with(['items.produk.uom', 'gudangPemohon', 'gudangTujuan', 'batch'])->findOrFail($request->request_id);
 
             abort_if($stockRequest->status !== 'disetujui', 422, 'Hanya Request dengan status "disetujui" yang dapat dibuatkan Transfer.');
 
@@ -157,11 +166,13 @@ class TransferController extends Controller
             // and tujuan is applicant warehouse (gudang_pemohon_id in request)
             $defaultGudangAsalId = $stockRequest->gudang_tujuan_id;
             $defaultGudangTujuanId = $stockRequest->gudang_pemohon_id;
-            $defaultJenis = $stockRequest->jenis;
+            $defaultJenis = $stockRequest->jenis === 'request_bahan' ? 'pemenuhan_request_bahan' : 'kirim_produk_jadi';
+            $referensiBatchId = $stockRequest->referensi_batch_id;
 
             foreach ($stockRequest->items as $item) {
                 $stokTersedia = $this->stokService->saldo($item->produk_id, $defaultGudangAsalId);
                 $prefilledItems[] = [
+                    'request_item_id' => $item->id,
                     'produk_id' => $item->produk_id,
                     'sku' => $item->produk?->sku,
                     'nama' => $item->produk?->nama,
@@ -172,9 +183,47 @@ class TransferController extends Controller
                     'keterangan' => $item->keterangan,
                 ];
             }
+        } elseif ($request->filled('batch_id')) {
+            $batch = \App\Models\BatchProduksi::with(['outputs.produk', 'gudangOperasional', 'gudangTujuan', 'produk'])->findOrFail($request->batch_id);
+            $defaultGudangAsalId = $batch->gudang_operasional_id;
+            $defaultGudangTujuanId = $batch->gudang_tujuan_rencana_id;
+            $defaultJenis = 'kirim_produk_jadi';
+            $referensiBatchId = $batch->id;
+
+            if ($batch->outputs->isNotEmpty()) {
+                foreach ($batch->outputs as $out) {
+                    $stokTersedia = $defaultGudangAsalId ? $this->stokService->saldo($out->produk_id, $defaultGudangAsalId) : 0;
+                    $prefilledItems[] = [
+                        'produk_id' => $out->produk_id,
+                        'sku' => $out->produk?->sku,
+                        'nama' => $out->produk?->nama,
+                        'satuan' => $out->produk?->satuan ?? 'Pcs',
+                        'qty_diminta' => (float) ($out->qty_baik ?? $out->qty_rencana),
+                        'qty_dikirim' => (float) ($out->qty_baik ?? $out->qty_rencana),
+                        'stok_tersedia' => (float) $stokTersedia,
+                        'keterangan' => 'Hasil batch ' . $batch->no_batch,
+                    ];
+                }
+            } elseif ($batch->produk_id) {
+                $stokTersedia = $defaultGudangAsalId ? $this->stokService->saldo($batch->produk_id, $defaultGudangAsalId) : 0;
+                $prefilledItems[] = [
+                    'produk_id' => $batch->produk_id,
+                    'sku' => $batch->produk?->sku,
+                    'nama' => $batch->produk?->nama,
+                    'satuan' => $batch->produk?->satuan ?? 'Pcs',
+                    'qty_diminta' => (float) ($batch->qty_baik ?? $batch->qty_rencana),
+                    'qty_dikirim' => (float) ($batch->qty_baik ?? $batch->qty_rencana),
+                    'stok_tersedia' => (float) $stokTersedia,
+                    'keterangan' => 'Hasil batch ' . $batch->no_batch,
+                ];
+            }
         }
 
-        return view('transfers.create', compact('stockRequest', 'warehouses', 'products', 'defaultGudangAsalId', 'defaultGudangTujuanId', 'defaultJenis', 'prefilledItems'));
+        if ($request->filled('jenis') && in_array($request->jenis, Transfer::JENIS, true)) {
+            $defaultJenis = $request->jenis;
+        }
+
+        return view('transfers.create', compact('stockRequest', 'batch', 'referensiBatchId', 'warehouses', 'products', 'defaultGudangAsalId', 'defaultGudangTujuanId', 'defaultJenis', 'prefilledItems'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -183,6 +232,8 @@ class TransferController extends Controller
 
         $validated = $request->validate([
             'request_id' => 'nullable|exists:requests,id',
+            'batch_id' => 'nullable|exists:batch_produksi,id',
+            'referensi_batch_id' => 'nullable|exists:batch_produksi,id',
             'jenis' => 'nullable|string',
             'gudang_asal_id' => 'required|exists:gudang,id',
             'gudang_tujuan_id' => 'required|exists:gudang,id|different:gudang_asal_id',
@@ -190,6 +241,7 @@ class TransferController extends Controller
             'action' => 'nullable|in:save_draft,ship',
             'items' => 'required|array|min:1',
             'items.*.produk_id' => 'required|exists:produk,id',
+            'items.*.request_item_id' => 'nullable|exists:request_items,id',
             'items.*.qty_dikirim' => 'required|numeric|min:0.001',
             'items.*.keterangan' => 'nullable|string|max:255',
         ]);
@@ -197,12 +249,22 @@ class TransferController extends Controller
         try {
             DB::beginTransaction();
 
+            $jenisInput = $validated['jenis'] ?? null;
+            if ($jenisInput === 'distribusi') {
+                $jenisInput = 'antar_fulfillment';
+            }
+
             $jenis = 'antar_fulfillment';
+            $batchId = $validated['batch_id'] ?? $validated['referensi_batch_id'] ?? null;
+
             if (!empty($validated['request_id'])) {
                 $stockReq = StockRequest::findOrFail($validated['request_id']);
                 $jenis = $stockReq->jenis === 'request_bahan' ? 'pemenuhan_request_bahan' : 'kirim_produk_jadi';
-            } elseif (!empty($validated['jenis']) && in_array($validated['jenis'], Transfer::JENIS, true)) {
-                $jenis = $validated['jenis'];
+                if (!$batchId) {
+                    $batchId = $stockReq->referensi_batch_id;
+                }
+            } elseif (!empty($jenisInput) && in_array($jenisInput, Transfer::JENIS, true)) {
+                $jenis = $jenisInput;
             }
 
             $transferData = [
@@ -210,6 +272,7 @@ class TransferController extends Controller
                 'gudang_asal_id' => $validated['gudang_asal_id'],
                 'gudang_tujuan_id' => $validated['gudang_tujuan_id'],
                 'request_id' => $validated['request_id'] ?? null,
+                'referensi_batch_id' => $batchId,
                 'catatan' => $validated['catatan'] ?? null,
                 'items' => $validated['items'],
             ];
@@ -254,8 +317,14 @@ class TransferController extends Controller
         // Can ship if draft and user has permission
         $canShip = $transfer->status === 'draft' && ($isGudang || $isManager || (int) $transfer->created_by === (int) $user->id);
 
-        // Can receive if status is dikirim
-        $canReceive = $transfer->status === 'dikirim' && ($isManager || $isGudang || $isFulfillment || $isOperasional);
+        // Can receive if status is dikirim AND Segregation of Duties:
+        // non-managers cannot receive transfers they created themselves
+        $canReceive = $transfer->status === 'dikirim' && (
+            $isManager || (
+                ($isGudang || $isFulfillment || $isOperasional) &&
+                (int) $transfer->created_by !== (int) $user->id
+            )
+        );
 
         // Can cancel draft
         $canCancelDraft = $transfer->status === 'draft' && ($isManager || (int) $transfer->created_by === (int) $user->id);

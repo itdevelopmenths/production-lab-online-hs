@@ -75,6 +75,7 @@
         }
 
         $initialData = [
+            'supplierId' => (string) old('supplier_id', $defaultSupplierId ?? ''),
             'skemaBayar' => old('skema_bayar', 'cash'),
             'headerDiskon' => (float) old('diskon_total', 0),
             'headerPpn' => (float) old('ppn_nominal', 0),
@@ -125,7 +126,7 @@
                 <x-card title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <x-form-group name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
-                            <x-select name="supplier_id" placeholder="— Pilih Supplier —" :required="true">
+                            <x-select name="supplier_id" placeholder="— Pilih Supplier —" :required="true" x-model="supplierId">
                                 @foreach($suppliers as $s)
                                     <option value="{{ $s->id }}" @selected(old('supplier_id', $defaultSupplierId ?? '') == $s->id)>
                                         {{ $s->nama }} ({{ ucfirst($s->kategori) }})
@@ -208,6 +209,7 @@
                                                     selectedId: row.produk_id,
                                                     selectedItem: row.selectedItem,
                                                     filterTipe: ['bahan', 'kemas'],
+                                                    supplierId: () => supplierId,
                                                     placeholder: '— Pilih Bahan / Kemasan —',
                                                     url: '{{ route('produk.select-data', [], false) }}'
                                                 })"
@@ -512,7 +514,7 @@
                                 <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan (Rp)</label>
                                 <div class="w-48">
                                     <input type="hidden" name="adjustment" :value="headerAdj">
-                                    <input type="text" inputmode="numeric" :value="formatThousand(headerAdj)" @input="updateHeaderField('headerAdj', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background text-foreground font-mono focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
+                                    <input type="text" inputmode="numeric" :value="(headerAdj < 0 ? '-' : '') + formatThousand(Math.abs(headerAdj))" @input="updateHeaderAdj($event)" @keydown="handleKeyDown($event, true)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background font-mono focus:border-ring focus:ring-1 focus:ring-ring shadow-xs" :class="headerAdj < 0 ? 'text-destructive' : 'text-foreground'">
                                 </div>
                             </div>
                         </div>
@@ -672,6 +674,7 @@
             }));
 
             return {
+                supplierId: initial.supplierId || '',
                 uomList: @js($uomList ?? []),
                 skemaBayar: initial.skemaBayar || 'cash',
                 submitting: false,
@@ -877,7 +880,7 @@
                     return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
                 },
 
-                handleKeyDown(e) {
+                handleKeyDown(e, allowNegative = false) {
                     if ([46, 8, 9, 27, 13].indexOf(e.keyCode) !== -1 ||
                         (e.keyCode === 65 && (e.ctrlKey || e.metaKey)) ||
                         (e.keyCode === 67 && (e.ctrlKey || e.metaKey)) ||
@@ -886,9 +889,33 @@
                         (e.keyCode >= 35 && e.keyCode <= 40)) {
                         return;
                     }
+                    if (allowNegative && (e.key === '-' || e.keyCode === 189 || e.keyCode === 109)) {
+                        return;
+                    }
                     if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
                         e.preventDefault();
                     }
+                },
+
+                updateHeaderAdj(event) {
+                    const input = event.target;
+                    const oldVal = input.value;
+                    const isNegative = oldVal.includes('-') || (this.headerAdj < 0 && !oldVal.includes('+'));
+                    let rawDigits = oldVal.replace(/\D/g, '');
+                    if (rawDigits === '') {
+                        this.headerAdj = 0;
+                        input.value = '';
+                        this.recalcAll();
+                        return;
+                    }
+                    if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
+                        rawDigits = String(parseInt(rawDigits, 10) || 0);
+                    }
+                    const num = parseInt(rawDigits, 10);
+                    const absNum = isNaN(num) ? 0 : num;
+                    this.headerAdj = isNegative ? -absNum : absNum;
+                    input.value = (isNegative ? '-' : '') + this.formatThousand(absNum);
+                    this.recalcAll();
                 },
 
                 updateRowField(row, field, event) {

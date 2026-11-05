@@ -82,6 +82,16 @@ class BatchProduksi extends Model
         return $this->hasMany(RequestTransfer::class, 'referensi_batch_id');
     }
 
+    public function stockRequests(): HasMany
+    {
+        return $this->hasMany(StockRequest::class, 'referensi_batch_id');
+    }
+
+    public function modernTransfers(): HasMany
+    {
+        return $this->hasMany(Transfer::class, 'referensi_batch_id');
+    }
+
     public function transferKirim(): HasOne
     {
         return $this->hasOne(RequestTransfer::class, 'referensi_batch_id')
@@ -194,8 +204,12 @@ class BatchProduksi extends Model
         $hasModernTransfers = false;
         if (\Illuminate\Support\Facades\Schema::hasTable('transfers')) {
             $trfRows = \Illuminate\Support\Facades\DB::table('transfers as t')
+                ->leftJoin('requests as r', 'r.id', '=', 't.request_id')
                 ->join('transfer_items as ti', 'ti.transfer_id', '=', 't.id')
-                ->where('t.referensi_batch_id', $this->id)
+                ->where(function ($w) {
+                    $w->where('t.referensi_batch_id', $this->id)
+                        ->orWhere('r.referensi_batch_id', $this->id);
+                })
                 ->where('t.status', 'selesai')
                 ->where('t.jenis', 'pemenuhan_request_bahan')
                 ->select('ti.produk_id', \Illuminate\Support\Facades\DB::raw('SUM(COALESCE(ti.qty_baik, ti.qty_diterima, 0)) as total_diterima'))

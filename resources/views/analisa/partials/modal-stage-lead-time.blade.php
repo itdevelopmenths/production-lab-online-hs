@@ -42,10 +42,10 @@
                             <div class="text-[10px] text-muted-foreground font-normal">Analisa kebutuhan & perencanaan internal</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.average.perencanaan" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.average.perencanaan" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.max.perencanaan" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.max.perencanaan" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                     </tr>
                     <!-- 2. Approval / Persetujuan -->
@@ -55,10 +55,10 @@
                             <div class="text-[10px] text-muted-foreground font-normal">Waktu persetujuan approval order/PR internal</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.average.approval" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.average.approval" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.max.approval" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.max.approval" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                     </tr>
                     <!-- 3. Supplier Confirm -->
@@ -68,10 +68,10 @@
                             <div class="text-[10px] text-muted-foreground font-normal">Konfirmasi kesanggupan & ketersediaan supplier</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.average.supplier_confirm" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.average.supplier_confirm" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.max.supplier_confirm" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.max.supplier_confirm" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                     </tr>
                     <!-- 4. Payment / Pembayaran -->
@@ -81,10 +81,10 @@
                             <div class="text-[10px] text-muted-foreground font-normal">Proses DP / termin pembayaran supplier</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.average.payment" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.average.payment" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.max.payment" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.max.payment" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                     </tr>
                     <!-- 5. PO (Terbit PO Resmi) -->
@@ -94,10 +94,10 @@
                             <div class="text-[10px] text-muted-foreground font-normal">Tanggal PO resmi terbit ke vendor</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.average.po" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.average.po" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.max.po" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.max.po" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                     </tr>
                     <!-- 6. Pengemasan / Produksi Vendor -->
@@ -107,10 +107,10 @@
                             <div class="text-[10px] text-muted-foreground font-normal">Durasi pabrikasi & packaging vendor</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.average.pengemasan" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.average.pengemasan" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.max.pengemasan" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.max.pengemasan" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                     </tr>
                     <!-- 7. Pengiriman / Ekspedisi -->
@@ -120,10 +120,10 @@
                             <div class="text-[10px] text-muted-foreground font-normal">Waktu tempuh transit & ekspedisi pengiriman</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.average.pengiriman" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.average.pengiriman" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.max.pengiriman" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.max.pengiriman" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                     </tr>
                     <!-- 8. Unloading & Bongkar Muat -->
@@ -133,10 +133,10 @@
                             <div class="text-[10px] text-muted-foreground font-normal">Bongkar muat fisik dari armada pengangkut</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.average.unloading" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.average.unloading" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.max.unloading" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.max.unloading" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                     </tr>
                     <!-- 9. Input Sistem / QC Receiving -->
@@ -146,17 +146,17 @@
                             <div class="text-[10px] text-muted-foreground font-normal">Pengecekan QC fisik & input penerimaan ke sistem</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.average.input" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.average.input" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <input type="number" min="0" x-model.number="stageForm.max.input" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
+                            <input type="number" step="0.1" min="0" x-model.number="stageForm.max.input" class="w-24 text-center px-2.5 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-medium shadow-xs text-foreground">
                         </td>
                     </tr>
                     <!-- Subtotal Baris -->
                     <tr class="bg-muted/60 font-bold border-t-2 border-border text-foreground">
                         <td class="py-3 px-4 font-sans">TOTAL LEAD TIME TAHAP:</td>
-                        <td class="py-3 px-4 text-center text-foreground font-mono" x-text="stageSum('average') + ' Hari'"></td>
-                        <td class="py-3 px-4 text-center text-foreground font-mono" x-text="stageSum('max') + ' Hari'"></td>
+                        <td class="py-3 px-4 text-center text-foreground font-mono" x-text="formatLt(stageSum('average')) + ' Hari'"></td>
+                        <td class="py-3 px-4 text-center text-foreground font-mono" x-text="formatLt(stageSum('max')) + ' Hari'"></td>
                     </tr>
                 </tbody>
             </table>
@@ -172,7 +172,7 @@
                     <p class="text-[11px] text-muted-foreground mt-0.5">Buffer hari tambahan untuk mengantisipasi ketidakpastian pengiriman atau vendor peak season.</p>
                 </div>
                 <div class="w-32 shrink-0">
-                    <input type="number" min="0" x-model.number="stageForm.tambahan_buffer_hari" class="w-full text-right px-3 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground shadow-xs">
+                    <input type="number" step="0.1" min="0" x-model.number="stageForm.tambahan_buffer_hari" class="w-full text-right px-3 py-1.5 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground shadow-xs">
                 </div>
             </div>
 
@@ -180,15 +180,15 @@
             <div class="grid grid-cols-3 gap-3 pt-3 border-t border-border text-xs">
                 <div class="p-3 bg-card rounded-xl border border-border shadow-xs text-center">
                     <div class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Total Avg Lead Time</div>
-                    <div class="text-base font-bold font-mono text-foreground mt-0.5" x-text="stageSum('average') + ' Hari'"></div>
+                    <div class="text-base font-bold font-mono text-foreground mt-0.5" x-text="formatLt(stageSum('average')) + ' Hari'"></div>
                 </div>
                 <div class="p-3 bg-card rounded-xl border border-border shadow-xs text-center">
                     <div class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Total Max Lead Time</div>
-                    <div class="text-base font-bold font-mono text-foreground mt-0.5" x-text="stageSum('max') + ' Hari'"></div>
+                    <div class="text-base font-bold font-mono text-foreground mt-0.5" x-text="formatLt(stageSum('max')) + ' Hari'"></div>
                 </div>
                 <div class="p-3 bg-card rounded-xl border border-border shadow-xs text-center">
                     <div class="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Safety Stock (Hari)</div>
-                    <div class="text-base font-bold font-mono text-foreground mt-0.5" x-text="stageSafetyStock() + ' Hari'"></div>
+                    <div class="text-base font-bold font-mono text-foreground mt-0.5" x-text="formatLt(stageSafetyStock()) + ' Hari'"></div>
                     <div class="text-[10px] text-muted-foreground font-sans mt-0.5">(Max - Avg) + Buffer</div>
                 </div>
             </div>

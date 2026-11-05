@@ -1,4 +1,30 @@
 <x-app-layout title="Rencana Batch Baru">
+    @php
+        $oldOutputs = old('outputs');
+        $initialRows = [];
+        if (!empty($oldOutputs) && is_array($oldOutputs)) {
+            foreach ($oldOutputs as $out) {
+                $p = !empty($out['produk_id']) ? $produk->firstWhere('id', (int) $out['produk_id']) : null;
+                $initialRows[] = [
+                    'produk_id' => $out['produk_id'] ?? '',
+                    'qty_rencana' => $out['qty_rencana'] ?? '',
+                    'satuan' => $p?->satuan ?? '',
+                    'selectedItem' => $p ? ['id' => $p->id, 'nama' => $p->nama, 'sku' => $p->sku, 'satuan' => $p->satuan] : null,
+                ];
+            }
+        }
+        if (empty($initialRows)) {
+            $singlePid = old('produk_id', '');
+            $p = $singlePid ? $produk->firstWhere('id', (int) $singlePid) : null;
+            $initialRows[] = [
+                'produk_id' => $singlePid,
+                'qty_rencana' => old('qty_rencana', ''),
+                'satuan' => $p?->satuan ?? '',
+                'selectedItem' => $p ? ['id' => $p->id, 'nama' => $p->nama, 'sku' => $p->sku, 'satuan' => $p->satuan] : null,
+            ];
+        }
+    @endphp
+
     <div class="max-w-4xl mx-auto space-y-6">
         <x-page-header
             title="Rencana Batch Baru"
@@ -196,6 +222,39 @@
                             </div>
                         </x-slot:footer>
                     </x-card>
+
+                    {{-- Card 3: Pratinjau Agregasi Kebutuhan BOM --}}
+                    <x-card title="Pratinjau Agregasi Kebutuhan BOM" subtitle="Kalkulasi dinamis total kebutuhan bahan baku yang akan dialokasikan untuk seluruh produk jadi di atas" :noPadding="true">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs">
+                                <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                                    <tr>
+                                        <th class="px-4 py-2.5 text-left w-12">No</th>
+                                        <th class="px-4 py-2.5 text-left w-28">SKU</th>
+                                        <th class="px-4 py-2.5 text-left">Nama Bahan Baku</th>
+                                        <th class="px-4 py-2.5 text-right w-36">Total Kebutuhan</th>
+                                        <th class="px-4 py-2.5 text-left w-24">Satuan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border bg-card">
+                                    <template x-for="(bomItem, idx) in getBomPreview()" :key="bomItem.bahan_id">
+                                        <tr class="hover:bg-muted/30">
+                                            <td class="px-4 py-2.5 text-center text-muted-foreground" x-text="idx + 1"></td>
+                                            <td class="px-4 py-2.5 font-mono font-medium text-foreground" x-text="bomItem.sku"></td>
+                                            <td class="px-4 py-2.5 font-semibold text-foreground" x-text="bomItem.nama"></td>
+                                            <td class="px-4 py-2.5 text-right font-mono font-bold text-primary" x-text="Number(bomItem.total_kebutuhan).toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 4})"></td>
+                                            <td class="px-4 py-2.5 text-muted-foreground" x-text="bomItem.satuan"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="getBomPreview().length === 0">
+                                        <td colspan="5" class="px-4 py-6 text-center text-muted-foreground">
+                                            Pilih produk jadi dan tentukan kuantitas rencana di atas untuk melihat pratinjau kebutuhan alokasi bahan baku (BOM).
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-card>
                 </div>
             </form>
         </div>
@@ -206,15 +265,31 @@
     function batchCreateForm() {
         return {
             activeRow: null,
-            rows: [
-                {
-                    produk_id: '{{ old('produk_id', '') }}',
-                    qty_rencana: '{{ old('qty_rencana', '') }}',
-                    satuan: '',
-                    selectedItem: null
-                }
-            ]
-        }
+            bomMap: @json($bomMap ?? []),
+            rows: @json($initialRows),
+            getBomPreview() {
+                const aggregated = {};
+                (this.rows || []).forEach(row => {
+                    const pid = row.produk_id;
+                    const qty = parseFloat(row.qty_rencana) || 0;
+                    if (!pid || qty <= 0) return;
+                    const boms = this.bomMap[pid] || [];
+                    boms.forEach(b => {
+                        if (!aggregated[b.bahan_id]) {
+                            aggregated[b.bahan_id] = {
+                                bahan_id: b.bahan_id,
+                                sku: b.sku,
+                                nama: b.nama,
+                                satuan: b.satuan,
+                                total_kebutuhan: 0
+                            };
+                        }
+                        aggregated[b.bahan_id].total_kebutuhan += (b.qty_per_unit * qty);
+                    });
+                });
+                return Object.values(aggregated);
+            }
+        };
     }
     </script>
     @endpush

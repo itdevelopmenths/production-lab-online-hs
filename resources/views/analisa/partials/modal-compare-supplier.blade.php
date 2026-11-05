@@ -48,6 +48,8 @@
                             <th class="py-3 px-4 text-center">PO Selesai</th>
                             <th class="py-3 px-4 text-right">Avg LT</th>
                             <th class="py-3 px-4 text-right">Max LT</th>
+                            <th class="py-3 px-4 text-right">Est. Batas Minimum</th>
+                            <th class="py-3 px-4 text-right">Est. Target Stock</th>
                             <th class="py-3 px-4 text-right">Harga HPP</th>
                             <th class="py-3 px-4 text-right">Min Order</th>
                             <th class="py-3 px-4 text-center">Aksi</th>
@@ -61,7 +63,7 @@
                                         <div class="font-semibold text-foreground" x-text="s.supplier_nama"></div>
                                         <span x-show="s.is_current" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">AKTIF</span>
                                     </div>
-                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5" x-text="s.sumber_lt === 'otomatis' ? 'Riwayat Empiris PO' : 'Setting Manual Default'"></div>
+                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5" x-text="s.total_po_selesai > 0 ? 'Riwayat Empiris PO' : 'Manual (Fallback)'"></div>
                                 </td>
                                 <td class="py-3 px-3 text-center">
                                     <span class="px-2 py-0.5 rounded text-[10px] font-mono capitalize" :class="s.status === 'utama' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-muted text-muted-foreground'" x-text="s.status || 'terdaftar'"></span>
@@ -75,6 +77,8 @@
                                 <td class="py-3 px-4 text-right font-mono text-muted-foreground">
                                     <span x-text="formatLt(s.max_lt_days) + ' Hari'"></span>
                                 </td>
+                                <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatNumber(s.batas_minimum ?? s.simulasi_batas_minimum ?? 0)"></td>
+                                <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatNumber(s.target_stock ?? s.simulasi_target_stock ?? 0)"></td>
                                 <td class="py-3 px-4 text-right font-mono text-foreground" x-text="'Rp ' + formatNumber(s.harga_terakhir)"></td>
                                 <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatNumber(s.min_order_qty)"></td>
                                 <td class="py-3 px-4 text-center">
@@ -82,6 +86,7 @@
                                         <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Aktif</span>
                                     </template>
                                     <template x-if="!s.is_current">
+                                        @can('analisa.manage')
                                         <button 
                                             type="button" 
                                             @click="selectSupplier(s.supplier_id)" 
@@ -91,13 +96,16 @@
                                             <span x-show="!savingSelectSupplier">Gunakan Supplier</span>
                                             <span x-show="savingSelectSupplier">Menyimpan...</span>
                                         </button>
+                                        @else
+                                        <span class="text-xs text-muted-foreground">-</span>
+                                        @endcan
                                     </template>
                                 </td>
                             </tr>
                         </template>
                         <template x-if="compareProduct.suppliers.length === 0">
                             <tr>
-                                <td colspan="8" class="py-8 text-center text-muted-foreground text-xs">
+                                <td colspan="10" class="py-8 text-center text-muted-foreground text-xs">
                                     Belum ada daftar supplier yang dihubungkan untuk produk ini.
                                 </td>
                             </tr>

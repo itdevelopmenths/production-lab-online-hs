@@ -284,7 +284,7 @@ class SupplierLeadTimeService
         }
 
         DB::transaction(function () use ($poLt, $manager, $alasan) {
-            $poLt->loadMissing(['purchaseOrder.items']);
+            $poLt->loadMissing(['purchaseOrder.items', 'purchaseOrder.stages']);
 
             if (! $poLt->is_valid) {
                 return; // Sudah tidak valid
@@ -296,6 +296,13 @@ class SupplierLeadTimeService
             $poLt->save();
 
             $totalLtMenit = $poLt->total_lt_menit;
+
+            // Hitung durasi per stage untuk PO yang diinvalidasi
+            $poStages = $poLt->purchaseOrder->stages;
+            $stageDurations = [];
+            foreach (PoStage::STAGES as $stageKey) {
+                $stageDurations[$stageKey] = (int) $poStages->where('stage', $stageKey)->sum('durasi_menit');
+            }
 
             // 1. Kurangi dari SupplierLtSummary
             $sSummary = SupplierLtSummary::where('supplier_id', $poLt->supplier_id)->lockForUpdate()->first();
@@ -339,7 +346,42 @@ class SupplierLeadTimeService
                 ]);
             }
 
-            // 2. Kurangi dari SupplierProdukLtSummary untuk tiap SKU
+            // 1b. Kurangi dari SupplierLtStageSummary
+            $validPoIds = PoLeadTime::where('supplier_id', $poLt->supplier_id)
+                ->where('is_valid', true)
+                ->pluck('po_id');
+
+            foreach ($stageDurations as $stageKey => $durasi) {
+                $stageSum = SupplierLtStageSummary::where('supplier_id', $poLt->supplier_id)
+                    ->where('stage', $stageKey)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($stageSum && $stageSum->jumlah_transaksi > 0) {
+                    $stNewCount = max(0, $stageSum->jumlah_transaksi - 1);
+                    $stNewMenit = max(0, $stageSum->total_menit - $durasi);
+                    $stNewAvg = $stNewCount > 0 ? self::minutesToDays($stNewMenit / $stNewCount) : 0.0;
+
+                    $maxStageMenit = 0;
+                    if ($validPoIds->isNotEmpty()) {
+                        $maxStageMenit = (int) PoStage::whereIn('po_id', $validPoIds)
+                            ->where('stage', $stageKey)
+                            ->groupBy('po_id')
+                            ->selectRaw('SUM(durasi_menit) as total_stage_menit')
+                            ->pluck('total_stage_menit')
+                            ->max();
+                    }
+                    $stNewMax = self::minutesToDays($maxStageMenit);
+
+                    $stageSum->jumlah_transaksi = $stNewCount;
+                    $stageSum->total_menit = $stNewMenit;
+                    $stageSum->average_hari = $stNewAvg;
+                    $stageSum->max_hari = $stNewMax;
+                    $stageSum->save();
+                }
+            }
+
+            // 2. Kurangi dari SupplierProdukLtSummary dan SupplierProdukLtStageSummary untuk tiap SKU
             $distinctProductIds = $poLt->purchaseOrder->items->pluck('produk_id')->filter()->unique()->all();
             foreach ($distinctProductIds as $produkId) {
                 $spSummary = SupplierProdukLtSummary::where('supplier_id', $poLt->supplier_id)
@@ -357,12 +399,12 @@ class SupplierLeadTimeService
                     $spNewTotalMenit = max(0, $spPrevTotalMenit - $totalLtMenit);
                     $spNewAvgHari = $spNewCount > 0 ? self::minutesToDays($spNewTotalMenit / $spNewCount) : 0.0;
 
-                    // Cari max baru untuk pasangan produk-supplier yang valid
-                    $validPoIds = PurchaseOrder::where('supplier_id', $poLt->supplier_id)
+                    $validPoIdsForProduk = PurchaseOrder::where('supplier_id', $poLt->supplier_id)
                         ->whereHas('items', fn ($q) => $q->where('produk_id', $produkId))
+                        ->whereHas('leadTime', fn ($q) => $q->where('is_valid', true))
                         ->pluck('id');
 
-                    $spNewMaxHari = (float) (PoLeadTime::whereIn('po_id', $validPoIds)
+                    $spNewMaxHari = (float) (PoLeadTime::whereIn('po_id', $validPoIdsForProduk)
                         ->where('is_valid', true)
                         ->max('total_lt_hari') ?? 0.0);
 
@@ -389,6 +431,38 @@ class SupplierLeadTimeService
                         'dicatat_oleh' => $manager->id,
                         'dicatat_pada' => now(),
                     ]);
+
+                    // SupplierProdukLtStageSummary
+                    foreach ($stageDurations as $stageKey => $durasi) {
+                        $spStageSum = SupplierProdukLtStageSummary::where('supplier_id', $poLt->supplier_id)
+                            ->where('produk_id', $produkId)
+                            ->where('stage', $stageKey)
+                            ->lockForUpdate()
+                            ->first();
+
+                        if ($spStageSum && $spStageSum->jumlah_transaksi > 0) {
+                            $spStNewCount = max(0, $spStageSum->jumlah_transaksi - 1);
+                            $spStNewMenit = max(0, $spStageSum->total_menit - $durasi);
+                            $spStNewAvg = $spStNewCount > 0 ? self::minutesToDays($spStNewMenit / $spStNewCount) : 0.0;
+
+                            $maxSpStageMenit = 0;
+                            if ($validPoIdsForProduk->isNotEmpty()) {
+                                $maxSpStageMenit = (int) PoStage::whereIn('po_id', $validPoIdsForProduk)
+                                    ->where('stage', $stageKey)
+                                    ->groupBy('po_id')
+                                    ->selectRaw('SUM(durasi_menit) as total_stage_menit')
+                                    ->pluck('total_stage_menit')
+                                    ->max();
+                            }
+                            $spStNewMax = self::minutesToDays($maxSpStageMenit);
+
+                            $spStageSum->jumlah_transaksi = $spStNewCount;
+                            $spStageSum->total_menit = $spStNewMenit;
+                            $spStageSum->average_hari = $spStNewAvg;
+                            $spStageSum->max_hari = $spStNewMax;
+                            $spStageSum->save();
+                        }
+                    }
                 }
             }
         });

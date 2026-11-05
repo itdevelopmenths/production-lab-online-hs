@@ -82,7 +82,18 @@ class BatchController extends Controller
         $gudangOp = Gudang::active()->where('tipe', 'operasional')->orderBy('nama')->get(['id', 'nama']);
         $gudangFf = Gudang::active()->fulfillment()->orderBy('nama')->get(['id', 'nama']);
 
-        return view('batches.create', compact('produk', 'gudangOp', 'gudangFf'));
+        $bomMap = \App\Models\Bom::with('bahan:id,sku,nama,satuan')
+            ->get()
+            ->groupBy('produk_jadi_id')
+            ->map(fn ($items) => $items->map(fn ($b) => [
+                'bahan_id' => $b->bahan_id,
+                'nama' => $b->bahan?->nama ?? '-',
+                'sku' => $b->bahan?->sku ?? '-',
+                'satuan' => $b->bahan?->satuan ?? 'pcs',
+                'qty_per_unit' => (float) $b->qty_per_unit,
+            ]));
+
+        return view('batches.create', compact('produk', 'gudangOp', 'gudangFf', 'bomMap'));
     }
 
     public function store(Request $request)
@@ -187,6 +198,12 @@ class BatchController extends Controller
             'alokasi.bahan:id,sku,nama,satuan,tipe',
             'opname.bahan:id,nama',
             'transferKirim:id,no_transaksi,referensi_batch_id,status,gudang_asal_id,gudang_tujuan_id',
+            'stockRequests.gudangPemohon',
+            'stockRequests.gudangTujuan',
+            'modernTransfers.gudangAsal',
+            'modernTransfers.gudangTujuan',
+            'transfers.gudangAsal',
+            'transfers.gudangTujuan',
         ]);
 
         $bahanIds = $batch->alokasi->pluck('bahan_id')->unique()->filter()->values();

@@ -67,7 +67,7 @@ class PurchasingStageController extends Controller
                 break;
 
             case PoStage::STAGE_7:
-                $this->authorize('purchasing.edit');
+                abort_unless(auth()->user()->can('purchasing.edit') || auth()->user()->can('purchasing.receive'), 403);
                 $shippingData = $request->input('shipping', []);
                 $this->stageService->completeStage7($purchaseOrder, auth()->user(), $shippingData, $waktuSelesai, $catatan);
                 break;

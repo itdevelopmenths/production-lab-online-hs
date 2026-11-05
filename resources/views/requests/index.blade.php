@@ -17,7 +17,7 @@
             this.alasan = '';
             this.openCancelModal = true;
         }
-    }">
+    }" @open-reject-modal.window="initReject($event.detail.action, $event.detail.no)" @open-cancel-modal.window="initCancel($event.detail.action, $event.detail.no)">
         <x-card>
             <x-slot:header>
                 <div>
@@ -143,7 +143,7 @@
                 },
                 columns: [
                     { data: 'no_request', name: 'no_request', className: 'font-mono text-xs font-semibold text-primary-600' },
-                    { data: 'tanggal_request', name: 'tanggal_request' },
+                    { data: 'tanggal_request', name: 'created_at' },
                     { data: 'jenis', name: 'jenis' },
                     { data: 'pemohon', name: 'gudangPemohon.nama' },
                     { data: 'tujuan', name: 'gudangTujuan.nama' },
@@ -156,6 +156,20 @@
 
             $('#filterJenis, #filterStatus').on('change', function() {
                 table.draw();
+            });
+
+            $('#tblRequests').on('click', '.btn-reject-req', function(e) {
+                e.preventDefault();
+                const action = $(this).data('action');
+                const no = $(this).data('no');
+                window.dispatchEvent(new CustomEvent('open-reject-modal', { detail: { action: action, no: no } }));
+            });
+
+            $('#tblRequests').on('click', '.btn-cancel-req', function(e) {
+                e.preventDefault();
+                const action = $(this).data('action');
+                const no = $(this).data('no');
+                window.dispatchEvent(new CustomEvent('open-cancel-modal', { detail: { action: action, no: no } }));
             });
         });
     </script>

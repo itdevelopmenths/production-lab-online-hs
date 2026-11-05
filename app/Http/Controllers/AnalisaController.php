@@ -22,17 +22,20 @@ use App\Models\Uom;
 use App\Services\AnalisaService;
 use App\Services\Purchasing\PurchasingCostCalculator;
 use App\Services\Purchasing\PurchasingPaymentService;
+use App\Services\Purchasing\PurchasingStageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AnalisaController extends Controller
 {
     public function __construct(
         private readonly AnalisaService $analisa,
         private readonly PurchasingCostCalculator $calculator,
-        private readonly PurchasingPaymentService $paymentService
+        private readonly PurchasingPaymentService $paymentService,
+        private readonly PurchasingStageService $stageService
     ) {
     }
 
@@ -99,11 +102,11 @@ class AnalisaController extends Controller
                 'supplier_kategori' => $al?->supplierTerpilih?->kategori ?? $rek->produk?->supplier?->kategori ?? '-',
                 'sumber_lt' => $al?->sumber_lt ?? 'manual',
                 'faktor_konversi' => (float) ($rek->produk?->faktor_konversi ?: 1),
-                'total_avg_lead_time' => (float) ($lt?->total_average_lead_time ?? $al?->total_average_lead_time ?? 0),
-                'total_max_lead_time' => (float) ($lt?->total_max_lead_time ?? 0),
-                'tambahan_buffer_hari' => (float) ($lt?->tambahan_buffer_hari ?? 0),
-                'safety_stock' => (float) ($lt?->safety_stock ?? $al?->safety_stock ?? 0),
-                'safety_stock_hari' => (float) ($lt?->safety_stock ?? $al?->safety_stock ?? 0),
+                'total_avg_lead_time' => AnalisaService::roundLeadTimeDays((float) ($lt?->total_average_lead_time ?? $al?->total_average_lead_time ?? 0)),
+                'total_max_lead_time' => AnalisaService::roundLeadTimeDays((float) ($lt?->total_max_lead_time ?? 0)),
+                'tambahan_buffer_hari' => AnalisaService::roundLeadTimeDays((float) ($lt?->tambahan_buffer_hari ?? 0)),
+                'safety_stock' => AnalisaService::roundLeadTimeDays((float) ($lt?->safety_stock ?? $al?->safety_stock ?? 0)),
+                'safety_stock_hari' => AnalisaService::roundLeadTimeDays((float) ($lt?->safety_stock ?? $al?->safety_stock ?? 0)),
                 'terjual_rata_rata_4bulan' => (float) round($al?->terjual_rata_rata_4bulan ?? 0),
                 'adu' => (float) round($al?->adu ?? 0),
                 'review_period' => (int) ($al?->review_period ?? 15),
@@ -138,35 +141,35 @@ class AnalisaController extends Controller
                 'satuan' => $p?->satuan,
                 'supplier_id' => $p?->supplier_id,
                 'supplier_nama' => $p?->supplier?->nama ?? '-',
-                'tambahan_buffer_hari' => (int) ($lt?->tambahan_buffer_hari ?? 0),
-                'safety_stock' => (int) ($lt?->safety_stock ?? 0),
-                'total_average_lead_time' => (int) ($lt?->total_average_lead_time ?? 0),
-                'total_max_lead_time' => (int) ($lt?->total_max_lead_time ?? 0),
+                'tambahan_buffer_hari' => AnalisaService::roundLeadTimeDays((float) ($lt?->tambahan_buffer_hari ?? 0)),
+                'safety_stock' => AnalisaService::roundLeadTimeDays((float) ($lt?->safety_stock ?? 0)),
+                'total_average_lead_time' => AnalisaService::roundLeadTimeDays((float) ($lt?->total_average_lead_time ?? 0)),
+                'total_max_lead_time' => AnalisaService::roundLeadTimeDays((float) ($lt?->total_max_lead_time ?? 0)),
                 'average' => $avg ? [
                     'id' => $avg->id,
-                    'perencanaan' => $avg->perencanaan,
-                    'approval' => $avg->approval,
-                    'supplier_confirm' => $avg->supplier_confirm,
-                    'payment' => $avg->payment,
-                    'po' => $avg->po,
-                    'pengemasan' => $avg->pengemasan,
-                    'pengiriman' => $avg->pengiriman,
-                    'unloading' => $avg->unloading,
-                    'input' => $avg->input,
-                    'total' => $avg->totalHari(),
+                    'perencanaan' => AnalisaService::roundLeadTimeDays((float) ($avg->perencanaan ?? 0)),
+                    'approval' => AnalisaService::roundLeadTimeDays((float) ($avg->approval ?? 0)),
+                    'supplier_confirm' => AnalisaService::roundLeadTimeDays((float) ($avg->supplier_confirm ?? 0)),
+                    'payment' => AnalisaService::roundLeadTimeDays((float) ($avg->payment ?? 0)),
+                    'po' => AnalisaService::roundLeadTimeDays((float) ($avg->po ?? 0)),
+                    'pengemasan' => AnalisaService::roundLeadTimeDays((float) ($avg->pengemasan ?? 0)),
+                    'pengiriman' => AnalisaService::roundLeadTimeDays((float) ($avg->pengiriman ?? 0)),
+                    'unloading' => AnalisaService::roundLeadTimeDays((float) ($avg->unloading ?? 0)),
+                    'input' => AnalisaService::roundLeadTimeDays((float) ($avg->input ?? 0)),
+                    'total' => AnalisaService::roundLeadTimeDays((float) $avg->totalHari()),
                 ] : null,
                 'max' => $max ? [
                     'id' => $max->id,
-                    'perencanaan' => $max->perencanaan,
-                    'approval' => $max->approval,
-                    'supplier_confirm' => $max->supplier_confirm,
-                    'payment' => $max->payment,
-                    'po' => $max->po,
-                    'pengemasan' => $max->pengemasan,
-                    'pengiriman' => $max->pengiriman,
-                    'unloading' => $max->unloading,
-                    'input' => $max->input,
-                    'total' => $max->totalHari(),
+                    'perencanaan' => AnalisaService::roundLeadTimeDays((float) ($max->perencanaan ?? 0)),
+                    'approval' => AnalisaService::roundLeadTimeDays((float) ($max->approval ?? 0)),
+                    'supplier_confirm' => AnalisaService::roundLeadTimeDays((float) ($max->supplier_confirm ?? 0)),
+                    'payment' => AnalisaService::roundLeadTimeDays((float) ($max->payment ?? 0)),
+                    'po' => AnalisaService::roundLeadTimeDays((float) ($max->po ?? 0)),
+                    'pengemasan' => AnalisaService::roundLeadTimeDays((float) ($max->pengemasan ?? 0)),
+                    'pengiriman' => AnalisaService::roundLeadTimeDays((float) ($max->pengiriman ?? 0)),
+                    'unloading' => AnalisaService::roundLeadTimeDays((float) ($max->unloading ?? 0)),
+                    'input' => AnalisaService::roundLeadTimeDays((float) ($max->input ?? 0)),
+                    'total' => AnalisaService::roundLeadTimeDays((float) $max->totalHari()),
                 ] : null,
             ];
         }
@@ -218,31 +221,31 @@ class AnalisaController extends Controller
             'stages' => ['required', 'array'],
             'stages.*.id' => ['nullable', 'integer'],
             'stages.*.skenario' => ['nullable', 'in:average,max'],
-            'stages.*.perencanaan' => ['nullable', 'integer', 'min:0'],
-            'stages.*.approval' => ['nullable', 'integer', 'min:0'],
-            'stages.*.supplier_confirm' => ['nullable', 'integer', 'min:0'],
-            'stages.*.payment' => ['nullable', 'integer', 'min:0'],
-            'stages.*.po' => ['nullable', 'integer', 'min:0'],
-            'stages.*.pengemasan' => ['nullable', 'integer', 'min:0'],
-            'stages.*.pengiriman' => ['nullable', 'integer', 'min:0'],
-            'stages.*.unloading' => ['nullable', 'integer', 'min:0'],
-            'stages.*.input' => ['nullable', 'integer', 'min:0'],
-            'tambahan_buffer_hari' => ['nullable', 'integer', 'min:0'],
+            'stages.*.perencanaan' => ['nullable', 'numeric', 'min:0'],
+            'stages.*.approval' => ['nullable', 'numeric', 'min:0'],
+            'stages.*.supplier_confirm' => ['nullable', 'numeric', 'min:0'],
+            'stages.*.payment' => ['nullable', 'numeric', 'min:0'],
+            'stages.*.po' => ['nullable', 'numeric', 'min:0'],
+            'stages.*.pengemasan' => ['nullable', 'numeric', 'min:0'],
+            'stages.*.pengiriman' => ['nullable', 'numeric', 'min:0'],
+            'stages.*.unloading' => ['nullable', 'numeric', 'min:0'],
+            'stages.*.input' => ['nullable', 'numeric', 'min:0'],
+            'tambahan_buffer_hari' => ['nullable', 'numeric', 'min:0'],
             'produk_id' => ['nullable', 'exists:produk,id'],
         ]);
 
         DB::transaction(function () use ($data) {
             foreach ($data['stages'] as $stg) {
                 $payload = [
-                    'perencanaan' => (int) ($stg['perencanaan'] ?? 0),
-                    'approval' => (int) ($stg['approval'] ?? 0),
-                    'supplier_confirm' => (int) ($stg['supplier_confirm'] ?? 0),
-                    'payment' => (int) ($stg['payment'] ?? 0),
-                    'po' => (int) ($stg['po'] ?? 0),
-                    'pengemasan' => (int) ($stg['pengemasan'] ?? 0),
-                    'pengiriman' => (int) ($stg['pengiriman'] ?? 0),
-                    'unloading' => (int) ($stg['unloading'] ?? 0),
-                    'input' => (int) ($stg['input'] ?? 0),
+                    'perencanaan' => AnalisaService::roundLeadTimeDays((float) ($stg['perencanaan'] ?? 0)),
+                    'approval' => AnalisaService::roundLeadTimeDays((float) ($stg['approval'] ?? 0)),
+                    'supplier_confirm' => AnalisaService::roundLeadTimeDays((float) ($stg['supplier_confirm'] ?? 0)),
+                    'payment' => AnalisaService::roundLeadTimeDays((float) ($stg['payment'] ?? 0)),
+                    'po' => AnalisaService::roundLeadTimeDays((float) ($stg['po'] ?? 0)),
+                    'pengemasan' => AnalisaService::roundLeadTimeDays((float) ($stg['pengemasan'] ?? 0)),
+                    'pengiriman' => AnalisaService::roundLeadTimeDays((float) ($stg['pengiriman'] ?? 0)),
+                    'unloading' => AnalisaService::roundLeadTimeDays((float) ($stg['unloading'] ?? 0)),
+                    'input' => AnalisaService::roundLeadTimeDays((float) ($stg['input'] ?? 0)),
                 ];
                 if (! empty($stg['id'])) {
                     LeadTimeLokalStage::where('id', $stg['id'])->update($payload);
@@ -258,7 +261,7 @@ class AnalisaController extends Controller
                 if (isset($data['tambahan_buffer_hari'])) {
                     LeadTimeLokal::updateOrCreate(
                         ['produk_id' => $data['produk_id']],
-                        ['tambahan_buffer_hari' => (int) $data['tambahan_buffer_hari']]
+                        ['tambahan_buffer_hari' => AnalisaService::roundLeadTimeDays((float) $data['tambahan_buffer_hari'])]
                     );
                 }
                 $this->analisa->generateLokal((int) $data['produk_id'], auth()->id());
@@ -289,7 +292,7 @@ class AnalisaController extends Controller
             'produk_id' => ['required', 'exists:produk,id'],
             'terjual_rata_rata_4bulan' => ['nullable', 'numeric', 'min:0'],
             'review_period' => ['nullable', 'integer', 'min:1'],
-            'tambahan_buffer_hari' => ['nullable', 'integer', 'min:0'],
+            'tambahan_buffer_hari' => ['nullable', 'numeric', 'min:0'],
             'stok_saat_ini' => ['nullable', 'numeric', 'min:0'],
             'harga_ml_pcs' => ['nullable', 'numeric', 'min:0'],
         ]);
@@ -317,7 +320,7 @@ class AnalisaController extends Controller
             if (array_key_exists('tambahan_buffer_hari', $data) && $data['tambahan_buffer_hari'] !== null) {
                 LeadTimeLokal::updateOrCreate(
                     ['produk_id' => $prodId],
-                    ['tambahan_buffer_hari' => (int) $data['tambahan_buffer_hari']]
+                    ['tambahan_buffer_hari' => AnalisaService::roundLeadTimeDays((float) $data['tambahan_buffer_hari'])]
                 );
             }
 
@@ -562,7 +565,7 @@ class AnalisaController extends Controller
     {
         $this->authorize('analisa.view');
 
-        $rows = RiwayatAnalisa::with('pencatat:id,name')->latest()->limit(500)->get()
+        $rows = RiwayatAnalisa::with(['pencatat:id,name', 'supplier:id,nama'])->latest()->limit(500)->get()
             ->map(fn ($r) => [
                 'id' => $r->id,
                 'session_id' => $r->session_id ?? '-',
@@ -570,6 +573,11 @@ class AnalisaController extends Controller
                 'tipe' => ucwords(str_replace('_', ' ', $r->tipe)),
                 'tipe_raw' => $r->tipe,
                 'item_label' => $r->item_label,
+                'supplier_id' => $r->supplier_id,
+                'supplier_nama' => $r->supplier?->nama ?? ($r->detail_payload['supplier_nama'] ?? '-'),
+                'average_lt_dipakai' => $r->average_lt_dipakai !== null ? (float) $r->average_lt_dipakai : null,
+                'max_lt_dipakai' => $r->max_lt_dipakai !== null ? (float) $r->max_lt_dipakai : null,
+                'sumber_lt' => $r->sumber_lt ?? '-',
                 'batas_minimum' => (float) $r->batas_minimum,
                 'target_stock' => (float) $r->target_stock,
                 'status' => $r->status,
@@ -836,6 +844,28 @@ class AnalisaController extends Controller
             'termins.*.keterangan' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $supplierId = (int) $data['supplier_id'];
+        $itemProdukIds = collect($data['items'])->pluck('produk_id')->all();
+
+        $invalidProdukNames = Produk::whereIn('id', $itemProdukIds)
+            ->where(function ($query) use ($supplierId) {
+                $query->whereDoesntHave('suppliers', function ($q) use ($supplierId) {
+                    $q->where('supplier.id', $supplierId)
+                      ->where('produk_supplier.status', 'aktif');
+                })
+                ->where(function ($q) use ($supplierId) {
+                    $q->whereNull('supplier_id')
+                      ->orWhere('supplier_id', '!=', $supplierId);
+                });
+            })
+            ->pluck('nama');
+
+        if ($invalidProdukNames->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'items' => 'Item produk berikut tidak terdaftar aktif pada supplier yang dipilih: ' . $invalidProdukNames->implode(', ') . '.',
+            ]);
+        }
+
         $totals = $this->calculator->calculatePoTotals(
             $data['items'],
             (float) ($data['diskon_total'] ?? 0),
@@ -875,6 +905,8 @@ class AnalisaController extends Controller
             if (! empty($data['termins']) && ($data['skema_bayar'] ?? '') === 'termin') {
                 $this->paymentService->createTerminsForPo($po, $data['termins']);
             }
+
+            $this->stageService->initializePoStages($po, now(), auth()->user());
 
             return $po;
         });

@@ -10,8 +10,10 @@
             default => 'gray',
         };
         $canSeePrice = $canSeePrice ?? auth()->user()->can('purchasing.price.view');
+        $hasStages = $po->relationLoaded('stages') && $po->stages->isNotEmpty();
     @endphp
 
+    <div x-data="{ openDirectEditModal: false, openRevisiModal: false, openInvalidateModal: false }">
     <!-- Page Header & Action Tools -->
     <x-page-header
         :title="$po->no_po . ($po->no_invoice ? ' · ' . $po->no_invoice : '')"
@@ -46,13 +48,24 @@
             @endif
 
             @can('purchasing.edit')
-                @if(in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty())
+                @if(($po->stage_aktif === null || $po->stage_aktif === \App\Models\PoStage::STAGE_1) && in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty())
                     <x-button href="{{ route('purchasing.edit', $po) }}" variant="warning" size="xs">
                         <x-slot:icon>
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </x-slot:icon>
                         Edit PO
                     </x-button>
+                @endif
+
+                @if($hasStages && !in_array($po->status, ['selesai', 'dibatalkan']))
+                    <button type="button" @click="openDirectEditModal = true" class="px-2.5 py-1 text-xs rounded-md border border-border bg-card text-foreground hover:bg-muted font-medium cursor-pointer shadow-xs">
+                        Direct Edit
+                    </button>
+                    @if(!in_array($po->stage_aktif, [\App\Models\PoStage::STAGE_8, \App\Models\PoStage::STAGE_9]))
+                        <button type="button" @click="openRevisiModal = true" class="px-2.5 py-1 text-xs rounded-md border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 font-medium cursor-pointer shadow-xs">
+                            Ajukan Revisi
+                        </button>
+                    @endif
                 @endif
             @endcan
 
@@ -64,8 +77,114 @@
 
     <!-- Progress Status Stepper (Requirement 6) -->
     <div class="mb-5">
-        <x-purchasing-progress-stepper :po="$po" />
+        <x-purchasing-progress-stepper :po="$po" :stageBenchmarks="$stageBenchmarks ?? null" />
     </div>
+
+    {{-- Panel Approval Usulan Revisi Komitmen (PRD v2.4) --}}
+    @if($po->relationLoaded('revisis') && $po->revisis->where('status', 'menunggu')->count() > 0)
+    <div class="mb-5 bg-amber-50/90 border-2 border-amber-400 rounded-xl p-4 shadow-xs space-y-3">
+        <div class="flex items-center gap-2 text-amber-950 font-bold text-xs">
+            <span class="size-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span>Antrean Persetujuan Revisi Komitmen (Revisi ke-{{ $po->revisis->where('status', 'menunggu')->first()->revisi_ke }})</span>
+        </div>
+        @foreach($po->revisis->where('status', 'menunggu') as $rev)
+            <div class="bg-white rounded-lg p-3.5 border border-amber-200 text-xs space-y-2.5">
+                <div class="flex flex-wrap justify-between items-center gap-2">
+                    <div>
+                        <span class="text-muted-foreground">Diajukan oleh:</span> <strong>{{ $rev->requester?->name ?? 'Purchasing' }}</strong>
+                        <span class="text-muted-foreground ml-2">pada:</span> {{ $rev->created_at->format('d/m/Y H:i') }}
+                    </div>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Menunggu Approval Manager</span>
+                </div>
+                <div class="p-2.5 bg-amber-50/60 rounded border border-amber-100 text-amber-900">
+                    <strong>Alasan Revisi:</strong> {{ $rev->alasan }}
+                </div>
+
+                {{-- Tabel Perbandingan Data Usulan vs Sebelum --}}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-[11px] text-left border border-border">
+                        <thead class="bg-muted text-muted-foreground font-semibold">
+                            <tr>
+                                <th class="p-2 border-b">Parameter</th>
+                                <th class="p-2 border-b">Data Sebelumnya</th>
+                                <th class="p-2 border-b text-blue-700 bg-blue-50/50">Data Usulan Baru</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border">
+                            @php
+                                $dSeb = $rev->data_sebelum ?? [];
+                                $dUsul = $rev->data_usulan ?? [];
+                            @endphp
+                            @foreach($dUsul as $k => $val)
+                                @if($k === 'items' && is_array($val))
+                                    <tr>
+                                        <td class="p-2 font-bold" colspan="3">Item Bahan Baku / Harga:</td>
+                                    </tr>
+                                    @foreach($val as $itemIdx => $itUsul)
+                                        @php
+                                            $poItemMatch = $po->items->firstWhere('id', $itUsul['po_item_id'] ?? $itemIdx) ?? $po->items->first();
+                                            $namaIt = $poItemMatch?->produk?->nama ?? 'Item #' . $itemIdx;
+                                        @endphp
+                                        <tr class="bg-muted/10">
+                                            <td class="p-2 pl-4">{{ $namaIt }}</td>
+                                            <td class="p-2 font-mono">
+                                                Qty: {{ $poItemMatch?->qty }}
+                                                @if($canSeePrice)
+                                                    · Rp {{ number_format((float) ($poItemMatch?->harga_total ?? 0), 0, ',', '.') }}
+                                                @endif
+                                            </td>
+                                            <td class="p-2 font-mono font-bold text-blue-700 bg-blue-50/40">
+                                                Qty: {{ $itUsul['qty'] ?? '—' }}
+                                                @if($canSeePrice && isset($itUsul['harga_total']))
+                                                    · Rp {{ number_format((float) $itUsul['harga_total'], 0, ',', '.') }}
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @else
+                                    <tr>
+                                        <td class="p-2 font-medium">{{ ucwords(str_replace('_', ' ', $k)) }}</td>
+                                        <td class="p-2 font-mono text-muted-foreground">{{ is_array($dSeb[$k] ?? null) ? json_encode($dSeb[$k]) : ($dSeb[$k] ?? '—') }}</td>
+                                        <td class="p-2 font-mono font-bold text-blue-700 bg-blue-50/40">{{ is_array($val) ? json_encode($val) : $val }}</td>
+                                    </tr>
+                                @endif
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                @can('purchasing.approve')
+                <div class="pt-2 flex items-center justify-end gap-2" x-data="{ openRejectRev: false, alasanReject: '' }">
+                    <form method="POST" action="{{ route('purchasing.revisi.approve', $rev) }}" class="inline">
+                        @csrf
+                        <x-button type="submit" variant="success" size="xs">
+                            ✓ Setujui Revisi Komitmen
+                        </x-button>
+                    </form>
+
+                    <button type="button" @click="openRejectRev = true" class="px-2.5 py-1 text-xs rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium">
+                        ✕ Tolak Usulan
+                    </button>
+
+                    <div x-show="openRejectRev" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" x-cloak>
+                        <div class="bg-card rounded-xl border border-border p-4 max-w-sm w-full space-y-3">
+                            <h4 class="font-bold text-xs">Alasan Penolakan Revisi</h4>
+                            <form method="POST" action="{{ route('purchasing.revisi.reject', $rev) }}" class="space-y-3">
+                                @csrf
+                                <textarea name="alasan" x-model="alasanReject" required minlength="3" placeholder="Masukkan alasan penolakan..." class="w-full text-xs p-2 rounded border border-border bg-background" rows="3"></textarea>
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" @click="openRejectRev = false" class="px-2 py-1 text-xs text-muted-foreground">Batal</button>
+                                    <button type="submit" :disabled="alasanReject.trim().length < 3" class="px-2.5 py-1 text-xs rounded bg-destructive text-destructive-foreground disabled:opacity-50">Tolak Usulan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endcan
+            </div>
+        @endforeach
+    </div>
+    @endif
 
     <!-- Metadata Singkat PO -->
     <div class="grid grid-cols-2 {{ $po->skema_bayar === 'tempo' ? 'sm:grid-cols-5' : 'sm:grid-cols-4' }} gap-3 mb-5">
@@ -394,10 +513,297 @@
             </x-card>
             @endif
             @endcan
+
+            {{-- Formulir Pemeriksaan Fisik & Unloading (Stage 8 PRD v2.4) --}}
+            @can('purchasing.receive')
+            @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_8)
+            <x-card title="Pemeriksaan Fisik & Unloading di Gudang (Tahap 8)" subtitle="Hitung kuantitas fisik aktual yang diturunkan di gudang. Selisih wajib dicatat dengan keterangan." variant="primary">
+                <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_8]) }}" class="space-y-4" x-data="bardatForm()">
+                    @csrf
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-foreground mb-1">Gudang Penerima</label>
+                            @php
+                                $targetGudang = $po->gudang ?? $gudang->firstWhere('id', $po->gudang_id) ?? $gudang->first();
+                            @endphp
+                            <input type="hidden" name="physical_check[gudang_id]" value="{{ $targetGudang?->id }}">
+                            <input type="text" value="{{ $targetGudang?->nama ?? '—' }}" class="w-full rounded-lg border border-border bg-muted text-xs p-2 text-foreground cursor-not-allowed" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-foreground mb-1">Kondisi Fisik Muatan <span class="text-destructive">*</span></label>
+                            <select name="physical_check[kondisi]" class="w-full rounded-lg border border-border bg-card text-xs p-2">
+                                <option value="baik">Baik (Sesuai Standar)</option>
+                                <option value="rusak_sebagian">Rusak Sebagian</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-border pt-3 space-y-3">
+                        <p class="text-xs font-bold text-foreground uppercase tracking-wider">Perhitungan Fisik Bahan Baku:</p>
+                        @foreach($po->items as $i => $it)
+                        <div class="p-3 bg-muted/40 border border-border rounded-lg text-xs space-y-2">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div>
+                                    <span class="font-bold text-foreground">{{ $it->produk->nama }}</span>
+                                    <span class="font-mono text-muted-foreground text-[11px]">({{ $it->produk->sku }}) · Order: {{ $it->qty }} {{ $it->produk->satuan }}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-muted-foreground font-medium">Qty Fisik:</span>
+                                    <input type="number" step="0.01" min="0"
+                                        name="physical_check[items][{{ $it->id }}][qty_fisik]"
+                                        x-model.number="receiptItems[{{ $i }}].qty_terima"
+                                        class="w-24 text-right rounded-lg border border-border bg-card text-xs p-1.5 font-mono font-bold"
+                                        required>
+                                    <span class="text-muted-foreground">{{ $it->produk->satuan }}</span>
+
+                                    <template x-if="getDiff({{ $i }}) < 0">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-rose-100 text-rose-800" x-text="'Kurang: ' + getDiff({{ $i }})"></span>
+                                    </template>
+                                    <template x-if="getDiff({{ $i }}) > 0">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800" x-text="'Lebih: +' + getDiff({{ $i }})"></span>
+                                    </template>
+                                    <template x-if="getDiff({{ $i }}) === 0">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-emerald-100 text-emerald-800">✓ Sesuai</span>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div x-show="getDiff({{ $i }}) !== 0" x-cloak class="pt-2 border-t border-border">
+                                <label class="block text-[11px] font-semibold text-rose-700 mb-1">
+                                    Keterangan Alasan Selisih <span class="text-destructive">*</span>:
+                                </label>
+                                <input type="text"
+                                    name="physical_check[items][{{ $it->id }}][keterangan_selisih]"
+                                    :required="getDiff({{ $i }}) !== 0"
+                                    placeholder="Contoh: Bocor dalam perjalanan / Vendor mengirim kurang"
+                                    class="w-full rounded-lg border border-rose-300 text-xs p-1.5 bg-card">
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                        <x-button type="submit" variant="primary" size="md">
+                            Konfirmasi Selesai Unloading Fisik di Gudang
+                        </x-button>
+                    </div>
+                </form>
+            </x-card>
+            @endif
+            @endcan
         </div>
 
         <!-- Kolom Kanan: Aksi & Status Pembayaran -->
         <div class="space-y-5">
+            {{-- Panel Eksekusi Tahapan Aktif (PRD v2.4 9-Stage) --}}
+            @if($hasStages && !in_array($po->status, ['selesai', 'dibatalkan']))
+                @php
+                    $stageLabels = \App\Models\PoStage::STAGE_LABELS;
+                    $stgAktif = $po->stage_aktif;
+                @endphp
+                <x-card title="Eksekusi Tahap Aktif" subtitle="{{ $stageLabels[$stgAktif] ?? ucwords(str_replace('_', ' ', $stgAktif)) }}" variant="primary">
+                    {{-- STAGE 1: Perencanaan & Pengajuan PO --}}
+                    @if($stgAktif === \App\Models\PoStage::STAGE_1)
+                        @can('purchasing.submit')
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_1]) }}" class="space-y-3 text-xs">
+                            @csrf
+                            <div>
+                                <label class="block font-semibold mb-1 text-foreground">Catatan Pengajuan (Opsional)</label>
+                                <textarea name="catatan" rows="2" placeholder="Catatan pengajuan untuk Manager..." class="w-full rounded-lg border border-border bg-card p-2 text-xs"></textarea>
+                            </div>
+                            <x-button type="submit" variant="primary" size="sm" class="w-full">
+                                Ajukan PO ke Manager (Selesaikan Tahap 1)
+                            </x-button>
+                        </form>
+                        @else
+                        <p class="text-xs text-muted-foreground italic">Menunggu staf Purchasing mengajukan dokumen.</p>
+                        @endcan
+
+                    {{-- STAGE 2: Persetujuan Manager --}}
+                    @elseif($stgAktif === \App\Models\PoStage::STAGE_2)
+                        @can('purchasing.approve')
+                        <div class="space-y-3 text-xs" x-data="{ openRejectStage2: false, rejectAlasan: '' }">
+                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_2]) }}" class="space-y-2">
+                                @csrf
+                                <x-button type="submit" variant="success" size="sm" class="w-full">
+                                    ✓ Setujui PO (Lanjut Konfirmasi Supplier)
+                                </x-button>
+                            </form>
+
+                            <button type="button" @click="openRejectStage2 = true" class="w-full px-3 py-1.5 text-xs rounded-lg border border-destructive text-destructive hover:bg-destructive/10 font-medium transition cursor-pointer">
+                                ✕ Tolak &amp; Kembalikan ke Tahap 1
+                            </button>
+
+                            <div x-show="openRejectStage2" class="p-3 rounded-lg border border-amber-300 bg-amber-50 space-y-2" x-cloak>
+                                <form method="POST" action="{{ route('purchasing.stages.reject-stage2', $po) }}" class="space-y-2">
+                                    @csrf
+                                    <label class="block font-semibold text-amber-950 text-[11px]">Alasan Penolakan / Pengembalian <span class="text-destructive">*</span></label>
+                                    <textarea name="alasan" x-model="rejectAlasan" required minlength="3" rows="2" placeholder="Tuliskan alasan penolakan..." class="w-full text-xs p-2 rounded border border-amber-300 bg-white"></textarea>
+                                    <div class="flex justify-end gap-2">
+                                        <button type="button" @click="openRejectStage2 = false" class="text-xs text-muted-foreground px-2 py-1">Batal</button>
+                                        <button type="submit" :disabled="rejectAlasan.trim().length < 3" class="px-3 py-1 text-xs rounded bg-destructive text-destructive-foreground disabled:opacity-50">Konfirmasi Tolak</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        @else
+                        <p class="text-xs text-muted-foreground italic">Menunggu persetujuan otorisasi dari Manager.</p>
+                        @endcan
+
+                    {{-- STAGE 3: Konfirmasi Supplier --}}
+                    @elseif($stgAktif === \App\Models\PoStage::STAGE_3)
+                        @can('purchasing.edit')
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_3]) }}" class="space-y-3 text-xs">
+                            @csrf
+                            <div>
+                                <label class="block font-semibold mb-1 text-foreground">No. Referensi / Sales Order Supplier</label>
+                                <input type="text" name="confirmation[no_referensi]" value="{{ $po->no_referensi_supplier ?? '' }}" placeholder="Contoh: SO-SUPPLIER-1234" class="w-full rounded-lg border border-border bg-card p-2 text-xs">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-foreground">Estimasi Tanggal Tiba Supplier (ETA)</label>
+                                <input type="date" name="confirmation[eta_supplier]" value="{{ $po->eta_supplier ? $po->eta_supplier->format('Y-m-d') : ($po->eta ? $po->eta->format('Y-m-d') : '') }}" class="w-full rounded-lg border border-border bg-card p-2 text-xs">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-foreground">Catatan Konfirmasi</label>
+                                <textarea name="catatan" rows="2" placeholder="Catatan konfirmasi kesiapan barang..." class="w-full rounded-lg border border-border bg-card p-2 text-xs"></textarea>
+                            </div>
+                            @foreach($po->items as $it)
+                                <input type="hidden" name="confirmation[items][{{ $it->id }}][qty_konfirmasi]" value="{{ $it->qty }}">
+                                <input type="hidden" name="confirmation[items][{{ $it->id }}][harga_konfirmasi]" value="{{ $it->harga_total }}">
+                            @endforeach
+                            <x-button type="submit" variant="primary" size="sm" class="w-full">
+                                Konfirmasi Supplier Selesai (Lanjut Pembayaran)
+                            </x-button>
+                        </form>
+                        @else
+                        <p class="text-xs text-muted-foreground italic">Menunggu konfirmasi ketersediaan barang dan harga dari supplier rekanan.</p>
+                        @endcan
+
+                    {{-- STAGE 4: Pembayaran / DP --}}
+                    @elseif($stgAktif === \App\Models\PoStage::STAGE_4)
+                        @can('purchasing.pay')
+                        <div class="space-y-3 text-xs">
+                            @if($po->payments->isNotEmpty())
+                                <form method="POST" action="{{ route('purchasing.stages.dibayarkan', $po) }}">
+                                    @csrf
+                                    <x-button type="submit" variant="success" size="sm" class="w-full">
+                                        ✓ Konfirmasi Telah Dibayarkan (Lanjut Terbit PO)
+                                    </x-button>
+                                </form>
+                            @else
+                                <div class="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-tight">
+                                    Tercatat belum ada pembayaran. Catat pembayaran di form bawah untuk opsi "Dibayarkan".
+                                </div>
+                            @endif
+
+                            @if($po->skema_bayar !== 'cash')
+                                <form method="POST" action="{{ route('purchasing.stages.lanjut-tempo', $po) }}">
+                                    @csrf
+                                    <x-button type="submit" variant="outline" size="sm" class="w-full">
+                                        Lanjut Skema Tempo (Tanpa Pembayaran di Muka)
+                                    </x-button>
+                                </form>
+                            @endif
+                        </div>
+                        @else
+                        <p class="text-xs text-muted-foreground italic">Menunggu konfirmasi pelunasan / DP atau pelepasan skema tempo dari Finance.</p>
+                        @endcan
+
+                    {{-- STAGE 5: Penerbitan PO Resmi --}}
+                    @elseif($stgAktif === \App\Models\PoStage::STAGE_5)
+                        @can('purchasing.edit')
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_5]) }}" class="space-y-3 text-xs">
+                            @csrf
+                            <p class="text-[11px] text-muted-foreground">Penerbitan PO resmi mengunci komitmen pengadaan dan membuka visibilitas PO ke tim Gudang.</p>
+                            <x-button type="submit" variant="primary" size="sm" class="w-full">
+                                Terbitkan PO Resmi (Buka Akses Gudang)
+                            </x-button>
+                        </form>
+                        @else
+                        <p class="text-xs text-muted-foreground italic">Menunggu Purchasing menerbitkan PO resmi.</p>
+                        @endcan
+
+                    {{-- STAGE 6: Pengemasan & Kesiapan Kirim --}}
+                    @elseif($stgAktif === \App\Models\PoStage::STAGE_6)
+                        @can('purchasing.edit')
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_6]) }}" class="space-y-3 text-xs">
+                            @csrf
+                            <div>
+                                <label class="block font-semibold mb-1 text-foreground">Jumlah Koli / Kemasan</label>
+                                <input type="number" min="1" step="1" name="packing[jumlah_koli]" value="{{ $po->pengiriman?->jumlah_koli ?? 1 }}" class="w-full rounded-lg border border-border bg-card p-2 text-xs">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-foreground">Estimasi Berat Total (Kg)</label>
+                                <input type="number" min="0" step="0.1" name="packing[estimasi_berat_kg]" value="{{ $po->pengiriman?->berat_kg ?? '' }}" placeholder="0.0" class="w-full rounded-lg border border-border bg-card p-2 text-xs">
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-foreground">Catatan Kondisi Kemasan</label>
+                                <textarea name="packing[catatan_kemasan]" rows="2" placeholder="Cth: Dikemas dalam 4 kardus bersegel..." class="w-full rounded-lg border border-border bg-card p-2 text-xs">{{ $po->pengiriman?->catatan_pengemasan ?? '' }}</textarea>
+                            </div>
+                            <x-button type="submit" variant="primary" size="sm" class="w-full">
+                                Konfirmasi Kesiapan Pengemasan (Lanjut Kirim)
+                            </x-button>
+                        </form>
+                        @else
+                        <p class="text-xs text-muted-foreground italic">Menunggu supplier menyelesaikan proses pengepakan.</p>
+                        @endcan
+
+                    {{-- STAGE 7: Pengiriman & Logistik --}}
+                    @elseif($stgAktif === \App\Models\PoStage::STAGE_7)
+                        @if(auth()->user()->can('purchasing.edit') || auth()->user()->can('purchasing.receive'))
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_7]) }}" class="space-y-3 text-xs">
+                            @csrf
+                            <div>
+                                <label class="block font-semibold mb-1 text-foreground">Nama Ekspedisi / Kurir <span class="text-destructive">*</span></label>
+                                <input type="text" name="shipping[ekspedisi]" value="{{ $po->pengiriman?->ekspedisi ?? '' }}" required placeholder="Cth: JNE Cargo / Truk Vendor" class="w-full rounded-lg border border-border bg-card p-2 text-xs">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block font-semibold mb-1 text-foreground">No. Resi / AWB</label>
+                                    <input type="text" name="shipping[no_resi]" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="No Resi..." class="w-full rounded-lg border border-border bg-card p-2 text-xs">
+                                </div>
+                                <div>
+                                    <label class="block font-semibold mb-1 text-foreground">Tanggal Kirim</label>
+                                    <input type="date" name="shipping[tgl_kirim]" value="{{ $po->pengiriman?->tgl_kirim ? $po->pengiriman->tgl_kirim->format('Y-m-d') : date('Y-m-d') }}" class="w-full rounded-lg border border-border bg-card p-2 text-xs">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-foreground">Estimasi Tiba di Gudang</label>
+                                <input type="date" name="shipping[eta_tiba]" value="{{ $po->pengiriman?->eta_tiba ? $po->pengiriman->eta_tiba->format('Y-m-d') : ($po->eta ? $po->eta->format('Y-m-d') : '') }}" class="w-full rounded-lg border border-border bg-card p-2 text-xs">
+                            </div>
+                            <x-button type="submit" variant="primary" size="sm" class="w-full">
+                                Konfirmasi Barang Telah Berangkat
+                            </x-button>
+                        </form>
+                        @else
+                        <p class="text-xs text-muted-foreground italic">Menunggu update pengiriman dan resi dari logistik / supplier.</p>
+                        @endif
+
+                    {{-- STAGE 8: Unloading di Gudang --}}
+                    @elseif($stgAktif === \App\Models\PoStage::STAGE_8)
+                        <div class="p-2.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-xs">
+                            Silakan input kuantitas fisik pada formulir pemeriksaan barang di bawah untuk menyelesaikan Unloading.
+                        </div>
+
+                    {{-- STAGE 9: Input Sistem & Posting Stok --}}
+                    @elseif($stgAktif === \App\Models\PoStage::STAGE_9)
+                        @can('purchasing.receive')
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="space-y-3 text-xs">
+                            @csrf
+                            <p class="text-[11px] text-muted-foreground leading-relaxed">
+                                Unloading fisik telah selesai. Klik tombol di bawah untuk memposting pergerakan stok ke ledger gudang dan mengunci durasi Lead Time supplier.
+                            </p>
+                            <x-button type="submit" variant="success" size="sm" class="w-full">
+                                Posting Stok ke Gudang &amp; Selesaikan PO
+                            </x-button>
+                        </form>
+                        @else
+                        <p class="text-xs text-muted-foreground italic">Menunggu staf Gudang memposting transaksi ke sistem persediaan.</p>
+                        @endcan
+                    @endif
+                </x-card>
+            @endif
+
             <!-- Panel Kontrol Status PO & Modal Pembatalan -->
             <div x-data="{
                 openCancelModal: false,
@@ -409,43 +815,48 @@
             }">
                 <x-card title="Kontrol Purchase Order" variant="default">
                     <div class="space-y-2">
-                        @can('purchasing.submit')
-                        @if($po->status === 'draft')
-                        <form method="POST" action="{{ route('purchasing.submit', $po) }}">
-                            @csrf
-                            <x-button type="submit" variant="primary" size="md" class="w-full">
-                                Ajukan ke Manager
-                            </x-button>
-                        </form>
-                        <p class="text-[11px] text-muted-foreground text-center">Mengirim PO ke antrean persetujuan Manager.</p>
-                        @endif
-                        @endcan
+                        @if(!$hasStages)
+                            @can('purchasing.submit')
+                            @if($po->status === 'draft')
+                            <form method="POST" action="{{ route('purchasing.submit', $po) }}">
+                                @csrf
+                                <x-button type="submit" variant="primary" size="md" class="w-full">
+                                    Ajukan ke Manager
+                                </x-button>
+                            </form>
+                            <p class="text-[11px] text-muted-foreground text-center">Mengirim PO ke antrean persetujuan Manager.</p>
+                            @endif
+                            @endcan
 
-                        @can('purchasing.approve')
-                        @if($po->status === 'diajukan')
-                        <form method="POST" action="{{ route('purchasing.approve', $po) }}">
-                            @csrf
-                            <x-button type="submit" variant="success" size="md" class="w-full">
-                                Setujui & Kirim ke Gudang
-                            </x-button>
-                        </form>
-                        <p class="text-[11px] text-muted-foreground text-center">Wewenang Manager untuk menyetujui pengadaan.</p>
-                        @endif
-                        @endcan
+                            @can('purchasing.approve')
+                            @if($po->status === 'diajukan')
+                            <form method="POST" action="{{ route('purchasing.approve', $po) }}">
+                                @csrf
+                                <x-button type="submit" variant="success" size="md" class="w-full">
+                                    Setujui & Kirim ke Gudang
+                                </x-button>
+                            </form>
+                            <p class="text-[11px] text-muted-foreground text-center">Wewenang Manager untuk menyetujui pengadaan.</p>
+                            @endif
+                            @endcan
 
-                        @can('purchasing.edit')
-                        @if(in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty())
-                        <x-button href="{{ route('purchasing.edit', $po) }}" variant="secondary" size="md" class="w-full">
-                            <x-slot:icon>
-                                <svg class="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            </x-slot:icon>
-                            Edit Purchase Order
-                        </x-button>
+                            @can('purchasing.edit')
+                            @if(in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty())
+                            <x-button href="{{ route('purchasing.edit', $po) }}" variant="secondary" size="md" class="w-full">
+                                <x-slot:icon>
+                                    <svg class="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </x-slot:icon>
+                                Edit Purchase Order
+                            </x-button>
+                            @endif
+                            @endcan
                         @endif
-                        @endcan
 
                         @can('purchasing.cancel')
-                        @if(!in_array($po->status, ['selesai', 'dibatalkan']))
+                        @php
+                            $stage8Selesai = $hasStages && $po->stages->where('stage', \App\Models\PoStage::STAGE_8)->where('status', 'selesai')->isNotEmpty();
+                        @endphp
+                        @if(!in_array($po->status, ['selesai', 'dibatalkan']) && !$stage8Selesai)
                         <div class="pt-2 border-t border-border">
                             <x-button type="button" @click="openCancelModal = true; alasan = ''" variant="link" size="xs" class="w-full text-destructive hover:text-destructive/80 font-medium cursor-pointer">
                                 <x-slot:icon>
@@ -860,12 +1271,226 @@
         </div>
     </div>
 
+    {{-- Tabel Riwayat Log Perubahan Operasional (PO_LOG_PERUBAHAN) --}}
+    @if($po->relationLoaded('logPerubahan') && $po->logPerubahan->isNotEmpty())
+    <div class="mt-6">
+        <x-card title="Riwayat Perubahan Operasional (Direct Edit Log)" subtitle="Jejak audit perubahan field operasional tanpa persetujuan manager" :noPadding="true">
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left">
+                    <thead class="bg-muted text-muted-foreground font-semibold uppercase text-[10px] border-b border-border">
+                        <tr>
+                            <th class="px-4 py-2.5">Field Diubah</th>
+                            <th class="px-4 py-2.5">Nilai Lama</th>
+                            <th class="px-4 py-2.5">Nilai Baru</th>
+                            <th class="px-4 py-2.5">Diubah Oleh</th>
+                            <th class="px-4 py-2.5">Waktu</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        @foreach($po->logPerubahan as $log)
+                        <tr class="hover:bg-muted/30">
+                            <td class="px-4 py-2 font-mono font-medium text-foreground">{{ $log->nama_field }}</td>
+                            <td class="px-4 py-2 text-muted-foreground italic font-mono">{{ $log->nilai_lama ?? '—' }}</td>
+                            <td class="px-4 py-2 text-primary font-mono font-semibold">{{ $log->nilai_baru ?? '—' }}</td>
+                            <td class="px-4 py-2 text-foreground">{{ $log->changer?->name ?? 'User #' . $log->diubah_oleh }}</td>
+                            <td class="px-4 py-2 text-muted-foreground font-mono text-[11px]">{{ $log->diubah_pada ? $log->diubah_pada->format('d/m/Y H:i') : '—' }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </x-card>
+    </div>
+    @endif
+
+    {{-- Kartu Lead Time Transaksi PO & Invalidation --}}
+    @if($po->leadTime)
+    <div class="mt-6">
+        <x-card title="Lead Time Transaksi PO {{ $po->no_po }}" subtitle="Rekapitulasi durasi realisasi pengadaan aktual per stage & per kompartemen">
+            <div class="space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border {{ $po->leadTime->is_valid ? 'bg-emerald-50/60 border-emerald-300' : 'bg-rose-50/80 border-rose-300' }}">
+                    <div class="flex items-center gap-3">
+                        <span class="size-8 rounded-full flex items-center justify-center font-bold text-xs {{ $po->leadTime->is_valid ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white' }}">
+                            {{ $po->leadTime->is_valid ? '✓' : '✕' }}
+                        </span>
+                        <div>
+                            <div class="font-bold text-xs {{ $po->leadTime->is_valid ? 'text-emerald-950' : 'text-rose-950' }}">
+                                Status Validitas: {{ $po->leadTime->is_valid ? 'Valid (Masuk Benchmark)' : 'Tidak Valid (Dikeluarkan dari Benchmark)' }}
+                            </div>
+                            @if(!$po->leadTime->is_valid)
+                                <p class="text-[11px] text-rose-800 mt-0.5">
+                                    <strong>Alasan:</strong> {{ $po->leadTime->alasan_tidak_valid }} · <em>Divalidasi oleh: {{ $po->leadTime->validator?->name ?? 'Manager' }}</em>
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+
+                    @can('purchasing.approve')
+                    @if($po->leadTime->is_valid)
+                        <button type="button" @click="openInvalidateModal = true" class="px-3 py-1.5 text-xs rounded-lg border border-destructive text-destructive hover:bg-destructive/10 font-medium transition cursor-pointer">
+                            Invalidasi Transaksi Ini
+                        </button>
+                    @endif
+                    @endcan
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div class="p-3 bg-muted/40 rounded-lg border border-border">
+                        <span class="text-[10px] uppercase font-bold text-muted-foreground block">LT Internal</span>
+                        <p class="font-mono font-bold text-sm text-foreground mt-0.5">
+                            {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($po->leadTime->lt_internal_menit) }} hari
+                            <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($po->leadTime->lt_internal_menit) }} j)</span>
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-muted/40 rounded-lg border border-border">
+                        <span class="text-[10px] uppercase font-bold text-muted-foreground block">LT Supplier</span>
+                        <p class="font-mono font-bold text-sm text-foreground mt-0.5">
+                            {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($po->leadTime->lt_supplier_menit) }} hari
+                            <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($po->leadTime->lt_supplier_menit) }} j)</span>
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-muted/40 rounded-lg border border-border">
+                        <span class="text-[10px] uppercase font-bold text-muted-foreground block">LT Logistik</span>
+                        <p class="font-mono font-bold text-sm text-foreground mt-0.5">
+                            {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($po->leadTime->lt_logistik_menit) }} hari
+                            <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($po->leadTime->lt_logistik_menit) }} j)</span>
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-primary-50/60 rounded-lg border border-primary-200">
+                        <span class="text-[10px] uppercase font-bold text-primary-900 block">Total Realisasi LT</span>
+                        <p class="font-mono font-bold text-sm text-primary-700 mt-0.5">
+                            {{ (float) $po->leadTime->total_lt_hari }} hari
+                            <span class="text-[10px] text-primary-600 font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($po->leadTime->total_lt_menit) }} j)</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </x-card>
+    </div>
+    @endif
+
     <!-- Log & Jejak Riwayat Audit Dokumen PO -->
     @canany(['purchasing.audit', 'audit.view'])
     <div class="mt-6">
         <x-operational-audit-history :auditable="$po" title="Jejak Riwayat Audit Dokumen PO {{ $po->no_po }}" />
     </div>
     @endcanany
+
+    {{-- MODAL DIRECT EDIT (purchasing.edit) --}}
+    @can('purchasing.edit')
+    <div x-show="openDirectEditModal" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-card rounded-xl border border-border p-5 max-w-lg w-full space-y-4 shadow-xl">
+            <div class="flex justify-between items-center border-b border-border pb-2.5">
+                <div>
+                    <h3 class="font-bold text-sm text-foreground">Direct Edit Field Operasional</h3>
+                    <p class="text-[11px] text-muted-foreground">Perubahan langsung tercatat di PO_LOG_PERUBAHAN tanpa memerlukan approval</p>
+                </div>
+                <button type="button" @click="openDirectEditModal = false" class="text-muted-foreground hover:text-foreground">✕</button>
+            </div>
+
+            <form method="POST" action="{{ route('purchasing.direct-edit', $po) }}" class="space-y-3 text-xs">
+                @csrf
+                <div>
+                    <label class="block font-semibold mb-1">No Invoice Vendor</label>
+                    <input type="text" name="fields[no_invoice]" value="{{ $po->no_invoice ?? '' }}" class="w-full rounded-lg border border-border bg-background p-2">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">No Referensi Supplier</label>
+                    <input type="text" name="fields[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" class="w-full rounded-lg border border-border bg-background p-2">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Estimasi Tiba Supplier (ETA)</label>
+                    <input type="date" name="fields[eta_supplier]" value="{{ $po->eta_supplier ? $po->eta_supplier->format('Y-m-d') : '' }}" class="w-full rounded-lg border border-border bg-background p-2">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Catatan Dokumen</label>
+                    <textarea name="fields[catatan]" rows="2" class="w-full rounded-lg border border-border bg-background p-2">{{ $po->catatan ?? '' }}</textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-border">
+                    <button type="button" @click="openDirectEditModal = false" class="px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted">Batal</button>
+                    <x-button type="submit" variant="primary" size="sm">Simpan Perubahan Langsung</x-button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- MODAL AJUKAN REVISI KOMITMEN (purchasing.edit) --}}
+    <div x-show="openRevisiModal" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-card rounded-xl border border-border p-5 max-w-xl w-full space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-border pb-2.5">
+                <div>
+                    <h3 class="font-bold text-sm text-foreground">Ajukan Revisi Komitmen Pengadaan</h3>
+                    <p class="text-[11px] text-muted-foreground">Usulan revisi kuantitas/harga akan dikirim ke antrean Manager untuk persetujuan</p>
+                </div>
+                <button type="button" @click="openRevisiModal = false" class="text-muted-foreground hover:text-foreground">✕</button>
+            </div>
+
+            <form method="POST" action="{{ route('purchasing.revisi.submit', $po) }}" class="space-y-3 text-xs">
+                @csrf
+                <div>
+                    <label class="block font-semibold mb-1">Alasan Revisi <span class="text-destructive">*</span></label>
+                    <textarea name="alasan" required minlength="5" rows="2" placeholder="Contoh: Supplier mengonfirmasi perubahan kuantiti atau harga..." class="w-full rounded-lg border border-border bg-background p-2"></textarea>
+                </div>
+
+                <div class="space-y-2 border-t border-border pt-2">
+                    <span class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground block">Usulan Data Item Bahan Baku:</span>
+                    @foreach($po->items as $it)
+                    <div class="p-2.5 bg-muted/40 rounded-lg border border-border space-y-2">
+                        <div class="font-semibold text-foreground">{{ $it->produk->nama }} ({{ $it->produk->sku }})</div>
+                        <input type="hidden" name="data_usulan[items][{{ $it->id }}][po_item_id]" value="{{ $it->id }}">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] text-muted-foreground block">Qty Baru (Satuan Dasar)</label>
+                                <input type="number" step="0.01" min="0.01" name="data_usulan[items][{{ $it->id }}][qty]" value="{{ $it->qty }}" class="w-full rounded border border-border bg-background p-1.5 font-mono">
+                            </div>
+                            @if($canSeePrice)
+                            <div>
+                                <label class="text-[10px] text-muted-foreground block">Harga Total Baru (Rp)</label>
+                                <input type="number" step="1" min="0" name="data_usulan[items][{{ $it->id }}][harga_total]" value="{{ (float)$it->harga_total }}" class="w-full rounded border border-border bg-background p-1.5 font-mono">
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-border">
+                    <button type="button" @click="openRevisiModal = false" class="px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted">Batal</button>
+                    <x-button type="submit" variant="primary" size="sm">Kirim Usulan Revisi</x-button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endcan
+
+    {{-- MODAL INVALIDATE LEAD TIME (Manager) --}}
+    @if($po->leadTime)
+    @can('purchasing.approve')
+    <div x-show="openInvalidateModal" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" x-cloak>
+        <div class="bg-card rounded-xl border border-border p-5 max-w-sm w-full space-y-3 shadow-xl">
+            <h3 class="font-bold text-sm text-foreground">Invalidasi Transaksi Lead Time</h3>
+            <p class="text-[11px] text-muted-foreground leading-relaxed">
+                Tindakan ini akan mengeluarkan durasi transaksi ini dari perhitungan rata-rata Lead Time supplier.
+            </p>
+            <form method="POST" action="{{ route('purchasing.lead-time.invalidate', $po->leadTime) }}" class="space-y-3 text-xs">
+                @csrf
+                <div>
+                    <label class="block font-semibold mb-1">Alasan Invalidasi <span class="text-destructive">*</span></label>
+                    <textarea name="alasan" required minlength="5" rows="3" placeholder="Contoh: Ekspedisi mogok luar biasa (anomali force majeure)..." class="w-full rounded-lg border border-border bg-background p-2"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-border">
+                    <button type="button" @click="openInvalidateModal = false" class="px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted">Batal</button>
+                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium">Invalidasi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endcan
+    @endif
+    </div>{{-- Close outer x-data --}}
 
     @push('scripts')
     <script>

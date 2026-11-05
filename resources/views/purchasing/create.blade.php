@@ -59,6 +59,7 @@
             'headerAdj' => (float) old('adjustment', 0),
             'rows' => $rows,
             'termins' => $termins,
+            'suppliers' => $suppliers,
             'hasOldInput' => !empty(old()),
         ];
     @endphp
@@ -123,8 +124,8 @@
                         <x-form-group name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
                             <x-select name="supplier_id" x-model="supplierId" placeholder="— Pilih Supplier —" :required="true">
                                 @foreach($suppliers as $s)
-                                    <option value="{{ $s->id }}" @selected(old('supplier_id') == $s->id)>
-                                        {{ $s->nama }} ({{ ucfirst($s->kategori) }})
+                                    <option value="{{ $s->id }}" data-termin="{{ $s->termin_default }}" data-kategori="{{ $s->kategori }}" @selected(old('supplier_id') == $s->id)>
+                                        {{ $s->nama }} ({{ ucfirst($s->kategori) }}){{ $s->termin_default > 0 ? ' - Tempo ' . $s->termin_default . ' hr' : '' }}
                                     </option>
                                 @endforeach
                             </x-select>
@@ -204,6 +205,7 @@
                                                     selectedId: row.produk_id,
                                                     selectedItem: row.selectedItem,
                                                     filterTipe: ['bahan', 'kemas'],
+                                                    supplierId: () => supplierId,
                                                     placeholder: '— Pilih Bahan / Kemasan —',
                                                     url: '{{ route('produk.select-data', [], false) }}'
                                                 })"
@@ -822,6 +824,7 @@
 
             const form = {
                 uomList: @js($uomList ?? []),
+                suppliersList: initial.suppliers || [],
                 draftRestored: isRestored,
                 _saveTimer: null,
                 _isSubmitting: false,
@@ -1019,7 +1022,26 @@
                     // Watchers untuk persistensi draft otomatis
                     this.$watch('rows', () => this.debounceSaveDraft(), { deep: true });
                     this.$watch('termins', () => this.debounceSaveDraft(), { deep: true });
-                    this.$watch('supplierId', () => this.debounceSaveDraft());
+                    this.$watch('supplierId', (val) => {
+                        this.debounceSaveDraft();
+                        if (val) {
+                            const found = (this.suppliersList || []).find(s => String(s.id) === String(val));
+                            if (found) {
+                                const termin = parseInt(found.termin_default, 10) || 0;
+                                if (termin > 0) {
+                                    this.skemaBayar = 'tempo';
+                                    if (this.tanggal) {
+                                        const dt = new Date(this.tanggal);
+                                        dt.setDate(dt.getDate() + termin);
+                                        this.tanggalTempo = dt.toISOString().split('T')[0];
+                                    }
+                                } else {
+                                    this.skemaBayar = 'cash';
+                                    this.tanggalTempo = '';
+                                }
+                            }
+                        }
+                    });
                     this.$watch('gudangId', () => this.debounceSaveDraft());
                     this.$watch('noInvoice', () => this.debounceSaveDraft());
                     this.$watch('tanggal', () => this.debounceSaveDraft());

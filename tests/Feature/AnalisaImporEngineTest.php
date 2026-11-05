@@ -84,7 +84,7 @@ class AnalisaImporEngineTest extends TestCase
 
         // buffer_days = max(0, lead_time_max - lead_time_avg) + tambahan_buffer_hari
         $diff = max(0, (float) $lt->lead_time_max - (float) $lt->lead_time_average);
-        $expectedBufferDays = round($diff + $expectedTambahan);
+        $expectedBufferDays = AnalisaService::roundLeadTimeDays($diff + $expectedTambahan);
         $this->assertEqualsWithDelta($expectedBufferDays, (float) $ai->buffer_days, 0.01);
 
         // Safety Stock = adu_eta * buffer_days

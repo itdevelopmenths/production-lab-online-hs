@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Produk;
 use App\Models\Supplier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,12 +26,21 @@ class SupplierController extends Controller
         $canEdit = auth()->user()->can('supplier.edit');
         $canDelete = auth()->user()->can('supplier.delete');
 
-        $query = Supplier::query()->select('supplier.*');
+        $query = Supplier::query()
+            ->withCount('activeProduks')
+            ->select('supplier.*');
 
         return DataTables::eloquent($query)
             ->editColumn('kategori', fn ($s) => ucfirst($s->kategori))
             ->editColumn('termin_default', fn ($s) => $s->termin_default ? ucfirst($s->termin_default) : '-')
             ->editColumn('is_active', fn ($s) => $s->is_active ? 'Aktif' : 'Nonaktif')
+            ->addColumn('produk_count', function ($s) {
+                $count = (int) ($s->active_produks_count ?? 0);
+                if ($count > 0) {
+                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">' . $count . ' Produk</span>';
+                }
+                return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20">0 Produk</span>';
+            })
             ->addColumn('action', function ($s) use ($canEdit, $canDelete) {
                 $html = '<div class="flex items-center gap-3">';
                 if ($canEdit) {
@@ -42,7 +52,7 @@ class SupplierController extends Controller
 
                 return $html . '</div>';
             })
-            ->rawColumns(['action'])
+            ->rawColumns(['action', 'produk_count'])
             ->toJson();
     }
 
@@ -50,13 +60,22 @@ class SupplierController extends Controller
     {
         $this->authorize('supplier.create');
 
-        return view('supplier.create');
+        $produks = Produk::whereIn('tipe', ['bahan', 'kemas', 'bahan_baku', 'kemasan'])
+            ->active()
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'sku', 'tipe']);
+
+        return view('supplier.create', compact('produks'));
     }
 
     public function store(Request $request)
     {
         $this->authorize('supplier.create');
-        Supplier::create($this->validated($request));
+        $data = $this->validated($request);
+        unset($data['produk_ids']);
+        $supplier = Supplier::create($data);
+
+        $this->syncProduks($supplier, $request);
 
         return redirect()->route('supplier.index')->with('success', 'Supplier berhasil ditambahkan.');
     }
@@ -65,13 +84,24 @@ class SupplierController extends Controller
     {
         $this->authorize('supplier.edit');
 
-        return view('supplier.edit', compact('supplier'));
+        $supplier->load('produks');
+
+        $produks = Produk::whereIn('tipe', ['bahan', 'kemas', 'bahan_baku', 'kemasan'])
+            ->active()
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'sku', 'tipe']);
+
+        return view('supplier.edit', compact('supplier', 'produks'));
     }
 
     public function update(Request $request, Supplier $supplier)
     {
         $this->authorize('supplier.edit');
-        $supplier->update($this->validated($request));
+        $data = $this->validated($request);
+        unset($data['produk_ids']);
+        $supplier->update($data);
+
+        $this->syncProduks($supplier, $request);
 
         return redirect()->route('supplier.index')->with('success', 'Supplier berhasil diperbarui.');
     }
@@ -96,6 +126,30 @@ class SupplierController extends Controller
         return redirect()->route('supplier.index')->with('success', 'Supplier berhasil dihapus.');
     }
 
+    private function syncProduks(Supplier $supplier, Request $request): void
+    {
+        if (!$request->has('produk_ids')) {
+            return;
+        }
+
+        $raw = $request->input('produk_ids');
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : array_filter(explode(',', $raw));
+        }
+
+        $syncData = [];
+        if (is_array($raw)) {
+            foreach ($raw as $pId) {
+                if (!empty($pId)) {
+                    $syncData[(int) $pId] = ['status' => 'aktif'];
+                }
+            }
+        }
+
+        $supplier->produks()->sync($syncData);
+    }
+
     private function validated(Request $request): array
     {
         return $request->validate([
@@ -105,10 +159,13 @@ class SupplierController extends Controller
             'alamat' => ['nullable', 'string'],
             'termin_default' => ['nullable', Rule::in(['tempo', 'termin', 'pelunasan'])],
             'is_active' => ['boolean'],
+            'produk_ids' => ['nullable'],
+            'produk_ids.*' => ['integer', 'exists:produk,id'],
         ], [], [
             'nama' => 'Nama',
             'kategori' => 'Kategori',
             'termin_default' => 'Termin Default',
+            'produk_ids' => 'Produk Terkait',
         ]);
     }
 }

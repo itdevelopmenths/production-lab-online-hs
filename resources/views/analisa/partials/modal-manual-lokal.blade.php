@@ -56,7 +56,7 @@
                 </label>
                 <p class="text-[11px] text-muted-foreground mb-2.5">Buffer hari pengaman tak terduga: Safety Stock = (Max - Avg) + Buffer.</p>
                 <div class="relative flex items-center">
-                    <input type="number" min="0" x-model.number="manualLokalForm.tambahan_buffer_hari" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground pr-12 shadow-xs">
+                    <input type="number" step="0.1" min="0" x-model.number="manualLokalForm.tambahan_buffer_hari" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground pr-12 shadow-xs">
                     <span class="absolute right-3 text-[11px] text-muted-foreground font-medium pointer-events-none">Hari</span>
                 </div>
             </div>

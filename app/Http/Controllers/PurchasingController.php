@@ -5,12 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\BarangDatang;
 use App\Models\BarangDatangItem;
 use App\Models\Gudang;
+use App\Models\PoLeadTime;
+use App\Models\PoStage;
 use App\Models\Produk;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
+use App\Models\SupplierLtStageSummary;
+use App\Models\SupplierLtSummary;
+use App\Models\SupplierProdukLtStageSummary;
+use App\Models\SupplierProdukLtSummary;
 use App\Models\Uom;
 use App\Services\Purchasing\PurchasingCostCalculator;
 use App\Services\Purchasing\PurchasingPaymentService;
+use App\Services\Purchasing\SupplierLeadTimeService;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -35,11 +42,23 @@ class PurchasingController extends Controller
         $user = auth()->user();
         $canSeePrice = $user->can('purchasing.price.view');
         $canSeeApprovalTab = $user->hasAnyRole(['manager', 'purchasing', 'admin_holding', 'super_admin']) || $user->can('purchasing.approve');
+
+        $pendingPoCount = PurchaseOrder::where('status', 'diajukan')
+            ->orWhere('stage_aktif', PoStage::STAGE_2)
+            ->count();
+
+        $pendingRevisis = $canSeeApprovalTab
+            ? \App\Models\PoRevisi::with(['purchaseOrder.supplier', 'requester:id,name'])
+                ->where('status', 'menunggu')
+                ->latest()
+                ->get()
+            : collect();
+
         $pendingApprovalCount = $canSeeApprovalTab
-            ? PurchaseOrder::where('status', 'diajukan')->count()
+            ? ($pendingPoCount + $pendingRevisis->count())
             : 0;
 
-        return view('purchasing.index', compact('canSeePrice', 'pendingApprovalCount', 'canSeeApprovalTab'));
+        return view('purchasing.index', compact('canSeePrice', 'pendingApprovalCount', 'canSeeApprovalTab', 'pendingRevisis'));
     }
 
     public function data(Request $request): JsonResponse
@@ -49,8 +68,17 @@ class PurchasingController extends Controller
         $canSeePrice = $user->can('purchasing.price.view');
         $canEditUser = $user->can('purchasing.edit');
 
-        $query = PurchaseOrder::query()->select('purchase_orders.*')
-            ->with(['supplier:id,nama', 'gudang:id,nama', 'barangDatang:id,po_id,tanggal_terima'])
+        $query = PurchaseOrder::query()
+            ->select('purchase_orders.*')
+            ->leftJoin('gudang', 'purchase_orders.gudang_id', '=', 'gudang.id')
+            ->addSelect('gudang.nama as gudang_nama')
+            ->with([
+                'supplier:id,nama,kategori',
+                'supplier.stageSummaries',
+                'barangDatang:id,po_id,tanggal_terima',
+                'stages',
+                'revisis:id,po_id,status',
+            ])
             ->withSum('items as total_nilai', 'harga_total')
             ->withSum('payments as total_dibayar', 'nominal');
 
@@ -65,8 +93,36 @@ class PurchasingController extends Controller
             }
         }
 
-        if ($request->filled('status_po')) {
+        if ($request->boolean('approval_queue')) {
+            $query->where(function ($q) {
+                $q->where('purchase_orders.status', 'diajukan')
+                  ->orWhere('purchase_orders.stage_aktif', PoStage::STAGE_2);
+            });
+        } elseif ($request->filled('status_po')) {
             $query->where('purchase_orders.status', $request->status_po);
+        }
+
+        if ($request->filled('stage_aktif')) {
+            $query->where('purchase_orders.stage_aktif', $request->stage_aktif);
+        }
+
+        if ($request->filled('kategori_supplier')) {
+            $query->whereHas('supplier', fn ($q) => $q->where('kategori', $request->kategori_supplier));
+        }
+
+        // Gudang hanya melihat PO jika legacy status gudang ATAU stage_aktif null ATAU melewati Stage 5
+        $isGudang = ! $canEditUser && $user->can('purchasing.receive');
+        if ($isGudang) {
+            $query->where(function ($q) {
+                $q->whereNull('purchase_orders.stage_aktif')
+                  ->orWhereIn('purchase_orders.status', ['dikirim_ke_gudang', 'diterima', 'selesai'])
+                  ->orWhereIn('purchase_orders.stage_aktif', [
+                      PoStage::STAGE_6,
+                      PoStage::STAGE_7,
+                      PoStage::STAGE_8,
+                      PoStage::STAGE_9,
+                  ]);
+            });
         }
 
         $query->latest('purchase_orders.created_at');
@@ -75,7 +131,7 @@ class PurchasingController extends Controller
             ->orderColumn('tanggal', fn ($q, $order) => $q->orderBy('purchase_orders.tanggal', $order)->orderBy('purchase_orders.created_at', $order))
             ->addColumn('no_invoice', fn ($po) => $po->no_invoice ? $po->no_invoice : $po->no_po)
             ->addColumn('supplier_nama', fn ($po) => $po->supplier?->nama ?? '—')
-            ->addColumn('gudang_nama', fn ($po) => $po->gudang?->nama ?? '—')
+            ->addColumn('gudang_nama', fn ($po) => $po->gudang_nama ?? '—')
             ->editColumn('tanggal', fn ($po) => $po->tanggal?->format('d/m/Y') ?? '—')
             ->addColumn('eta', fn ($po) => $po->eta?->format('d/m/Y') ?? '—')
             ->addColumn('tgl_aktual_tiba', function ($po) {
@@ -84,6 +140,75 @@ class PurchasingController extends Controller
                 return $lastBardat?->tanggal_terima?->format('d/m/Y') ?? '—';
             })
             ->editColumn('status', fn ($po) => ucwords(str_replace('_', ' ', $po->status)))
+            ->addColumn('stage_label', function ($po) {
+                if (! $po->stage_aktif) {
+                    return $po->status === 'selesai' ? 'Selesai' : ucwords(str_replace('_', ' ', $po->status));
+                }
+
+                return PoStage::STAGE_LABELS[$po->stage_aktif] ?? ucwords(str_replace('_', ' ', $po->stage_aktif));
+            })
+            ->addColumn('stage_badge_state', function ($po) {
+                if ($po->status === 'selesai') {
+                    return 'selesai';
+                }
+                if ($po->status === 'dibatalkan') {
+                    return 'dibatalkan';
+                }
+                if (! $po->stage_aktif) {
+                    return 'belum_mulai';
+                }
+
+                $currentStage = $po->stages->where('stage', $po->stage_aktif)->sortByDesc('putaran')->first();
+                if (! $currentStage) {
+                    return 'berjalan';
+                }
+
+                if ($currentStage->status === 'selesai') {
+                    return 'selesai';
+                }
+                if ($currentStage->status === 'dikembalikan') {
+                    return 'dikembalikan';
+                }
+
+                if ($currentStage->waktu_mulai) {
+                    $benchmark = $po->supplier?->stageSummaries?->firstWhere('stage', $po->stage_aktif);
+                    if ($benchmark && $benchmark->jumlah_transaksi > 0 && $benchmark->total_menit > 0) {
+                        $avgMinutes = $benchmark->total_menit / $benchmark->jumlah_transaksi;
+                        $elapsedMinutes = $currentStage->waktu_mulai->diffInMinutes(now());
+                        if ($elapsedMinutes > $avgMinutes) {
+                            return 'terlambat';
+                        }
+                    }
+                }
+
+                return 'berjalan';
+            })
+            ->addColumn('has_pending_revisi', function ($po) {
+                return $po->revisis->where('status', 'menunggu')->isNotEmpty();
+            })
+            ->addColumn('sla', function ($po) {
+                if ($po->status === 'selesai') {
+                    return 'Selesai';
+                }
+                if (! $po->stage_aktif) {
+                    return '—';
+                }
+                $currentStage = $po->stages->where('stage', $po->stage_aktif)->sortByDesc('putaran')->first();
+                if (! $currentStage || ! $currentStage->waktu_mulai) {
+                    return '—';
+                }
+                $elapsedMinutes = $currentStage->waktu_mulai->diffInMinutes(now());
+                $elapsedDays = SupplierLeadTimeService::minutesToDays($elapsedMinutes);
+                $benchmark = $po->supplier?->stageSummaries?->firstWhere('stage', $po->stage_aktif);
+                if ($benchmark && $benchmark->jumlah_transaksi > 0 && (float) $benchmark->average_hari > 0) {
+                    $avgMinutes = $benchmark->total_menit / $benchmark->jumlah_transaksi;
+                    $isLate = ($elapsedMinutes > $avgMinutes);
+
+                    return ($isLate ? '⚠️ ' : '') . $elapsedDays . ' hr (Avg: ' . $benchmark->average_hari . ' hr)';
+                }
+
+                return $elapsedDays . ' hr';
+            })
             ->addColumn('status_pembayaran', fn ($po) => $canSeePrice ? ucwords(str_replace('_', ' ', $po->status_pembayaran ?? 'belum_lunas')) : '—')
             ->addColumn('total_nilai', fn ($po) => $canSeePrice ? number_format((float) $po->totalNilai(), 0, ',', '.') : '—')
             ->addColumn('sisa', fn ($po) => $canSeePrice ? number_format((float) $po->sisaTagihan(), 0, ',', '.') : '—')
@@ -167,7 +292,7 @@ class PurchasingController extends Controller
     public function create()
     {
         $this->authorize('purchasing.create');
-        $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
+        $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori', 'termin_default']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'nama_produk', 'satuan', 'faktor_konversi']);
         $uomList = Uom::active()->orderBy('nama')->get(['id', 'kode', 'nama', 'kategori', 'satuan_dasar', 'faktor_konversi']);
@@ -293,8 +418,13 @@ class PurchasingController extends Controller
                 ->with('error', 'Dokumen Purchase Order ini sudah final / barang sudah diterima sehingga tidak dapat diubah.');
         }
 
+        if ($purchaseOrder->stage_aktif !== null && $purchaseOrder->stage_aktif !== PoStage::STAGE_1) {
+            return redirect()->route('purchasing.show', $purchaseOrder)
+                ->with('error', 'PO dengan tahapan aktif tidak dapat diedit penuh. Gunakan Direct Edit atau Ajukan Revisi Komitmen.');
+        }
+
         $purchaseOrder->load(['items.produk', 'termins']);
-        $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
+        $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori', 'termin_default']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'nama_produk', 'satuan', 'faktor_konversi']);
         $uomList = Uom::active()->orderBy('nama')->get(['id', 'kode', 'nama', 'kategori', 'satuan_dasar', 'faktor_konversi']);
@@ -311,6 +441,12 @@ class PurchasingController extends Controller
         if (in_array($purchaseOrder->status, ['selesai', 'dibatalkan'], true) || $purchaseOrder->barangDatang()->exists()) {
             throw ValidationException::withMessages([
                 'status' => 'Dokumen Purchase Order ini sudah final / barang sudah diterima sehingga tidak dapat diubah.',
+            ]);
+        }
+
+        if ($purchaseOrder->stage_aktif !== null && $purchaseOrder->stage_aktif !== PoStage::STAGE_1) {
+            throw ValidationException::withMessages([
+                'stage_aktif' => 'PO dengan tahapan aktif tidak dapat diedit penuh. Gunakan Direct Edit atau Ajukan Revisi Komitmen.',
             ]);
         }
 
@@ -442,10 +578,12 @@ class PurchasingController extends Controller
             'pengiriman',
             'revisis.requester:id,name',
             'revisis.decider:id,name',
-            'leadTime',
+            'leadTime.validator:id,name',
             'barangDatang.creator:id,name',
+            'barangDatang.poster:id,name',
             'barangDatang.items.poItem.produk:id,sku,nama,satuan',
             'creator:id,name',
+            'logPerubahan.changer:id,name',
         ]);
 
         // Auto-refresh status pembayaran jika ada perubahan status (misal lewat jatuh tempo)
@@ -459,8 +597,9 @@ class PurchasingController extends Controller
 
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $canSeePrice = auth()->user()->can('purchasing.price.view');
+        $stageBenchmarks = SupplierLtStageSummary::where('supplier_id', $purchaseOrder->supplier_id)->get()->keyBy('stage');
 
-        return view('purchasing.show', compact('purchaseOrder', 'gudang', 'canSeePrice'));
+        return view('purchasing.show', compact('purchaseOrder', 'gudang', 'canSeePrice', 'stageBenchmarks'));
     }
 
     public function quickDates(Request $request, PurchaseOrder $purchaseOrder): JsonResponse
@@ -653,6 +792,13 @@ class PurchasingController extends Controller
         $this->authorize('purchasing.cancel');
         $this->ensureStatus($purchaseOrder, ['draft', 'berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang']);
 
+        // Tolak jika Stage 8 sudah selesai (BR-07)
+        if ($purchaseOrder->stages()->where('stage', PoStage::STAGE_8)->where('status', 'selesai')->exists()) {
+            throw ValidationException::withMessages([
+                'status' => 'PO tidak dapat dibatalkan karena Stage 8 (Unloading) sudah selesai.',
+            ]);
+        }
+
         $data = $request->validate([
             'alasan' => ['nullable', 'string', 'max:500'],
         ], [
@@ -694,6 +840,121 @@ class PurchasingController extends Controller
         );
 
         return back()->with('success', 'Purchase Order berhasil dibatalkan.');
+    }
+
+    public function leadTimeData(Request $request): JsonResponse
+    {
+        $this->authorize('purchasing.view');
+
+        $suppliers = SupplierLtSummary::with('supplier:id,nama,kategori')
+            ->get()
+            ->map(function ($s) {
+                $avgMenit = $s->jumlah_transaksi > 0 ? ($s->total_lt_menit / $s->jumlah_transaksi) : 0;
+
+                return [
+                    'supplier_id' => $s->supplier_id,
+                    'supplier_nama' => $s->supplier?->nama ?? '—',
+                    'kategori' => $s->supplier?->kategori ?? '—',
+                    'jumlah_transaksi' => (int) $s->jumlah_transaksi,
+                    'total_lt_menit' => (int) $s->total_lt_menit,
+                    'average_lt_hari' => (float) $s->average_lt_hari,
+                    'max_lt_hari' => (float) $s->max_lt_hari,
+                    'average_lt_jam' => SupplierLeadTimeService::minutesToHours($avgMenit),
+                    'max_lt_jam' => (float) round($s->max_lt_hari * 24, 2, PHP_ROUND_HALF_UP),
+                ];
+            });
+
+        $supplierStages = SupplierLtStageSummary::with('supplier:id,nama')
+            ->get()
+            ->map(function ($st) {
+                $avgMenit = $st->jumlah_transaksi > 0 ? ($st->total_menit / $st->jumlah_transaksi) : 0;
+
+                return [
+                    'supplier_id' => $st->supplier_id,
+                    'supplier_nama' => $st->supplier?->nama ?? '—',
+                    'stage' => $st->stage,
+                    'stage_label' => PoStage::STAGE_LABELS[$st->stage] ?? $st->stage,
+                    'jumlah_transaksi' => (int) $st->jumlah_transaksi,
+                    'average_hari' => (float) $st->average_hari,
+                    'max_hari' => (float) $st->max_hari,
+                    'average_jam' => SupplierLeadTimeService::minutesToHours($avgMenit),
+                ];
+            });
+
+        $supplierProduk = SupplierProdukLtSummary::with(['supplier:id,nama', 'produk:id,sku,nama,satuan'])
+            ->get()
+            ->map(function ($sp) {
+                $avgMenit = $sp->jumlah_transaksi > 0 ? ($sp->total_lt_menit / $sp->jumlah_transaksi) : 0;
+
+                return [
+                    'supplier_id' => $sp->supplier_id,
+                    'supplier_nama' => $sp->supplier?->nama ?? '—',
+                    'produk_id' => $sp->produk_id,
+                    'sku' => $sp->produk?->sku ?? '—',
+                    'nama_produk' => $sp->produk?->nama ?? '—',
+                    'satuan' => $sp->produk?->satuan ?? '—',
+                    'jumlah_transaksi' => (int) $sp->jumlah_transaksi,
+                    'average_lt_hari' => (float) $sp->average_lt_hari,
+                    'max_lt_hari' => (float) $sp->max_lt_hari,
+                    'average_lt_jam' => SupplierLeadTimeService::minutesToHours($avgMenit),
+                ];
+            });
+
+        $supplierProdukStages = SupplierProdukLtStageSummary::with(['supplier:id,nama', 'produk:id,sku,nama'])
+            ->get()
+            ->map(function ($sps) {
+                return [
+                    'supplier_id' => $sps->supplier_id,
+                    'supplier_nama' => $sps->supplier?->nama ?? '—',
+                    'produk_id' => $sps->produk_id,
+                    'nama_produk' => $sps->produk?->nama ?? '—',
+                    'stage' => $sps->stage,
+                    'stage_label' => PoStage::STAGE_LABELS[$sps->stage] ?? $sps->stage,
+                    'jumlah_transaksi' => (int) $sps->jumlah_transaksi,
+                    'average_hari' => (float) $sps->average_hari,
+                    'max_hari' => (float) $sps->max_hari,
+                ];
+            });
+
+        $transaksi = PoLeadTime::with([
+            'purchaseOrder:id,no_po,no_invoice,status',
+            'supplier:id,nama',
+            'validator:id,name',
+        ])
+            ->latest('waktu_selesai')
+            ->limit(100)
+            ->get()
+            ->map(function ($lt) {
+                return [
+                    'id' => $lt->id,
+                    'po_id' => $lt->po_id,
+                    'no_po' => $lt->purchaseOrder?->no_po ?? '—',
+                    'no_invoice' => $lt->purchaseOrder?->no_invoice ?? '—',
+                    'supplier_id' => $lt->supplier_id,
+                    'supplier_nama' => $lt->supplier?->nama ?? '—',
+                    'waktu_mulai' => $lt->waktu_mulai?->format('d/m/Y H:i') ?? '—',
+                    'waktu_selesai' => $lt->waktu_selesai?->format('d/m/Y H:i') ?? '—',
+                    'total_lt_hari' => (float) $lt->total_lt_hari,
+                    'total_lt_jam' => SupplierLeadTimeService::minutesToHours($lt->total_lt_menit),
+                    'lt_internal_hari' => SupplierLeadTimeService::minutesToDays($lt->lt_internal_menit),
+                    'lt_internal_jam' => SupplierLeadTimeService::minutesToHours($lt->lt_internal_menit),
+                    'lt_supplier_hari' => SupplierLeadTimeService::minutesToDays($lt->lt_supplier_menit),
+                    'lt_supplier_jam' => SupplierLeadTimeService::minutesToHours($lt->lt_supplier_menit),
+                    'lt_logistik_hari' => SupplierLeadTimeService::minutesToDays($lt->lt_logistik_menit),
+                    'lt_logistik_jam' => SupplierLeadTimeService::minutesToHours($lt->lt_logistik_menit),
+                    'is_valid' => (bool) $lt->is_valid,
+                    'alasan_tidak_valid' => $lt->alasan_tidak_valid,
+                    'validator_name' => $lt->validator?->name,
+                ];
+            });
+
+        return response()->json([
+            'suppliers' => $suppliers,
+            'supplier_stages' => $supplierStages,
+            'supplier_produk' => $supplierProduk,
+            'supplier_produk_stages' => $supplierProdukStages,
+            'transaksi' => $transaksi,
+        ]);
     }
 
     private function ensureStatus(PurchaseOrder $po, array $allowed): void

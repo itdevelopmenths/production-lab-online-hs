@@ -159,7 +159,14 @@
                             {{ number_format($qtyDikirim, 2) }}
                         </td>
                         <td class="py-2 px-3 text-gray-500 text-[11px]">
-                            {{ $item->keterangan ?: '—' }}
+                            @if(($item->qty_rusak ?? 0) > 0)
+                                <span class="text-rose-700 font-semibold">Rusak: {{ number_format($item->qty_rusak, 2) }} ({{ $item->keterangan_rusak }})</span>
+                                @if($item->keterangan)
+                                    <div class="text-gray-400 text-[10px]">{{ $item->keterangan }}</div>
+                                @endif
+                            @else
+                                {{ $item->keterangan ?: '—' }}
+                            @endif
                         </td>
                     </tr>
                     @empty

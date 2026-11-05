@@ -2,7 +2,7 @@
     <!-- Page Header & Action Tools -->
     <x-page-header
         :title="$batch->no_batch"
-        :subtitle="$batch->produk->nama . ' (' . $batch->produk->sku . ') · Tanggal ' . $batch->tanggal->format('d M Y') . ($batch->creator ? ' · Oleh ' . $batch->creator->name : '')"
+        :subtitle="($batch->produk ? $batch->produk->nama . ' (' . $batch->produk->sku . ')' : ($batch->outputs->count() > 0 ? $batch->outputs->count() . ' Varian Produk Jadi' : 'Multi-Produk')) . ' · Tanggal ' . $batch->tanggal->format('d M Y') . ($batch->creator ? ' · Oleh ' . $batch->creator->name : '')"
         :breadcrumbs="[
             'Produksi' => route('batches.index'),
             'Batch' => route('batches.index'),
@@ -60,6 +60,9 @@
                             Kirim ke Fulfillment
                         </x-button>
                     </form>
+                    <a href="{{ route('transfers.create', ['jenis' => 'kirim_produk_jadi', 'batch_id' => $batch->id]) }}" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-300">
+                        Buat Transfer Produk Jadi
+                    </a>
                     @endcan
                 @endif
             @endif
@@ -71,7 +74,7 @@
         <x-stat-box
             title="Target Rencana"
             :value="\App\Helpers\NumberHelper::formatQty($batch->qty_rencana)"
-            :subtitle="$batch->produk->satuan . ' · Target kuantitas batch'"
+            :subtitle="($batch->produk?->satuan ?? 'Unit') . ' · Target kuantitas batch'"
             variant="primary"
         />
 
@@ -286,6 +289,83 @@
                                     @else
                                         <x-badge variant="warning" size="xs">Kurang Permintaan ({{ $persen }}%)</x-badge>
                                     @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
+            @endif
+
+            <!-- Card: Dokumen Request & Transfer Terkait -->
+            @php
+                $hasRelatedDocs = ($batch->stockRequests && $batch->stockRequests->isNotEmpty()) ||
+                                  ($batch->modernTransfers && $batch->modernTransfers->isNotEmpty()) ||
+                                  ($batch->transfers && $batch->transfers->isNotEmpty());
+            @endphp
+            @if($hasRelatedDocs)
+            <x-card title="Dokumen Request & Transfer Terkait" subtitle="Daftar permintaan bahan dan mutasi pengiriman yang terhubung dengan batch ini" :noPadding="true">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                                <th class="py-2.5 px-3.5">Jenis Dokumen</th>
+                                <th class="py-2.5 px-3">Nomor Transaksi</th>
+                                <th class="py-2.5 px-3">Gudang Asal</th>
+                                <th class="py-2.5 px-3">Gudang Tujuan</th>
+                                <th class="py-2.5 px-3 text-center">Status</th>
+                                <th class="py-2.5 px-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border">
+                            @foreach($batch->stockRequests as $sr)
+                            <tr class="hover:bg-muted/30 transition">
+                                <td class="py-2 px-3.5 font-medium text-amber-700">Request Permintaan</td>
+                                <td class="py-2 px-3 font-mono font-bold text-foreground">{{ $sr->no_request }}</td>
+                                <td class="py-2 px-3 text-muted-foreground">{{ $sr->gudangPemohon?->nama ?? '-' }}</td>
+                                <td class="py-2 px-3 text-muted-foreground">{{ $sr->gudangTujuan?->nama ?? '-' }}</td>
+                                <td class="py-2 px-3 text-center">
+                                    <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                        {{ ucfirst($sr->status) }}
+                                    </span>
+                                </td>
+                                <td class="py-2 px-3 text-center">
+                                    <a href="{{ route('requests.show', $sr) }}" class="text-primary hover:underline font-semibold text-xs">Detail &rarr;</a>
+                                </td>
+                            </tr>
+                            @endforeach
+
+                            @foreach($batch->modernTransfers as $trf)
+                            <tr class="hover:bg-muted/30 transition">
+                                <td class="py-2 px-3.5 font-medium text-blue-700">Transfer Modern</td>
+                                <td class="py-2 px-3 font-mono font-bold text-foreground">{{ $trf->no_transaksi }}</td>
+                                <td class="py-2 px-3 text-muted-foreground">{{ $trf->gudangAsal?->nama ?? '-' }}</td>
+                                <td class="py-2 px-3 text-muted-foreground">{{ $trf->gudangTujuan?->nama ?? '-' }}</td>
+                                <td class="py-2 px-3 text-center">
+                                    <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                                        {{ ucfirst($trf->status) }}
+                                    </span>
+                                </td>
+                                <td class="py-2 px-3 text-center">
+                                    <a href="{{ route('transfers.show', $trf) }}" class="text-primary hover:underline font-semibold text-xs">Detail &rarr;</a>
+                                </td>
+                            </tr>
+                            @endforeach
+
+                            @foreach($batch->transfers as $legacyTrf)
+                            <tr class="hover:bg-muted/30 transition">
+                                <td class="py-2 px-3.5 font-medium text-purple-700">Transfer (Legacy)</td>
+                                <td class="py-2 px-3 font-mono font-bold text-foreground">{{ $legacyTrf->no_transaksi }}</td>
+                                <td class="py-2 px-3 text-muted-foreground">{{ $legacyTrf->gudangAsal?->nama ?? '-' }}</td>
+                                <td class="py-2 px-3 text-muted-foreground">{{ $legacyTrf->gudangTujuan?->nama ?? '-' }}</td>
+                                <td class="py-2 px-3 text-center">
+                                    <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 text-purple-800 border border-purple-200">
+                                        {{ ucfirst($legacyTrf->status) }}
+                                    </span>
+                                </td>
+                                <td class="py-2 px-3 text-center">
+                                    <a href="{{ route('rt.show', $legacyTrf) }}" class="text-primary hover:underline font-semibold text-xs">Detail &rarr;</a>
                                 </td>
                             </tr>
                             @endforeach
@@ -592,21 +672,21 @@
                     @can('rt.create')
                     <div class="mt-2.5">
                         @if($hasDeficitFisik)
-                        <x-button href="{{ route('rt.create', ['batch_id' => $batch->id]) }}" variant="danger" size="sm" class="w-full">
+                        <x-button href="{{ route('requests.create', ['batch_id' => $batch->id]) }}" variant="danger" size="sm" class="w-full">
                             <x-slot:icon>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                             </x-slot:icon>
                             Buat Request Bahan (Kurang Stok)
                         </x-button>
-                        <p class="text-[10px] text-rose-600 text-center mt-1 font-medium">Auto-fill bahan & kuantitas yang kurang ke Request Transfer.</p>
+                        <p class="text-[10px] text-rose-600 text-center mt-1 font-medium">Auto-fill bahan & kuantitas yang kurang ke Request Permintaan.</p>
                         @else
-                        <x-button href="{{ route('rt.create') }}" variant="secondary" size="sm" class="w-full">
+                        <x-button href="{{ route('requests.create', ['batch_id' => $batch->id]) }}" variant="secondary" size="sm" class="w-full">
                             <x-slot:icon>
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             </x-slot:icon>
                             + Buat Request Bahan
                         </x-button>
-                        <p class="text-[10px] text-gray-500 text-center mt-1">Buat permintaan mutasi bahan (form kosong).</p>
+                        <p class="text-[10px] text-gray-500 text-center mt-1">Buat permintaan mutasi bahan untuk batch ini.</p>
                         @endif
                     </div>
                     @endcan
@@ -619,6 +699,25 @@
                         </x-button>
                     </form>
                     @endcan
+                @endif
+
+                @if($batch->status === 'release')
+                    @php
+                        $hasKekuranganRelease = $hasDeficitFisik || collect($rekapBahan)->contains(fn ($rb) => ($rb['kebutuhan'] - $rb['diterima']) > 0.0001);
+                    @endphp
+                    @if($hasKekuranganRelease)
+                    @can('rt.create')
+                    <div class="mt-2.5 mb-2.5">
+                        <x-button href="{{ route('requests.create', ['batch_id' => $batch->id]) }}" variant="warning" size="sm" class="w-full">
+                            <x-slot:icon>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            </x-slot:icon>
+                            Buat Request Bahan (Kekurangan Stok)
+                        </x-button>
+                        <p class="text-[10px] text-amber-600 text-center mt-1 font-medium">Bahan belum lengkap saat produksi berlangsung.</p>
+                    </div>
+                    @endcan
+                    @endif
                 @endif
 
                 @if($batch->status === 'selesai')
@@ -654,6 +753,11 @@
                                 Kirim ke Fulfillment
                             </x-button>
                         </form>
+                        <div class="mt-2 text-center">
+                            <a href="{{ route('transfers.create', ['jenis' => 'kirim_produk_jadi', 'batch_id' => $batch->id]) }}" class="inline-flex items-center justify-center w-full px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-300">
+                                Buat Transfer Produk Jadi
+                            </a>
+                        </div>
                         <p class="text-[11px] text-gray-500 text-center mt-1">Buat dokumen transfer produk jadi ke fulfillment hub.</p>
                         @endcan
                     @endif
@@ -675,11 +779,11 @@
                     </div>
                     <div class="flex justify-between">
                         <span>Tipe Produk</span>
-                        <span class="capitalize text-gray-900 font-medium">{{ str_replace('_', ' ', $batch->produk->tipe) }}</span>
+                        <span class="capitalize text-gray-900 font-medium">{{ $batch->produk ? str_replace('_', ' ', $batch->produk->tipe) : 'Multi-Produk' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Satuan Unit</span>
-                        <span class="text-gray-900 font-medium">{{ $batch->produk->satuan }}</span>
+                        <span class="text-gray-900 font-medium">{{ $batch->produk?->satuan ?? 'Unit' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Dibuat Pada</span>

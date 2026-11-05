@@ -72,7 +72,10 @@
         }
 
         $initialData = [
+            'supplierId' => (string) old('supplier_id', $purchaseOrder->supplier_id),
+            'suppliers' => $suppliers,
             'skemaBayar' => old('skema_bayar', $purchaseOrder->skema_bayar ?? 'cash'),
+            'tanggalTempo' => old('tanggal_tempo', $purchaseOrder->tanggal_tempo ? $purchaseOrder->tanggal_tempo->format('Y-m-d') : ''),
             'headerDiskon' => (float) old('diskon_total', $purchaseOrder->diskon_total ?? 0),
             'headerPpn' => (float) old('ppn_nominal', $purchaseOrder->ppn_nominal ?? 0),
             'headerOngkir' => (float) old('ongkos_kirim', $purchaseOrder->ongkos_kirim ?? 0),
@@ -114,10 +117,10 @@
                 <x-card title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <x-form-group name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
-                            <x-select name="supplier_id" placeholder="— Pilih Supplier —" :required="true">
+                            <x-select name="supplier_id" x-model="supplierId" placeholder="— Pilih Supplier —" :required="true">
                                 @foreach($suppliers as $s)
-                                    <option value="{{ $s->id }}" @selected(old('supplier_id', $purchaseOrder->supplier_id) == $s->id)>
-                                        {{ $s->nama }} ({{ ucfirst($s->kategori) }})
+                                    <option value="{{ $s->id }}" data-termin="{{ $s->termin_default }}" data-kategori="{{ $s->kategori }}" @selected(old('supplier_id', $purchaseOrder->supplier_id) == $s->id)>
+                                        {{ $s->nama }} ({{ ucfirst($s->kategori) }}){{ $s->termin_default > 0 ? ' - Tempo ' . $s->termin_default . ' hr' : '' }}
                                     </option>
                                 @endforeach
                             </x-select>
@@ -197,6 +200,7 @@
                                                     selectedId: row.produk_id,
                                                     selectedItem: row.selectedItem,
                                                     filterTipe: ['bahan', 'kemas'],
+                                                    supplierId: () => supplierId,
                                                     placeholder: '— Pilih Bahan / Kemasan —',
                                                     url: '{{ route('produk.select-data', [], false) }}'
                                                 })"
@@ -771,6 +775,9 @@
 
             const form = {
                 uomList: @js($uomList ?? []),
+                suppliersList: initial.suppliers || [],
+                supplierId: initial.supplierId || '{{ $purchaseOrder->supplier_id }}',
+                tanggalTempo: initial.tanggalTempo || '',
                 skemaBayar: initial.skemaBayar || 'cash',
                 headerDiskonMode: 'nominal',
                 headerDiskonVal: 0,
@@ -840,6 +847,26 @@
                 },
 
                 init() {
+                    this.$watch('supplierId', (val) => {
+                        if (val) {
+                            const found = (this.suppliersList || []).find(s => String(s.id) === String(val));
+                            if (found) {
+                                const termin = parseInt(found.termin_default, 10) || 0;
+                                if (termin > 0) {
+                                    this.skemaBayar = 'tempo';
+                                    const tglInput = document.querySelector('input[name="tanggal"]');
+                                    const baseDate = tglInput && tglInput.value ? tglInput.value : '{{ date('Y-m-d') }}';
+                                    const dt = new Date(baseDate);
+                                    dt.setDate(dt.getDate() + termin);
+                                    this.tanggalTempo = dt.toISOString().split('T')[0];
+                                } else {
+                                    this.skemaBayar = 'cash';
+                                    this.tanggalTempo = '';
+                                }
+                            }
+                        }
+                    });
+
                     this.$nextTick(() => {
                         this.rows.forEach(row => {
                             const targetSatuanBeli = row._lockedSatuanBeli || row.satuan_beli;

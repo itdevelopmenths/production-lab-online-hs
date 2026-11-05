@@ -74,7 +74,9 @@ class OperationalAuditController extends Controller
                 $link = match ($a->module) {
                     'purchasing' => route('purchasing.show', $a->auditable_id),
                     'produksi' => route('batches.show', $a->auditable_id),
-                    'request', 'transfer' => route('rt.show', $a->auditable_id),
+                    'request' => route('requests.show', $a->auditable_id),
+                    'transfer' => route('transfers.show', $a->auditable_id),
+                    'request_transfer' => route('rt.show', $a->auditable_id),
                     default => null,
                 };
 

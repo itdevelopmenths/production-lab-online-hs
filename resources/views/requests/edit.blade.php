@@ -11,10 +11,20 @@
         function requestEditData() {
             return {
                 jenis: @js(old('jenis', $stockRequest->jenis)),
+                batchId: @js(old('batch_id', $stockRequest->referensi_batch_id ?? '')),
                 gudangPemohonId: @js((string) old('gudang_pemohon_id', $stockRequest->gudang_pemohon_id)),
                 gudangTujuanId: @js((string) old('gudang_tujuan_id', $stockRequest->gudang_tujuan_id)),
                 items: @js($initialItems),
                 products: @js($produk),
+                filteredProducts() {
+                    if (this.jenis === 'request_bahan') {
+                        return this.products.filter(p => p.tipe === 'bahan' || p.tipe === 'kemas');
+                    }
+                    if (this.jenis === 'request_produk_jadi') {
+                        return this.products.filter(p => p.tipe === 'produk_jadi');
+                    }
+                    return this.products;
+                },
                 addItem() {
                     this.items.push({ produk_id: '', qty_diminta: 1, keterangan: '' });
                 },
@@ -108,13 +118,19 @@
                     </div>
                 </div>
 
-                @if($stockRequest->batch)
-                <div class="mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="font-bold text-amber-800">Terkait Batch Produksi:</span>
-                        <span class="font-mono bg-white px-2 py-0.5 rounded border border-amber-300 text-amber-900 font-semibold">{{ $stockRequest->batch->no_batch }}</span>
-                    </div>
-                    <input type="hidden" name="batch_id" value="{{ $stockRequest->batch_id }}">
+                @if($stockRequest->jenis === 'request_bahan')
+                <div class="mt-4 p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
+                    <label class="block text-xs font-semibold text-amber-900">
+                        Batch Produksi Terkait (Opsional):
+                    </label>
+                    <select name="batch_id" x-model="batchId" class="w-full h-9 rounded-lg border border-border bg-card px-3 text-xs focus:ring-2 focus:ring-primary/20">
+                        <option value="">-- Tanpa Batch (Permintaan Bebas) --</option>
+                        @foreach($activeBatches as $ab)
+                            <option value="{{ $ab->id }}" @selected(old('batch_id', $stockRequest->referensi_batch_id) == $ab->id)>
+                                {{ $ab->no_batch }} (Status: {{ ucfirst($ab->status) }})
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
                 @endif
 
@@ -157,7 +173,7 @@
                                     <td class="px-4 py-3">
                                         <select :name="`items[${index}][produk_id]`" x-model="item.produk_id" class="w-full h-9 rounded-lg border border-border bg-card px-2.5 text-xs" required>
                                             <option value="">-- Pilih Produk --</option>
-                                            <template x-for="p in products" :key="p.id">
+                                            <template x-for="p in filteredProducts()" :key="p.id">
                                                 <option :value="p.id" x-text="`${p.nama} (${p.sku})`" :selected="p.id == item.produk_id"></option>
                                             </template>
                                         </select>

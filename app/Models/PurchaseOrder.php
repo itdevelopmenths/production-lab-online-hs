@@ -140,8 +140,8 @@ class PurchaseOrder extends Model
             return (float) $this->grand_total;
         }
 
-        if (array_key_exists('total_nilai', $this->attributes) && $this->attributes['total_nilai'] !== null) {
-            return (float) $this->attributes['total_nilai'];
+        if (array_key_exists('total_nilai', $this->attributes)) {
+            return (float) ($this->attributes['total_nilai'] ?? 0);
         }
 
         if ($this->relationLoaded('items')) {

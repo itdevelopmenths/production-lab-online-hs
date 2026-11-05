@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Kategori;
 use App\Models\Produk;
+use App\Models\Supplier;
 use App\Models\Uom;
 use App\Models\Varian;
 use App\Services\StokService;
@@ -33,6 +34,7 @@ class ProdukController extends Controller
 
         $query = Produk::query()
             ->with(['kategori', 'varian', 'uom'])
+            ->withCount('activeSuppliers')
             ->select('produk.*')
             ->when($request->filled('tipe') && $request->tipe !== 'all', function ($q) use ($request) {
                 $q->where('tipe', $request->tipe);
@@ -78,6 +80,16 @@ class ProdukController extends Controller
                 'produk_jadi' => '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200/60">Produk Jadi</span>',
                 default => '<span class="text-muted-foreground">' . e(ucfirst(str_replace('_', ' ', $p->tipe))) . '</span>'
             })
+            ->addColumn('supplier_count', function ($p) {
+                if ($p->tipe === 'produk_jadi') {
+                    return '<span class="text-xs text-muted-foreground font-mono">—</span>';
+                }
+                $count = (int) ($p->active_suppliers_count ?? 0);
+                if ($count > 0) {
+                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">' . $count . ' Supplier</span>';
+                }
+                return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">0 Supplier</span>';
+            })
             ->editColumn('satuan', fn ($p) => '<span class="font-mono text-xs text-muted-foreground font-medium">' . e($p->satuan) . '</span>')
             ->editColumn('is_active', fn ($p) => $p->is_active
                 ? '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200/60">Aktif</span>'
@@ -94,13 +106,34 @@ class ProdukController extends Controller
 
                 return $html . '</div>';
             })
-            ->rawColumns(['sku', 'nama', 'kategori_nama', 'varian_nama', 'tipe', 'satuan', 'is_active', 'action'])
+            ->rawColumns(['sku', 'nama', 'kategori_nama', 'varian_nama', 'tipe', 'supplier_count', 'satuan', 'is_active', 'action'])
             ->toJson();
     }
 
     public function selectData(Request $request, StokService $stokService): JsonResponse
     {
         $query = Produk::query()->active();
+
+        if ($request->filled('supplier_id')) {
+            $supplierId = $request->input('supplier_id');
+            $query->where(function ($q) use ($supplierId) {
+                $q->whereExists(function ($sub) use ($supplierId) {
+                    $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                        ->from('produk_supplier')
+                        ->whereColumn('produk_supplier.produk_id', 'produk.id')
+                        ->where('produk_supplier.supplier_id', $supplierId)
+                        ->where('produk_supplier.status', 'aktif');
+                })->orWhere(function ($fallback) use ($supplierId) {
+                    $fallback->where('produk.supplier_id', $supplierId)
+                        ->whereNotExists(function ($sub) use ($supplierId) {
+                            $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                                ->from('produk_supplier')
+                                ->whereColumn('produk_supplier.produk_id', 'produk.id')
+                                ->where('produk_supplier.supplier_id', $supplierId);
+                        });
+                });
+            });
+        }
 
         if ($request->filled('tipe')) {
             $tipe = $request->get('tipe');
@@ -151,8 +184,9 @@ class ProdukController extends Controller
 
         $kategoriList = Kategori::with(['varians' => fn ($q) => $q->orderBy('nama')])->orderBy('nama')->get();
         $uomList = Uom::active()->orderBy('nama')->get();
+        $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
 
-        return view('produk.create', compact('kategoriList', 'uomList'));
+        return view('produk.create', compact('kategoriList', 'uomList', 'suppliers'));
     }
 
     public function store(Request $request)
@@ -160,7 +194,16 @@ class ProdukController extends Controller
         $this->authorize('produk.create');
 
         $data = $this->validated($request);
-        Produk::create($data);
+
+        $rawSuppliers = $this->getRawSuppliers($request);
+        $firstActiveSupplierId = $this->extractFirstActiveSupplierId($rawSuppliers);
+        if (empty($data['supplier_id']) && $firstActiveSupplierId) {
+            $data['supplier_id'] = $firstActiveSupplierId;
+        }
+
+        $produk = Produk::create($data);
+
+        $this->syncSuppliers($produk, $rawSuppliers);
 
         return redirect()->route('produk.index')->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -169,11 +212,12 @@ class ProdukController extends Controller
     {
         $this->authorize('produk.edit');
 
-        $produk->load(['kategori', 'varian']);
+        $produk->load(['kategori', 'varian', 'suppliers']);
         $kategoriList = Kategori::with(['varians' => fn ($q) => $q->orderBy('nama')])->orderBy('nama')->get();
         $uomList = Uom::active()->orderBy('nama')->get();
+        $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
 
-        return view('produk.edit', compact('produk', 'kategoriList', 'uomList'));
+        return view('produk.edit', compact('produk', 'kategoriList', 'uomList', 'suppliers'));
     }
 
     public function update(Request $request, Produk $produk)
@@ -181,7 +225,17 @@ class ProdukController extends Controller
         $this->authorize('produk.edit');
 
         $data = $this->validated($request, $produk->id);
+
+        $rawSuppliers = $this->getRawSuppliers($request);
+        $firstActiveSupplierId = $this->extractFirstActiveSupplierId($rawSuppliers);
+
+        if (empty($data['supplier_id']) && empty($produk->supplier_id) && $firstActiveSupplierId) {
+            $data['supplier_id'] = $firstActiveSupplierId;
+        }
+
         $produk->update($data);
+
+        $this->syncSuppliers($produk, $rawSuppliers);
 
         return redirect()->route('produk.index')->with('success', 'Produk berhasil diperbarui.');
     }
@@ -192,6 +246,86 @@ class ProdukController extends Controller
         $produk->delete();
 
         return response()->json(['message' => 'Produk berhasil dihapus.']);
+    }
+
+    private function getRawSuppliers(Request $request): mixed
+    {
+        $raw = $request->input('supplier_assignments', $request->input('suppliers'));
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+        return $raw;
+    }
+
+    private function extractFirstActiveSupplierId(mixed $rawSuppliers): ?int
+    {
+        if (!is_array($rawSuppliers)) {
+            return null;
+        }
+
+        foreach ($rawSuppliers as $key => $val) {
+            if (is_array($val) && isset($val['supplier_id'])) {
+                $status = ($val['status'] ?? 'aktif') === 'nonaktif' ? 'nonaktif' : 'aktif';
+                if ($status === 'aktif') {
+                    return (int) $val['supplier_id'];
+                }
+            } elseif (is_numeric($key) && is_array($val)) {
+                $status = ($val['status'] ?? 'aktif') === 'nonaktif' ? 'nonaktif' : 'aktif';
+                if ($status === 'aktif') {
+                    return (int) $key;
+                }
+            } elseif (is_numeric($val)) {
+                return (int) $val;
+            }
+        }
+
+        return null;
+    }
+
+    private function syncSuppliers(Produk $produk, mixed $rawSuppliers): void
+    {
+        if ($rawSuppliers === null) {
+            return;
+        }
+
+        $syncData = [];
+        $firstActiveSupplierId = null;
+
+        if (is_array($rawSuppliers)) {
+            foreach ($rawSuppliers as $key => $val) {
+                if (is_array($val) && isset($val['supplier_id'])) {
+                    $sId = (int) $val['supplier_id'];
+                    $status = ($val['status'] ?? 'aktif') === 'nonaktif' ? 'nonaktif' : 'aktif';
+                    $syncData[$sId] = ['status' => $status];
+                    if ($status === 'aktif' && !$firstActiveSupplierId) {
+                        $firstActiveSupplierId = $sId;
+                    }
+                } elseif (is_numeric($key) && is_array($val)) {
+                    $sId = (int) $key;
+                    $status = ($val['status'] ?? 'aktif') === 'nonaktif' ? 'nonaktif' : 'aktif';
+                    $syncData[$sId] = ['status' => $status];
+                    if ($status === 'aktif' && !$firstActiveSupplierId) {
+                        $firstActiveSupplierId = $sId;
+                    }
+                } elseif (is_numeric($val)) {
+                    $sId = (int) $val;
+                    $syncData[$sId] = ['status' => 'aktif'];
+                    if (!$firstActiveSupplierId) {
+                        $firstActiveSupplierId = $sId;
+                    }
+                }
+            }
+        }
+
+        $produk->suppliers()->sync($syncData);
+
+        if ($firstActiveSupplierId && empty($produk->supplier_id)) {
+            $produk->supplier_id = $firstActiveSupplierId;
+            $produk->saveQuietly();
+        }
     }
 
     private function validated(Request $request, ?int $id = null): array
@@ -213,6 +347,9 @@ class ProdukController extends Controller
             'satuan_order_moq' => ['required', 'numeric', 'min:0'],
             'profil_analisa' => ['nullable', Rule::in(['lokal', 'impor'])],
             'is_active' => ['boolean'],
+            'supplier_id' => ['nullable', 'integer', 'exists:supplier,id'],
+            'suppliers' => ['nullable'],
+            'supplier_assignments' => ['nullable'],
         ];
 
         $validated = $request->validate($rules, [

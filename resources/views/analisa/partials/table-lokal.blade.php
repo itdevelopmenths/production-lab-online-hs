@@ -64,7 +64,13 @@
                                                 <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
                                                 <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
                                             </button>
-                                            <span x-show="r.sumber_lt === 'otomatis'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200">AUTO LT</span>
+                                            <template x-if="r.sumber_lt === 'otomatis'">
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">OTOMATIS</span>
+                                            </template>
+                                            <template x-if="r.sumber_lt !== 'otomatis'">
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
+                                            </template>
+                                            <a href="{{ route('purchasing.index', ['tab' => 'lead-time']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Histori Lead Time Supplier">Histori LT</a>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.batas_minimum)"></td>
@@ -83,9 +89,13 @@
                                     <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="'Rp ' + formatNumber(r.harga_per_satuan)"></td>
                                     <td class="py-3 px-4 text-right font-mono font-bold text-foreground" x-text="'Rp ' + formatNumber(r.total_nominal_order)"></td>
                                     <td class="py-3 px-3 text-center">
+                                        @can('analisa.manage')
                                         <button type="button" @click="openManualLokalModal(r)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border text-[10px] font-medium transition cursor-pointer" title="Edit Data Input Manual">
                                             Edit Input
                                         </button>
+                                        @else
+                                        <span class="text-muted-foreground text-[10px]">-</span>
+                                        @endcan
                                     </td>
                                 </tr>
                             </template>
@@ -190,7 +200,13 @@
                                                 <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
                                                 <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
                                             </button>
-                                            <span x-show="r.sumber_lt === 'otomatis'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200">AUTO LT</span>
+                                            <template x-if="r.sumber_lt === 'otomatis'">
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">OTOMATIS</span>
+                                            </template>
+                                            <template x-if="r.sumber_lt !== 'otomatis'">
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
+                                            </template>
+                                            <a href="{{ route('purchasing.index', ['tab' => 'lead-time']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Histori Lead Time Supplier">Histori LT</a>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.total_avg_lead_time)"></td>
@@ -202,9 +218,13 @@
                                     <td class="py-3 px-4 text-right font-mono font-bold text-foreground" x-text="formatNumber(r.target_stock) + ' ' + r.satuan"></td>
                                     <td class="py-3 px-4 text-right font-mono text-[11px] text-muted-foreground" x-text="r.generated_at"></td>
                                     <td class="py-3 px-3 text-center">
+                                        @can('analisa.manage')
                                         <button type="button" @click="openManualLokalModal(r)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border text-[10px] font-medium transition cursor-pointer" title="Edit Terjual 4 Bulan & Review Period">
                                             Edit Input
                                         </button>
+                                        @else
+                                        <span class="text-muted-foreground text-[10px]">-</span>
+                                        @endcan
                                     </td>
                                 </tr>
                             </template>
@@ -300,7 +320,13 @@
                                                 <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
                                                 <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
                                             </button>
-                                            <span x-show="r.sumber_lt === 'otomatis'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200">AUTO LT</span>
+                                            <template x-if="r.sumber_lt === 'otomatis'">
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">OTOMATIS</span>
+                                            </template>
+                                            <template x-if="r.sumber_lt !== 'otomatis'">
+                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
+                                            </template>
+                                            <a href="{{ route('purchasing.index', ['tab' => 'lead-time']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Histori Lead Time Supplier">Histori LT</a>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.total_avg_lead_time) + ' Hari'"></td>
@@ -308,6 +334,7 @@
                                     <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatLt(r.tambahan_buffer_hari) + ' Hari'"></td>
                                     <td class="py-3 px-4 text-right font-mono font-bold text-foreground bg-muted/40" x-text="formatLt(r.safety_stock) + ' Hari'"></td>
                                     <td class="py-3 px-3 text-center">
+                                        @can('analisa.manage')
                                         <div class="flex items-center justify-center gap-1.5">
                                             <button type="button" @click="openManualLokalModal(r)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border text-[10px] font-medium transition cursor-pointer" title="Edit Tambahan Buffer">
                                                 Analisa
@@ -316,6 +343,9 @@
                                                 LT
                                             </button>
                                         </div>
+                                        @else
+                                        <span class="text-muted-foreground text-[10px]">-</span>
+                                        @endcan
                                     </td>
                                 </tr>
                             </template>
@@ -391,7 +421,7 @@
                                 </svg>
                                 <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider">Lead Time Terlama (Average)</h4>
                             </div>
-                            <span class="px-2.5 py-1 text-xs font-bold font-mono bg-primary text-primary-foreground rounded-lg shadow-xs" x-text="(longestAvgStage()?.days || 0) + ' Hari'"></span>
+                            <span class="px-2.5 py-1 text-xs font-bold font-mono bg-primary text-primary-foreground rounded-lg shadow-xs" x-text="formatLt(longestAvgStage()?.days || 0) + ' Hari'"></span>
                         </div>
                         <div class="p-4 bg-card text-xs">
                             <table class="w-full text-left">
@@ -422,7 +452,7 @@
                                 </svg>
                                 <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider">Lead Time Terlama (Max Skenario)</h4>
                             </div>
-                            <span class="px-2.5 py-1 text-xs font-bold font-mono bg-foreground text-background rounded-lg shadow-xs" x-text="(longestMaxStage()?.days || 0) + ' Hari'"></span>
+                            <span class="px-2.5 py-1 text-xs font-bold font-mono bg-foreground text-background rounded-lg shadow-xs" x-text="formatLt(longestMaxStage()?.days || 0) + ' Hari'"></span>
                         </div>
                         <div class="p-4 bg-card text-xs">
                             <table class="w-full text-left">
@@ -484,21 +514,23 @@
                                             <div class="font-medium text-foreground text-xs" x-text="stg.supplier_nama || '-'"></div>
                                         </td>
                                         <td class="py-2.5 px-3 font-mono uppercase text-[10px] font-bold text-muted-foreground" x-text="type"></td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="stg[type] ? stg[type].perencanaan : 0"></td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="stg[type] ? stg[type].approval : 0"></td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="stg[type] ? stg[type].supplier_confirm : 0"></td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="stg[type] ? stg[type].payment : 0"></td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="stg[type] ? stg[type].po : 0"></td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="stg[type] ? stg[type].pengemasan : 0"></td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="stg[type] ? stg[type].pengiriman : 0"></td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="stg[type] ? stg[type].unloading : 0"></td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="stg[type] ? stg[type].input : 0"></td>
-                                        <td class="py-2.5 px-3 text-right font-mono font-bold text-foreground bg-muted/40" x-text="(stg[type] ? stg[type].total : 0) + ' Hari'"></td>
+                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].perencanaan : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].approval : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].supplier_confirm : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].payment : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].po : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].pengemasan : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].pengiriman : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].unloading : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].input : 0)"></td>
+                                        <td class="py-2.5 px-3 text-right font-mono font-bold text-foreground bg-muted/40" x-text="formatLt(stg[type] ? stg[type].total : 0) + ' Hari'"></td>
                                         <td class="py-2.5 px-3 text-center" x-show="type === 'average'" rowspan="2">
+                                            @can('analisa.manage')
                                             <button type="button" @click="openStageModal(stg)" class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg border border-border bg-muted hover:bg-muted/80 text-foreground transition cursor-pointer" title="Edit Rincian 9 Tahap Lead Time">
                                                 <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                                 Edit
                                             </button>
+                                            @endcan
                                         </td>
                                     </tr>
                                 </template>

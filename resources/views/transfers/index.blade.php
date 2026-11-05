@@ -54,8 +54,8 @@
                 </div>
             </x-slot:header>
 
-            {{-- 4 Stat Cards --}}
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {{-- 5 Stat Cards --}}
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                 <div class="p-4 rounded-xl bg-card border border-border/70 shadow-xs">
                     <span class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Total Transfer Selesai</span>
                     <div class="text-xl font-bold text-foreground mt-1">{{ number_format($defectAnalytics['summary']['total_transfers'] ?? 0) }}</div>
@@ -83,6 +83,17 @@
                         {{ number_format($defectAnalytics['summary']['defect_rate_percent'] ?? 0, 2) }}%
                     </div>
                     <span class="text-[10px] text-muted-foreground">Rasio rusak vs kirim</span>
+                </div>
+
+                <div class="p-4 rounded-xl bg-card border border-rose-200 bg-rose-50/30 shadow-xs col-span-2 md:col-span-1">
+                    <span class="text-[11px] font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1">
+                        <span class="size-1.5 rounded-full bg-rose-600"></span>
+                        Gudang Paling Terdampak
+                    </span>
+                    <div class="text-sm font-extrabold text-rose-700 mt-1 truncate" title="{{ $defectAnalytics['summary']['gudang_tertinggi_nama'] ?? '—' }}">
+                        {{ $defectAnalytics['summary']['gudang_tertinggi_nama'] ?? '—' }}
+                    </div>
+                    <span class="text-[10px] text-rose-700/80 font-semibold">{{ number_format($defectAnalytics['summary']['gudang_tertinggi_qty'] ?? 0, 2) }} unit rusak</span>
                 </div>
             </div>
 
@@ -147,6 +158,62 @@
                     </table>
                 </div>
             </div>
+
+            {{-- Rekapitulasi Kerusakan SKU per Gudang (monthly_by_warehouse) --}}
+            <div class="mt-5 border border-border rounded-xl overflow-hidden">
+                <div class="px-4 py-2.5 bg-muted/60 border-b border-border flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-foreground">Rincian SKU Rusak per Gudang</span>
+                        <span class="text-[11px] text-muted-foreground ml-2">Akumulasi produk rusak yang diterima di masing-masing gudang (Tahun {{ $year }})</span>
+                    </div>
+                    <span class="text-[11px] font-mono text-muted-foreground">{{ count($defectAnalytics['monthly_by_warehouse'] ?? []) }} Gudang Terdata</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead class="bg-muted border-b border-border text-muted-foreground font-medium">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left w-56">Gudang Penerima</th>
+                                <th class="px-4 py-2.5 text-right w-32">Total Rusak</th>
+                                <th class="px-4 py-2.5 text-left">Daftar SKU Rusak & Kuantitas</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border bg-card">
+                            @forelse($defectAnalytics['monthly_by_warehouse'] ?? [] as $whDefect)
+                                <tr class="hover:bg-muted/30 {{ ($whDefect['total_tahunan'] ?? 0) > 0 ? 'bg-rose-50/10' : '' }}">
+                                    <td class="px-4 py-3 align-top">
+                                        <div class="font-bold text-foreground">{{ $whDefect['nama'] }}</div>
+                                        <div class="font-mono text-[10px] text-muted-foreground">{{ $whDefect['kode'] }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 text-right align-top">
+                                        <span class="font-bold {{ ($whDefect['total_tahunan'] ?? 0) > 0 ? 'text-rose-600' : 'text-muted-foreground' }}">
+                                            {{ number_format($whDefect['total_tahunan'] ?? 0, 2) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 align-top">
+                                        @if(!empty($whDefect['sku_rusak_list']))
+                                            <div class="flex flex-wrap gap-1.5">
+                                                @foreach($whDefect['sku_rusak_list'] as $skuItem)
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] bg-rose-50 border border-rose-200 text-rose-800">
+                                                        <span class="font-mono font-bold">{{ $skuItem['sku'] }}</span>
+                                                        <span class="text-rose-900">{{ $skuItem['nama'] }}:</span>
+                                                        <span class="font-bold bg-white px-1.5 py-0.5 rounded border border-rose-300">{{ number_format($skuItem['qty_rusak'], 2) }}</span>
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="text-muted-foreground text-[11px] italic">Tidak ada catatan barang rusak</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="px-4 py-4 text-center text-muted-foreground">Tidak ada data gudang.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </x-card>
 
         {{-- ========================================================================= --}}
@@ -165,6 +232,13 @@
                         <option value="dikirim">In Transit (Dikirim)</option>
                         <option value="selesai">Selesai Diterima</option>
                         <option value="dibatalkan">Dibatalkan</option>
+                    </select>
+
+                    <select id="filterTransferJenis" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
+                        <option value="">Semua Jenis Transfer</option>
+                        @foreach(\App\Models\Transfer::JENIS_LABELS as $jKey => $jLbl)
+                            <option value="{{ $jKey }}">{{ $jLbl }}</option>
+                        @endforeach
                     </select>
 
                     @can('rt.create')
@@ -209,24 +283,25 @@
                     url: '{{ route("transfers.data") }}',
                     data: function(d) {
                         d.status = $('#filterTransferStatus').val();
+                        d.jenis = $('#filterTransferJenis').val();
                     }
                 },
                 columns: [
-                    { data: 'no_transfer', name: 'no_transfer', className: 'font-mono text-xs font-semibold text-primary-600' },
-                    { data: 'tanggal_transfer', name: 'tanggal_transfer' },
+                    { data: 'no_transfer', name: 'no_transaksi', className: 'font-mono text-xs font-semibold text-primary-600' },
+                    { data: 'tanggal_transfer', name: 'created_at' },
                     { data: 'jenis', name: 'jenis' },
                     { data: 'asal', name: 'gudangAsal.nama' },
                     { data: 'tujuan', name: 'gudangTujuan.nama' },
                     { data: 'request_no', name: 'stockRequest.no_request' },
-                    { data: 'qty_dikirim', name: 'qty_dikirim', className: 'text-right font-medium' },
-                    { data: 'qty_rusak', name: 'qty_rusak', className: 'text-right' },
+                    { data: 'qty_dikirim', name: 'qty_dikirim', orderable: false, searchable: false, className: 'text-right font-medium' },
+                    { data: 'qty_rusak', name: 'qty_rusak', orderable: false, searchable: false, className: 'text-right' },
                     { data: 'status', name: 'status' },
                     { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
                 ],
                 order: [[0, 'desc']]
             });
 
-            $('#filterTransferStatus').on('change', function() {
+            $('#filterTransferStatus, #filterTransferJenis').on('change', function() {
                 table.draw();
             });
         });

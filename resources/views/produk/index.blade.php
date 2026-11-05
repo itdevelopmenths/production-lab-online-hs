@@ -69,6 +69,7 @@
                             <th class="px-4 py-3 text-left w-32">Kategori</th>
                             <th class="px-4 py-3 text-left w-32">Varian</th>
                             <th class="px-4 py-3 text-left w-28">Tipe</th>
+                            <th class="px-4 py-3 text-center w-28">Supplier</th>
                             <th class="px-4 py-3 text-center w-20">Satuan</th>
                             <th class="px-4 py-3 text-center w-24">Status</th>
                             <th class="px-4 py-3 text-center w-28">Aksi</th>
@@ -140,6 +141,7 @@
                 { data: 'kategori_nama', name: 'kategori_nama', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
                 { data: 'varian_nama', name: 'varian_nama', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
                 { data: 'tipe', name: 'tipe', searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
+                { data: 'supplier_count', name: 'supplier_count', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
                 { data: 'satuan', name: 'satuan', searchable: false, className: 'px-4 py-3.5 align-middle text-center font-mono text-xs' },
                 { data: 'is_active', name: 'is_active', searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
                 { data: 'action', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' }

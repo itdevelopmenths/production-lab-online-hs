@@ -22,6 +22,9 @@
                         <th class="py-3 px-4">Kode Sesi (Session ID)</th>
                         <th class="py-3 px-4">Tipe Analisa</th>
                         <th class="py-3 px-4">Item / SKU</th>
+                        <th class="py-3 px-4">Supplier</th>
+                        <th class="py-3 px-4 text-center">Avg / Max LT Dipakai</th>
+                        <th class="py-3 px-3 text-center">Sumber LT</th>
                         <th class="py-3 px-4 text-right">Batas Min</th>
                         <th class="py-3 px-4 text-right">Target</th>
                         <th class="py-3 px-4 text-center">Status</th>
@@ -45,6 +48,28 @@
                                 <div class="font-bold text-foreground" x-text="r.item_label"></div>
                                 <template x-if="r.detail && r.detail.nama">
                                     <div class="text-[10px] text-muted-foreground mt-0.5" x-text="r.detail.nama"></div>
+                                </template>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="font-medium text-foreground text-xs" x-text="r.supplier_nama || '-'"></div>
+                            </td>
+                            <td class="py-3 px-4 text-center font-mono text-xs text-muted-foreground">
+                                <template x-if="r.average_lt_dipakai !== null && r.max_lt_dipakai !== null">
+                                    <span x-text="formatLt(r.average_lt_dipakai) + ' / ' + formatLt(r.max_lt_dipakai) + ' hr'"></span>
+                                </template>
+                                <template x-if="r.average_lt_dipakai === null || r.max_lt_dipakai === null">
+                                    <span>-</span>
+                                </template>
+                            </td>
+                            <td class="py-3 px-3 text-center">
+                                <template x-if="r.sumber_lt === 'otomatis'">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">OTOMATIS</span>
+                                </template>
+                                <template x-if="r.sumber_lt === 'manual'">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
+                                </template>
+                                <template x-if="r.sumber_lt !== 'otomatis' && r.sumber_lt !== 'manual'">
+                                    <span class="text-muted-foreground font-mono text-[10px]" x-text="r.sumber_lt"></span>
                                 </template>
                             </td>
                             <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.batas_minimum)"></td>
@@ -72,7 +97,7 @@
                     </template>
                     <template x-if="paginatedRows().length === 0">
                         <tr>
-                            <td colspan="11" class="py-8 text-center text-muted-foreground text-xs">
+                            <td colspan="14" class="py-8 text-center text-muted-foreground text-xs">
                                 Tidak ada data log snapshot riwayat yang cocok.
                             </td>
                         </tr>

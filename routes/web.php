@@ -123,6 +123,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [PurchasingController::class, 'index'])->name('index');
         Route::get('data', [PurchasingController::class, 'data'])->name('data');
         Route::get('data-ap', [PurchasingController::class, 'dataAp'])->middleware('can:purchasing.price.view')->name('data-ap');
+        Route::get('lead-time-data', [PurchasingController::class, 'leadTimeData'])->name('lead-time-data');
         Route::get('create', [PurchasingController::class, 'create'])
             ->middleware('can:purchasing.create')->name('create');
         Route::post('/', [PurchasingController::class, 'store'])

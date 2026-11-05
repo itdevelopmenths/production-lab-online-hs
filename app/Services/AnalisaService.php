@@ -162,10 +162,48 @@ class AnalisaService
         $currentImpor = AnalisaImpor::where('produk_id', $produk->id)->first();
         $currentSupplierId = $currentLokal?->supplier_terpilih_id ?? $currentImpor?->supplier_terpilih_id ?? $produk->supplier_id;
 
-        $suppliers = $produk->suppliers()->withPivot(['status'])->get();
+        // Saring hanya relasi produk_supplier berstatus 'aktif'
+        $suppliers = $produk->activeSuppliers()->withPivot(['status'])->get();
 
         if ($suppliers->isEmpty() && $produk->supplier) {
-            $suppliers = collect([$produk->supplier]);
+            $pivotStatus = DB::table('produk_supplier')
+                ->where('produk_id', $produk->id)
+                ->where('supplier_id', $produk->supplier_id)
+                ->value('status');
+            if ($pivotStatus !== 'nonaktif') {
+                $suppliers = collect([$produk->supplier]);
+            }
+        }
+
+        $isImpor = $produk->profil_analisa === 'bahan_impor' || AnalisaImpor::where('produk_id', $produk->id)->exists();
+
+        $adu = 0.0;
+        $reviewPeriod = 15;
+        $bufferDays = 0.0;
+
+        if ($isImpor) {
+            $meta = AnalisaImporMeta::where('produk_id', $produk->id)->first();
+            $adu = (float) ($currentImpor?->adu_eta ?? $currentImpor?->adu_base ?? 0);
+            if ($adu <= 0 && $meta) {
+                $out = (float) $meta->out_total_4bulan;
+                $pMulai = $meta->periode_mulai?->toDateString() ?? now()->subMonths(4)->toDateString();
+                $pAkhir = $meta->periode_akhir?->toDateString() ?? now()->toDateString();
+                $jHari = \Carbon\Carbon::parse($pMulai)->diffInDays(\Carbon\Carbon::parse($pAkhir)) + 1;
+                $adu = $jHari > 0 ? ($out / $jHari) : 0;
+            }
+            $reviewPeriod = (int) ($currentImpor?->review_period ?? $meta?->review_period ?? 30);
+            $bufferDays = (float) ($currentImpor?->buffer_days ?? 0);
+        } else {
+            $inputLokal = AnalisaLokalInput::where('produk_id', $produk->id)->first();
+            $adu = (float) ($currentLokal?->adu ?? (($inputLokal?->terjual_rata_rata_4bulan ?? 0) / 30));
+            $reviewPeriod = (int) ($currentLokal?->review_period ?? $inputLokal?->review_period ?? 15);
+            $existingLt = LeadTimeLokal::where('produk_id', $produk->id)->first();
+            $bufferDays = $existingLt && $existingLt->tambahan_buffer_hari !== null
+                ? (float) $existingLt->tambahan_buffer_hari
+                : (float) (Schema::hasTable('lead_time_stage') ? (DB::table('lead_time_stage')->where('produk_id', $produk->id)->sum('tambahan_buffer_hari') ?? 0) : 0);
+        }
+        if ($reviewPeriod <= 0) {
+            $reviewPeriod = $isImpor ? 30 : 15;
         }
 
         $result = [];
@@ -176,21 +214,56 @@ class AnalisaService
                 ->first();
 
             $trxCount = $summary ? (int) ($summary->jumlah_transaksi ?? $summary->total_po_selesai ?? 0) : 0;
-            $avgLt = $summary ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0)) : null;
-            $maxLt = $summary ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0)) : null;
+
+            if ($isImpor) {
+                $resolvedLt = $this->resolveSupplierProdukLeadTimeImpor($produk->id, $s->id);
+                $avgLt = $summary && $trxCount >= 1
+                    ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0))
+                    : $resolvedLt['lead_time_average'];
+                $maxLt = $summary && $trxCount >= 1
+                    ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0))
+                    : $resolvedLt['lead_time_max'];
+
+                $simBatasMin = round($adu * $avgLt);
+                $simTargetStock = (int) floor($adu * ($avgLt + $bufferDays + $reviewPeriod) + 0.0001);
+            } else {
+                $resolvedLt = $this->resolveSupplierProdukLeadTimeLokal($produk->id, $s->id);
+                $avgLt = $summary && $trxCount >= 1
+                    ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0))
+                    : $resolvedLt['total_average_lead_time'];
+                $maxLt = $summary && $trxCount >= 1
+                    ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0))
+                    : $resolvedLt['total_max_lead_time'];
+                $safetyStock = $resolvedLt['safety_stock'];
+
+                $simBatasMin = round($adu * ($avgLt + $safetyStock));
+                $simTargetStock = round($adu * ($avgLt + $safetyStock + $reviewPeriod));
+            }
+
+            $sumberLt = $trxCount > 0 ? 'otomatis' : 'manual';
+            $sumberLtLabel = $trxCount > 0 ? 'Riwayat Empiris PO' : 'Manual (Fallback)';
+
+            $harga = (float) ($produk->harga_hpp ?: 0);
+            $minOrder = (float) ($produk->satuan_order_moq ?: 1);
 
             $result[] = [
                 'supplier_id' => $s->id,
                 'supplier_nama' => $s->nama,
                 'is_current' => (int) $s->id === (int) $currentSupplierId,
-                'harga_terakhir' => (float) ($produk->harga_hpp ?: 0),
-                'min_order_qty' => (float) ($produk->satuan_order_moq ?: 1),
+                'harga_terakhir' => $harga,
+                'min_order_qty' => $minOrder,
                 'avg_lt_days' => $avgLt,
                 'average_lt_days' => $avgLt,
                 'max_lt_days' => $maxLt,
                 'total_po_selesai' => $trxCount,
-                'sumber_lt' => $trxCount > 0 ? 'otomatis' : 'manual',
+                'sumber_lt' => $sumberLt,
+                'sumber_lt_label' => $sumberLtLabel,
+                'is_fallback' => $trxCount === 0,
                 'status' => $pivot ? $pivot->status : 'aktif',
+                'batas_minimum' => (float) $simBatasMin,
+                'target_stock' => (float) $simTargetStock,
+                'simulasi_batas_minimum' => (float) $simBatasMin,
+                'simulasi_target_stock' => (float) $simTargetStock,
             ];
         }
 
@@ -723,7 +796,7 @@ class AnalisaService
                     'klasifikasi_abc' => $klasifikasiAbc,
                     'klasifikasi_abc_id' => $klasifikasiAbcId,
                     'tambahan_buffer_hari' => $tambahanHari,
-                    'buffer_days' => round($bufferDays),
+                    'buffer_days' => self::roundLeadTimeDays($bufferDays),
                     'safety_stock' => round($totalSafetyStock),
                     'minimum_stock' => round($totalMinStock),
                     'target_stock' => round($totalTargetStock),

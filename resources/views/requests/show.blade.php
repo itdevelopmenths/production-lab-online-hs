@@ -58,7 +58,7 @@
                     </button>
                 @endif
 
-                @if($canCreateTransfer)
+                @if($canCreateTransfer && auth()->user()->can('rt.create'))
                     <x-button href="{{ route('transfers.create', ['request_id' => $stockRequest->id]) }}" variant="primary">
                         <x-slot:icon>
                             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
@@ -127,13 +127,18 @@
         </div>
         @endif
 
-        @if($stockRequest->catatan_approval || $stockRequest->alasan_penolakan)
-        <div class="p-4 rounded-xl {{ $stockRequest->status === 'ditolak' ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-emerald-50 border-emerald-200 text-emerald-900' }} border text-xs">
-            <span class="font-bold">
-                {{ $stockRequest->status === 'ditolak' ? 'Catatan Penolakan Manager:' : 'Catatan Persetujuan Manager:' }}
-            </span>
-            <p class="mt-0.5">{{ $stockRequest->status === 'ditolak' ? $stockRequest->alasan_penolakan : $stockRequest->catatan_approval }}</p>
+        @if($stockRequest->alasan_tolak)
+        <div class="p-4 rounded-xl bg-rose-50 border-rose-200 text-rose-900 border text-xs">
+            <span class="font-bold">Alasan Penolakan Manager:</span>
+            <p class="mt-0.5">{{ $stockRequest->alasan_tolak }}</p>
             <div class="text-[10px] opacity-80 mt-1">Oleh: {{ $stockRequest->approver?->name ?? 'Manager' }} pada {{ $stockRequest->disetujui_pada?->format('d/m/Y H:i') }}</div>
+        </div>
+        @endif
+
+        @if($stockRequest->alasan_batal)
+        <div class="p-4 rounded-xl bg-amber-50 border-amber-200 text-amber-900 border text-xs">
+            <span class="font-bold">Alasan Pembatalan:</span>
+            <p class="mt-0.5">{{ $stockRequest->alasan_batal }}</p>
         </div>
         @endif
 
@@ -284,6 +289,11 @@
                 </div>
             </form>
         </x-modal>
+
+        {{-- Operational Audit History --}}
+        <div class="mt-6">
+            <x-operational-audit-history :auditable="$stockRequest" title="Jejak Riwayat Audit Permintaan {{ $stockRequest->no_request }}" />
+        </div>
     </div>
 </x-app-layout>
 

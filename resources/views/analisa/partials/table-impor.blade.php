@@ -55,6 +55,14 @@
                                     <template x-if="r.periode_mulai && r.periode_akhir">
                                         <div class="text-[9px] text-muted-foreground font-mono mt-0.5" x-text="'Periode: ' + r.periode_mulai + ' ~ ' + r.periode_akhir + ' (' + r.jumlah_hari_periode + ' hr)'"></div>
                                     </template>
+                                    <template x-if="r.varian && r.varian.length > 0">
+                                        <div>
+                                            <button type="button" @click="openVarianModal(r)" class="mt-1 inline-flex items-center gap-1 text-[10px] text-primary hover:underline font-mono cursor-pointer" title="Lihat Distribusi Varian">
+                                                <span x-text="r.varian.length + ' Varian'"></span>
+                                                <svg class="size-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                            </button>
+                                        </div>
+                                    </template>
                                 </td>
 
                                 <td class="py-3 px-4">
@@ -63,7 +71,13 @@
                                             <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
                                             <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
                                         </button>
-                                        <span x-show="r.sumber_lt === 'otomatis'" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200">AUTO LT</span>
+                                        <template x-if="r.sumber_lt === 'otomatis'">
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">OTOMATIS</span>
+                                        </template>
+                                        <template x-if="r.sumber_lt !== 'otomatis'">
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
+                                        </template>
+                                        <a href="{{ route('purchasing.index', ['tab' => 'lead-time']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Histori Lead Time Supplier">Histori LT</a>
                                     </div>
                                     <template x-if="r.supplier_kategori && r.supplier_kategori !== '-'">
                                         <div class="text-[10px] text-muted-foreground font-mono mt-0.5" x-text="r.supplier_kategori"></div>
@@ -73,7 +87,7 @@
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" :class="abcBadgeClass(r.klasifikasi_abc)" :title="r.klasifikasi_abc_nama || r.klasifikasi_abc" x-text="r.klasifikasi_abc"></span>
                                 </td>
                                 <td class="py-3 px-4 text-center font-mono text-muted-foreground" x-text="formatLt(r.lead_time_average) + ' / ' + formatLt(r.lead_time_max) + ' hr'"></td>
-                                <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatNumber(r.buffer_days) + ' hr'"></td>
+                                <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.buffer_days) + ' hr'"></td>
                                 <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.safety_stock)"></td>
                                 <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.minimum_stock)"></td>
                                 <td class="py-3 px-4 text-right font-mono font-medium text-foreground" x-text="formatNumber(r.target_stock)"></td>
@@ -90,16 +104,18 @@
                                 <td class="py-3 px-4 text-right font-mono font-bold text-foreground" x-text="'Rp ' + formatNumber(r.total_nominal_order)"></td>
                                 <td class="py-3 px-3 text-center">
                                     <div class="flex items-center justify-center gap-1">
+                                        @can('analisa.manage')
                                         <button type="button" @click="openManualImporModal(r)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border text-[10px] font-medium transition cursor-pointer" title="Edit Data Input Manual Impor">
                                             Edit Input
                                         </button>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>
                         </template>
                         <template x-if="paginatedRows().length === 0">
                             <tr>
-                                <td colspan="17" class="py-8 text-center text-muted-foreground text-xs">
+                                <td colspan="16" class="py-8 text-center text-muted-foreground text-xs">
                                     Tidak ada item bahan impor yang cocok dengan pencarian atau filter.
                                 </td>
                             </tr>

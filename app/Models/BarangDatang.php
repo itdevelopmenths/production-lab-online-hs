@@ -44,4 +44,9 @@ class BarangDatang extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function poster(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'diposting_oleh');
+    }
 }

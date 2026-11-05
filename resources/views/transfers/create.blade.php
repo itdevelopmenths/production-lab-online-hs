@@ -14,8 +14,11 @@
                 jenis: @js(old('jenis', $defaultJenis ?? 'distribusi')),
                 items: @js($initialItems),
                 products: @js($products),
+                init() {
+                    this.$watch('gudangAsalId', () => this.refreshAllStock());
+                },
                 addItem() {
-                    this.items.push({ produk_id: '', qty_dikirim: 1, keterangan: '' });
+                    this.items.push({ produk_id: '', qty_dikirim: 1, keterangan: '', stok_tersedia: null, request_item_id: null });
                 },
                 removeItem(index) {
                     if (this.items.length > 1) {
@@ -25,6 +28,19 @@
                 getSatuan(prodId) {
                     const p = this.products.find(x => x.id == prodId);
                     return p ? p.satuan : '-';
+                },
+                async updateStock(item) {
+                    if (!item.produk_id || !this.gudangAsalId) return;
+                    try {
+                        const res = await fetch(`{{ route('stok.current-stock') }}?produk_id=${item.produk_id}&gudang_id=${this.gudangAsalId}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            item.stok_tersedia = data.stok_tersedia ?? data.saldo ?? 0;
+                        }
+                    } catch (e) {}
+                },
+                refreshAllStock() {
+                    this.items.forEach(item => this.updateStock(item));
                 }
             };
         }
@@ -35,6 +51,9 @@
             @csrf
             @if($stockRequest)
                 <input type="hidden" name="request_id" value="{{ $stockRequest->id }}">
+            @endif
+            @if(!empty($referensiBatchId))
+                <input type="hidden" name="referensi_batch_id" value="{{ $referensiBatchId }}">
             @endif
 
             <x-card>
@@ -65,6 +84,24 @@
                 </div>
                 @endif
 
+                @if($batch)
+                <div class="p-4 mb-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="size-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center font-bold">
+                            BP
+                        </div>
+                        <div>
+                            <span class="font-bold">Kirim Produk Jadi dari Batch Produksi:</span>
+                            <span class="font-mono bg-white px-2 py-0.5 rounded border border-sky-300 font-semibold ml-1">{{ $batch->no_batch }}</span>
+                            <div class="text-[11px] text-sky-700 mt-0.5">Pengiriman hasil produksi dari {{ $batch->gudangOperasional?->nama }} ke {{ $batch->gudangTujuan?->nama ?? 'Fulfillment Pusat' }}</div>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        {{ ucfirst($batch->status) }}
+                    </span>
+                </div>
+                @endif
+
                 @if($errors->any())
                 <div class="p-4 mb-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
                     <div class="font-bold mb-1">Terdapat kesalahan input:</div>
@@ -80,10 +117,9 @@
                     <div>
                         <label class="block text-xs font-semibold text-foreground mb-1.5">Jenis Transfer <span class="text-destructive">*</span></label>
                         <select name="jenis" x-model="jenis" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
-                            <option value="distribusi">Distribusi Standar Antar Gudang</option>
-                            <option value="request_bahan">Pengiriman Bahan Baku (Operasional)</option>
-                            <option value="request_produk_jadi">Pengiriman Produk Jadi (Fulfillment)</option>
-                            <option value="lainnya">Lainnya / Mutasi Penyesuaian</option>
+                            @foreach(\App\Models\Transfer::JENIS_LABELS as $key => $label)
+                                <option value="{{ $key }}">{{ $label }}</option>
+                            @endforeach
                         </select>
                     </div>
 
@@ -140,6 +176,7 @@
                                 @if($stockRequest)
                                 <th class="px-4 py-2.5 text-right w-28">Qty Diminta</th>
                                 @endif
+                                <th class="px-4 py-2.5 text-right w-28">Stok Tersedia</th>
                                 <th class="px-4 py-2.5 text-right w-36">Qty Dikirim</th>
                                 <th class="px-4 py-2.5 text-left">Keterangan</th>
                                 @if(!$stockRequest)
@@ -153,11 +190,15 @@
                                     <td class="px-4 py-3 font-medium text-muted-foreground text-center" x-text="index + 1"></td>
                                     <td class="px-4 py-3">
                                         @if($stockRequest)
+                                            <input type="hidden" :name="`items[${index}][request_item_id]`" :value="item.request_item_id">
                                             <input type="hidden" :name="`items[${index}][produk_id]`" :value="item.produk_id">
                                             <div class="font-semibold text-foreground" x-text="item.nama"></div>
                                             <div class="font-mono text-[10px] text-muted-foreground" x-text="item.sku"></div>
                                         @else
-                                            <select :name="`items[${index}][produk_id]`" x-model="item.produk_id" class="w-full h-9 rounded-lg border border-border bg-card px-2.5 text-xs" required>
+                                            <template x-if="item.request_item_id">
+                                                <input type="hidden" :name="`items[${index}][request_item_id]`" :value="item.request_item_id">
+                                            </template>
+                                            <select :name="`items[${index}][produk_id]`" x-model="item.produk_id" @change="updateStock(item)" class="w-full h-9 rounded-lg border border-border bg-card px-2.5 text-xs" required>
                                                 <option value="">-- Pilih Produk --</option>
                                                 <template x-for="p in products" :key="p.id">
                                                     <option :value="p.id" x-text="`${p.nama} (${p.sku})`" :selected="p.id == item.produk_id"></option>
@@ -171,6 +212,11 @@
                                     @if($stockRequest)
                                     <td class="px-4 py-3 text-right font-medium text-muted-foreground" x-text="item.qty_diminta"></td>
                                     @endif
+                                    <td class="px-4 py-3 text-right">
+                                        <span :class="item.stok_tersedia !== undefined && item.stok_tersedia !== null && parseFloat(item.qty_dikirim || 0) > parseFloat(item.stok_tersedia) ? 'text-destructive font-bold' : 'text-emerald-600 font-medium'"
+                                              x-text="item.stok_tersedia !== undefined && item.stok_tersedia !== null ? parseFloat(item.stok_tersedia).toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 2}) : '-'">
+                                        </span>
+                                    </td>
                                     <td class="px-4 py-3">
                                         <input type="number" step="0.001" min="0.001" :name="`items[${index}][qty_dikirim]`" x-model="item.qty_dikirim" class="w-full h-9 rounded-lg border border-border px-2.5 text-xs text-right font-medium" required>
                                     </td>
