@@ -63,6 +63,11 @@ class Transfer extends Model
         return $this->belongsTo(StockRequest::class, 'request_id');
     }
 
+    public function stockRequest(): BelongsTo
+    {
+        return $this->belongsTo(StockRequest::class, 'request_id');
+    }
+
     public function batch(): BelongsTo
     {
         return $this->belongsTo(BatchProduksi::class, 'referensi_batch_id');
@@ -79,6 +84,11 @@ class Transfer extends Model
     }
 
     public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
@@ -101,6 +111,21 @@ class Transfer extends Model
     public function totalQtyRusak(): float
     {
         return (float) $this->items->sum('qty_rusak');
+    }
+
+    public function getNoTransferAttribute(): ?string
+    {
+        return $this->no_transaksi;
+    }
+
+    public function setNoTransferAttribute($value): void
+    {
+        $this->attributes['no_transaksi'] = $value;
+    }
+
+    public function getTanggalTransferAttribute()
+    {
+        return $this->waktu_dikirim ?? $this->created_at;
     }
 }
 

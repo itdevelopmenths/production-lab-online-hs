@@ -69,6 +69,7 @@ class TransferController extends Controller
             ->latest('id');
 
         return DataTables::eloquent($query)
+            ->addColumn('no_transfer', fn ($t) => $t->no_transaksi)
             ->editColumn('status', function ($t) {
                 $badge = match ($t->status) {
                     'draft' => 'bg-gray-100 text-gray-700 border-gray-300',

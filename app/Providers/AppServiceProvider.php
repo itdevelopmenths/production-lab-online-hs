@@ -25,18 +25,47 @@ class AppServiceProvider extends ServiceProvider
                 return true;
             }
 
+            static $checking = false;
+            if ($checking) {
+                return null;
+            }
+
             // Dual compatibility for Request & Transfer aliases with legacy RT permissions
             if (str_starts_with($ability, 'request.')) {
                 $sub = substr($ability, 8);
                 $rtMap = ['view' => 'rt.view', 'create' => 'rt.create', 'submit' => 'rt.submit', 'approve' => 'rt.approve', 'cancel' => 'rt.cancel'];
-                if (isset($rtMap[$sub]) && $user->can($rtMap[$sub])) {
-                    return true;
+                if (isset($rtMap[$sub])) {
+                    $checking = true;
+                    $can = $user->can($rtMap[$sub]);
+                    $checking = false;
+                    if ($can) {
+                        return true;
+                    }
                 }
             }
+
             if (str_starts_with($ability, 'transfer.')) {
                 $sub = substr($ability, 9);
                 $rtMap = ['view' => 'rt.view', 'create' => 'rt.create', 'ship' => 'rt.ship', 'receive' => 'rt.receive', 'cancel' => 'rt.cancel'];
-                if (isset($rtMap[$sub]) && $user->can($rtMap[$sub])) {
+                if (isset($rtMap[$sub])) {
+                    $checking = true;
+                    $can = $user->can($rtMap[$sub]);
+                    $checking = false;
+                    if ($can) {
+                        return true;
+                    }
+                }
+            }
+
+            if (str_starts_with($ability, 'rt.')) {
+                $sub = substr($ability, 3);
+                $reqMap = ['view' => 'request.view', 'create' => 'request.create', 'submit' => 'request.submit', 'approve' => 'request.approve', 'cancel' => 'request.cancel'];
+                $trfMap = ['view' => 'transfer.view', 'create' => 'transfer.create', 'ship' => 'transfer.ship', 'receive' => 'transfer.receive', 'cancel' => 'transfer.cancel'];
+
+                $checking = true;
+                $can = (isset($reqMap[$sub]) && $user->can($reqMap[$sub])) || (isset($trfMap[$sub]) && $user->can($trfMap[$sub]));
+                $checking = false;
+                if ($can) {
                     return true;
                 }
             }

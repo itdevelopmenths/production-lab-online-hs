@@ -254,7 +254,9 @@ class TransferService
         }
 
         $transfer->loadMissing('items.produk');
-        $itemsPayload = $receivingData['items'] ?? [];
+        $itemsPayload = isset($receivingData['items']) && is_array($receivingData['items'])
+            ? $receivingData['items']
+            : (array) $receivingData;
 
         // Validasi invarian QC per item
         foreach ($transfer->items as $item) {
@@ -344,8 +346,6 @@ class TransferService
      */
     public function getMonthlyWarehouseDefectAnalytics(int $year, ?int $month = null, ?int $gudangId = null): array
     {
-        $selectedMonth = $month ?: (int) date('n');
-
         // Query dasar transaksi transfer yang sudah selesai pada tahun bersangkutan
         $baseQuery = DB::table('transfers as t')
             ->join('transfer_items as ti', 'ti.transfer_id', '=', 't.id')
@@ -358,26 +358,33 @@ class TransferService
             $baseQuery->where('t.gudang_tujuan_id', $gudangId);
         }
 
-        // 1. KPI Summary Bulan Terpilih
-        $monthQuery = (clone $baseQuery)->whereMonth('t.waktu_diterima', $selectedMonth);
+        // 1. KPI Summary (untuk bulan spesifik atau akumulasi tahunan jika bulan = null)
+        $filterQuery = clone $baseQuery;
+        if ($month !== null) {
+            $filterQuery->whereMonth('t.waktu_diterima', $month);
+        }
 
-        $totalRusakBulanIni = (float) (clone $monthQuery)->sum('ti.qty_rusak');
-        $totalDikirimBulanIni = (float) (clone $monthQuery)->sum('ti.qty_dikirim');
-        $totalTransferBulanIni = (int) (clone $monthQuery)->distinct('t.id')->count('t.id');
-        $transferTerdampakBulanIni = (int) (clone $monthQuery)->where('ti.qty_rusak', '>', 0)->distinct('t.id')->count('t.id');
+        $totalRusak = (float) (clone $filterQuery)->sum('ti.qty_rusak');
+        $totalDikirim = (float) (clone $filterQuery)->sum('ti.qty_dikirim');
+        $totalTransfer = (int) (clone $filterQuery)->distinct('t.id')->count('t.id');
+        $transferTerdampak = (int) (clone $filterQuery)->where('ti.qty_rusak', '>', 0)->distinct('t.id')->count('t.id');
 
-        $defectRatePercent = $totalDikirimBulanIni > 0
-            ? round(($totalRusakBulanIni / $totalDikirimBulanIni) * 100, 2)
+        $defectRatePercent = $totalDikirim > 0
+            ? round(($totalRusak / $totalDikirim) * 100, 2)
             : 0.0;
 
-        // Cari gudang tujuan paling terdampak di bulan terpilih
-        $topGudang = (clone $monthQuery)
+        // Cari gudang tujuan paling terdampak pada filter terpilih
+        $topGudang = (clone $filterQuery)
             ->select('g.nama', DB::raw('SUM(ti.qty_rusak) as total_rusak'))
             ->groupBy('g.nama')
             ->orderByDesc('total_rusak')
             ->first();
 
         // 2. Matriks Kerusakan per Gudang x 12 Bulan (Jan s.d. Des)
+        $monthCol = DB::getDriverName() === 'sqlite'
+            ? "CAST(strftime('%m', t.waktu_diterima) AS INTEGER)"
+            : "EXTRACT(MONTH FROM t.waktu_diterima)";
+
         $allWarehouses = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'kode']);
         $monthlyByWarehouse = [];
 
@@ -385,10 +392,10 @@ class TransferService
         $aggData = (clone $baseQuery)
             ->select(
                 't.gudang_tujuan_id',
-                DB::raw(DB::getDriverName() === 'sqlite' ? "strftime('%m', t.waktu_diterima) as bulan" : "EXTRACT(MONTH FROM t.waktu_diterima) as bulan"),
+                DB::raw("{$monthCol} as bulan"),
                 DB::raw('SUM(ti.qty_rusak) as total_rusak')
             )
-            ->groupBy('t.gudang_tujuan_id', DB::raw(DB::getDriverName() === 'sqlite' ? "strftime('%m', t.waktu_diterima)" : "EXTRACT(MONTH FROM t.waktu_diterima)"))
+            ->groupBy('t.gudang_tujuan_id', DB::raw($monthCol))
             ->get();
 
         // Ambil rincian SKU rusak per gudang
@@ -427,18 +434,88 @@ class TransferService
             ];
         }
 
+        // 3. Matriks Rekapitulasi Bulanan Global (Jan s.d. Des) untuk Dashboard Table
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        $monthlyAgg = (clone $baseQuery)
+            ->select(
+                DB::raw("{$monthCol} as bulan"),
+                DB::raw('COUNT(DISTINCT t.id) as transfers_count'),
+                DB::raw('SUM(ti.qty_dikirim) as qty_dikirim'),
+                DB::raw('SUM(ti.qty_baik) as qty_baik'),
+                DB::raw('SUM(ti.qty_rusak) as qty_rusak')
+            )
+            ->groupBy(DB::raw($monthCol))
+            ->get()
+            ->keyBy(fn ($r) => (int) $r->bulan);
+
+        $monthlyWhAgg = (clone $baseQuery)
+            ->select(
+                DB::raw("{$monthCol} as bulan"),
+                't.gudang_tujuan_id',
+                'g.nama as gudang_nama',
+                DB::raw('SUM(ti.qty_dikirim) as qty_dikirim'),
+                DB::raw('SUM(ti.qty_baik) as qty_baik'),
+                DB::raw('SUM(ti.qty_rusak) as qty_rusak')
+            )
+            ->groupBy(DB::raw($monthCol), 't.gudang_tujuan_id', 'g.nama')
+            ->get()
+            ->groupBy(fn ($r) => (int) $r->bulan);
+
+        $monthlyMatrix = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $row = $monthlyAgg->get($m);
+            $whRows = $monthlyWhAgg->get($m, collect());
+
+            $mQtyKirim = (float) ($row?->qty_dikirim ?? 0);
+            $mQtyBaik = (float) ($row?->qty_baik ?? 0);
+            $mQtyRusak = (float) ($row?->qty_rusak ?? 0);
+            $mTrfCount = (int) ($row?->transfers_count ?? 0);
+            $mRate = $mQtyKirim > 0 ? round(($mQtyRusak / $mQtyKirim) * 100, 2) : 0.0;
+
+            $warehouses = [];
+            foreach ($whRows as $wh) {
+                $warehouses[] = [
+                    'gudang_id' => $wh->gudang_tujuan_id,
+                    'gudang_nama' => $wh->gudang_nama,
+                    'qty_dikirim' => (float) $wh->qty_dikirim,
+                    'qty_baik' => (float) $wh->qty_baik,
+                    'qty_rusak' => (float) $wh->qty_rusak,
+                ];
+            }
+
+            $monthlyMatrix[] = [
+                'month' => $m,
+                'month_name' => $monthNames[$m],
+                'transfers_count' => $mTrfCount,
+                'qty_dikirim' => $mQtyKirim,
+                'qty_baik' => $mQtyBaik,
+                'qty_rusak' => $mQtyRusak,
+                'defect_rate_percent' => $mRate,
+                'warehouses' => $warehouses,
+            ];
+        }
+
         return [
             'year' => $year,
-            'month' => $selectedMonth,
+            'month' => $month,
             'summary' => [
-                'total_rusak_bulan_ini' => $totalRusakBulanIni,
-                'total_dikirim_bulan_ini' => $totalDikirimBulanIni,
+                'total_transfers' => $totalTransfer,
+                'total_transfer_count' => $totalTransfer,
+                'total_qty_dikirim' => $totalDikirim,
+                'total_dikirim_bulan_ini' => $totalDikirim,
+                'total_qty_rusak' => $totalRusak,
+                'total_rusak_bulan_ini' => $totalRusak,
                 'defect_rate_percent' => $defectRatePercent,
-                'total_transfer_count' => $totalTransferBulanIni,
-                'transfer_terdampak_count' => $transferTerdampakBulanIni,
+                'transfer_terdampak_count' => $transferTerdampak,
                 'gudang_tertinggi_nama' => $topGudang?->nama ?? '—',
                 'gudang_tertinggi_qty' => (float) ($topGudang?->total_rusak ?? 0),
             ],
+            'monthly_matrix' => $monthlyMatrix,
             'monthly_by_warehouse' => $monthlyByWarehouse,
         ];
     }

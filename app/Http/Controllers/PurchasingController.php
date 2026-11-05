@@ -651,7 +651,7 @@ class PurchasingController extends Controller
     public function cancel(Request $request, PurchaseOrder $purchaseOrder)
     {
         $this->authorize('purchasing.cancel');
-        $this->ensureStatus($purchaseOrder, ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']);
+        $this->ensureStatus($purchaseOrder, ['draft', 'berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang']);
 
         $data = $request->validate([
             'alasan' => ['nullable', 'string', 'max:500'],

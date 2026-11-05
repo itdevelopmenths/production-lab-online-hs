@@ -57,6 +57,26 @@ class StockRequest extends Model
         return $this->belongsTo(Gudang::class, 'gudang_asal_id');
     }
 
+    public function gudangPemohon(): BelongsTo
+    {
+        return $this->belongsTo(Gudang::class, 'gudang_asal_id');
+    }
+
+    public function getGudangPemohonIdAttribute(): ?int
+    {
+        return $this->gudang_asal_id;
+    }
+
+    public function setGudangPemohonIdAttribute($value): void
+    {
+        $this->attributes['gudang_asal_id'] = $value;
+    }
+
+    public function getTanggalRequestAttribute()
+    {
+        return $this->created_at;
+    }
+
     public function gudangTujuan(): BelongsTo
     {
         return $this->belongsTo(Gudang::class, 'gudang_tujuan_id');
@@ -75,6 +95,11 @@ class StockRequest extends Model
     public function transfer(): HasOne
     {
         return $this->hasOne(Transfer::class, 'request_id');
+    }
+
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(Transfer::class, 'request_id');
     }
 
     public function activeTransfer(): HasOne

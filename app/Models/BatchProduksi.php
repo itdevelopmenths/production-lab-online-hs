@@ -129,8 +129,40 @@ class BatchProduksi extends Model
             ];
         }
 
-        // 2. Total diminta & diterima dari RequestTransfer
-        if (\Illuminate\Support\Facades\Schema::hasTable('request_transfers')) {
+        // 2. Total diminta: prioritaskan tabel baru `requests` (Epic 4), fallback ke legacy `request_transfers`
+        $hasModernRequests = false;
+        if (\Illuminate\Support\Facades\Schema::hasTable('requests')) {
+            $reqRows = \Illuminate\Support\Facades\DB::table('requests as r')
+                ->join('request_items as ri', 'ri.request_id', '=', 'r.id')
+                ->where('r.referensi_batch_id', $this->id)
+                ->where('r.jenis', 'request_bahan')
+                ->whereNotIn('r.status', ['dibatalkan', 'ditolak'])
+                ->select('ri.produk_id', \Illuminate\Support\Facades\DB::raw('SUM(ri.qty_diminta) as total_diminta'))
+                ->groupBy('ri.produk_id')
+                ->get();
+
+            if ($reqRows->isNotEmpty()) {
+                $hasModernRequests = true;
+                foreach ($reqRows as $r) {
+                    $pid = (int) $r->produk_id;
+                    if (! isset($rekap[$pid])) {
+                        $prod = Produk::find($pid);
+                        $rekap[$pid] = [
+                            'bahan_id' => $pid,
+                            'nama' => $prod?->nama ?? '—',
+                            'sku' => $prod?->sku ?? '—',
+                            'satuan' => $prod?->satuan ?? 'pcs',
+                            'kebutuhan' => 0.0,
+                            'diminta' => 0.0,
+                            'diterima' => 0.0,
+                        ];
+                    }
+                    $rekap[$pid]['diminta'] += (float) $r->total_diminta;
+                }
+            }
+        }
+
+        if (! $hasModernRequests && \Illuminate\Support\Facades\Schema::hasTable('request_transfers')) {
             $rtRows = \Illuminate\Support\Facades\DB::table('request_transfers as rt')
                 ->join('request_transfer_items as rti', 'rti.request_transfer_id', '=', 'rt.id')
                 ->where('rt.referensi_batch_id', $this->id)
@@ -156,7 +188,32 @@ class BatchProduksi extends Model
                 }
                 $rekap[$pid]['diminta'] += (float) $r->total_diminta;
             }
+        }
 
+        // 3. Total diterima: prioritaskan tabel baru `transfers` (Epic 4), fallback ke legacy `request_transfers`
+        $hasModernTransfers = false;
+        if (\Illuminate\Support\Facades\Schema::hasTable('transfers')) {
+            $trfRows = \Illuminate\Support\Facades\DB::table('transfers as t')
+                ->join('transfer_items as ti', 'ti.transfer_id', '=', 't.id')
+                ->where('t.referensi_batch_id', $this->id)
+                ->where('t.status', 'selesai')
+                ->where('t.jenis', 'pemenuhan_request_bahan')
+                ->select('ti.produk_id', \Illuminate\Support\Facades\DB::raw('SUM(COALESCE(ti.qty_baik, ti.qty_diterima, 0)) as total_diterima'))
+                ->groupBy('ti.produk_id')
+                ->get();
+
+            if ($trfRows->isNotEmpty()) {
+                $hasModernTransfers = true;
+                foreach ($trfRows as $r) {
+                    $pid = (int) $r->produk_id;
+                    if (isset($rekap[$pid])) {
+                        $rekap[$pid]['diterima'] += (float) $r->total_diterima;
+                    }
+                }
+            }
+        }
+
+        if (! $hasModernTransfers && \Illuminate\Support\Facades\Schema::hasTable('request_transfers')) {
             $receivedRows = \Illuminate\Support\Facades\DB::table('request_transfers as rt')
                 ->join('request_transfer_items as rti', 'rti.request_transfer_id', '=', 'rt.id')
                 ->where('rt.referensi_batch_id', $this->id)
@@ -167,54 +224,6 @@ class BatchProduksi extends Model
                 ->get();
 
             foreach ($receivedRows as $r) {
-                $pid = (int) $r->produk_id;
-                if (isset($rekap[$pid])) {
-                    $rekap[$pid]['diterima'] += (float) $r->total_diterima;
-                }
-            }
-        }
-
-        // 3. Total diminta dari requests baru (Epic 4)
-        if (\Illuminate\Support\Facades\Schema::hasTable('requests')) {
-            $reqRows = \Illuminate\Support\Facades\DB::table('requests as r')
-                ->join('request_items as ri', 'ri.request_id', '=', 'r.id')
-                ->where('r.referensi_batch_id', $this->id)
-                ->where('r.jenis', 'request_bahan')
-                ->whereNotIn('r.status', ['dibatalkan', 'ditolak'])
-                ->select('ri.produk_id', \Illuminate\Support\Facades\DB::raw('SUM(ri.qty_diminta) as total_diminta'))
-                ->groupBy('ri.produk_id')
-                ->get();
-
-            foreach ($reqRows as $r) {
-                $pid = (int) $r->produk_id;
-                if (! isset($rekap[$pid])) {
-                    $prod = Produk::find($pid);
-                    $rekap[$pid] = [
-                        'bahan_id' => $pid,
-                        'nama' => $prod?->nama ?? '—',
-                        'sku' => $prod?->sku ?? '—',
-                        'satuan' => $prod?->satuan ?? 'pcs',
-                        'kebutuhan' => 0.0,
-                        'diminta' => 0.0,
-                        'diterima' => 0.0,
-                    ];
-                }
-                $rekap[$pid]['diminta'] += (float) $r->total_diminta;
-            }
-        }
-
-        // 4. Total diterima dari transfers baru (Epic 4)
-        if (\Illuminate\Support\Facades\Schema::hasTable('transfers')) {
-            $trfRows = \Illuminate\Support\Facades\DB::table('transfers as t')
-                ->join('transfer_items as ti', 'ti.transfer_id', '=', 't.id')
-                ->where('t.referensi_batch_id', $this->id)
-                ->where('t.status', 'selesai')
-                ->whereIn('t.jenis', ['pemenuhan_request_bahan', 'retur_bahan'])
-                ->select('ti.produk_id', \Illuminate\Support\Facades\DB::raw('SUM(COALESCE(ti.qty_baik, ti.qty_diterima, ti.qty_dikirim)) as total_diterima'))
-                ->groupBy('ti.produk_id')
-                ->get();
-
-            foreach ($trfRows as $r) {
                 $pid = (int) $r->produk_id;
                 if (isset($rekap[$pid])) {
                     $rekap[$pid]['diterima'] += (float) $r->total_diterima;

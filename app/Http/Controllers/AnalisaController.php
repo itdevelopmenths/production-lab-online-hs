@@ -928,9 +928,15 @@ class AnalisaController extends Controller
         $comparison = $this->analisa->compareSuppliersForProduct($produk);
 
         return response()->json([
+            'success' => true,
             'produk_id' => $produk->id,
             'produk_nama' => $produk->nama,
             'suppliers' => $comparison,
+            'data' => [
+                'produk_id' => $produk->id,
+                'produk_nama' => $produk->nama,
+                'suppliers' => $comparison,
+            ],
         ]);
     }
 

@@ -175,15 +175,21 @@ class AnalisaService
                 ->where('produk_id', $produk->id)
                 ->first();
 
+            $trxCount = $summary ? (int) ($summary->jumlah_transaksi ?? $summary->total_po_selesai ?? 0) : 0;
+            $avgLt = $summary ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0)) : null;
+            $maxLt = $summary ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0)) : null;
+
             $result[] = [
                 'supplier_id' => $s->id,
                 'supplier_nama' => $s->nama,
                 'is_current' => (int) $s->id === (int) $currentSupplierId,
                 'harga_terakhir' => (float) ($produk->harga_hpp ?: 0),
                 'min_order_qty' => (float) ($produk->satuan_order_moq ?: 1),
-                'avg_lt_days' => $summary ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0)) : null,
-                'max_lt_days' => $summary ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0)) : null,
-                'total_po_selesai' => $summary ? (int) ($summary->jumlah_transaksi ?? $summary->total_po_selesai ?? 0) : 0,
+                'avg_lt_days' => $avgLt,
+                'average_lt_days' => $avgLt,
+                'max_lt_days' => $maxLt,
+                'total_po_selesai' => $trxCount,
+                'sumber_lt' => $trxCount > 0 ? 'otomatis' : 'manual',
                 'status' => $pivot ? $pivot->status : 'aktif',
             ];
         }
@@ -358,7 +364,8 @@ class AnalisaService
 
             $akanDatangDb = (float) PurchaseOrderItem::where('produk_id', $p->id)
                 ->whereHas('purchaseOrder', function ($q) {
-                    $q->whereIn('status', ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']);
+                    $q->whereIn('status', ['draft', 'berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
+                      ->whereNotIn('status', ['selesai', 'dibatalkan']);
                 })->sum('qty');
             $akanDatang = ($existingInput && $existingInput->akan_datang !== null)
                 ? (float) $existingInput->akan_datang
@@ -541,7 +548,7 @@ class AnalisaService
 
             $stokDb = (float) Stok::where('produk_id', $meta->produk_id)->sum('qty_saat_ini');
             $inboundDb = (float) PurchaseOrderItem::where('produk_id', $meta->produk_id)
-                ->whereHas('purchaseOrder', fn ($q) => $q->whereIn('status', ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']))
+                ->whereHas('purchaseOrder', fn ($q) => $q->whereIn('status', ['draft', 'berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])->whereNotIn('status', ['selesai', 'dibatalkan']))
                 ->sum('qty');
 
             $proyeksi = round($stokDb + $inboundDb - $minimumStock);
@@ -686,7 +693,8 @@ class AnalisaService
 
             $akanDatangDb = (float) PurchaseOrderItem::where('produk_id', $p->id)
                 ->whereHas('purchaseOrder', function ($q) {
-                    $q->whereIn('status', ['draft', 'diajukan', 'disetujui', 'dikirim_ke_gudang']);
+                    $q->whereIn('status', ['draft', 'berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
+                      ->whereNotIn('status', ['selesai', 'dibatalkan']);
                 })->sum('qty');
             $totalInbound = round($existingAnalisa ? (float) $existingAnalisa->inbound_before_eta : $akanDatangDb);
 

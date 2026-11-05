@@ -172,6 +172,26 @@ class TransferMonthlyWarehouseDefectDashboardTest extends TestCase
         $this->assertNotNull($soloRow);
         $this->assertEquals(12, (float) $soloRow['months'][3]); // Maret
         $this->assertEquals(12, (float) $soloRow['total_tahunan']);
+
+        // Verifikasi Struktur Monthly Matrix (Untuk Blade Index Table PRD Bab 4)
+        $this->assertArrayHasKey('monthly_matrix', $analytics);
+        $this->assertCount(12, $analytics['monthly_matrix']);
+        $maretMatrix = collect($analytics['monthly_matrix'])->firstWhere('month', 3);
+        $this->assertNotNull($maretMatrix);
+        $this->assertEquals('Maret', $maretMatrix['month_name']);
+        $this->assertEquals(3, $maretMatrix['transfers_count']);
+        $this->assertEquals(180, (float) $maretMatrix['qty_dikirim']);
+        $this->assertEquals(160, (float) $maretMatrix['qty_baik']);
+        $this->assertEquals(20, (float) $maretMatrix['qty_rusak']);
+        $this->assertEquals(11.11, (float) $maretMatrix['defect_rate_percent']);
+        $this->assertNotEmpty($maretMatrix['warehouses']);
+
+        // 6. Verifikasi rendering view transfers.index (HTTP GET)
+        $response = $this->actingAs($this->operasional)->get(route('transfers.index', ['year' => $year, 'month' => $month]));
+        $response->assertOk();
+        $response->assertSee('Dashboard Barang Rusak');
+        $response->assertSee('11.11%');
+        $response->assertSee('Maret');
     }
 }
 

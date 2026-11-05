@@ -24,6 +24,19 @@ class Supplier extends Model
         'is_active' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Supplier $supplier) {
+            $hasActivePo = $supplier->purchaseOrders()
+                ->whereIn('status', ['draft', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
+                ->exists();
+
+            if ($hasActivePo) {
+                throw new \DomainException("Supplier '{$supplier->nama}' tidak dapat dihapus karena masih terikat pada Purchase Order aktif.");
+            }
+        });
+    }
+
     public function purchaseOrders(): HasMany
     {
         return $this->hasMany(PurchaseOrder::class);

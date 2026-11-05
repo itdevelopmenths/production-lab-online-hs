@@ -76,12 +76,24 @@ class SupplierController extends Controller
         return redirect()->route('supplier.index')->with('success', 'Supplier berhasil diperbarui.');
     }
 
-    public function destroy(Supplier $supplier): JsonResponse
+    public function destroy(Supplier $supplier)
     {
         $this->authorize('supplier.delete');
-        $supplier->delete();
 
-        return response()->json(['message' => 'Supplier berhasil dihapus.']);
+        try {
+            $supplier->delete();
+        } catch (\DomainException $e) {
+            if (request()->wantsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return back()->with('error', $e->getMessage());
+        }
+
+        if (request()->wantsJson()) {
+            return response()->json(['message' => 'Supplier berhasil dihapus.']);
+        }
+
+        return redirect()->route('supplier.index')->with('success', 'Supplier berhasil dihapus.');
     }
 
     private function validated(Request $request): array

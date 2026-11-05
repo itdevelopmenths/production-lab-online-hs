@@ -52,20 +52,39 @@ class StokController extends Controller
 
         $inboundPo = DB::table('purchase_order_items as poi')
             ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
-            ->whereIn('po.status', ['diajukan', 'dikirim_ke_gudang'])
+            ->whereIn('po.status', ['berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
+            ->whereNotIn('po.status', ['selesai', 'dibatalkan'])
             ->select('poi.produk_id', DB::raw('SUM(poi.qty) as total_inbound'))
             ->groupBy('poi.produk_id')
             ->pluck('total_inbound', 'poi.produk_id');
 
-        // 3. Inbound Request & Transfer
-        $inboundRt = DB::table('request_transfer_items as rti')
-            ->join('request_transfers as rt', 'rt.id', '=', 'rti.request_transfer_id')
-            ->whereIn('rt.status', ['diproses', 'dikirim'])
-            ->whereNotNull('rt.gudang_tujuan_id')
-            ->select('rti.produk_id', 'rt.gudang_tujuan_id', DB::raw('SUM(COALESCE(rti.qty_dikirim, rti.qty_diminta)) as total_inbound'))
-            ->groupBy('rti.produk_id', 'rt.gudang_tujuan_id')
-            ->get()
-            ->keyBy(fn ($r) => "{$r->produk_id}_{$r->gudang_tujuan_id}");
+        // 3. Inbound Request & Transfer (New transfers table + legacy request_transfers)
+        $inboundRtMap = [];
+        if (\Illuminate\Support\Facades\Schema::hasTable('transfers')) {
+            $transfersInbound = DB::table('transfer_items as ti')
+                ->join('transfers as t', 't.id', '=', 'ti.transfer_id')
+                ->where('t.status', 'dikirim')
+                ->whereNotNull('t.gudang_tujuan_id')
+                ->select('ti.produk_id', 't.gudang_tujuan_id', DB::raw('SUM(ti.qty_dikirim) as total_inbound'))
+                ->groupBy('ti.produk_id', 't.gudang_tujuan_id')
+                ->get();
+            foreach ($transfersInbound as $ti) {
+                $inboundRtMap["{$ti->produk_id}_{$ti->gudang_tujuan_id}"] = (float) $ti->total_inbound;
+            }
+        }
+        if (\Illuminate\Support\Facades\Schema::hasTable('request_transfers')) {
+            $inboundRt = DB::table('request_transfer_items as rti')
+                ->join('request_transfers as rt', 'rt.id', '=', 'rti.request_transfer_id')
+                ->whereIn('rt.status', ['diproses', 'dikirim'])
+                ->whereNotNull('rt.gudang_tujuan_id')
+                ->select('rti.produk_id', 'rt.gudang_tujuan_id', DB::raw('SUM(COALESCE(rti.qty_dikirim, rti.qty_diminta)) as total_inbound'))
+                ->groupBy('rti.produk_id', 'rt.gudang_tujuan_id')
+                ->get();
+            foreach ($inboundRt as $r) {
+                $key = "{$r->produk_id}_{$r->gudang_tujuan_id}";
+                $inboundRtMap[$key] = ($inboundRtMap[$key] ?? 0) + (float) $r->total_inbound;
+            }
+        }
 
         // 4. Rencana Batch Produksi aktif (penambah ketersediaan produk jadi mendatang)
         $rencanaBatch = DB::table('batch_produksi')
@@ -148,15 +167,15 @@ class StokController extends Controller
                     ? $this->formatQty((float) $batasMin) . ' ' . $s->produk?->satuan
                     : '-';
             })
-            ->addColumn('kolom_stok', function ($s) use ($gudangPusatId, $inboundPo, $inboundRt, $batasMinMap) {
+            ->addColumn('kolom_stok', function ($s) use ($gudangPusatId, $inboundPo, $inboundRtMap, $batasMinMap) {
                 $fisik = (float) $s->qty_saat_ini;
                 $inbound = 0.0;
                 if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true) && $gudangPusatId && (int) $s->gudang_id === (int) $gudangPusatId) {
                     $inbound += (float) ($inboundPo[$s->produk_id] ?? 0);
                 }
                 $rtKey = "{$s->produk_id}_{$s->gudang_id}";
-                if (isset($inboundRt[$rtKey])) {
-                    $inbound += (float) $inboundRt[$rtKey]->total_inbound;
+                if (isset($inboundRtMap[$rtKey])) {
+                    $inbound += (float) $inboundRtMap[$rtKey];
                 }
 
                 $kolomStok = $fisik + $inbound;
@@ -171,15 +190,15 @@ class StokController extends Controller
 
                 return '<div class="flex items-center justify-end"><span>' . $val . '</span>' . $badge . '</div>';
             })
-            ->addColumn('kolom_rencana', function ($s) use ($gudangPusatId, $inboundPo, $inboundRt, $rencanaBatchMap, $batasMinMap) {
+            ->addColumn('kolom_rencana', function ($s) use ($gudangPusatId, $inboundPo, $inboundRtMap, $rencanaBatchMap, $batasMinMap) {
                 $fisik = (float) $s->qty_saat_ini;
                 $inbound = 0.0;
                 if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true) && $gudangPusatId && (int) $s->gudang_id === (int) $gudangPusatId) {
                     $inbound += (float) ($inboundPo[$s->produk_id] ?? 0);
                 }
                 $rtKey = "{$s->produk_id}_{$s->gudang_id}";
-                if (isset($inboundRt[$rtKey])) {
-                    $inbound += (float) $inboundRt[$rtKey]->total_inbound;
+                if (isset($inboundRtMap[$rtKey])) {
+                    $inbound += (float) $inboundRtMap[$rtKey];
                 }
 
                 $kolomStok = $fisik + $inbound;
