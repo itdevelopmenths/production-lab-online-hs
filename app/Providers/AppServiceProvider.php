@@ -21,7 +21,27 @@ class AppServiceProvider extends ServiceProvider
 
         // Manager bypass all gate checks (PRD: akses & approval seluruh menu)
         Gate::before(function ($user, $ability) {
-            return $user->hasRole('manager') ? true : null;
+            if ($user->hasRole('manager')) {
+                return true;
+            }
+
+            // Dual compatibility for Request & Transfer aliases with legacy RT permissions
+            if (str_starts_with($ability, 'request.')) {
+                $sub = substr($ability, 8);
+                $rtMap = ['view' => 'rt.view', 'create' => 'rt.create', 'submit' => 'rt.submit', 'approve' => 'rt.approve', 'cancel' => 'rt.cancel'];
+                if (isset($rtMap[$sub]) && $user->can($rtMap[$sub])) {
+                    return true;
+                }
+            }
+            if (str_starts_with($ability, 'transfer.')) {
+                $sub = substr($ability, 9);
+                $rtMap = ['view' => 'rt.view', 'create' => 'rt.create', 'ship' => 'rt.ship', 'receive' => 'rt.receive', 'cancel' => 'rt.cancel'];
+                if (isset($rtMap[$sub]) && $user->can($rtMap[$sub])) {
+                    return true;
+                }
+            }
+
+            return null;
         });
 
         // N+1 prevention in non-production

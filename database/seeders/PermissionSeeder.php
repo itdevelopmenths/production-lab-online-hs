@@ -27,7 +27,9 @@ class PermissionSeeder extends Seeder
             'purchasing.submit', 'purchasing.approve', 'purchasing.receive',
             'purchasing.pay', 'purchasing.cancel',
 
-            // Request & Transfer
+            // Request & Transfer (PRD v2.4 + legacy aliases)
+            'request.view', 'request.create', 'request.submit', 'request.approve', 'request.cancel',
+            'transfer.view', 'transfer.create', 'transfer.ship', 'transfer.receive', 'transfer.cancel',
             'rt.view', 'rt.create', 'rt.submit', 'rt.approve',
             'rt.process', 'rt.ship', 'rt.receive', 'rt.cancel',
 
@@ -85,6 +87,8 @@ class PermissionSeeder extends Seeder
             'produk.view', 'gudang.view', 'supplier.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.receive',
+            'request.view',
+            'transfer.view', 'transfer.create', 'transfer.ship', 'transfer.receive',
             'rt.view', 'rt.create', 'rt.submit', 'rt.process', 'rt.ship', 'rt.receive',
             'report.view',
         ]);
@@ -100,6 +104,8 @@ class PermissionSeeder extends Seeder
             'stok.view', 'stok.opname', 'stok.ledger.view',
             'batch.view', 'batch.create', 'batch.release',
             'batch.complete', 'batch.cancel', 'batch.opname',
+            'request.view', 'request.create', 'request.submit', 'request.cancel',
+            'transfer.view', 'transfer.ship', 'transfer.receive',
             'rt.view', 'rt.create', 'rt.submit', 'rt.ship', 'rt.receive',
             'report.view',
         ]);
@@ -114,6 +120,8 @@ class PermissionSeeder extends Seeder
             'produk.view', 'gudang.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'analisa.view', 'analisa.manage', 'analisa.snapshot',
+            'request.view', 'request.create', 'request.submit', 'request.cancel',
+            'transfer.view', 'transfer.create', 'transfer.ship', 'transfer.receive',
             'rt.view', 'rt.create', 'rt.ship', 'rt.receive',
             'report.view',
         ]);

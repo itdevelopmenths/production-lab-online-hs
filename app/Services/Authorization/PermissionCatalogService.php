@@ -105,8 +105,30 @@ class PermissionCatalogService
                         'batch.audit' => 'Lihat Riwayat Audit Batch Produksi',
                     ],
                 ],
+                'request' => [
+                    'label' => 'Permintaan Barang (Request)',
+                    'icon' => 'inbox-arrow-down',
+                    'actions' => [
+                        'request.view' => 'Lihat Dokumen Permintaan Barang',
+                        'request.create' => 'Buat Permintaan Barang Baru',
+                        'request.submit' => 'Ajukan Permintaan ke Manajer',
+                        'request.approve' => 'Setujui Permintaan Barang',
+                        'request.cancel' => 'Batalkan Permintaan Barang',
+                    ],
+                ],
+                'transfer' => [
+                    'label' => 'Transfer & Mutasi Fisik',
+                    'icon' => 'truck',
+                    'actions' => [
+                        'transfer.view' => 'Lihat Dokumen Transfer & Defect Dashboard',
+                        'transfer.create' => 'Buat Dokumen Transfer Baru',
+                        'transfer.ship' => 'Kirim Barang (Status Dikirim/In-Transit)',
+                        'transfer.receive' => 'Terima Barang di Tujuan (Inspeksi Fisik)',
+                        'transfer.cancel' => 'Batalkan Dokumen Transfer',
+                    ],
+                ],
                 'rt' => [
-                    'label' => 'Request & Transfer Antar Gudang',
+                    'label' => 'Request & Transfer (Legacy Alias)',
                     'icon' => 'arrows-right-left',
                     'actions' => [
                         'rt.view' => 'Lihat Dokumen Transfer',
