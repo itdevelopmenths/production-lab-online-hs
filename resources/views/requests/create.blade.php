@@ -4,25 +4,32 @@
             ['produk_id' => '', 'qty_diminta' => 1, 'keterangan' => '']
         ]);
     @endphp
-    <div x-data="{
-        jenis: '{{ old('jenis', $allowedJenis[0] ?? 'request_bahan') }}',
-        gudangPemohonId: '{{ old('gudang_pemohon_id', $defaultGudangPemohonId ?? '') }}',
-        gudangTujuanId: '{{ old('gudang_tujuan_id', $defaultGudangTujuanId ?? '') }}',
-        items: @json($initialItems),
-        products: @json($produk),
-        addItem() {
-            this.items.push({ produk_id: '', qty_diminta: 1, keterangan: '' });
-        },
-        removeItem(index) {
-            if (this.items.length > 1) {
-                this.items.splice(index, 1);
-            }
-        },
-        getSatuan(prodId) {
-            const p = this.products.find(x => x.id == prodId);
-            return p ? p.satuan : '-';
+
+    <script>
+        function requestCreateData() {
+            return {
+                jenis: @js(old('jenis', $allowedJenis[0] ?? 'request_bahan')),
+                gudangPemohonId: @js((string) old('gudang_pemohon_id', $defaultGudangPemohonId ?? '')),
+                gudangTujuanId: @js((string) old('gudang_tujuan_id', $defaultGudangTujuanId ?? '')),
+                items: @js($initialItems),
+                products: @js($produk),
+                addItem() {
+                    this.items.push({ produk_id: '', qty_diminta: 1, keterangan: '' });
+                },
+                removeItem(index) {
+                    if (this.items.length > 1) {
+                        this.items.splice(index, 1);
+                    }
+                },
+                getSatuan(prodId) {
+                    const p = this.products.find(x => x.id == prodId);
+                    return p ? p.satuan : '-';
+                }
+            };
         }
-    }">
+    </script>
+
+    <div x-data="requestCreateData()">
         <form method="POST" action="{{ route('requests.store') }}" class="space-y-6">
             @csrf
 

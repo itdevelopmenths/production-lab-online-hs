@@ -4,26 +4,33 @@
             ['produk_id' => '', 'qty_dikirim' => 1, 'keterangan' => '']
         ]);
     @endphp
-    <div x-data="{
-        requestId: '{{ $stockRequest?->id ?? '' }}',
-        gudangAsalId: '{{ old('gudang_asal_id', $defaultGudangAsalId ?? '') }}',
-        gudangTujuanId: '{{ old('gudang_tujuan_id', $defaultGudangTujuanId ?? '') }}',
-        jenis: '{{ old('jenis', $defaultJenis ?? 'distribusi') }}',
-        items: @json($initialItems),
-        products: @json($products),
-        addItem() {
-            this.items.push({ produk_id: '', qty_dikirim: 1, keterangan: '' });
-        },
-        removeItem(index) {
-            if (this.items.length > 1) {
-                this.items.splice(index, 1);
-            }
-        },
-        getSatuan(prodId) {
-            const p = this.products.find(x => x.id == prodId);
-            return p ? p.satuan : '-';
+
+    <script>
+        function transferCreateData() {
+            return {
+                requestId: @js($stockRequest?->id ?? ''),
+                gudangAsalId: @js((string) old('gudang_asal_id', $defaultGudangAsalId ?? '')),
+                gudangTujuanId: @js((string) old('gudang_tujuan_id', $defaultGudangTujuanId ?? '')),
+                jenis: @js(old('jenis', $defaultJenis ?? 'distribusi')),
+                items: @js($initialItems),
+                products: @js($products),
+                addItem() {
+                    this.items.push({ produk_id: '', qty_dikirim: 1, keterangan: '' });
+                },
+                removeItem(index) {
+                    if (this.items.length > 1) {
+                        this.items.splice(index, 1);
+                    }
+                },
+                getSatuan(prodId) {
+                    const p = this.products.find(x => x.id == prodId);
+                    return p ? p.satuan : '-';
+                }
+            };
         }
-    }">
+    </script>
+
+    <div x-data="transferCreateData()">
         <form method="POST" action="{{ route('transfers.store') }}" class="space-y-6">
             @csrf
             @if($stockRequest)

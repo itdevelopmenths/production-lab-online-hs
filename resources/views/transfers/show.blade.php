@@ -11,25 +11,32 @@
             'keterangan_rusak' => $it->keterangan_rusak ?? '',
         ])->values()->toArray();
     @endphp
-    <div x-data="{
-        openReceiveModal: false,
-        openCancelModal: false,
-        alasanCancel: '',
-        items: @json($transferItemsData),
-        isReceiveValid() {
-            for (let i = 0; i < this.items.length; i++) {
-                const it = this.items[i];
-                const sum = parseFloat(it.qty_baik || 0) + parseFloat(it.qty_rusak || 0);
-                if (Math.abs(sum - parseFloat(it.qty_dikirim)) > 0.0001) {
-                    return false;
+
+    <script>
+        function transferShowData() {
+            return {
+                openReceiveModal: false,
+                openCancelModal: false,
+                alasanCancel: '',
+                items: @js($transferItemsData),
+                isReceiveValid() {
+                    for (let i = 0; i < this.items.length; i++) {
+                        const it = this.items[i];
+                        const sum = parseFloat(it.qty_baik || 0) + parseFloat(it.qty_rusak || 0);
+                        if (Math.abs(sum - parseFloat(it.qty_dikirim)) > 0.0001) {
+                            return false;
+                        }
+                        if (parseFloat(it.qty_rusak) > 0 && (!it.keterangan_rusak || it.keterangan_rusak.trim() === '')) {
+                            return false;
+                        }
+                    }
+                    return true;
                 }
-                if (parseFloat(it.qty_rusak) > 0 && (!it.keterangan_rusak || it.keterangan_rusak.trim() === '')) {
-                    return false;
-                }
-            }
-            return true;
+            };
         }
-    }" class="space-y-6">
+    </script>
+
+    <div x-data="transferShowData()" class="space-y-6">
 
         {{-- Header Status Bar --}}
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-card border border-border">

@@ -6,25 +6,32 @@
             'keterangan' => $it->keterangan ?? '',
         ])->values()->toArray());
     @endphp
-    <div x-data="{
-        jenis: '{{ old('jenis', $stockRequest->jenis) }}',
-        gudangPemohonId: '{{ old('gudang_pemohon_id', $stockRequest->gudang_pemohon_id) }}',
-        gudangTujuanId: '{{ old('gudang_tujuan_id', $stockRequest->gudang_tujuan_id) }}',
-        items: @json($initialItems),
-        products: @json($produk),
-        addItem() {
-            this.items.push({ produk_id: '', qty_diminta: 1, keterangan: '' });
-        },
-        removeItem(index) {
-            if (this.items.length > 1) {
-                this.items.splice(index, 1);
-            }
-        },
-        getSatuan(prodId) {
-            const p = this.products.find(x => x.id == prodId);
-            return p ? p.satuan : '-';
+
+    <script>
+        function requestEditData() {
+            return {
+                jenis: @js(old('jenis', $stockRequest->jenis)),
+                gudangPemohonId: @js((string) old('gudang_pemohon_id', $stockRequest->gudang_pemohon_id)),
+                gudangTujuanId: @js((string) old('gudang_tujuan_id', $stockRequest->gudang_tujuan_id)),
+                items: @js($initialItems),
+                products: @js($produk),
+                addItem() {
+                    this.items.push({ produk_id: '', qty_diminta: 1, keterangan: '' });
+                },
+                removeItem(index) {
+                    if (this.items.length > 1) {
+                        this.items.splice(index, 1);
+                    }
+                },
+                getSatuan(prodId) {
+                    const p = this.products.find(x => x.id == prodId);
+                    return p ? p.satuan : '-';
+                }
+            };
         }
-    }">
+    </script>
+
+    <div x-data="requestEditData()">
         <form method="POST" action="{{ route('requests.update', $stockRequest) }}" class="space-y-6">
             @csrf
             @method('PUT')

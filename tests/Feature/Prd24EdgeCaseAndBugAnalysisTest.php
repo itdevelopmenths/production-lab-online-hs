@@ -461,6 +461,8 @@ class Prd24EdgeCaseAndBugAnalysisTest extends TestCase
         $resTrfCreate = $this->actingAs($this->gudang)->get(route('transfers.create'));
         $resTrfCreate->assertOk();
         $resTrfCreate->assertSee('Buat Transfer Barang');
+        $resTrfCreate->assertDontSee('1) { this.items.splice');
+        $resTrfCreate->assertSee('transferCreateData()');
 
         // 4. GET transfers.show
         $transfer = Transfer::create([
