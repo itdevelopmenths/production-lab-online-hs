@@ -50,11 +50,12 @@ window.productSearchSelect = function(config) {
                 let baseUrl = this.url || '/produk/select-data';
                 let q = (this.search || '').trim();
                 let url = `${baseUrl}?page=${page}&q=${encodeURIComponent(q)}`;
-                if (this.filterTipe) {
-                    if (Array.isArray(this.filterTipe)) {
-                        this.filterTipe.forEach(t => url += `&tipe[]=${encodeURIComponent(t)}`);
+                let fTipe = (typeof this.filterTipe === 'function') ? this.filterTipe() : this.filterTipe;
+                if (fTipe) {
+                    if (Array.isArray(fTipe)) {
+                        fTipe.forEach(t => url += `&tipe[]=${encodeURIComponent(t)}`);
                     } else {
-                        url += `&tipe[]=${encodeURIComponent(this.filterTipe)}`;
+                        url += `&tipe[]=${encodeURIComponent(fTipe)}`;
                     }
                 }
                 let sId = (typeof this.supplierId === 'function') ? this.supplierId() : this.supplierId;
