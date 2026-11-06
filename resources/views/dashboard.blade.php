@@ -221,7 +221,9 @@
     </div>
 
     {{-- Section: Dashboard Barang Rusak & Defect Mutasi --}}
-    <div class="mt-6">
-        @include('partials.defect-dashboard', ['formAction' => route('dashboard')])
-    </div>
+    @can('defect.view')
+        <div class="mt-6">
+            @include('partials.defect-dashboard', ['formAction' => route('dashboard')])
+        </div>
+    @endcan
 </x-app-layout>

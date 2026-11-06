@@ -120,7 +120,8 @@ class PermissionCatalogService
                     'label' => 'Transfer & Mutasi Fisik',
                     'icon' => 'truck',
                     'actions' => [
-                        'transfer.view' => 'Lihat Dokumen Transfer & Defect Dashboard',
+                        'transfer.view' => 'Lihat Dokumen Transfer & Surat Jalan',
+                        'defect.view' => 'Lihat Dashboard & Rekapitulasi Barang Rusak (Defect)',
                         'transfer.create' => 'Buat Dokumen Transfer Baru',
                         'transfer.ship' => 'Kirim Barang (Status Dikirim/In-Transit)',
                         'transfer.receive' => 'Terima Barang di Tujuan (Inspeksi Fisik)',

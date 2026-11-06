@@ -278,4 +278,22 @@ class DashboardTest extends TestCase
         $response->assertSee('Total Barang Rusak');
         $response->assertSee('Defect Rate');
     }
+
+    public function test_dashboard_defect_widget_permission_scoping(): void
+    {
+        $gudang = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+
+        // Gudang has defect.view -> can see defect dashboard
+        $this->actingAs($gudang);
+        $resGudang = $this->get(route('dashboard'));
+        $resGudang->assertOk();
+        $resGudang->assertSee('Dashboard Barang Rusak & Defect Mutasi', false);
+
+        // Purchasing does not have defect.view -> cannot see defect dashboard
+        $this->actingAs($purchasing);
+        $resPurchasing = $this->get(route('dashboard'));
+        $resPurchasing->assertOk();
+        $resPurchasing->assertDontSee('Dashboard Barang Rusak & Defect Mutasi', false);
+    }
 }

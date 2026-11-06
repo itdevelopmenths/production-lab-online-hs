@@ -37,13 +37,22 @@ class DashboardController extends Controller
         $user = auth()->user()->loadMissing(['roles', 'gudangs']);
         $role = $user->roleName() ?? 'operasional';
 
-        // Filter untuk Dashboard Rekapitulasi Barang Rusak / Defect Mutasi
-        $year = (int) $request->input('year', date('Y'));
-        $month = $request->filled('month') ? (int) $request->input('month') : null;
-        $gudangId = $request->filled('gudang_id') ? (int) $request->input('gudang_id') : null;
+        // Filter untuk Dashboard Rekapitulasi Barang Rusak / Defect Mutasi (hanya jika berwenang)
+        $canViewDefect = $user->can('defect.view');
+        if ($canViewDefect) {
+            $year = (int) $request->input('year', date('Y'));
+            $month = $request->filled('month') ? (int) $request->input('month') : null;
+            $gudangId = $request->filled('gudang_id') ? (int) $request->input('gudang_id') : null;
 
-        $warehouses = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'kode', 'tipe']);
-        $defectAnalytics = $this->transferService->getMonthlyWarehouseDefectAnalytics($year, $month, $gudangId);
+            $warehouses = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'kode', 'tipe']);
+            $defectAnalytics = $this->transferService->getMonthlyWarehouseDefectAnalytics($year, $month, $gudangId);
+        } else {
+            $year = (int) date('Y');
+            $month = null;
+            $gudangId = null;
+            $warehouses = collect();
+            $defectAnalytics = null;
+        }
 
         // Dispatch ke builder data spesifik peran
         $roleData = match ($role) {

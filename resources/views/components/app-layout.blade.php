@@ -482,7 +482,7 @@
                          :class="collapsed ? 'left-full ml-2 bottom-0' : 'right-2 bottom-full left-2 mb-2'"
                          class="bg-card absolute rounded-xl border border-border p-1 shadow-lg z-50 min-w-[220px] text-sm">
                         <div class="border-b border-border px-3 py-2.5">
-                            <p class="font-semibold text-foreground text-xs leading-snug break-words">{{ auth()->user()->name }}</p>
+                            <p class="font-semibold text-foreground text-xs leading-snug break-words whitespace-normal">{{ auth()->user()->name }}</p>
                             <p class="text-muted-foreground truncate text-[11px] mt-0.5">{{ auth()->user()->email }}</p>
                             <span class="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-semibold bg-muted text-foreground uppercase rounded-md">
                                 {{ auth()->user()->roleName() ?? 'User' }}
@@ -538,7 +538,7 @@
                         
                         <div x-show="!collapsed" class="min-w-0 flex-1 flex items-center justify-between gap-1.5">
                             <div class="min-w-0 flex-1">
-                                <span class="block text-xs font-semibold text-foreground leading-snug break-words" title="{{ auth()->user()->name }}">
+                                <span class="block text-xs font-semibold text-foreground leading-snug break-words whitespace-normal" title="{{ auth()->user()->name }}">
                                     {{ auth()->user()->name }}
                                 </span>
                                 <span class="text-muted-foreground block text-[11px] leading-tight mt-0.5 capitalize truncate">
