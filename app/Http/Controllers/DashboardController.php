@@ -16,6 +16,8 @@ use App\Models\User;
 use App\Services\AnalisaService;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\StokService;
+use App\Services\TransferService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -24,15 +26,24 @@ class DashboardController extends Controller
     public function __construct(
         private readonly AnalisaService $analisa,
         private readonly StokService $stokService,
-        private readonly LocationScopeService $locationScope
+        private readonly LocationScopeService $locationScope,
+        private readonly TransferService $transferService
     ) {
     }
 
-    public function index()
+    public function index(Request $request)
     {
         /** @var User $user */
         $user = auth()->user()->loadMissing(['roles', 'gudangs']);
         $role = $user->roleName() ?? 'operasional';
+
+        // Filter untuk Dashboard Rekapitulasi Barang Rusak / Defect Mutasi
+        $year = (int) $request->input('year', date('Y'));
+        $month = $request->filled('month') ? (int) $request->input('month') : null;
+        $gudangId = $request->filled('gudang_id') ? (int) $request->input('gudang_id') : null;
+
+        $warehouses = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'kode', 'tipe']);
+        $defectAnalytics = $this->transferService->getMonthlyWarehouseDefectAnalytics($year, $month, $gudangId);
 
         // Dispatch ke builder data spesifik peran
         $roleData = match ($role) {
@@ -47,6 +58,11 @@ class DashboardController extends Controller
         return view('dashboard', array_merge([
             'user' => $user,
             'role' => $role,
+            'defectAnalytics' => $defectAnalytics,
+            'year' => $year,
+            'month' => $month,
+            'gudangId' => $gudangId,
+            'warehouses' => $warehouses,
         ], $roleData));
     }
 

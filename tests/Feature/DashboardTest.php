@@ -266,4 +266,16 @@ class DashboardTest extends TestCase
         $resGudang->assertSee('TRF-TEST-GDG');
         $resGudang->assertSee(route('transfers.show', $trf));
     }
+
+    public function test_dashboard_renders_defect_analytics_widget(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $response = $this->get(route('dashboard'));
+        $response->assertOk();
+        $response->assertSee('Dashboard Barang Rusak & Defect Mutasi', false);
+        $response->assertSee('Total Barang Rusak');
+        $response->assertSee('Defect Rate');
+    }
 }

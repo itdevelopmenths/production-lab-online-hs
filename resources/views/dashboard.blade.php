@@ -219,4 +219,9 @@
             </x-card>
         @endforeach
     </div>
+
+    {{-- Section: Dashboard Barang Rusak & Defect Mutasi --}}
+    <div class="mt-6">
+        @include('partials.defect-dashboard', ['formAction' => route('dashboard')])
+    </div>
 </x-app-layout>
