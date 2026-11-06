@@ -64,10 +64,9 @@
         ];
     @endphp
 
-    <div class="max-w-6xl mx-auto space-y-6">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Buat Purchase Order"
-            subtitle="Formulir pengadaan bahan baku, kemasan, atau botol ke supplier rekanan"
             :breadcrumbs="['Purchasing' => route('purchasing.index'), 'Buat PO' => null]"
         >
             <x-slot:actions>

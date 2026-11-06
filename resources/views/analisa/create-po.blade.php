@@ -86,10 +86,9 @@
         ];
     @endphp
 
-    <div class="max-w-6xl mx-auto space-y-6">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Buat Draft Purchase Order"
-            subtitle="Penerbitan Draft PO otomatis dari hasil kalkulasi Analisa & Rekomendasi Stok Bahan Baku"
             :breadcrumbs="['Inventori' => null, 'Analisa Stok' => route('analisa.index'), 'Buat Draft PO' => null]"
         >
             <x-slot:actions>

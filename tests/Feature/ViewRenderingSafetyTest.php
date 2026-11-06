@@ -61,7 +61,9 @@ class ViewRenderingSafetyTest extends TestCase
         $this->get(route('purchasing.index'))->assertOk();
 
         // Create
-        $this->get(route('purchasing.create'))->assertOk();
+        $this->get(route('purchasing.create'))
+            ->assertOk()
+            ->assertDontSee('max-w-6xl');
 
         // Show: Create PO with items, partial receipt, and payments
         $supplier = Supplier::firstOrFail();

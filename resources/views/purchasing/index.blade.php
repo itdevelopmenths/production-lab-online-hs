@@ -25,7 +25,6 @@
 
     <x-page-header
         title="Purchase Order"
-        subtitle="Daftar pesanan pengadaan bahan baku, kemasan, estimasi kedatangan, buku tagihan, antrean persetujuan, dan analisis lead time supplier"
         :breadcrumbs="['Purchasing' => null]"
     >
         <x-slot:actions>
@@ -42,16 +41,16 @@
 
     <div x-data="{ activeTab: '{{ $defaultTab }}', leadTimeLoaded: {{ $defaultTab === 'lead_time' ? 'true' : 'false' }} }"
          x-init="{{ $defaultTab === 'lead_time' ? '$nextTick(() => { loadLeadTimeData(); })' : '' }}">
-        {{-- DevScore Segmented Tabs --}}
-        <div class="inline-flex flex-wrap items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/40 mb-6">
+        {{-- Segmented Tabs --}}
+        <div class="inline-flex flex-wrap items-center gap-1 p-1 bg-muted/40 rounded-lg border border-border mb-3.5">
             {{-- TAB 1: Daftar Purchase Order --}}
             <button
                 type="button"
                 @click="activeTab = 'po'; $nextTick(() => { if (dtTable) dtTable.columns.adjust(); })"
-                :class="activeTab === 'po' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-2"
+                :class="activeTab === 'po' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-1.5"
             >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Daftar Purchase Order
             </button>
 
@@ -60,10 +59,10 @@
             <button
                 type="button"
                 @click="activeTab = 'ap'; $nextTick(() => { if (dtApTable) dtApTable.columns.adjust(); })"
-                :class="activeTab === 'ap' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-2"
+                :class="activeTab === 'ap' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-1.5"
             >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 Buku Tagihan (AP)
             </button>
             @endif
@@ -73,13 +72,13 @@
             <button
                 type="button"
                 @click="activeTab = 'approval'; $nextTick(() => { if (dtApprovalTable) dtApprovalTable.columns.adjust(); })"
-                :class="activeTab === 'approval' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-2"
+                :class="activeTab === 'approval' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-1.5"
             >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Antrean Approval
                 @if($pendingApprovalCount > 0)
-                    <span :class="activeTab === 'approval' ? 'bg-primary-foreground text-primary' : 'bg-muted text-foreground'" class="px-1.5 py-0.5 text-[10px] font-bold rounded-full">
+                    <span :class="activeTab === 'approval' ? 'bg-primary-foreground text-primary' : 'bg-muted text-foreground'" class="px-1.5 py-0.5 text-[9px] font-bold rounded-full">
                         {{ $pendingApprovalCount }}
                     </span>
                 @endif
@@ -90,10 +89,10 @@
             <button
                 type="button"
                 @click="activeTab = 'lead_time'; if (!leadTimeLoaded) { leadTimeLoaded = true; loadLeadTimeData(); }"
-                :class="activeTab === 'lead_time' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                class="px-4 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-2"
+                :class="activeTab === 'lead_time' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-1.5"
             >
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Lead Time Supplier
             </button>
         </div>
@@ -101,11 +100,11 @@
         <!-- TAB 1: Daftar Purchase Order -->
         <div x-show="activeTab === 'po'" class="min-h-[480px]">
             <!-- Toolbar Filter PO (Menjaga filter-status-po & btn-reset-po) -->
-            <div class="flex flex-wrap items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border mb-4 shadow-xs">
-                <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-2.5 bg-card px-3.5 py-2 rounded-lg border border-border mb-3 shadow-2xs">
+                <div class="flex flex-wrap items-center gap-2.5">
                     <div>
-                        <label for="filter-status-po" class="block text-xs font-medium text-muted-foreground mb-1">Status PO</label>
-                        <select id="filter-status-po" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
+                        <label for="filter-status-po" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Status PO</label>
+                        <select id="filter-status-po" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[170px] outline-none cursor-pointer">
                             <option value="">— Semua Status PO —</option>
                             <option value="draft">Draft</option>
                             <option value="diajukan">Diajukan (Menunggu Approval)</option>
@@ -116,8 +115,8 @@
                         </select>
                     </div>
                     <div>
-                        <label for="filter-stage-po" class="block text-xs font-medium text-muted-foreground mb-1">Stage Aktif (PRD v2.4)</label>
-                        <select id="filter-stage-po" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
+                        <label for="filter-stage-po" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Stage Aktif</label>
+                        <select id="filter-stage-po" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[170px] outline-none cursor-pointer">
                             <option value="">— Semua Stage —</option>
                             <option value="perencanaan">1. Perencanaan</option>
                             <option value="approval">2. Approval</option>
@@ -131,8 +130,8 @@
                         </select>
                     </div>
                     <div>
-                        <label for="filter-kategori-supplier" class="block text-xs font-medium text-muted-foreground mb-1">Kategori Supplier</label>
-                        <select id="filter-kategori-supplier" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[160px] outline-none cursor-pointer">
+                        <label for="filter-kategori-supplier" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Kategori Supplier</label>
+                        <select id="filter-kategori-supplier" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[150px] outline-none cursor-pointer">
                             <option value="">— Semua Kategori —</option>
                             <option value="lokal">Lokal</option>
                             <option value="impor">Impor</option>
@@ -148,7 +147,7 @@
                 </div>
             </div>
 
-            <x-card title="Semua Dokumen Purchase Order" subtitle="Daftar transaksi pengadaan bahan, status tahapan 9-stage, dan SLA monitoring" :noPadding="true">
+            <x-card title="Semua Dokumen Purchase Order" :noPadding="true">
                 <div class="overflow-x-auto">
                     <table id="tbl" class="w-full text-sm">
                         <thead>
@@ -203,7 +202,7 @@
                 </div>
             </div>
 
-            <x-card title="Buku Rekapitulasi Tagihan Vendor (Accounts Payable)" subtitle="Daftar status pelunasan, jadwal jatuh tempo, dan sisa hutang dagang supplier" :noPadding="true">
+            <x-card title="Buku Rekapitulasi Tagihan Vendor (Accounts Payable)" :noPadding="true">
                 <div class="overflow-x-auto p-2">
                     <table id="tblAp" class="w-full text-xs">
                         <thead>
@@ -241,7 +240,7 @@
 
             {{-- Daftar Antrean Revisi Komitmen (PoRevisi Menunggu) --}}
             @if(isset($pendingRevisis) && $pendingRevisis->isNotEmpty())
-            <x-card title="Antrean Usulan Revisi Komitmen (PoRevisi)" subtitle="Pengajuan perubahan harga/qty komitmen dari supplier yang memerlukan otorisasi Manager" :noPadding="true">
+            <x-card title="Antrean Usulan Revisi Komitmen (PoRevisi)" :noPadding="true">
                 <div class="overflow-x-auto p-2">
                     <table class="w-full text-xs">
                         <thead>
@@ -283,7 +282,7 @@
             @endif
 
             {{-- Antrean PO Menunggu Persetujuan --}}
-            <x-card title="Antrean Persetujuan Purchase Order" subtitle="Daftar pesanan pengadaan yang menunggu persetujuan otorisasi manager (Stage 2)" :noPadding="true">
+            <x-card title="Antrean Persetujuan Purchase Order" :noPadding="true">
                 <div class="overflow-x-auto p-2">
                     <table id="tblApproval" class="w-full text-xs">
                         <thead>

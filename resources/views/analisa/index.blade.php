@@ -2,7 +2,6 @@
     <div x-data="analisa()" x-init="load()" x-cloak class="space-y-5">
         <x-page-header
             title="Analisa & Rekomendasi Stok"
-            subtitle="Engine kalkulasi otomatis Lead Time, Buffer Stock, Batas Minimum, Target Stock, dan Rekomendasi Pemesanan"
             :breadcrumbs="['Inventori' => null, 'Analisa Stok' => null]"
         >
             <x-slot:actions>

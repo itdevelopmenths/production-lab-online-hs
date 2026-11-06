@@ -87,10 +87,9 @@
         $totalDibayar = $purchaseOrder->totalDibayar();
     @endphp
 
-    <div class="max-w-6xl mx-auto space-y-6">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Edit Purchase Order {{ $purchaseOrder->no_po }}"
-            subtitle="Perbarui data pengadaan bahan baku, kuantitas, harga, dan jadwal pembayaran"
             :breadcrumbs="['Purchasing' => route('purchasing.index'), $purchaseOrder->no_po => route('purchasing.show', $purchaseOrder), 'Edit PO' => null]"
         >
             <x-slot:actions>
