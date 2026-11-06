@@ -1,31 +1,44 @@
-<x-app-layout title="Transfer Barang" subtitle="Mutasi internal antar gudang, pengiriman, dan pelacakan defect/barang rusak">
-    <div class="space-y-6">
+<x-app-layout title="Transfer Barang">
+    <div class="space-y-4">
+        <x-page-header
+            title="Transfer & Mutasi Barang"
+            :breadcrumbs="['Transfer' => null]"
+        >
+            <x-slot:actions>
+                @canany(['transfer.view', 'rt.view'])
+                <x-button href="{{ route('rt.create') }}" variant="primary" size="xs">
+                    <x-slot:icon>
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </x-slot:icon>
+                    Buat Transfer
+                </x-button>
+                @endcanany
+            </x-slot:actions>
+        </x-page-header>
 
-        {{-- ========================================================================= --}}
         {{-- DASHBOARD WIDGET: REKAPITULASI BARANG RUSAK / DEFECT PER BULAN PER GUDANG --}}
-        {{-- ========================================================================= --}}
-        <x-card class="bg-gradient-to-br from-card to-muted/20 border-border">
+        <x-card class="border-border">
             <x-slot:header>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between w-full gap-3">
-                    <div class="flex items-center gap-3">
-                        <div class="size-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
-                            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <div class="flex items-center gap-2.5">
+                        <div class="size-8 rounded-md bg-muted text-foreground flex items-center justify-center border border-border shrink-0">
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         </div>
                         <div>
-                            <h2 class="text-base font-bold text-foreground tracking-tight">Dashboard Barang Rusak & Defect Mutasi</h2>
-                            <p class="text-xs text-muted-foreground">Kalkulasi akumulasi barang rusak per bulan per gudang dari penerimaan transfer</p>
+                            <h2 class="text-sm font-bold text-foreground tracking-tight">Barang Rusak & Defect Mutasi</h2>
+                            <p class="text-xs text-muted-foreground">Akumulasi barang rusak per bulan per gudang dari penerimaan transfer</p>
                         </div>
                     </div>
 
                     {{-- Filter Form --}}
                     <form method="GET" action="{{ route('transfers.index') }}" class="flex flex-wrap items-center gap-2">
-                        <select name="year" class="h-8 rounded-lg border border-border bg-card text-xs px-2.5 text-foreground">
+                        <select name="year" class="h-8 rounded-md border border-input bg-background text-xs px-2 text-foreground">
                             @foreach(range(date('Y') - 2, date('Y') + 1) as $yr)
                                 <option value="{{ $yr }}" {{ $year == $yr ? 'selected' : '' }}>Tahun {{ $yr }}</option>
                             @endforeach
                         </select>
 
-                        <select name="month" class="h-8 rounded-lg border border-border bg-card text-xs px-2.5 text-foreground">
+                        <select name="month" class="h-8 rounded-md border border-input bg-background text-xs px-2 text-foreground">
                             <option value="">Semua Bulan</option>
                             @foreach(range(1, 12) as $m)
                                 <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
@@ -34,19 +47,19 @@
                             @endforeach
                         </select>
 
-                        <select name="gudang_id" class="h-8 rounded-lg border border-border bg-card text-xs px-2.5 text-foreground">
+                        <select name="gudang_id" class="h-8 rounded-md border border-input bg-background text-xs px-2 text-foreground">
                             <option value="">Semua Gudang</option>
                             @foreach($warehouses as $wh)
                                 <option value="{{ $wh->id }}" {{ $gudangId == $wh->id ? 'selected' : '' }}>{{ $wh->nama }}</option>
                             @endforeach
                         </select>
 
-                        <button type="submit" class="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition">
+                        <button type="submit" class="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition shadow-2xs">
                             Filter
                         </button>
 
                         @if($month || $gudangId)
-                            <a href="{{ route('transfers.index', ['year' => $year]) }}" class="h-8 px-2.5 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted flex items-center">
+                            <a href="{{ route('transfers.index', ['year' => $year]) }}" class="h-8 px-2.5 rounded-md border border-border text-xs text-muted-foreground hover:bg-muted flex items-center">
                                 Reset
                             </a>
                         @endif
@@ -55,45 +68,43 @@
             </x-slot:header>
 
             {{-- 5 Stat Cards --}}
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                <div class="p-4 rounded-xl bg-card border border-border/70 shadow-xs">
-                    <span class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Total Transfer Selesai</span>
-                    <div class="text-xl font-bold text-foreground mt-1">{{ number_format($defectAnalytics['summary']['total_transfers'] ?? 0) }}</div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-2.5 mb-4">
+                <div class="p-3 rounded-lg bg-card border border-border shadow-2xs">
+                    <span class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total Selesai</span>
+                    <div class="text-xl font-bold font-mono tabular-nums text-foreground mt-0.5">{{ number_format($defectAnalytics['summary']['total_transfers'] ?? 0) }}</div>
                     <span class="text-[10px] text-muted-foreground">Transaksi mutasi</span>
                 </div>
 
-                <div class="p-4 rounded-xl bg-card border border-border/70 shadow-xs">
-                    <span class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Total Qty Dikirim</span>
-                    <div class="text-xl font-bold text-blue-600 mt-1">{{ number_format($defectAnalytics['summary']['total_qty_dikirim'] ?? 0, 2) }}</div>
+                <div class="p-3 rounded-lg bg-card border border-border shadow-2xs">
+                    <span class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total Dikirim</span>
+                    <div class="text-xl font-bold font-mono tabular-nums text-foreground mt-0.5">{{ number_format($defectAnalytics['summary']['total_qty_dikirim'] ?? 0, 2) }}</div>
                     <span class="text-[10px] text-muted-foreground">Volume mutasi fisik</span>
                 </div>
 
-                <div class="p-4 rounded-xl bg-card border border-rose-200 bg-rose-50/40 shadow-xs">
-                    <span class="text-[11px] font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1">
-                        <span class="size-1.5 rounded-full bg-rose-600"></span>
-                        Total Barang Rusak
+                <div class="p-3 rounded-lg bg-card border border-border shadow-2xs">
+                    <span class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        Total Rusak
                     </span>
-                    <div class="text-xl font-extrabold text-rose-600 mt-1">{{ number_format($defectAnalytics['summary']['total_qty_rusak'] ?? 0, 2) }}</div>
-                    <span class="text-[10px] text-rose-700/80 font-medium">Tercatat pada penerimaan</span>
+                    <div class="text-xl font-bold font-mono tabular-nums text-destructive mt-0.5">{{ number_format($defectAnalytics['summary']['total_qty_rusak'] ?? 0, 2) }}</div>
+                    <span class="text-[10px] text-muted-foreground">Penerimaan rusak</span>
                 </div>
 
-                <div class="p-4 rounded-xl bg-card border border-border/70 shadow-xs">
-                    <span class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Tingkat Kerusakan (Defect Rate)</span>
-                    <div class="text-xl font-bold {{ ($defectAnalytics['summary']['defect_rate_percent'] ?? 0) > 0 ? 'text-amber-600' : 'text-emerald-600' }} mt-1">
+                <div class="p-3 rounded-lg bg-card border border-border shadow-2xs">
+                    <span class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Defect Rate</span>
+                    <div class="text-xl font-bold font-mono tabular-nums text-foreground mt-0.5">
                         {{ number_format($defectAnalytics['summary']['defect_rate_percent'] ?? 0, 2) }}%
                     </div>
                     <span class="text-[10px] text-muted-foreground">Rasio rusak vs kirim</span>
                 </div>
 
-                <div class="p-4 rounded-xl bg-card border border-rose-200 bg-rose-50/30 shadow-xs col-span-2 md:col-span-1">
-                    <span class="text-[11px] font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1">
-                        <span class="size-1.5 rounded-full bg-rose-600"></span>
-                        Gudang Paling Terdampak
+                <div class="p-3 rounded-lg bg-card border border-border shadow-2xs col-span-2 md:col-span-1">
+                    <span class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        Gudang Terdampak
                     </span>
-                    <div class="text-sm font-extrabold text-rose-700 mt-1 truncate" title="{{ $defectAnalytics['summary']['gudang_tertinggi_nama'] ?? '—' }}">
+                    <div class="text-sm font-bold text-foreground mt-0.5 truncate" title="{{ $defectAnalytics['summary']['gudang_tertinggi_nama'] ?? '—' }}">
                         {{ $defectAnalytics['summary']['gudang_tertinggi_nama'] ?? '—' }}
                     </div>
-                    <span class="text-[10px] text-rose-700/80 font-semibold">{{ number_format($defectAnalytics['summary']['gudang_tertinggi_qty'] ?? 0, 2) }} unit rusak</span>
+                    <span class="text-[10px] text-muted-foreground">{{ number_format($defectAnalytics['summary']['gudang_tertinggi_qty'] ?? 0, 2) }} unit rusak</span>
                 </div>
             </div>
 

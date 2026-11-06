@@ -2,7 +2,6 @@
     <div x-data="{ openMutasi: false }">
         <x-page-header
             title="Stok & Mutasi"
-            subtitle="Pemantauan saldo fisik (Kolom Stok) vs komitmen alokasi batch (Kolom Rencana) berbasis batas aman analisa"
             :breadcrumbs="['Stok & Mutasi' => null]"
         >
             <x-slot:actions>
@@ -22,11 +21,11 @@
             </x-slot:actions>
         </x-page-header>
 
-        <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border shadow-xs">
-            <div class="flex flex-wrap items-center gap-4">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2.5 bg-card px-3.5 py-2 rounded-lg border border-border shadow-2xs">
+            <div class="flex flex-wrap items-center gap-3">
                 <div>
-                    <label class="block text-xs font-medium text-muted-foreground mb-1">Lokasi Gudang</label>
-                    <select id="filter-gudang" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[200px] outline-none cursor-pointer">
+                    <label for="filter-gudang" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Lokasi Gudang</label>
+                    <select id="filter-gudang" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
                         @if($isGlobal)
                             <option value="">— Semua Gudang —</option>
                         @endif
@@ -36,8 +35,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-muted-foreground mb-1">Kategori Barang</label>
-                    <select id="filter-kategori" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
+                    <label for="filter-kategori" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Kategori Barang</label>
+                    <select id="filter-kategori" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[160px] outline-none cursor-pointer">
                         <option value="">— Semua Kategori —</option>
                         <option value="bahan">Bahan Baku & Kemas</option>
                         <option value="produk_jadi">Produk Jadi</option>
@@ -49,7 +48,7 @@
             </div>
         </div>
 
-        <x-card title="Buku Saldo & Alert Ketersediaan Stok" subtitle="Pemantauan saldo fisik vs alokasi batch dan batas aman" :noPadding="true">
+        <x-card title="Buku Saldo & Alert Ketersediaan Stok" :noPadding="true">
             <div class="overflow-x-auto">
                 <table id="tbl" class="w-full text-sm">
                     <thead>

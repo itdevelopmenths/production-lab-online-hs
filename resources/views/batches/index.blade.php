@@ -1,20 +1,21 @@
-<x-app-layout title="Produksi" subtitle="Daftar rencana kerja, alokasi resep BOM, dan eksekusi produksi pabrik">
-    <x-card>
-        <x-slot:header>
-            <div>
-                <h2 class="text-lg font-semibold text-foreground tracking-tight leading-tight">Daftar Batch Produksi</h2>
-                <p class="text-sm text-muted-foreground mt-0.5">Rencana kerja produksi, alokasi resep formula, dan tracking yield luaran</p>
-            </div>
+<x-app-layout title="Produksi">
+    <x-page-header
+        title="Batch Produksi"
+        :breadcrumbs="['Produksi' => null]"
+    >
+        <x-slot:actions>
             @can('batch.create')
-            <x-button href="{{ route('batches.create') }}" variant="primary">
+            <x-button href="{{ route('batches.create') }}" variant="primary" size="xs">
                 <x-slot:icon>
-                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </x-slot:icon>
                 Rencana Batch Baru
             </x-button>
             @endcan
-        </x-slot:header>
+        </x-slot:actions>
+    </x-page-header>
 
+    <x-card title="Daftar Batch Produksi" :noPadding="true">
         <div class="overflow-x-auto">
             <table id="tbl" class="w-full text-sm">
                 <thead>

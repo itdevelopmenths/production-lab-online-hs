@@ -4,10 +4,9 @@
         $accessibleIds = $accessibleIds ?? null;
         $allGudang = $allGudang ?? [];
     @endphp
-    <div class="max-w-5xl mx-auto space-y-6">
+    <div class="w-full space-y-4">
         <x-page-header
             :title="'Edit ' . $requestTransfer->no_transaksi"
-            subtitle="Perbarui data dokumen mutasi internal tahap draft sebelum diajukan atau disetujui"
             :breadcrumbs="[
                 'Request & Transfer' => route('rt.index'),
                 $requestTransfer->no_transaksi => route('rt.show', $requestTransfer),

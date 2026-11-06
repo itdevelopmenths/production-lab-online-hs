@@ -25,10 +25,9 @@
         }
     @endphp
 
-    <div class="max-w-4xl mx-auto space-y-6">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Rencana Batch Baru"
-            subtitle="Alokasi bahan baku otomatis dihitung dari gabungan resep (BOM) seluruh produk jadi luaran"
             :breadcrumbs="['Produksi' => route('batches.index'), 'Rencana Baru' => null]"
         >
             <x-slot:actions>

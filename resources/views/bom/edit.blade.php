@@ -1,8 +1,7 @@
 <x-app-layout title="Kelola BOM" :backUrl="route('bom.index')">
-    <div class="mx-auto max-w-4xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Kelola Formula Resep (BOM)"
-            subtitle="Definisi kebutuhan komposisi bahan baku & kemasan per 1 unit produk jadi"
             :breadcrumbs="['Master Data' => null, 'BOM' => route('bom.index'), $produk->nama => null, 'Kelola Resep' => null]"
         >
             <x-slot:actions>

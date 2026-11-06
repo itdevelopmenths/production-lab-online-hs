@@ -1,11 +1,9 @@
 <x-app-layout title="Stock Opname Fisik">
-    <div class="flex justify-center w-full">
-        <div class="w-full max-w-4xl space-y-4">
-            <x-page-header
-                title="Stock Opname Fisik"
-                subtitle="Penyesuaian kuantitas fisik aktual di gudang; selisih penyesuaian akan otomatis dicatatkan ke kartu stok"
-                :breadcrumbs="['Inventori' => null, 'Stok & Mutasi' => route('stok.index'), 'Stock Opname' => null]"
-            >
+    <div class="w-full space-y-4">
+        <x-page-header
+            title="Stock Opname Fisik"
+            :breadcrumbs="['Inventori' => null, 'Stok & Mutasi' => route('stok.index'), 'Stock Opname' => null]"
+        >
                 <x-slot:actions>
                     <x-button href="{{ route('stok.index') }}" variant="secondary" size="xs">
                         &larr; Kembali ke Buku Stok
@@ -173,7 +171,6 @@
                 </x-card>
             </form>
         </div>
-    </div>
 
     @push('scripts')
     <script>

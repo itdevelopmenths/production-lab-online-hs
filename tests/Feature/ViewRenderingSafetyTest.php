@@ -116,7 +116,9 @@ class ViewRenderingSafetyTest extends TestCase
         $this->get(route('batches.index'))->assertOk();
 
         // Create
-        $this->get(route('batches.create'))->assertOk();
+        $this->get(route('batches.create'))
+            ->assertOk()
+            ->assertDontSee('max-w-4xl');
 
         // Show: Batch with BOM allocations and Opname
         $produk = Produk::produkJadi()->with('bom')->firstOrFail();
@@ -163,7 +165,9 @@ class ViewRenderingSafetyTest extends TestCase
         $this->get(route('rt.index'))->assertOk();
 
         // Create
-        $this->get(route('rt.create'))->assertOk();
+        $this->get(route('rt.create'))
+            ->assertOk()
+            ->assertDontSee('max-w-5xl');
 
         // Show: Request Transfer with items and warehouses
         $gudangAsal = Gudang::where('kode', 'GD-PUSAT')->firstOrFail();
@@ -199,7 +203,9 @@ class ViewRenderingSafetyTest extends TestCase
         $this->get(route('stok.index'))->assertOk();
 
         // Stok Opname Form
-        $this->get(route('stok.opname'))->assertOk();
+        $this->get(route('stok.opname'))
+            ->assertOk()
+            ->assertDontSee('max-w-4xl');
 
         // Stok Ledger (Kartu Stok)
         $produk = Produk::firstOrFail();

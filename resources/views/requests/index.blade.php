@@ -1,4 +1,4 @@
-<x-app-layout title="Permintaan Barang (Request)" subtitle="Permintaan bahan baku operasional & produk jadi fulfillment">
+<x-app-layout title="Permintaan Barang (Request)">
     <div x-data="{
         openRejectModal: false,
         openCancelModal: false,
@@ -18,40 +18,44 @@
             this.openCancelModal = true;
         }
     }" @open-reject-modal.window="initReject($event.detail.action, $event.detail.no)" @open-cancel-modal.window="initCancel($event.detail.action, $event.detail.no)">
-        <x-card>
-            <x-slot:header>
-                <div>
-                    <h2 class="text-lg font-semibold text-foreground tracking-tight leading-tight">Daftar Permintaan Barang (Request)</h2>
-                    <p class="text-sm text-muted-foreground mt-0.5">Permintaan stok antar divisi: Bahan Baku Operasional Lab & Distribusi Fulfillment</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2.5">
-                    <select id="filterJenis" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
-                        <option value="">Semua Jenis Permintaan</option>
-                        <option value="request_bahan">Bahan Baku (Operasional)</option>
-                        <option value="request_produk_jadi">Produk Jadi (Fulfillment)</option>
-                    </select>
+        <x-page-header
+            title="Permintaan Barang (Request)"
+            :breadcrumbs="['Permintaan' => null]"
+        >
+            <x-slot:actions>
+                @can('rt.create')
+                <x-button href="{{ route('requests.create') }}" variant="primary" size="xs">
+                    <x-slot:icon>
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </x-slot:icon>
+                    Buat Request Baru
+                </x-button>
+                @endcan
+            </x-slot:actions>
+        </x-page-header>
 
-                    <select id="filterStatus" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
-                        <option value="">Semua Status</option>
-                        <option value="draft">Draft</option>
-                        <option value="diajukan">Diajukan</option>
-                        <option value="disetujui">Disetujui</option>
-                        <option value="diproses">Diproses</option>
-                        <option value="selesai">Selesai</option>
-                        <option value="ditolak">Ditolak</option>
-                        <option value="dibatalkan">Dibatalkan</option>
-                    </select>
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2.5 bg-card px-3.5 py-2 rounded-lg border border-border shadow-2xs">
+            <div class="flex flex-wrap items-center gap-2.5">
+                <select id="filterJenis" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
+                    <option value="">Semua Jenis Permintaan</option>
+                    <option value="request_bahan">Bahan Baku (Operasional)</option>
+                    <option value="request_produk_jadi">Produk Jadi (Fulfillment)</option>
+                </select>
 
-                    @can('rt.create')
-                    <x-button href="{{ route('requests.create') }}" variant="primary">
-                        <x-slot:icon>
-                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        </x-slot:icon>
-                        Buat Request Baru
-                    </x-button>
-                    @endcan
-                </div>
-            </x-slot:header>
+                <select id="filterStatus" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
+                    <option value="">Semua Status</option>
+                    <option value="draft">Draft</option>
+                    <option value="diajukan">Diajukan</option>
+                    <option value="disetujui">Disetujui</option>
+                    <option value="diproses">Diproses</option>
+                    <option value="selesai">Selesai</option>
+                    <option value="ditolak">Ditolak</option>
+                    <option value="dibatalkan">Dibatalkan</option>
+                </select>
+            </div>
+        </div>
+
+        <x-card title="Daftar Permintaan Barang" :noPadding="true">
 
             <div class="overflow-x-auto">
                 <table id="tblRequests" class="w-full text-sm">

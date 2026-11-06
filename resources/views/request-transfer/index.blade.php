@@ -1,4 +1,4 @@
-<x-app-layout title="Request & Transfer" subtitle="Logistik mutasi internal, permintaan bahan baku, dan pengiriman produk jadi">
+<x-app-layout title="Request & Transfer">
     <div x-data="{
         openCancelModal: false,
         cancelAction: '',
@@ -22,32 +22,34 @@
             };
         }
     }" @open-cancel-modal.window="initCancel($event.detail.action, $event.detail.no)">
-        <x-card>
-            <x-slot:header>
-                <div>
-                    <h2 class="text-lg font-semibold text-foreground tracking-tight leading-tight">Daftar Dokumen Mutasi & Transfer</h2>
-                    <p class="text-sm text-muted-foreground mt-0.5">Logistik mutasi internal, permintaan bahan baku, dan distribusi antar gudang</p>
-                </div>
-                <div class="flex items-center gap-2.5">
-                    <select id="jenisFilter" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
-                        <option value="">Semua Jenis Mutasi</option>
-                        <option value="req_bahan">Request Bahan</option>
-                        <option value="retur_bahan">Retur Bahan</option>
-                        <option value="kirim_produk_jadi">Kirim Produk Jadi</option>
-                        <option value="antar_fulfillment">Antar Fulfillment</option>
-                        <option value="retur_produk_jadi">Retur Produk Jadi</option>
-                    </select>
+        <x-page-header
+            title="Request & Transfer"
+            :breadcrumbs="['Request & Transfer' => null]"
+        >
+            <x-slot:actions>
+                @can('rt.create')
+                <x-button href="{{ route('rt.create') }}" variant="primary" size="xs">
+                    <x-slot:icon>
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </x-slot:icon>
+                    Buat Transfer Baru
+                </x-button>
+                @endcan
+            </x-slot:actions>
+        </x-page-header>
 
-                    @can('rt.create')
-                    <x-button href="{{ route('rt.create') }}" variant="primary">
-                        <x-slot:icon>
-                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        </x-slot:icon>
-                        Buat Transfer Baru
-                    </x-button>
-                    @endcan
-                </div>
-            </x-slot:header>
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2.5 bg-card px-3.5 py-2 rounded-lg border border-border shadow-2xs">
+            <select id="jenisFilter" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
+                <option value="">Semua Jenis Mutasi</option>
+                <option value="req_bahan">Request Bahan</option>
+                <option value="retur_bahan">Retur Bahan</option>
+                <option value="kirim_produk_jadi">Kirim Produk Jadi</option>
+                <option value="antar_fulfillment">Antar Fulfillment</option>
+                <option value="retur_produk_jadi">Retur Produk Jadi</option>
+            </select>
+        </div>
+
+        <x-card title="Daftar Dokumen Mutasi & Transfer" :noPadding="true">
 
             <div class="overflow-x-auto">
                 <table id="tbl" class="w-full text-sm">
