@@ -47,6 +47,8 @@ class ViewRenderingSafetyTest extends TestCase
             $response->assertOk();
             $response->assertSee('Heaven Scent');
             $response->assertDontSee('max-w-7xl');
+            $response->assertDontSee('👋');
+            $response->assertDontSee('bg-gradient-to-r');
         }
     }
 

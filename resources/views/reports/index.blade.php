@@ -1,44 +1,43 @@
 <x-app-layout title="Pusat Laporan & Rekapitulasi">
     <x-page-header
         title="Pusat Laporan & Rekapitulasi"
-        subtitle="Direktori komprehensif pelaporan operasional laboratorium, konsumsi bahan baku, deviasi opname, dan liabilitas purchasing"
         :breadcrumbs="['Laporan' => null]"
     />
 
     <!-- Quick Navigation Groups -->
-    <div class="space-y-8">
+    <div class="space-y-6">
         <!-- Section: Produksi & Manufaktur -->
         <div>
-            <div class="flex items-center gap-2 mb-3.5">
-                <span class="w-1.5 h-3.5 bg-primary rounded-full"></span>
-                <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Operasional Manufaktur & Mutu</h4>
+            <div class="flex items-center gap-2 mb-2.5">
+                <span class="w-1 h-3 bg-primary rounded-full"></span>
+                <h4 class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Operasional Manufaktur & Mutu</h4>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <!-- Laporan Produksi -->
-                <a href="{{ route('reports.production') }}" class="group relative rounded-xl border border-border bg-card p-4.5 shadow-xs hover:border-foreground/30 hover:shadow-sm transition flex items-start gap-4">
-                    <div class="p-2.5 rounded-lg border border-border bg-muted/60 text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                <a href="{{ route('reports.production') }}" class="group relative rounded-lg border border-border bg-card p-3.5 shadow-2xs hover:border-foreground/30 transition flex items-start gap-3">
+                    <div class="p-2 rounded-md border border-border bg-muted text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h5 class="text-sm font-semibold text-foreground group-hover:text-foreground transition">Laporan Produksi & Yield</h5>
+                            <h5 class="text-xs font-semibold text-foreground group-hover:text-foreground transition">Laporan Produksi & Yield</h5>
                             <span class="text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-transform text-xs font-semibold">&rarr;</span>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Rekapitulasi batch selesai, perbandingan output baik vs rusak, dan capaian persentase yield.</p>
+                        <p class="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">Rekapitulasi batch selesai, perbandingan output baik vs rusak, dan persentase yield.</p>
                     </div>
                 </a>
 
                 <!-- Laporan Defect -->
-                <a href="{{ route('reports.defect') }}" class="group relative rounded-xl border border-border bg-card p-4.5 shadow-xs hover:border-foreground/30 hover:shadow-sm transition flex items-start gap-4">
-                    <div class="p-2.5 rounded-lg border border-border bg-muted/60 text-foreground group-hover:bg-destructive group-hover:text-destructive-foreground group-hover:border-destructive transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <a href="{{ route('reports.defect') }}" class="group relative rounded-lg border border-border bg-card p-3.5 shadow-2xs hover:border-foreground/30 transition flex items-start gap-3">
+                    <div class="p-2 rounded-md border border-border bg-muted text-foreground group-hover:bg-destructive group-hover:text-destructive-foreground group-hover:border-destructive transition shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h5 class="text-sm font-semibold text-foreground group-hover:text-foreground transition">Laporan Defect & Kerusakan</h5>
+                            <h5 class="text-xs font-semibold text-foreground group-hover:text-foreground transition">Laporan Defect & Kerusakan</h5>
                             <span class="text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-transform text-xs font-semibold">&rarr;</span>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Monitoring batch produksi yang mengalami unit rusak/cacat dan evaluasi defect rate.</p>
+                        <p class="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">Monitoring batch produksi yang mengalami unit rusak/cacat dan evaluasi defect rate.</p>
                     </div>
                 </a>
             </div>
@@ -46,50 +45,50 @@
 
         <!-- Section: Inventori & Material -->
         <div>
-            <div class="flex items-center gap-2 mb-3.5">
-                <span class="w-1.5 h-3.5 bg-primary rounded-full"></span>
-                <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Inventori & Logistik Material</h4>
+            <div class="flex items-center gap-2 mb-2.5">
+                <span class="w-1 h-3 bg-primary rounded-full"></span>
+                <h4 class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Inventori & Logistik Material</h4>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <!-- Pemakaian Bahan -->
-                <a href="{{ route('reports.material') }}" class="group relative rounded-xl border border-border bg-card p-4.5 shadow-xs hover:border-foreground/30 hover:shadow-sm transition flex items-start gap-4">
-                    <div class="p-2.5 rounded-lg border border-border bg-muted/60 text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <a href="{{ route('reports.material') }}" class="group relative rounded-lg border border-border bg-card p-3.5 shadow-2xs hover:border-foreground/30 transition flex items-start gap-3">
+                    <div class="p-2 rounded-md border border-border bg-muted text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h5 class="text-sm font-semibold text-foreground group-hover:text-foreground transition">Pemakaian Bahan</h5>
+                            <h5 class="text-xs font-semibold text-foreground group-hover:text-foreground transition">Pemakaian Bahan</h5>
                             <span class="text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-transform text-xs font-semibold">&rarr;</span>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Akumulasi konsumsi bahan baku dan kemasan yang dikeluarkan untuk proses produksi.</p>
+                        <p class="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">Akumulasi konsumsi bahan baku dan kemasan yang dikeluarkan untuk proses produksi.</p>
                     </div>
                 </a>
 
                 <!-- Variance Opname -->
-                <a href="{{ route('reports.low-stock') }}" class="group relative rounded-xl border border-border bg-card p-4.5 shadow-xs hover:border-foreground/30 hover:shadow-sm transition flex items-start gap-4">
-                    <div class="p-2.5 rounded-lg border border-border bg-muted/60 text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                <a href="{{ route('reports.low-stock') }}" class="group relative rounded-lg border border-border bg-card p-3.5 shadow-2xs hover:border-foreground/30 transition flex items-start gap-3">
+                    <div class="p-2 rounded-md border border-border bg-muted text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h5 class="text-sm font-semibold text-foreground group-hover:text-foreground transition">Variance Opname</h5>
+                            <h5 class="text-xs font-semibold text-foreground group-hover:text-foreground transition">Variance Opname</h5>
                             <span class="text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-transform text-xs font-semibold">&rarr;</span>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Analisis deviasi selisih pemakaian teoritis BOM vs realisasi aktual di lantai produksi.</p>
+                        <p class="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">Analisis deviasi selisih pemakaian teoritis BOM vs realisasi aktual di lantai produksi.</p>
                     </div>
                 </a>
 
                 <!-- Pergerakan Fulfillment -->
-                <a href="{{ route('reports.fulfillment') }}" class="group relative rounded-xl border border-border bg-card p-4.5 shadow-xs hover:border-foreground/30 hover:shadow-sm transition flex items-start gap-4">
-                    <div class="p-2.5 rounded-lg border border-border bg-muted/60 text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                <a href="{{ route('reports.fulfillment') }}" class="group relative rounded-lg border border-border bg-card p-3.5 shadow-2xs hover:border-foreground/30 transition flex items-start gap-3">
+                    <div class="p-2 rounded-md border border-border bg-muted text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h5 class="text-sm font-semibold text-foreground group-hover:text-foreground transition">Pergerakan Fulfillment</h5>
+                            <h5 class="text-xs font-semibold text-foreground group-hover:text-foreground transition">Pergerakan Fulfillment</h5>
                             <span class="text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-transform text-xs font-semibold">&rarr;</span>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Log mutasi produk jadi antar gudang pusat dan hub fulfillment cabang.</p>
+                        <p class="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">Log mutasi produk jadi antar gudang pusat dan hub fulfillment cabang.</p>
                     </div>
                 </a>
             </div>
@@ -97,36 +96,36 @@
 
         <!-- Section: Pengadaan & Finansial -->
         <div>
-            <div class="flex items-center gap-2 mb-3.5">
-                <span class="w-1.5 h-3.5 bg-primary rounded-full"></span>
-                <h4 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pengadaan & Finansial</h4>
+            <div class="flex items-center gap-2 mb-2.5">
+                <span class="w-1 h-3 bg-primary rounded-full"></span>
+                <h4 class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Pengadaan & Finansial</h4>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <!-- Purchasing & Hutang -->
-                <a href="{{ route('reports.purchasing') }}" class="group relative rounded-xl border border-border bg-card p-4.5 shadow-xs hover:border-foreground/30 hover:shadow-sm transition flex items-start gap-4">
-                    <div class="p-2.5 rounded-lg border border-border bg-muted/60 text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <a href="{{ route('reports.purchasing') }}" class="group relative rounded-lg border border-border bg-card p-3.5 shadow-2xs hover:border-foreground/30 transition flex items-start gap-3">
+                    <div class="p-2 rounded-md border border-border bg-muted text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h5 class="text-sm font-semibold text-foreground group-hover:text-foreground transition">Purchasing & Hutang Dagang</h5>
+                            <h5 class="text-xs font-semibold text-foreground group-hover:text-foreground transition">Purchasing & Hutang Dagang</h5>
                             <span class="text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-transform text-xs font-semibold">&rarr;</span>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Rekapitulasi nilai komitmen purchase order, pembayaran termin, dan outstanding hutang.</p>
+                        <p class="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">Rekapitulasi nilai komitmen purchase order, pembayaran termin, dan outstanding hutang.</p>
                     </div>
                 </a>
 
-                <!-- Lead Time Supplier (PRD v2.4 Sub-Menu Ke-7) -->
-                <a href="{{ route('reports.lead-time') }}" class="group relative rounded-xl border border-border bg-card p-4.5 shadow-xs hover:border-foreground/30 hover:shadow-sm transition flex items-start gap-4">
-                    <div class="p-2.5 rounded-lg border border-border bg-muted/60 text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <!-- Lead Time Supplier -->
+                <a href="{{ route('reports.lead-time') }}" class="group relative rounded-lg border border-border bg-card p-3.5 shadow-2xs hover:border-foreground/30 transition flex items-start gap-3">
+                    <div class="p-2 rounded-md border border-border bg-muted text-foreground group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h5 class="text-sm font-semibold text-foreground group-hover:text-foreground transition">Laporan Lead Time Supplier</h5>
+                            <h5 class="text-xs font-semibold text-foreground group-hover:text-foreground transition">Laporan Lead Time Supplier</h5>
                             <span class="text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-transform text-xs font-semibold">&rarr;</span>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">Analisis performa durasi pengiriman supplier 9-stage, deviasi per produk, dan histori transaksi PO.</p>
+                        <p class="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">Analisis performa durasi pengiriman supplier 9-stage, deviasi per produk, dan histori PO.</p>
                     </div>
                 </a>
             </div>
