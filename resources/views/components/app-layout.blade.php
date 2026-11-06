@@ -101,8 +101,8 @@
         {{-- DevScore Style Sidebar --}}
         <div class="fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-40"
              :class="[
-                 mobileOpen ? 'translate-x-0 w-56' : '-translate-x-full lg:translate-x-0',
-                 collapsed ? 'lg:w-16' : 'lg:w-56'
+                 mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0',
+                 collapsed ? 'lg:w-16' : 'lg:w-64'
              ]">
             <aside class="bg-card flex h-full w-full flex-col border-r border-border overflow-hidden transition-all duration-300">
                 
@@ -472,18 +472,18 @@
 
                 {{-- DevScore Bottom User Menu --}}
                 <div class="relative border-t border-border"
-                     :class="collapsed ? 'p-3 flex justify-center' : 'p-4'"
+                     :class="collapsed ? 'p-2 flex justify-center' : 'p-2.5'"
                      x-data="{ userMenuOpen: false }">
                     
                     {{-- Dropdown popover --}}
                     <div x-show="userMenuOpen"
                          x-cloak
                          @click.away="userMenuOpen = false"
-                         :class="collapsed ? 'left-full ml-2 bottom-0' : 'right-4 bottom-full left-4 mb-2'"
-                         class="bg-card absolute rounded-xl border border-border p-1 shadow-lg z-50 w-56 text-sm">
+                         :class="collapsed ? 'left-full ml-2 bottom-0' : 'right-2 bottom-full left-2 mb-2'"
+                         class="bg-card absolute rounded-xl border border-border p-1 shadow-lg z-50 min-w-[220px] text-sm">
                         <div class="border-b border-border px-3 py-2.5">
-                            <p class="truncate font-semibold text-foreground">{{ auth()->user()->name }}</p>
-                            <p class="text-muted-foreground truncate text-xs">{{ auth()->user()->email }}</p>
+                            <p class="font-semibold text-foreground text-xs leading-snug break-words">{{ auth()->user()->name }}</p>
+                            <p class="text-muted-foreground truncate text-[11px] mt-0.5">{{ auth()->user()->email }}</p>
                             <span class="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-semibold bg-muted text-foreground uppercase rounded-md">
                                 {{ auth()->user()->roleName() ?? 'User' }}
                             </span>
@@ -529,19 +529,23 @@
                     <button type="button"
                             @click="userMenuOpen = !userMenuOpen"
                             :aria-expanded="userMenuOpen"
-                            :class="collapsed ? 'justify-center p-1' : 'w-full gap-3 p-1'"
-                            class="hover:bg-accent flex items-center rounded-lg text-left transition-colors cursor-pointer w-full">
-                        <span class="bg-primary text-primary-foreground relative flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-xs">
+                            :class="collapsed ? 'justify-center p-1.5' : 'w-full gap-2.5 px-2.5 py-2'"
+                            class="hover:bg-accent flex items-center rounded-lg text-left transition-colors cursor-pointer w-full group">
+                        <span class="bg-primary text-primary-foreground relative flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-2xs">
                             {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
-                            <span class="border-card absolute right-0 bottom-0 size-2.5 rounded-full border-2 bg-emerald-500"></span>
+                            <span class="border-card absolute right-0 bottom-0 size-2 rounded-full border-2 bg-emerald-500"></span>
                         </span>
                         
-                        <div x-show="!collapsed" class="min-w-0 flex-1 flex items-center justify-between">
-                            <div class="truncate">
-                                <span class="block truncate text-sm font-semibold text-foreground">{{ auth()->user()->name }}</span>
-                                <span class="text-muted-foreground block truncate text-xs">{{ auth()->user()->roleName() ?? 'User' }}</span>
+                        <div x-show="!collapsed" class="min-w-0 flex-1 flex items-center justify-between gap-1.5">
+                            <div class="min-w-0 flex-1">
+                                <span class="block text-xs font-semibold text-foreground leading-snug break-words" title="{{ auth()->user()->name }}">
+                                    {{ auth()->user()->name }}
+                                </span>
+                                <span class="text-muted-foreground block text-[11px] leading-tight mt-0.5 capitalize truncate">
+                                    {{ auth()->user()->roleName() ?? 'User' }}
+                                </span>
                             </div>
-                            <svg class="text-muted-foreground size-4 transition-transform shrink-0 ml-1"
+                            <svg class="text-muted-foreground group-hover:text-foreground size-3.5 transition-transform shrink-0"
                                  :class="userMenuOpen ? 'rotate-180' : ''"
                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
