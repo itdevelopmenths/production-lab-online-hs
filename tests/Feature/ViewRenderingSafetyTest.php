@@ -52,6 +52,28 @@ class ViewRenderingSafetyTest extends TestCase
         }
     }
 
+    public function test_dashboard_renders_safely_for_all_five_roles(): void
+    {
+        $roles = [
+            'manager@heavenscent.id' => 'manager',
+            'purchasing@heavenscent.id' => 'purchasing',
+            'gudang@heavenscent.id' => 'gudang',
+            'operasional@heavenscent.id' => 'operasional',
+            'fulfillment@heavenscent.id' => 'fulfillment',
+        ];
+
+        foreach ($roles as $email => $roleName) {
+            $user = User::where('email', $email)->firstOrFail();
+            $response = $this->actingAs($user)->get(route('dashboard'));
+            $response->assertOk();
+            $response->assertViewHas('role', $roleName);
+            $response->assertViewHas('kpis');
+            $response->assertViewHas('actionQueue');
+            $response->assertViewHas('streamLeft');
+            $response->assertViewHas('streamRight');
+        }
+    }
+
     public function test_purchasing_views_render_safely(): void
     {
         $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
