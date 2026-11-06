@@ -1,4 +1,4 @@
-# Design Document: Role-Adaptive Supply Chain Dashboard Engine
+  # Design Document: Role-Adaptive Supply Chain Dashboard Engine
 
 ## 1. Intent & The Why
 Tujuan dari rancangan ini adalah mentransformasi halaman Beranda (`/`) dari tampilan dashboard umum yang statis menjadi sebuah **Supply Chain Operational Cockpit Berbasis Peran (*Role-Adaptive*)**. Setiap peran di rantai pasok laboratorium Heaven Scent (Manager, Purchasing, Gudang, Operasional Lab, dan Fulfillment) memiliki fokus harian dan tanggung jawab yang sangat berbeda. Dashboard baru ini dirancang sebagai pusat kendali aksi cepat (*action-oriented*), memprioritaskan pekerjaan yang sedang terhambat (*blocked*) pada peran tersebut, memangkas waktu navigasi, mengedepankan densitas data tinggi (*high density*), fluid layout (`w-full`), dan tema monokrom hitam-putih tanpa ornamen visual tidak berguna (*zero AI-slop*).

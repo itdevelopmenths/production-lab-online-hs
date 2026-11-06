@@ -69,10 +69,17 @@ class DashboardController extends Controller
         $poApprovalCount = (clone $poApprovalQuery)->count();
 
         $poApprovalItems = (clone $poApprovalQuery)
-            ->with(['supplier:id,nama', 'revisis' => fn ($q) => $q->where('status', 'menunggu')])
+            ->with([
+                'supplier:id,nama',
+                'supplier.stageSummaries',
+                'stages',
+                'revisis' => fn ($q) => $q->where('status', 'menunggu')
+            ])
             ->latest('tanggal')
             ->limit(5)
             ->get();
+
+        $this->markPoOverdueAndRevisi($poApprovalItems);
 
         // 2. Request Transfer Menunggu Persetujuan
         $requestPendingCount = StockRequest::where('status', 'diajukan')->count()
@@ -118,12 +125,14 @@ class DashboardController extends Controller
         $actionQueueItems = collect();
         foreach ($poApprovalItems as $po) {
             $hasRev = $po->revisis->isNotEmpty();
+            $stageLabel = $po->stage_aktif ? (PoStage::STAGE_LABELS[$po->stage_aktif] ?? 'Persetujuan Manager') : 'Persetujuan Manager';
             $actionQueueItems->push((object) [
                 'type' => 'PO',
                 'nomor' => $po->no_po,
                 'meta' => ($po->supplier?->nama ?? '-') . ' · ' . 'Rp ' . number_format($po->grand_total, 0, ',', '.'),
-                'badge_label' => $hasRev ? 'Revisi Komitmen' : 'Menunggu Approval',
+                'badge_label' => $hasRev ? 'Menunggu Revisi' : $stageLabel,
                 'badge_variant' => $hasRev ? 'warning' : 'primary',
+                'is_terlambat' => !empty($po->is_terlambat),
                 'url' => route('purchasing.show', $po),
                 'action_label' => 'Review PO',
                 'created_at' => $po->created_at,
@@ -363,11 +372,11 @@ class DashboardController extends Controller
     {
         $accessibleWhIds = $this->locationScope->getAccessibleWarehouseIds($user);
 
-        // 1. Kedatangan PO Siap Unloading
+        // 1. Kedatangan PO Siap Unloading & Input Sistem
         $poUnloadingQuery = PurchaseOrder::query()
             ->whereNotIn('status', ['selesai', 'dibatalkan'])
             ->where(function ($q) {
-                $q->whereIn('stage_aktif', ['pengiriman', 'unloading'])
+                $q->whereIn('stage_aktif', ['pengiriman', 'unloading', 'input_sistem'])
                     ->orWhere('status', 'dikirim_ke_gudang');
             });
 
@@ -375,7 +384,7 @@ class DashboardController extends Controller
         $poUnloadingItems = (clone $poUnloadingQuery)
             ->with(['supplier:id,nama'])
             ->latest('tanggal')
-            ->limit(5)
+            ->limit(8)
             ->get();
 
         // 2. Menunggu Input Sistem
@@ -395,12 +404,20 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        // 4. Transfer In-Transit Masuk
+        // 4. Transfer In-Transit Masuk / Aktif
         $trfMasukQuery = Transfer::query()->where('status', 'dikirim');
         if (! empty($accessibleWhIds)) {
-            $trfMasukQuery->whereIn('gudang_tujuan_id', $accessibleWhIds);
+            $trfMasukQuery->where(function ($q) use ($accessibleWhIds) {
+                $q->whereIn('gudang_tujuan_id', $accessibleWhIds)
+                    ->orWhereIn('gudang_asal_id', $accessibleWhIds);
+            });
         }
         $trfMasukCount = (clone $trfMasukQuery)->count();
+        $trfMasukItems = (clone $trfMasukQuery)
+            ->with(['gudangAsal:id,nama', 'gudangTujuan:id,nama'])
+            ->latest('created_at')
+            ->limit(5)
+            ->get();
 
         // 5. Stok Menipis Lokal
         $stokMenipisQuery = Stok::query()->where('qty_saat_ini', '<=', 10);
@@ -419,14 +436,15 @@ class DashboardController extends Controller
         // Susun Action Queue
         $actionQueueItems = collect();
         foreach ($poUnloadingItems as $po) {
+            $stageLabel = $po->stage_aktif ? (PoStage::STAGE_LABELS[$po->stage_aktif] ?? ucwords(str_replace('_', ' ', $po->stage_aktif))) : 'Siap Unloading';
             $actionQueueItems->push((object) [
                 'type' => 'PO Kedatangan',
                 'nomor' => $po->no_po,
                 'meta' => 'Supplier: ' . ($po->supplier?->nama ?? '-') . ' · ' . ($po->tanggal?->format('d M Y') ?? '-'),
-                'badge_label' => 'Siap Unloading',
-                'badge_variant' => 'info',
+                'badge_label' => $stageLabel,
+                'badge_variant' => $po->stage_aktif === 'input_sistem' ? 'warning' : 'info',
                 'url' => route('purchasing.show', $po),
-                'action_label' => 'Bongkar & QC',
+                'action_label' => $po->stage_aktif === 'input_sistem' ? 'Posting Saldo' : 'Bongkar & QC',
                 'created_at' => $po->created_at,
             ]);
         }
@@ -439,6 +457,18 @@ class DashboardController extends Controller
                 'badge_variant' => 'warning',
                 'url' => route('transfers.show', $trf),
                 'action_label' => 'Kirim Barang',
+                'created_at' => $trf->created_at,
+            ]);
+        }
+        foreach ($trfMasukItems as $trf) {
+            $actionQueueItems->push((object) [
+                'type' => 'Transfer Masuk',
+                'nomor' => $trf->no_transaksi,
+                'meta' => ($trf->gudangAsal?->nama ?? '-') . ' → ' . ($trf->gudangTujuan?->nama ?? '-'),
+                'badge_label' => 'Dalam Pengiriman',
+                'badge_variant' => 'info',
+                'url' => route('transfers.show', $trf),
+                'action_label' => 'Terima Barang',
                 'created_at' => $trf->created_at,
             ]);
         }

@@ -58,6 +58,11 @@
                         <x-badge :variant="$item->badge_variant ?? 'neutral'" :dot="true" size="sm">
                             {{ $item->badge_label ?? $item->type }}
                         </x-badge>
+                        @if(!empty($item->is_terlambat))
+                            <x-badge variant="danger" :dot="true" size="sm">
+                                Terlambat
+                            </x-badge>
+                        @endif
                         <div class="flex flex-col min-w-0">
                             <span class="font-semibold text-foreground text-xs tabular-nums truncate">{{ $item->nomor }}</span>
                             <span class="text-muted-foreground text-[11px] truncate">{{ $item->meta }}</span>
