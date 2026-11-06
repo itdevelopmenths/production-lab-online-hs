@@ -63,10 +63,16 @@
                             </td>
                             <td class="py-3 px-3 text-center">
                                 <template x-if="r.sumber_lt === 'otomatis'">
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">OTOMATIS</span>
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" title="Sumber: Histori PO Otomatis">
+                                        <span class="size-1 rounded-full bg-emerald-500 shrink-0"></span>
+                                        <span>Otomatis</span>
+                                    </span>
                                 </template>
                                 <template x-if="r.sumber_lt === 'manual'">
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20" title="Sumber: Estimasi Input Manual">
+                                        <span class="size-1 rounded-full bg-amber-500 shrink-0"></span>
+                                        <span>Manual</span>
+                                    </span>
                                 </template>
                                 <template x-if="r.sumber_lt !== 'otomatis' && r.sumber_lt !== 'manual'">
                                     <span class="text-muted-foreground font-mono text-[10px]" x-text="r.sumber_lt"></span>

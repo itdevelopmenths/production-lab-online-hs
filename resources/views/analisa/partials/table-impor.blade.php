@@ -72,10 +72,16 @@
                                             <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
                                         </button>
                                         <template x-if="r.sumber_lt === 'otomatis'">
-                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">OTOMATIS</span>
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" title="Sumber: Histori PO Otomatis">
+                                                <span class="size-1 rounded-full bg-emerald-500 shrink-0"></span>
+                                                <span>Otomatis</span>
+                                            </span>
                                         </template>
                                         <template x-if="r.sumber_lt !== 'otomatis'">
-                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20" title="Sumber: Estimasi Input Manual">
+                                                <span class="size-1 rounded-full bg-amber-500 shrink-0"></span>
+                                                <span>Manual</span>
+                                            </span>
                                         </template>
                                         <a :href="'{{ route('purchasing.index', ['tab' => 'po']) }}' + (r.supplier_nama && r.supplier_nama !== '-' ? '&search=' + encodeURIComponent(r.supplier_nama) : '')" href="{{ route('purchasing.index', ['tab' => 'po']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Daftar Purchase Order Supplier">Histori LT</a>
                                     </div>
