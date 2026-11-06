@@ -213,5 +213,76 @@ class PurchaseOrderRevisionAndDirectEditTest extends TestCase
         $this->assertEquals(PoStage::STAGE_5, $po->stage_aktif);
         $this->assertEquals(400000, $po->totalDibayar());
     }
+
+    /**
+     * TC-38: Usulan revisi komitmen dengan satuan beli, faktor konversi, dan biaya global.
+     */
+    public function test_tc38_commitment_revision_with_uom_conversion_and_global_costs(): void
+    {
+        $po = $this->createSamplePo(PoStage::STAGE_4);
+        $originalItem = $po->items->first();
+        $originalItemId = $originalItem->id;
+
+        // User purchasing mengajukan revisi dengan satuan beli box (isi 25), diskon, ppn, ongkir, adjustment
+        $response = $this->actingAs($this->purchasing)->post(route('purchasing.revisi.submit', $po), [
+            'alasan' => 'Penyesuaian kuantiti ke satuan box dan diskon promo supplier',
+            'data_usulan' => [
+                'items' => [
+                    [
+                        'po_item_id' => $originalItemId,
+                        'produk_id' => $this->produk1->id,
+                        'qty_satuan_beli' => 10, // 10 box
+                        'satuan_beli' => 'box',
+                        'faktor_konversi' => 25.0, // 1 box = 25 pcs -> total 250 pcs
+                        'qty' => 250,
+                        'harga_total' => 2500000,
+                    ],
+                ],
+                'diskon_total' => 100000,
+                'ppn_nominal' => 264000, // 11% dari (2.500.000 - 100.000)
+                'ongkos_kirim' => 50000,
+                'adjustment' => -14000, // Pembulatan
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $po->refresh();
+
+        $this->assertEquals(1, $po->revisis()->where('status', 'menunggu')->count());
+        $revisi = $po->revisis()->where('status', 'menunggu')->first();
+
+        // Validasi snapshot usulan
+        $this->assertEquals(10, $revisi->data_usulan['items'][0]['qty_satuan_beli']);
+        $this->assertEquals('box', $revisi->data_usulan['items'][0]['satuan_beli']);
+        $this->assertEquals(100000, $revisi->data_usulan['diskon_total']);
+
+        // Manager menyetujui revisi
+        $approveResponse = $this->actingAs($this->manager)->post(route('purchasing.revisi.approve', $revisi));
+        $approveResponse->assertRedirect();
+
+        $po->refresh();
+        $this->assertEquals(1, $po->revisi_ke);
+        // Subtotal = 2.500.000, Diskon = 100.000, PPN = 264.000, Ongkir = 50.000, Adj = -14.000
+        // Grand Total = 2.500.000 - 100.000 + 264.000 + 50.000 - 14.000 = 2.700.000
+        $this->assertEquals(2500000, (float) $po->subtotal_produk);
+        $this->assertEquals(100000, (float) $po->diskon_total);
+        $this->assertEquals(264000, (float) $po->ppn_nominal);
+        $this->assertEquals(50000, (float) $po->ongkos_kirim);
+        $this->assertEquals(-14000, (float) $po->adjustment);
+        $this->assertEquals(2700000, (float) $po->grand_total);
+
+        // Pastikan ID item tetap sama (in-place update, bukan re-create)
+        $this->assertCount(1, $po->items);
+        $updatedItem = $po->items->first();
+        $this->assertEquals($originalItemId, $updatedItem->id);
+        $this->assertEquals(10, (float) $updatedItem->qty_satuan_beli);
+        $this->assertEquals('box', $updatedItem->satuan_beli);
+        $this->assertEquals(25.0, (float) $updatedItem->faktor_konversi);
+        $this->assertEquals(250, (float) $updatedItem->qty); // 10 * 25
+        $this->assertEquals(2500000, (float) $updatedItem->harga_total);
+
+        // HPP per satuan dasar = net total / qty dasar = 2.700.000 / 250 = 10.800
+        $this->assertEquals(10800, (float) $updatedItem->hpp_per_satuan);
+    }
 }
 

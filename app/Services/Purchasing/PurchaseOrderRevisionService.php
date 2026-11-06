@@ -103,8 +103,13 @@ class PurchaseOrderRevisionService
         $oldSnapshot = [
             'grand_total' => (float) $po->grand_total,
             'subtotal_produk' => (float) $po->subtotal_produk,
+            'diskon_total' => (float) $po->diskon_total,
+            'ppn_nominal' => (float) $po->ppn_nominal,
+            'ongkos_kirim' => (float) $po->ongkos_kirim,
+            'adjustment' => (float) $po->adjustment,
             'items' => $po->items->map(fn ($item) => [
                 'id' => $item->id,
+                'po_item_id' => $item->id,
                 'produk_id' => $item->produk_id,
                 'qty' => (float) $item->qty,
                 'harga_total' => (float) $item->harga_total,
@@ -142,22 +147,56 @@ class PurchaseOrderRevisionService
             $po = $revisi->purchaseOrder;
             $usulan = $revisi->data_usulan;
 
-            // 1. Terapkan pembaruan items jika ada
+            // 1. Terapkan pembaruan items jika ada (in-place update untuk menjaga integritas UUID)
             if (! empty($usulan['items']) && is_array($usulan['items'])) {
-                $po->items()->delete();
+                $existingItems = $po->items->keyBy('id');
+                $processedIds = [];
+
                 foreach ($usulan['items'] as $itemData) {
-                    $po->items()->create([
-                        'produk_id' => $itemData['produk_id'],
-                        'qty' => $itemData['qty'],
-                        'harga_total' => $itemData['harga_total'],
-                        'satuan_beli' => $itemData['satuan_beli'] ?? null,
-                        'qty_satuan_beli' => $itemData['qty_satuan_beli'] ?? null,
-                        'faktor_konversi' => $itemData['faktor_konversi'] ?? 1.0,
-                        'diskon' => $itemData['diskon'] ?? 0,
-                        'ppn' => $itemData['ppn'] ?? 0,
-                        'ongkir' => $itemData['ongkir'] ?? 0,
-                        'adjustment' => $itemData['adjustment'] ?? 0,
-                    ]);
+                    $itemId = $itemData['po_item_id'] ?? null;
+                    $item = $itemId ? $existingItems->get($itemId) : null;
+
+                    if (! $item && ! empty($itemData['produk_id'])) {
+                        $item = $existingItems->firstWhere('produk_id', $itemData['produk_id']);
+                    }
+
+                    $faktor = (float) ($itemData['faktor_konversi'] ?? 1.0);
+                    if ($faktor <= 0) $faktor = 1.0;
+
+                    $qtyBeli = isset($itemData['qty_satuan_beli']) && $itemData['qty_satuan_beli'] !== null && $itemData['qty_satuan_beli'] !== ''
+                        ? (float) $itemData['qty_satuan_beli']
+                        : null;
+
+                    $qtyDasar = $qtyBeli !== null ? round($qtyBeli * $faktor, 2) : (float) ($itemData['qty'] ?? 0);
+
+                    if ($item) {
+                        $item->update([
+                            'qty' => $qtyDasar,
+                            'harga_total' => $itemData['harga_total'],
+                            'satuan_beli' => $itemData['satuan_beli'] ?? $item->satuan_beli,
+                            'qty_satuan_beli' => $qtyBeli ?? $item->qty_satuan_beli,
+                            'faktor_konversi' => $faktor,
+                            'diskon' => $itemData['diskon'] ?? 0,
+                            'ppn' => $itemData['ppn'] ?? 0,
+                            'ongkir' => $itemData['ongkir'] ?? 0,
+                            'adjustment' => $itemData['adjustment'] ?? 0,
+                        ]);
+                        $processedIds[] = $item->id;
+                    } else {
+                        $newItem = $po->items()->create([
+                            'produk_id' => $itemData['produk_id'],
+                            'qty' => $qtyDasar,
+                            'harga_total' => $itemData['harga_total'],
+                            'satuan_beli' => $itemData['satuan_beli'] ?? null,
+                            'qty_satuan_beli' => $qtyBeli,
+                            'faktor_konversi' => $faktor,
+                            'diskon' => $itemData['diskon'] ?? 0,
+                            'ppn' => $itemData['ppn'] ?? 0,
+                            'ongkir' => $itemData['ongkir'] ?? 0,
+                            'adjustment' => $itemData['adjustment'] ?? 0,
+                        ]);
+                        $processedIds[] = $newItem->id;
+                    }
                 }
             }
 
@@ -167,6 +206,9 @@ class PurchaseOrderRevisionService
                 'produk_id' => $it->produk_id,
                 'qty' => $it->qty,
                 'harga_total' => $it->harga_total,
+                'satuan_beli' => $it->satuan_beli,
+                'qty_satuan_beli' => $it->qty_satuan_beli,
+                'faktor_konversi' => $it->faktor_konversi,
                 'diskon' => $it->diskon,
                 'ppn' => $it->ppn,
                 'ongkir' => $it->ongkir,
@@ -180,6 +222,20 @@ class PurchaseOrderRevisionService
                 (float) ($usulan['ongkos_kirim'] ?? $po->ongkos_kirim),
                 (float) ($usulan['adjustment'] ?? $po->adjustment)
             );
+
+            // Perbarui breakdown biaya dan HPP satuan per item
+            foreach ($po->items as $it) {
+                $calcItem = collect($totals['items'] ?? [])->firstWhere('produk_id', $it->produk_id);
+                if ($calcItem) {
+                    $it->update([
+                        'hpp_per_satuan' => $calcItem['hpp_per_satuan'] ?? $it->hpp_per_satuan,
+                        'diskon' => $calcItem['diskon'] ?? $it->diskon,
+                        'ppn' => $calcItem['ppn'] ?? $it->ppn,
+                        'ongkir' => $calcItem['ongkir'] ?? $it->ongkir,
+                        'adjustment' => $calcItem['adjustment'] ?? $it->adjustment,
+                    ]);
+                }
+            }
 
             $po->subtotal_produk = $totals['subtotal_produk'];
             $po->diskon_total = $totals['diskon_total'];

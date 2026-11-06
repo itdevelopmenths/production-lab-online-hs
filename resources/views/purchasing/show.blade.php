@@ -11,6 +11,38 @@
         };
         $canSeePrice = $canSeePrice ?? auth()->user()->can('purchasing.price.view');
         $hasStages = $po->relationLoaded('stages') && $po->stages->isNotEmpty();
+        $uomList = $uomList ?? \App\Models\Uom::active()->orderBy('nama')->get(['id', 'kode', 'nama', 'kategori', 'satuan_dasar', 'faktor_konversi']);
+        $initialRevisiData = [
+            'uomList' => $uomList->toArray(),
+            'oldGrandTotal' => (float) ($po->grand_total ?? 0),
+            'headerDiskon' => (float) ($po->diskon_total ?? 0),
+            'headerDiskonMode' => 'nominal',
+            'headerDiskonVal' => 0,
+            'headerPpn' => (float) ($po->ppn_nominal ?? 0),
+            'headerPpnMode' => 'nominal',
+            'headerPpnVal' => 0,
+            'headerOngkir' => (float) ($po->ongkos_kirim ?? 0),
+            'headerAdj' => (float) ($po->adjustment ?? 0),
+            'rows' => $po->items->map(function ($it) {
+                $qBeli = $it->qty_satuan_beli ? (float) $it->qty_satuan_beli : (float) $it->qty;
+                $satBeli = $it->satuan_beli ?: ($it->produk?->satuan ?? 'pcs');
+                $faktor = (float) ($it->faktor_konversi ?? 1.0);
+                if ($faktor <= 0) $faktor = 1.0;
+                return [
+                    'po_item_id' => $it->id,
+                    'produk_id' => $it->produk_id,
+                    'sku' => $it->produk?->sku ?? '—',
+                    'nama' => $it->produk?->nama ?? '—',
+                    'satuan' => $it->produk?->satuan ?? 'pcs',
+                    'current_hpp' => (float) ($it->hpp_per_satuan ?: ($it->produk?->harga_hpp ?? 0)),
+                    'qty_satuan_beli' => $qBeli,
+                    'satuan_beli' => $satBeli,
+                    'faktor_konversi' => $faktor,
+                    'qty' => (float) $it->qty,
+                    'harga' => (float) $it->harga_total,
+                ];
+            })->values()->toArray(),
+        ];
     @endphp
 
     <div x-data="{ openDirectEditModal: false, openRevisiModal: false, openInvalidateModal: false }">
@@ -117,35 +149,77 @@
                             @endphp
                             @foreach($dUsul as $k => $val)
                                 @if($k === 'items' && is_array($val))
-                                    <tr>
-                                        <td class="p-2 font-bold" colspan="3">Item Bahan Baku / Harga:</td>
+                                    <tr class="bg-muted/40">
+                                        <td class="p-2 font-bold text-foreground" colspan="3">Item Bahan Baku &amp; Harga:</td>
                                     </tr>
                                     @foreach($val as $itemIdx => $itUsul)
                                         @php
-                                            $poItemMatch = $po->items->firstWhere('id', $itUsul['po_item_id'] ?? $itemIdx) ?? $po->items->first();
+                                            $poItemMatch = $po->items->firstWhere('id', $itUsul['po_item_id'] ?? $itemIdx) 
+                                                ?? $po->items->firstWhere('produk_id', $itUsul['produk_id'] ?? null)
+                                                ?? $po->items->first();
                                             $namaIt = $poItemMatch?->produk?->nama ?? 'Item #' . $itemIdx;
+                                            $satBeliOld = $poItemMatch?->satuan_beli ?: ($poItemMatch?->produk?->satuan ?? 'pcs');
+                                            $qBeliOld = $poItemMatch?->qty_satuan_beli ?: $poItemMatch?->qty;
+                                            $satBeliNew = $itUsul['satuan_beli'] ?? $satBeliOld;
+                                            $qBeliNew = $itUsul['qty_satuan_beli'] ?? $itUsul['qty'] ?? 0;
                                         @endphp
                                         <tr class="bg-muted/10">
-                                            <td class="p-2 pl-4">{{ $namaIt }}</td>
+                                            <td class="p-2 pl-4">
+                                                <div class="font-semibold text-foreground">{{ $namaIt }}</div>
+                                                <div class="text-[10px] text-muted-foreground font-mono">
+                                                    {{ $poItemMatch?->produk?->sku }} · Satuan: {{ $poItemMatch?->produk?->satuan }}
+                                                </div>
+                                            </td>
                                             <td class="p-2 font-mono">
-                                                Qty: {{ $poItemMatch?->qty }}
+                                                <div>Qty Beli: {{ $qBeliOld }} {{ $satBeliOld }}</div>
+                                                @if(strtolower($satBeliOld) !== strtolower($poItemMatch?->produk?->satuan ?? ''))
+                                                    <div class="text-[10px] text-muted-foreground">Fisik: {{ $poItemMatch?->qty }} {{ $poItemMatch?->produk?->satuan }}</div>
+                                                @endif
                                                 @if($canSeePrice)
-                                                    · Rp {{ number_format((float) ($poItemMatch?->harga_total ?? 0), 0, ',', '.') }}
+                                                    <div class="font-semibold text-foreground">Rp {{ number_format((float) ($poItemMatch?->harga_total ?? 0), 0, ',', '.') }}</div>
                                                 @endif
                                             </td>
                                             <td class="p-2 font-mono font-bold text-blue-700 bg-blue-50/40">
-                                                Qty: {{ $itUsul['qty'] ?? '—' }}
+                                                <div>Qty Beli: {{ $qBeliNew }} {{ $satBeliNew }}</div>
+                                                @if(isset($itUsul['qty']) && strtolower($satBeliNew) !== strtolower($poItemMatch?->produk?->satuan ?? ''))
+                                                    <div class="text-[10px] text-blue-600">Fisik: {{ $itUsul['qty'] }} {{ $poItemMatch?->produk?->satuan }}</div>
+                                                @endif
                                                 @if($canSeePrice && isset($itUsul['harga_total']))
-                                                    · Rp {{ number_format((float) $itUsul['harga_total'], 0, ',', '.') }}
+                                                    <div class="font-bold text-blue-800">Rp {{ number_format((float) $itUsul['harga_total'], 0, ',', '.') }}</div>
                                                 @endif
                                             </td>
                                         </tr>
                                     @endforeach
                                 @else
+                                    @php
+                                        $labelParam = match($k) {
+                                            'subtotal_produk' => 'Subtotal Bahan (Kotor)',
+                                            'diskon_total' => 'Diskon Global PO',
+                                            'ppn_nominal' => 'PPN Global PO',
+                                            'ongkos_kirim' => 'Ongkos Kirim Global',
+                                            'adjustment' => 'Adjustment / Pembulatan',
+                                            'grand_total' => 'Grand Total Tagihan',
+                                            default => ucwords(str_replace('_', ' ', $k))
+                                        };
+                                        $oldVal = $dSeb[$k] ?? null;
+                                        $isCurrency = in_array($k, ['subtotal_produk', 'diskon_total', 'ppn_nominal', 'ongkos_kirim', 'adjustment', 'grand_total', 'nominal_tagihan'], true);
+                                    @endphp
                                     <tr>
-                                        <td class="p-2 font-medium">{{ ucwords(str_replace('_', ' ', $k)) }}</td>
-                                        <td class="p-2 font-mono text-muted-foreground">{{ is_array($dSeb[$k] ?? null) ? json_encode($dSeb[$k]) : ($dSeb[$k] ?? '—') }}</td>
-                                        <td class="p-2 font-mono font-bold text-blue-700 bg-blue-50/40">{{ is_array($val) ? json_encode($val) : $val }}</td>
+                                        <td class="p-2 font-medium text-foreground">{{ $labelParam }}</td>
+                                        <td class="p-2 font-mono text-muted-foreground">
+                                            @if($isCurrency && is_numeric($oldVal))
+                                                Rp {{ number_format((float) $oldVal, 0, ',', '.') }}
+                                            @else
+                                                {{ is_array($oldVal) ? json_encode($oldVal) : ($oldVal ?? '—') }}
+                                            @endif
+                                        </td>
+                                        <td class="p-2 font-mono font-bold text-blue-700 bg-blue-50/40">
+                                            @if($isCurrency && is_numeric($val))
+                                                Rp {{ number_format((float) $val, 0, ',', '.') }}
+                                            @else
+                                                {{ is_array($val) ? json_encode($val) : $val }}
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endif
                             @endforeach
@@ -1528,48 +1602,315 @@
     </div>
 
     {{-- MODAL AJUKAN REVISI KOMITMEN (purchasing.edit) --}}
-    <div x-show="openRevisiModal" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" x-cloak>
-        <div class="bg-card rounded-xl border border-border p-5 max-w-xl w-full space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b border-border pb-2.5">
+    <div x-show="openRevisiModal" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-6" x-cloak>
+        <div class="bg-card rounded-2xl border border-border p-5 sm:p-6 max-w-5xl w-full space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto"
+             x-data="revisiForm({{ Js::from($initialRevisiData) }})"
+             x-init="init()">
+            
+            <div class="flex justify-between items-start border-b border-border pb-3">
                 <div>
-                    <h3 class="font-bold text-sm text-foreground">Ajukan Revisi Komitmen Pengadaan</h3>
-                    <p class="text-[11px] text-muted-foreground">Usulan revisi kuantitas/harga akan dikirim ke antrean Manager untuk persetujuan</p>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-base text-foreground">Ajukan Usulan Revisi Komitmen Pengadaan</h3>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">Revisi ke-{{ (int)$po->revisi_ke + 1 }}</span>
+                    </div>
+                    <p class="text-xs text-muted-foreground mt-0.5">
+                        Sesuaikan kuantitas beli, harga, diskon, PPN, dan ongkos kirim. Jenis bahan baku terkunci sesuai PO asli.
+                    </p>
                 </div>
-                <button type="button" @click="openRevisiModal = false" class="text-muted-foreground hover:text-foreground">✕</button>
+                <button type="button" @click="openRevisiModal = false" class="size-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer">✕</button>
             </div>
 
-            <form method="POST" action="{{ route('purchasing.revisi.submit', $po) }}" class="space-y-3 text-xs">
+            <form method="POST" action="{{ route('purchasing.revisi.submit', $po) }}" class="space-y-4 text-xs" @submit="handleSubmit($event)">
                 @csrf
-                <div>
-                    <label class="block font-semibold mb-1">Alasan Revisi <span class="text-destructive">*</span></label>
-                    <textarea name="alasan" required minlength="5" rows="2" placeholder="Contoh: Supplier mengonfirmasi perubahan kuantiti atau harga..." class="w-full rounded-lg border border-border bg-background p-2"></textarea>
+
+                {{-- Input Alasan Revisi --}}
+                <div class="bg-muted/30 p-3 rounded-xl border border-border space-y-1.5">
+                    <label class="block font-semibold text-xs text-foreground">
+                        Alasan Pengajuan Revisi Komitmen <span class="text-destructive">*</span>
+                    </label>
+                    <textarea name="alasan" x-model="alasan" required minlength="5" rows="2" 
+                              placeholder="Jelaskan alasan perubahan kuantitas, harga bahan baku, diskon, atau ongkir untuk ditinjau dan disetujui Manager..." 
+                              class="w-full rounded-lg border border-border bg-background p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"></textarea>
                 </div>
 
-                <div class="space-y-2 border-t border-border pt-2">
-                    <span class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground block">Usulan Data Item Bahan Baku:</span>
-                    @foreach($po->items as $it)
-                    <div class="p-2.5 bg-muted/40 rounded-lg border border-border space-y-2">
-                        <div class="font-semibold text-foreground">{{ $it->produk->nama }} ({{ $it->produk->sku }})</div>
-                        <input type="hidden" name="data_usulan[items][{{ $it->id }}][po_item_id]" value="{{ $it->id }}">
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-[10px] text-muted-foreground block">Qty Baru (Satuan Dasar)</label>
-                                <input type="number" step="0.01" min="0.01" name="data_usulan[items][{{ $it->id }}][qty]" value="{{ $it->qty }}" class="w-full rounded border border-border bg-background p-1.5 font-mono">
-                            </div>
-                            @if($canSeePrice)
-                            <div>
-                                <label class="text-[10px] text-muted-foreground block">Harga Total Baru (Rp)</label>
-                                <input type="number" step="1" min="0" name="data_usulan[items][{{ $it->id }}][harga_total]" value="{{ (float)$it->harga_total }}" class="w-full rounded border border-border bg-background p-1.5 font-mono">
-                            </div>
-                            @endif
-                        </div>
+                {{-- Card 1: Daftar Bahan Baku (Jenis Bahan Terkunci Sesuai PO) --}}
+                <x-card title="Daftar Bahan Baku" subtitle="Input kuantitas dan total harga per bahan. Diskon, PPN, ongkir, dan adjustment diatur pada formulir Global di bawah dan dialokasikan ke HPP secara realtime." :noPadding="true" class="relative z-10" overflow="visible">
+                    <div class="overflow-x-auto min-h-[160px]">
+                        <table class="w-full text-xs">
+                            <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[10px] tracking-wider">
+                                <tr>
+                                    <th class="px-3.5 py-2.5 text-left w-[36%]">Bahan Baku <span class="text-destructive">*</span></th>
+                                    <th class="px-3 py-2.5 text-left w-64">Kuantitas &amp; Satuan Beli <span class="text-destructive">*</span></th>
+                                    <th class="px-3 py-2.5 text-right w-44">Total Harga <span class="text-destructive">*</span></th>
+                                    <th class="px-3.5 py-2.5 text-right w-52 bg-muted/40 text-foreground">HPP / Satuan Dasar</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border bg-card">
+                                <template x-for="(row, i) in rows" :key="row.po_item_id || i">
+                                    <tr class="hover:bg-muted/30 transition">
+                                        {{-- Kolom 1: Bahan Baku (Locked / Readonly Display) --}}
+                                        <td class="px-3.5 py-2.5">
+                                            <input type="hidden" :name="`data_usulan[items][${i}][po_item_id]`" :value="row.po_item_id">
+                                            <input type="hidden" :name="`data_usulan[items][${i}][produk_id]`" :value="row.produk_id">
+                                            <div class="space-y-1">
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded border border-border text-[10px]" x-text="row.sku"></span>
+                                                    <span class="font-bold text-foreground text-xs" x-text="row.nama"></span>
+                                                    <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border" x-text="row.satuan"></span>
+                                                </div>
+                                                <div class="flex items-center gap-1.5 text-[10px] font-mono">
+                                                    <span class="text-muted-foreground">HPP Saat Ini:</span>
+                                                    <span class="font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20" x-text="'Rp ' + formatHpp(row.current_hpp) + ' / ' + row.satuan"></span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {{-- Kolom 2: Kuantitas & Satuan Beli --}}
+                                        <td class="px-3 py-2.5">
+                                            <div class="space-y-1">
+                                                <div class="flex items-center gap-1.5">
+                                                    <div class="relative flex items-center shrink-0">
+                                                        <span class="absolute left-2.5 text-[10px] font-bold font-mono tracking-wider text-muted-foreground/70 uppercase select-none pointer-events-none">QTY</span>
+                                                        <input
+                                                            type="number"
+                                                            step="1"
+                                                            min="1"
+                                                            inputmode="numeric"
+                                                            :name="`data_usulan[items][${i}][qty_satuan_beli]`"
+                                                            x-model.number="row.qty_satuan_beli"
+                                                            @keydown="if (['.', ',', 'e', 'E', '+', '-'].includes($event.key)) $event.preventDefault()"
+                                                            @input="handleQtyInput(row, $event)"
+                                                            @paste="handleQtyPaste(row, $event)"
+                                                            placeholder="0"
+                                                            required
+                                                            class="w-24 rounded-lg border-2 border-primary/30 bg-background text-xs py-1.5 pl-9 pr-2 font-mono font-bold text-right text-foreground hover:border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary shadow-xs"
+                                                        />
+                                                    </div>
+
+                                                    <select
+                                                        :name="`data_usulan[items][${i}][satuan_beli]`"
+                                                        x-model="row.satuan_beli"
+                                                        @change="onSatuanBeliChange(row)"
+                                                        class="flex-1 rounded-lg border border-input bg-background text-xs py-1.5 px-2 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                    >
+                                                        <template x-for="opt in getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi)" :key="opt.code">
+                                                            <option :value="opt.code" x-text="opt.label" :selected="opt.code === row.satuan_beli || opt.code.toLowerCase() === (row.satuan_beli || '').toLowerCase()"></option>
+                                                        </template>
+                                                    </select>
+                                                </div>
+
+                                                <input type="hidden" :name="`data_usulan[items][${i}][faktor_konversi]`" :value="row.faktor_konversi">
+                                                <input type="hidden" :name="`data_usulan[items][${i}][qty]`" :value="row.qty">
+
+                                                {{-- Live Indicator Kuantitas Fisik Masuk Gudang --}}
+                                                <div class="text-[10px] font-mono text-foreground bg-muted px-2 py-0.5 rounded border border-border flex items-center justify-between select-none" x-show="row.qty > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
+                                                    <span class="text-muted-foreground">Masuk fisik:</span>
+                                                    <span class="font-bold text-foreground" x-text="formatQty(row.qty) + ' ' + (row.satuan || '')"></span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {{-- Kolom 3: Total Harga Kotor --}}
+                                        <td class="px-3 py-2.5">
+                                            <div class="relative flex items-center">
+                                                <input type="hidden" :name="`data_usulan[items][${i}][harga_total]`" :value="row.harga">
+                                                <input
+                                                    type="text"
+                                                    inputmode="numeric"
+                                                    :value="formatThousand(row.harga)"
+                                                    @input="updateRowField(row, 'harga', $event)"
+                                                    @keydown="handleKeyDown($event)"
+                                                    placeholder="0"
+                                                    required
+                                                    class="w-full rounded-lg border border-input bg-background text-xs py-1.5 px-2 font-mono text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs font-semibold"
+                                                />
+                                            </div>
+                                        </td>
+
+                                        {{-- Kolom 4: Live HPP / Satuan Dasar --}}
+                                        <td class="px-3.5 py-2.5 text-right bg-muted/20">
+                                            <template x-if="calculateRowHpp(row) > 0">
+                                                <div>
+                                                    <div class="font-mono font-bold text-xs text-foreground" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + ' / ' + (row.satuan || 'unit')"></div>
+                                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
+                                                </div>
+                                            </template>
+                                            <template x-if="!calculateRowHpp(row) || calculateRowHpp(row) <= 0">
+                                                <span class="text-muted-foreground italic text-[11px]">—</span>
+                                            </template>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
                     </div>
-                    @endforeach
+
+                    <div class="px-4 py-2.5 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                        <span class="italic font-medium text-amber-700 dark:text-amber-400">
+                            * Jenis bahan baku terkunci sesuai PO asli (tidak dapat menambah / menghapus bahan baku).
+                        </span>
+                        <span class="font-mono">
+                            Total: <strong class="text-foreground" x-text="rows.length"></strong> item
+                        </span>
+                    </div>
+                </x-card>
+
+                {{-- Card 2 & 3: Biaya Tambahan Global & Ringkasan Nilai Pengadaan --}}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {{-- Biaya Tambahan Global --}}
+                    <x-card title="Biaya Tambahan Global (Opsional)" subtitle="Biaya tingkat PO yang otomatis dialokasikan ke HPP bahan baku">
+                        <div class="space-y-3.5 text-xs">
+                            {{-- Diskon Global PO --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <label class="text-xs text-foreground font-medium">Diskon Global PO</label>
+                                    <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerDiskonMode === 'persen' && headerDiskon > 0" x-text="'(= Rp ' + formatThousand(headerDiskon) + ')'"></span>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <input type="hidden" name="data_usulan[diskon_total]" :value="headerDiskon">
+                                    <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none">
+                                        <button type="button" @click="setHeaderDiskonMode('nominal')" class="px-2 py-0.5 text-xs font-semibold rounded transition cursor-pointer" :class="headerDiskonMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
+                                        <button type="button" @click="setHeaderDiskonMode('persen')" class="px-2 py-0.5 text-xs font-semibold rounded transition cursor-pointer" :class="headerDiskonMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
+                                    </div>
+                                    <div class="relative w-36">
+                                        <template x-if="headerDiskonMode === 'persen'">
+                                            <div class="relative flex items-center">
+                                                <input type="number" step="any" min="0" max="100" x-model.number="headerDiskonVal" @input="recalcHeaderDiskon()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 rounded-lg border border-input bg-background font-mono text-destructive font-semibold focus:ring-1 focus:ring-ring shadow-xs" />
+                                                <span class="absolute right-2 text-xs text-destructive font-mono font-bold pointer-events-none">%</span>
+                                            </div>
+                                        </template>
+                                        <template x-if="headerDiskonMode !== 'persen'">
+                                            <div class="relative flex items-center">
+                                                <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
+                                                <input type="text" inputmode="numeric" :value="formatThousand(headerDiskon)" @input="updateHeaderField('headerDiskon', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background font-mono text-destructive font-semibold focus:ring-1 focus:ring-ring shadow-xs" />
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- PPN Global PO --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <label class="text-xs text-foreground font-medium">PPN Global PO</label>
+                                    <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerPpnMode === 'persen' && headerPpn > 0" x-text="'(= Rp ' + formatThousand(headerPpn) + ')'"></span>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <input type="hidden" name="data_usulan[ppn_nominal]" :value="headerPpn">
+                                    <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none">
+                                        <button type="button" @click="setHeaderPpnMode('nominal')" class="px-2 py-0.5 text-xs font-semibold rounded transition cursor-pointer" :class="headerPpnMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
+                                        <button type="button" @click="setHeaderPpnMode('persen')" class="px-2 py-0.5 text-xs font-semibold rounded transition cursor-pointer" :class="headerPpnMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
+                                    </div>
+                                    <div class="relative w-36">
+                                        <template x-if="headerPpnMode === 'persen'">
+                                            <div class="relative flex items-center">
+                                                <input type="number" step="any" min="0" max="100" x-model.number="headerPpnVal" @input="recalcHeaderPpn()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 rounded-lg border border-input bg-background font-mono text-foreground font-semibold focus:ring-1 focus:ring-ring shadow-xs" />
+                                                <span class="absolute right-2 text-xs text-muted-foreground font-mono font-bold pointer-events-none">%</span>
+                                            </div>
+                                        </template>
+                                        <template x-if="headerPpnMode !== 'persen'">
+                                            <div class="relative flex items-center">
+                                                <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
+                                                <input type="text" inputmode="numeric" :value="formatThousand(headerPpn)" @input="updateHeaderField('headerPpn', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background font-mono text-foreground font-semibold focus:ring-1 focus:ring-ring shadow-xs" />
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Ongkos Kirim Global --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <label class="text-xs text-foreground font-medium">Ongkos Kirim Global</label>
+                                <div class="relative w-36 shrink-0">
+                                    <input type="hidden" name="data_usulan[ongkos_kirim]" :value="headerOngkir">
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
+                                        <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background text-foreground font-mono font-medium focus:ring-1 focus:ring-ring shadow-xs" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Adjustment / Pembulatan --}}
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan</label>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <input type="hidden" name="data_usulan[adjustment]" :value="headerAdj">
+                                    <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none">
+                                        <button type="button" @click="setHeaderAdjSign(1)" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer flex items-center gap-1" :class="headerAdj >= 0 ? 'bg-background text-emerald-600 font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground'">
+                                            <span class="font-bold">+</span> Tambah
+                                        </button>
+                                        <button type="button" @click="setHeaderAdjSign(-1)" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer flex items-center gap-1" :class="headerAdj < 0 ? 'bg-background text-destructive font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground'">
+                                            <span class="font-bold">−</span> Kurang
+                                        </button>
+                                    </div>
+                                    <div class="relative w-36">
+                                        <div class="relative flex items-center">
+                                            <span class="absolute left-2.5 text-[10px] font-mono font-bold pointer-events-none" :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-emerald-600' : 'text-muted-foreground')" x-text="headerAdj < 0 ? '- Rp' : (headerAdj > 0 ? '+ Rp' : 'Rp')"></span>
+                                            <input type="text" inputmode="numeric" :value="formatThousand(Math.abs(headerAdj))" @input="updateHeaderAdj($event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-10 pr-2.5 rounded-lg border border-input bg-background font-mono font-semibold focus:ring-1 focus:ring-ring shadow-xs" :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-emerald-600' : 'text-foreground')" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </x-card>
+
+                    {{-- Ringkasan Nilai Pengadaan --}}
+                    <x-card title="Ringkasan Nilai Pengadaan" subtitle="Total kalkulasi finansial komitmen baru">
+                        <input type="hidden" name="data_usulan[subtotal_produk]" :value="subtotalProduk()">
+                        <input type="hidden" name="data_usulan[grand_total]" :value="grandTotal()">
+
+                        <div class="space-y-2.5 text-xs">
+                            <div class="flex justify-between text-muted-foreground">
+                                <span>Subtotal Bahan (Kotor):</span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'Rp ' + formatThousand(subtotalProduk())"></span>
+                            </div>
+                            <div class="flex justify-between text-destructive">
+                                <span>Total Diskon:</span>
+                                <span class="font-mono font-semibold" x-text="'- Rp ' + formatThousand(totalDiskon())"></span>
+                            </div>
+                            <div class="flex justify-between text-muted-foreground">
+                                <span>Total PPN:</span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalPpn())"></span>
+                            </div>
+                            <div class="flex justify-between text-muted-foreground">
+                                <span>Total Ongkos Kirim:</span>
+                                <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalOngkir())"></span>
+                            </div>
+                            <div class="flex justify-between" :class="totalAdj() < 0 ? 'text-destructive' : 'text-muted-foreground'">
+                                <span>Total Adjustment:</span>
+                                <span class="font-mono font-semibold" :class="totalAdj() < 0 ? 'text-destructive' : 'text-foreground'" x-text="(totalAdj() >= 0 ? '+ Rp ' : '- Rp ') + formatThousand(Math.abs(totalAdj()))"></span>
+                            </div>
+                            <div class="pt-2.5 border-t border-border flex justify-between items-center">
+                                <span class="font-bold text-foreground">Grand Total Usulan:</span>
+                                <span class="font-mono font-extrabold text-foreground text-base" x-text="'Rp ' + formatThousand(grandTotal())"></span>
+                            </div>
+                            <div class="p-2.5 rounded-lg bg-muted/50 border border-border flex items-center justify-between text-[11px]">
+                                <span class="text-muted-foreground">PO Sebelumnya: <strong class="text-foreground">Rp {{ number_format($po->grand_total, 0, ',', '.') }}</strong></span>
+                                <span class="font-mono font-bold" :class="grandTotal() - oldGrandTotal > 0 ? 'text-rose-600' : (grandTotal() - oldGrandTotal < 0 ? 'text-emerald-600' : 'text-muted-foreground')">
+                                    Selisih: <span x-text="(grandTotal() - oldGrandTotal >= 0 ? '+Rp ' : '-Rp ') + formatThousand(Math.abs(grandTotal() - oldGrandTotal))"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </x-card>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-2 border-t border-border">
-                    <button type="button" @click="openRevisiModal = false" class="px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted">Batal</button>
-                    <x-button type="submit" variant="primary" size="sm">Kirim Usulan Revisi</x-button>
+                {{-- Modal Footer --}}
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border">
+                    <span class="text-[11px] text-muted-foreground">
+                        Usulan akan otomatis masuk ke antrean Manager. Data PO aktif tidak akan berubah sampai disetujui.
+                    </span>
+                    <div class="flex items-center gap-2 justify-end">
+                        <button type="button" @click="openRevisiModal = false" class="px-4 py-2 rounded-lg border border-border text-muted-foreground hover:bg-muted font-medium transition cursor-pointer">
+                            Batal
+                        </button>
+                        <x-button type="submit" variant="primary" size="md" x-bind:disabled="isSubmitDisabled()">
+                            <span x-show="!isSubmitting">Kirim Usulan Revisi ke Manager</span>
+                            <span x-show="isSubmitting" class="flex items-center gap-2" style="display: none;">
+                                <svg class="animate-spin size-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                                Mengirim Usulan...
+                            </span>
+                        </x-button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1693,6 +2034,436 @@
                             this.setNominal(sisaTermin, 'termin');
                         }
                     }
+                }
+            };
+        }
+
+        function revisiForm(initial = {}) {
+            return {
+                uomList: initial.uomList || [],
+                oldGrandTotal: parseFloat(initial.oldGrandTotal) || 0,
+                alasan: '',
+                isSubmitting: false,
+
+                // Header Fields
+                headerDiskonMode: initial.headerDiskonMode || 'nominal',
+                headerDiskonVal: parseFloat(initial.headerDiskonVal) || 0,
+                headerDiskon: parseFloat(initial.headerDiskon) || 0,
+
+                headerPpnMode: initial.headerPpnMode || 'nominal',
+                headerPpnVal: parseFloat(initial.headerPpnVal) || 0,
+                headerPpn: parseFloat(initial.headerPpn) || 0,
+
+                headerOngkir: parseFloat(initial.headerOngkir) || 0,
+                headerAdj: parseFloat(initial.headerAdj) || 0,
+
+                rows: (initial.rows || []).map(r => ({
+                    ...r,
+                    qty_satuan_beli: r.qty_satuan_beli !== undefined && r.qty_satuan_beli !== null ? r.qty_satuan_beli : r.qty,
+                    satuan_beli: r.satuan_beli || r.satuan || 'pcs',
+                    faktor_konversi: parseFloat(r.faktor_konversi) || 1,
+                    qty: parseFloat(r.qty) || 0,
+                    harga: parseFloat(r.harga) || 0,
+                })),
+
+                init() {
+                    this.recalcAll();
+                },
+
+                getUomOptions(baseSatuan, currentSatuanBeli = null, currentFactor = null) {
+                    const s = (baseSatuan || '').toLowerCase().trim();
+                    const curKey = (currentSatuanBeli || '').toLowerCase().trim();
+                    const options = [];
+                    const seen = new Set();
+
+                    if (Array.isArray(this.uomList)) {
+                        this.uomList.forEach(u => {
+                            const uKode = (u.kode || '').toLowerCase().trim();
+                            const uBasis = (u.satuan_dasar || '').toLowerCase().trim();
+                            const uKat = (u.kategori || '').toLowerCase().trim();
+                            const factor = parseFloat(u.faktor_konversi) || 1;
+
+                            let isMatch = (uBasis === s) || (uKode === s);
+                            if (!isMatch && (s === 'ml' || s === 'l' || s === 'liter' || s === 'mililiter')) {
+                                isMatch = (uBasis === 'ml' || uBasis === 'l' || uKat === 'volume' || uKode === 'galon' || uKode === 'drum');
+                            } else if (!isMatch && (s === 'gr' || s === 'g' || s === 'gram' || s === 'kg' || s === 'kilogram')) {
+                                isMatch = (uBasis === 'gr' || uBasis === 'kg' || uKat === 'massa');
+                            } else if (!isMatch && (s === 'pcs' || s === 'unit' || s === 'botol' || s === 'box')) {
+                                isMatch = (uBasis === 'pcs' || uKat === 'satuan hitung' || uKat === 'kemasan');
+                            }
+
+                            if (isMatch && !seen.has(uKode)) {
+                                seen.add(uKode);
+                                const factorDisplay = (factor == parseInt(factor) ? parseInt(factor) : factor).toLocaleString('id-ID');
+                                const label = factor > 1 
+                                    ? `${u.nama} (${factorDisplay} ${baseSatuan || ''})`
+                                    : (uBasis === s || uKode === s ? `${u.nama} (${u.kode} - Satuan Dasar)` : `${u.nama} (${u.kode})`);
+                                options.push({
+                                    code: u.kode,
+                                    label: label,
+                                    factor: factor,
+                                    isBase: (uKode === s || (uBasis === s && factor === 1))
+                                });
+                            }
+                        });
+                    }
+
+                    if (!seen.has(s) && baseSatuan) {
+                        seen.add(s);
+                        options.unshift({ code: baseSatuan, label: `${baseSatuan} (Satuan Dasar)`, factor: 1, isBase: true });
+                    }
+
+                    if (curKey) {
+                        const found = options.some(o => o.code.toLowerCase().trim() === curKey);
+                        if (!found) {
+                            seen.add(curKey);
+                            const factorNum = parseFloat(currentFactor) || 1;
+                            const factorDisplay = (factorNum == parseInt(factorNum) ? parseInt(factorNum) : factorNum).toLocaleString('id-ID');
+                            options.push({
+                                code: currentSatuanBeli,
+                                label: `${currentSatuanBeli} (${factorDisplay} ${baseSatuan || ''})`,
+                                factor: factorNum
+                            });
+                        }
+                    }
+
+                    options.sort((a, b) => {
+                        const aIsBase = a.isBase || (a.code.toLowerCase().trim() === s);
+                        const bIsBase = b.isBase || (b.code.toLowerCase().trim() === s);
+                        if (aIsBase && !bIsBase) return -1;
+                        if (!aIsBase && bIsBase) return 1;
+                        return (parseFloat(a.factor) || 0) - (parseFloat(b.factor) || 0);
+                    });
+
+                    return options;
+                },
+
+                onSatuanBeliChange(row) {
+                    const options = this.getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi);
+                    const opt = options.find(o => o.code === row.satuan_beli || o.code.toLowerCase() === (row.satuan_beli || '').toLowerCase());
+                    if (opt && opt.factor !== null && opt.factor !== undefined) {
+                        row.faktor_konversi = opt.factor;
+                    }
+                    this.updateRowQty(row);
+                },
+
+                handleQtyInput(row, event) {
+                    if (event && event.target) {
+                        let raw = event.target.value;
+                        if (typeof raw === 'string' && (raw.includes('.') || raw.includes(',') || /\D/.test(raw))) {
+                            const clean = raw.replace(/\D/g, '');
+                            event.target.value = clean;
+                            row.qty_satuan_beli = clean ? parseInt(clean, 10) : '';
+                        }
+                    }
+                    if (row.qty_satuan_beli !== '' && row.qty_satuan_beli !== null && row.qty_satuan_beli !== undefined) {
+                        const num = parseFloat(row.qty_satuan_beli);
+                        if (!isNaN(num) && num !== Math.round(num)) {
+                            row.qty_satuan_beli = Math.round(num);
+                        }
+                    }
+                    this.updateRowQty(row);
+                },
+
+                handleQtyPaste(row, event) {
+                    event.preventDefault();
+                    const pasteText = (event.clipboardData || window.clipboardData)?.getData('text') || '';
+                    const clean = pasteText.replace(/\D/g, '');
+                    if (clean) {
+                        const val = parseInt(clean, 10);
+                        row.qty_satuan_beli = val > 0 ? val : '';
+                    } else {
+                        row.qty_satuan_beli = '';
+                    }
+                    this.updateRowQty(row);
+                },
+
+                updateRowQty(row) {
+                    const qtyBeli = parseInt(row.qty_satuan_beli, 10) || 0;
+                    const factor = parseFloat(row.faktor_konversi) || 1;
+                    row.qty = Math.round(qtyBeli * factor * 100) / 100;
+                    this.recalcAll();
+                },
+
+                formatQty(val) {
+                    if (val === '' || val === null || val === undefined || isNaN(val)) return '0';
+                    const num = Number(val);
+                    if (Math.abs(num - Math.round(num)) < 0.00001) {
+                        return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    }
+                    return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                },
+
+                recalcAll() {
+                    if (this.headerDiskonMode === 'persen') this.recalcHeaderDiskon();
+                    if (this.headerPpnMode === 'persen') this.recalcHeaderPpn();
+                },
+
+                setHeaderDiskonMode(mode) {
+                    if (this.headerDiskonMode === mode) return;
+                    this.headerDiskonMode = mode;
+                    if (mode === 'persen') {
+                        const sub = this.subtotalProduk();
+                        if (!this.headerDiskonVal && this.headerDiskon > 0 && sub > 0) {
+                            this.headerDiskonVal = Math.round(((parseFloat(this.headerDiskon) || 0) / sub) * 10000) / 100;
+                        }
+                    }
+                    this.recalcHeaderDiskon();
+                },
+
+                recalcHeaderDiskon() {
+                    if (this.headerDiskonMode === 'persen') {
+                        const sub = this.subtotalProduk();
+                        const pct = parseFloat(this.headerDiskonVal) || 0;
+                        this.headerDiskon = Math.round((sub * pct) / 100);
+                    }
+                    if (this.headerPpnMode === 'persen') {
+                        this.recalcHeaderPpn();
+                    }
+                },
+
+                setHeaderPpnMode(mode) {
+                    if (this.headerPpnMode === mode) return;
+                    this.headerPpnMode = mode;
+                    if (mode === 'persen') {
+                        const dpp = Math.max(0, this.subtotalProduk() - this.totalDiskon());
+                        if (!this.headerPpnVal && this.headerPpn > 0 && dpp > 0) {
+                            this.headerPpnVal = Math.round(((parseFloat(this.headerPpn) || 0) / dpp) * 10000) / 100;
+                        } else if (!this.headerPpnVal) {
+                            this.headerPpnVal = 11;
+                        }
+                    }
+                    this.recalcHeaderPpn();
+                },
+
+                recalcHeaderPpn() {
+                    if (this.headerPpnMode === 'persen') {
+                        const dpp = Math.max(0, this.subtotalProduk() - this.totalDiskon());
+                        const pct = parseFloat(this.headerPpnVal) || 0;
+                        this.headerPpn = Math.round((dpp * pct) / 100);
+                    }
+                },
+
+                setHeaderAdjSign(sign) {
+                    const currentAbs = Math.abs(parseFloat(this.headerAdj) || 0);
+                    this.headerAdj = sign >= 0 ? currentAbs : -currentAbs;
+                    this.recalcAll();
+                },
+
+                updateHeaderAdj(event) {
+                    const input = event.target;
+                    const oldVal = input.value;
+                    const oldPos = input.selectionEnd || 0;
+                    const digitsBeforeCursor = (oldVal.slice(0, oldPos).match(/\d/g) || []).length;
+                    
+                    const isNegative = oldVal.includes('-') || (this.headerAdj < 0 && !oldVal.includes('+'));
+                    let rawDigits = oldVal.replace(/\D/g, '');
+                    if (rawDigits === '') {
+                        this.headerAdj = 0;
+                        input.value = '';
+                        this.recalcAll();
+                        return;
+                    }
+                    if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
+                        rawDigits = String(parseInt(rawDigits, 10) || 0);
+                    }
+                    
+                    const num = parseInt(rawDigits, 10);
+                    const absNum = isNaN(num) ? 0 : num;
+                    this.headerAdj = isNegative ? -absNum : absNum;
+                    
+                    const formatted = this.formatThousand(absNum);
+                    input.value = formatted;
+                    this.repositionCursor(input, formatted, digitsBeforeCursor);
+                    this.recalcAll();
+                },
+
+                formatThousand(val) {
+                    if (val === '' || val === null || val === undefined) return '';
+                    if (typeof val === 'number') {
+                        return Math.round(val).toLocaleString('id-ID');
+                    }
+                    const str = val.toString().trim();
+                    if (str.includes('.')) {
+                        const num = parseFloat(str);
+                        if (!isNaN(num)) {
+                            return Math.round(num).toLocaleString('id-ID');
+                        }
+                    }
+                    const clean = str.replace(/\D/g, '');
+                    if (!clean) return '';
+                    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                },
+
+                formatHpp(val) {
+                    if (val === '' || val === null || val === undefined || isNaN(val)) return '0';
+                    const num = Number(val);
+                    if (Math.abs(num - Math.round(num)) < 0.00001) {
+                        return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    }
+                    return num.toLocaleString('id-ID', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                    });
+                },
+
+                updateRowField(row, field, event) {
+                    const input = event.target;
+                    const oldVal = input.value;
+                    const oldPos = input.selectionEnd || 0;
+                    const digitsBeforeCursor = (oldVal.slice(0, oldPos).match(/\d/g) || []).length;
+                    
+                    let rawDigits = oldVal.replace(/\D/g, '');
+                    if (rawDigits === '') {
+                        row[field] = 0;
+                        input.value = '';
+                        this.recalcAll();
+                        return;
+                    }
+                    if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
+                        rawDigits = String(parseInt(rawDigits, 10) || 0);
+                    }
+                    
+                    const num = parseInt(rawDigits, 10);
+                    row[field] = isNaN(num) ? 0 : num;
+                    
+                    const formatted = this.formatThousand(rawDigits);
+                    input.value = formatted;
+                    this.repositionCursor(input, formatted, digitsBeforeCursor);
+                    this.recalcAll();
+                },
+
+                updateHeaderField(field, event) {
+                    const input = event.target;
+                    const oldVal = input.value;
+                    const oldPos = input.selectionEnd || 0;
+                    const digitsBeforeCursor = (oldVal.slice(0, oldPos).match(/\d/g) || []).length;
+                    
+                    let rawDigits = oldVal.replace(/\D/g, '');
+                    if (rawDigits === '') {
+                        this[field] = 0;
+                        input.value = '';
+                        this.recalcAll();
+                        return;
+                    }
+                    if (rawDigits.length > 1 && rawDigits.startsWith('0')) {
+                        rawDigits = String(parseInt(rawDigits, 10) || 0);
+                    }
+                    
+                    const num = parseInt(rawDigits, 10);
+                    this[field] = isNaN(num) ? 0 : num;
+                    
+                    const formatted = this.formatThousand(rawDigits);
+                    input.value = formatted;
+                    this.repositionCursor(input, formatted, digitsBeforeCursor);
+                    this.recalcAll();
+                },
+
+                repositionCursor(input, formatted, digitsBeforeCursor) {
+                    let newPos = 0;
+                    let countedDigits = 0;
+                    for (let i = 0; i < formatted.length; i++) {
+                        if (/\d/.test(formatted[i])) countedDigits++;
+                        if (countedDigits === digitsBeforeCursor) {
+                            newPos = i + 1;
+                            break;
+                        }
+                    }
+                    if (countedDigits < digitsBeforeCursor || newPos > formatted.length) {
+                        newPos = formatted.length;
+                    }
+                    try { input.setSelectionRange(newPos, newPos); } catch (e) {}
+                },
+
+                handleKeyDown(event) {
+                    if (event.key === 'Backspace') {
+                        const input = event.target;
+                        if (input.selectionStart === input.selectionEnd && input.selectionStart > 0) {
+                            if (input.value[input.selectionStart - 1] === '.') {
+                                event.preventDefault();
+                                const pos = input.selectionStart - 1;
+                                const val = input.value;
+                                input.value = val.slice(0, pos - 1) + val.slice(pos);
+                                input.dispatchEvent(new Event('input'));
+                            }
+                        }
+                    } else if (event.key === 'Delete') {
+                        const input = event.target;
+                        if (input.selectionStart === input.selectionEnd && input.selectionStart < input.value.length) {
+                            if (input.value[input.selectionStart] === '.') {
+                                event.preventDefault();
+                                const pos = input.selectionStart;
+                                const val = input.value;
+                                input.value = val.slice(0, pos) + val.slice(pos + 2);
+                                input.dispatchEvent(new Event('input'));
+                            }
+                        }
+                    }
+                },
+
+                calculateRowNet(row) {
+                    const h = parseFloat(row.harga) || 0;
+                    if (h <= 0) return 0;
+
+                    const sub = this.subtotalProduk();
+                    const diskonTotal = parseFloat(this.headerDiskon) || 0;
+                    const ppnTotal = parseFloat(this.headerPpn) || 0;
+                    const ongkirTotal = parseFloat(this.headerOngkir) || 0;
+                    const adjTotal = parseFloat(this.headerAdj) || 0;
+
+                    const ratio = sub > 0 ? (h / sub) : (this.rows.length > 0 ? (1 / this.rows.length) : 0);
+
+                    const d = diskonTotal * ratio;
+                    const p = ppnTotal * ratio;
+                    const o = ongkirTotal * ratio;
+                    const a = adjTotal * ratio;
+
+                    return Math.max(0, Math.round((h - d + p + o + a) * 100) / 100);
+                },
+
+                calculateRowHpp(row) {
+                    const q = parseFloat(row.qty) || 0;
+                    if (q <= 0) return 0;
+                    const net = this.calculateRowNet(row);
+                    return Math.round((net / q) * 10000) / 10000;
+                },
+
+                subtotalProduk() {
+                    return this.rows.reduce((acc, r) => acc + (parseFloat(r.harga) || 0), 0);
+                },
+
+                totalDiskon() {
+                    return Math.round((parseFloat(this.headerDiskon) || 0) * 100) / 100;
+                },
+
+                totalPpn() {
+                    return Math.round((parseFloat(this.headerPpn) || 0) * 100) / 100;
+                },
+
+                totalOngkir() {
+                    return Math.round((parseFloat(this.headerOngkir) || 0) * 100) / 100;
+                },
+
+                totalAdj() {
+                    return Math.round((parseFloat(this.headerAdj) || 0) * 100) / 100;
+                },
+
+                grandTotal() {
+                    const gt = this.subtotalProduk() - this.totalDiskon() + this.totalPpn() + this.totalOngkir() + this.totalAdj();
+                    return Math.max(0, Math.round(gt));
+                },
+
+                isSubmitDisabled() {
+                    return this.isSubmitting || (this.alasan || '').trim().length < 5 || this.rows.length === 0;
+                },
+
+                handleSubmit(event) {
+                    if (this.isSubmitDisabled()) {
+                        if (event) event.preventDefault();
+                        return false;
+                    }
+                    this.isSubmitting = true;
+                    return true;
                 }
             };
         }

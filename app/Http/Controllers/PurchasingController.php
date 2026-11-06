@@ -598,8 +598,9 @@ class PurchasingController extends Controller
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
         $canSeePrice = auth()->user()->can('purchasing.price.view');
         $stageBenchmarks = SupplierLtStageSummary::where('supplier_id', $purchaseOrder->supplier_id)->get()->keyBy('stage');
+        $uomList = Uom::active()->orderBy('nama')->get(['id', 'kode', 'nama', 'kategori', 'satuan_dasar', 'faktor_konversi']);
 
-        return view('purchasing.show', compact('purchaseOrder', 'gudang', 'canSeePrice', 'stageBenchmarks'));
+        return view('purchasing.show', compact('purchaseOrder', 'gudang', 'canSeePrice', 'stageBenchmarks', 'uomList'));
     }
 
     public function quickDates(Request $request, PurchaseOrder $purchaseOrder): JsonResponse
