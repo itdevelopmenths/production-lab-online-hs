@@ -41,6 +41,50 @@
         @endforeach
     </div>
 
+    {{-- Tier 2: Urgent Action Center --}}
+    <x-card :title="$actionQueue['title']" :subtitle="$actionQueue['subtitle']" :noPadding="true" class="mb-4">
+        @if(!empty($actionQueue['viewAllUrl']))
+            <x-slot:tools>
+                <a href="{{ $actionQueue['viewAllUrl'] }}" class="text-xs font-semibold text-foreground hover:text-muted-foreground transition-colors inline-flex items-center gap-1">
+                    Lihat Semua &rarr;
+                </a>
+            </x-slot:tools>
+        @endif
+
+        <div class="divide-y divide-border/60">
+            @forelse($actionQueue['items'] as $item)
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3.5 py-2.5 hover:bg-muted/40 transition-colors">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <x-badge :variant="$item->badge_variant ?? 'neutral'" :dot="true" size="sm">
+                            {{ $item->badge_label ?? $item->type }}
+                        </x-badge>
+                        <div class="flex flex-col min-w-0">
+                            <span class="font-semibold text-foreground text-xs tabular-nums truncate">{{ $item->nomor }}</span>
+                            <span class="text-muted-foreground text-[11px] truncate">{{ $item->meta }}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                        @if(isset($item->created_at))
+                            <span class="text-[11px] text-muted-foreground hidden md:inline">
+                                {{ $item->created_at instanceof \Carbon\CarbonInterface ? $item->created_at->diffForHumans() : $item->created_at }}
+                            </span>
+                        @endif
+                        <x-button :href="$item->url" variant="outline" size="sm" class="h-7 text-xs px-2.5">
+                            {{ $item->action_label ?? 'Buka' }}
+                        </x-button>
+                    </div>
+                </div>
+            @empty
+                <div class="py-8 text-center text-muted-foreground text-xs flex flex-col items-center justify-center">
+                    <svg class="size-6 mb-1.5 opacity-40 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Semua tugas prioritas peran ini telah ditindaklanjuti. Antrean bersih.
+                </div>
+            @endforelse
+        </div>
+    </x-card>
+
     {{-- Operational Action Lists Grid --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {{-- Card 1: PO Perlu Tindakan --}}
