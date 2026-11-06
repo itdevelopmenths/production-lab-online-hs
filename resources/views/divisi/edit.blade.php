@@ -1,5 +1,5 @@
 <x-app-layout title="Edit Divisi" :backUrl="route('divisi.index')">
-    <div class="mx-auto max-w-3xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Edit Divisi"
             subtitle="Perbarui data unit kerja, kode slug sistem, atau aksen warna identifikasi badge"

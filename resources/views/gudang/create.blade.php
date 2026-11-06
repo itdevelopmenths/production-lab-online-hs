@@ -1,8 +1,7 @@
 <x-app-layout title="Tambah Gudang" :backUrl="route('gudang.index')">
-    <div class="mx-auto max-w-3xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Gudang Baru"
-            subtitle="Daftarkan master lokasi gudang penyimpanan bahan baku, operasional, atau fulfillment"
             :breadcrumbs="['Master Data' => null, 'Gudang' => route('gudang.index'), 'Tambah' => null]"
         >
             <x-slot:actions>

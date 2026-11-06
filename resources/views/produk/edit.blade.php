@@ -1,8 +1,7 @@
 <x-app-layout title="Edit Produk" :backUrl="route('produk.index')">
-    <div class="mx-auto max-w-4xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Edit Produk — {{ $produk->nama }}"
-            subtitle="Perbarui spesifikasi SKU, klasifikasi tipe, dan parameter pemesanan"
             :breadcrumbs="['Master Data' => null, 'Produk' => route('produk.index'), 'Edit' => null]"
         >
             <x-slot:actions>

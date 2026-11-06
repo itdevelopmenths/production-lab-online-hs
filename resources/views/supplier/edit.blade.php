@@ -1,5 +1,5 @@
 <x-app-layout title="Edit Supplier" :backUrl="route('supplier.index')">
-    <div class="mx-auto max-w-3xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Edit Supplier"
             subtitle="Perbarui data kontak, kategori, atau termin pembayaran rekanan"

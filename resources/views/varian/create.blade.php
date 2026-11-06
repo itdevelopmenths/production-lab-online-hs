@@ -1,8 +1,7 @@
 <x-app-layout title="Tambah Varian Produk" :backUrl="route('varian.index')">
-    <div class="mx-auto max-w-3xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Varian Baru"
-            subtitle="Daftarkan varian spesifik di bawah kategori produk tertentu"
             :breadcrumbs="['Master Data' => null, 'Varian Produk' => route('varian.index'), 'Tambah' => null]"
         >
             <x-slot:actions>

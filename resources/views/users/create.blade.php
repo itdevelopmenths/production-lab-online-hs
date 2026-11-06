@@ -1,5 +1,5 @@
 <x-app-layout title="Tambah Pengguna" :backUrl="route('users.index')">
-    <div class="mx-auto max-w-5xl space-y-6">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Pengguna Baru"
             subtitle="Daftarkan akun pengguna baru beserta departemen divisi, hak akses gudang, dan peran sistem"

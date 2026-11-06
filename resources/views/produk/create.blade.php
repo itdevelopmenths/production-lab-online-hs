@@ -1,8 +1,7 @@
 <x-app-layout title="Tambah Produk" :backUrl="route('produk.index')">
-    <div class="mx-auto max-w-4xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Produk Baru"
-            subtitle="Daftarkan master produk jadi, bahan baku kimia, atau komponen kemasan"
             :breadcrumbs="['Master Data' => null, 'Produk' => route('produk.index'), 'Tambah' => null]"
         >
             <x-slot:actions>

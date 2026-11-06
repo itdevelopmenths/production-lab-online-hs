@@ -1,8 +1,7 @@
 <x-app-layout title="Tambah Kategori Produk" :backUrl="route('kategori.index')">
-    <div class="mx-auto max-w-2xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Kategori Produk"
-            subtitle="Daftarkan kelompok kategori utama untuk produk manufaktur, kemasan, atau bahan baku"
             :breadcrumbs="['Master Data' => null, 'Kategori' => route('kategori.index'), 'Tambah' => null]"
         >
             <x-slot:actions>

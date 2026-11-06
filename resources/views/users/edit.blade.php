@@ -1,5 +1,5 @@
 <x-app-layout title="Edit Pengguna" :backUrl="route('users.index')">
-    <div class="mx-auto max-w-5xl space-y-6">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Edit Pengguna: {{ $user->name }}"
             subtitle="Perbarui profil akun, departemen divisi, hak akses gudang, dan peran wewenang sistem"

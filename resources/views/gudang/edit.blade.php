@@ -1,8 +1,7 @@
 <x-app-layout title="Edit Gudang" :backUrl="route('gudang.index')">
-    <div class="mx-auto max-w-3xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Edit Gudang"
-            subtitle="Perbarui data fasilitas, hierarki gudang induk, atau status operasional"
             :breadcrumbs="['Master Data' => null, 'Gudang' => route('gudang.index'), $gudang->nama => null, 'Edit' => null]"
         >
             <x-slot:actions>

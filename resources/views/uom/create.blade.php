@@ -1,5 +1,5 @@
 <x-app-layout title="Tambah Satuan (UOM)" :backUrl="route('uom.index')">
-    <div class="mx-auto max-w-3xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Satuan Unit Baru"
             subtitle="Daftarkan standar unit pengukuran baru untuk katalog produk dan bahan kimia"

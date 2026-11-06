@@ -1,5 +1,5 @@
 <x-app-layout title="Tambah Divisi Baru" :backUrl="route('divisi.index')">
-    <div class="mx-auto max-w-3xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Divisi Baru"
             subtitle="Daftarkan unit kerja departemen baru untuk struktur organisasi dan klasifikasi staf pengguna"

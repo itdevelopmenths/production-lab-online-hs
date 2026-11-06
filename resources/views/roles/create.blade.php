@@ -1,5 +1,5 @@
 <x-app-layout title="Tambah Peran Baru" :backUrl="route('roles.index')">
-    <div class="mx-auto max-w-5xl space-y-6">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Peran Baru"
             subtitle="Daftarkan peran kustom baru dan atur matriks wewenang wewenang modul laboratorium"

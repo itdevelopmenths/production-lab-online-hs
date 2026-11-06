@@ -1,8 +1,7 @@
 <x-app-layout title="Edit Varian Produk" :backUrl="route('varian.index')">
-    <div class="mx-auto max-w-3xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Edit Varian Produk"
-            subtitle="Perbarui data kategori atau nama varian produk"
             :breadcrumbs="['Master Data' => null, 'Varian Produk' => route('varian.index'), $varian->nama => null, 'Edit' => null]"
         >
             <x-slot:actions>

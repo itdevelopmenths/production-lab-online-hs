@@ -1,5 +1,5 @@
 <x-app-layout title="Tambah Supplier" :backUrl="route('supplier.index')">
-    <div class="mx-auto max-w-3xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Supplier Baru"
             subtitle="Daftarkan rekanan vendor penyedia bahan baku kimia atau kemasan"

@@ -1,5 +1,5 @@
 <x-app-layout title="Ubah Peran & Wewenang" :backUrl="route('roles.index')">
-    <div class="mx-auto max-w-5xl space-y-6">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Ubah Peran: {{ $role->display_name ?: $role->name }}"
             subtitle="Sesuaikan informasi peran dan konfigurasi wewenang modul laboratorium"

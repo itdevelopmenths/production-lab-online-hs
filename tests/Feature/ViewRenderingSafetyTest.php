@@ -272,23 +272,23 @@ class ViewRenderingSafetyTest extends TestCase
 
         // Produk
         $this->get(route('produk.index'))->assertOk();
-        $this->get(route('produk.create'))->assertOk();
+        $this->get(route('produk.create'))->assertOk()->assertDontSee('max-w-4xl');
         $this->get(route('produk.edit', $produk))->assertOk();
 
         // Gudang
         $this->get(route('gudang.index'))->assertOk();
-        $this->get(route('gudang.create'))->assertOk();
+        $this->get(route('gudang.create'))->assertOk()->assertDontSee('max-w-3xl');
         $this->get(route('gudang.edit', $gudang))->assertOk();
 
         // Supplier
         $this->get(route('supplier.index'))->assertOk();
-        $this->get(route('supplier.create'))->assertOk();
+        $this->get(route('supplier.create'))->assertOk()->assertDontSee('max-w-3xl');
         $this->get(route('supplier.edit', $supplier))->assertOk();
 
         // UOM
         $uom = Uom::first() ?? Uom::create(['kode' => 'pcs', 'nama' => 'Pieces']);
         $this->get(route('uom.index'))->assertOk();
-        $this->get(route('uom.create'))->assertOk();
+        $this->get(route('uom.create'))->assertOk()->assertDontSee('max-w-3xl');
         $this->get(route('uom.edit', $uom))->assertOk();
 
         // BOM
@@ -297,7 +297,7 @@ class ViewRenderingSafetyTest extends TestCase
 
         // Users
         $this->get(route('users.index'))->assertOk();
-        $this->get(route('users.create'))->assertOk();
+        $this->get(route('users.create'))->assertOk()->assertDontSee('max-w-5xl');
         $this->get(route('users.edit', $manager))->assertOk();
     }
 

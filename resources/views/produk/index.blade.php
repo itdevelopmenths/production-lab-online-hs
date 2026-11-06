@@ -1,56 +1,56 @@
-<x-app-layout title="Produk" subtitle="Daftar produk jadi, bahan baku konsentrat/alkohol, dan komponen kemasan">
-    <div x-data="{ currentTab: 'all' }" class="space-y-6">
-        <x-card>
-            {{-- Card Header matching DevScore --}}
-            <x-slot:header>
-                <div>
-                    <h2 class="text-lg font-semibold text-foreground tracking-tight leading-tight">Daftar Produk</h2>
-                    <p class="text-sm text-muted-foreground mt-0.5">Seluruh produk jadi, bahan baku, dan kemasan laboratorium</p>
-                </div>
+<x-app-layout title="Produk">
+    <div x-data="{ currentTab: 'all' }" class="space-y-4">
+        <x-page-header
+            title="Master Produk"
+            :breadcrumbs="['Master Data' => null, 'Produk' => null]"
+        >
+            <x-slot:actions>
                 @can('produk.create')
-                <x-button href="{{ route('produk.create') }}" variant="primary">
+                <x-button href="{{ route('produk.create') }}" variant="primary" size="xs">
                     <x-slot:icon>
-                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     </x-slot:icon>
                     Tambah Produk
                 </x-button>
                 @endcan
-            </x-slot:header>
+            </x-slot:actions>
+        </x-page-header>
 
+        <x-card :noPadding="true">
             {{-- Filter Bar & Segmented Tabs --}}
-            <div class="px-5 pt-4 pb-2 border-b border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                {{-- Segmented Pill Tabs matching DevScore --}}
-                <div class="inline-flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/40">
+            <div class="px-3.5 py-2.5 border-b border-border bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                {{-- Segmented Pill Tabs --}}
+                <div class="inline-flex items-center gap-1 p-0.5 bg-muted/60 rounded-md border border-border/40">
                     <button type="button"
                             @click="currentTab = 'all'; filterTab('all')"
-                            :class="currentTab === 'all' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                            class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none">
+                            :class="currentTab === 'all' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer select-none">
                         Semua Produk
                     </button>
                     <button type="button"
                             @click="currentTab = 'bahan'; filterTab('bahan')"
-                            :class="currentTab === 'bahan' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                            class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none">
+                            :class="currentTab === 'bahan' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer select-none">
                         Bahan Baku
                     </button>
                     <button type="button"
                             @click="currentTab = 'kemas'; filterTab('kemas')"
-                            :class="currentTab === 'kemas' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                            class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none">
+                            :class="currentTab === 'kemas' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer select-none">
                         Kemasan
                     </button>
                     <button type="button"
                             @click="currentTab = 'produk_jadi'; filterTab('produk_jadi')"
-                            :class="currentTab === 'produk_jadi' ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                            class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer select-none">
+                            :class="currentTab === 'produk_jadi' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
+                            class="px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer select-none">
                         Produk Jadi
                     </button>
                 </div>
 
                 {{-- Additional Filter --}}
-                <div class="flex items-center gap-2.5">
+                <div class="flex items-center gap-2">
                     <label for="filter-kategori" class="text-xs font-medium text-muted-foreground">Kategori:</label>
-                    <select id="filter-kategori" class="h-9 rounded-lg border border-border bg-card px-3 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer">
+                    <select id="filter-kategori" class="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary/20 cursor-pointer">
                         <option value="">Semua Kategori</option>
                         @foreach($kategoriList as $k)
                             <option value="{{ $k->id }}">{{ $k->nama }}</option>

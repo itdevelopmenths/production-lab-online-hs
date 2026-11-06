@@ -1,8 +1,7 @@
 <x-app-layout title="Edit Kategori Produk" :backUrl="route('kategori.index')">
-    <div class="mx-auto max-w-2xl space-y-5">
+    <div class="w-full space-y-4">
         <x-page-header
             title="Edit Kategori Produk"
-            subtitle="Perbarui penamaan klasifikasi kategori produk"
             :breadcrumbs="['Master Data' => null, 'Kategori' => route('kategori.index'), $kategori->nama => null, 'Edit' => null]"
         >
             <x-slot:actions>
