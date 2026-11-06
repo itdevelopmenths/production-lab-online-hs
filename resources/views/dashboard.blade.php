@@ -85,139 +85,133 @@
         </div>
     </x-card>
 
-    {{-- Operational Action Lists Grid --}}
+    {{-- Tier 3: Operational Activity Streams --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {{-- Card 1: PO Perlu Tindakan --}}
-        <x-card title="Purchase Order Perlu Tindakan" :noPadding="true">
-            <x-slot:tools>
-                <a href="{{ route('purchasing.index') }}" class="text-xs font-semibold text-foreground hover:text-muted-foreground transition-colors inline-flex items-center gap-1">
-                    Lihat Semua &rarr;
-                </a>
-            </x-slot:tools>
+        @foreach([$streamLeft, $streamRight] as $stream)
+            <x-card :title="$stream['title']" :subtitle="$stream['subtitle']" :noPadding="true">
+                @if(!empty($stream['viewAllUrl']))
+                    <x-slot:tools>
+                        <a href="{{ $stream['viewAllUrl'] }}" class="text-xs font-semibold text-foreground hover:text-muted-foreground transition-colors inline-flex items-center gap-1">
+                            Lihat Semua &rarr;
+                        </a>
+                    </x-slot:tools>
+                @endif
 
-            <div class="divide-y divide-border/60">
-                @forelse($poTerbaru as $po)
-                <a href="{{ route('purchasing.show', $po) }}" class="flex items-center justify-between px-3.5 py-2.5 hover:bg-muted/40 transition-colors group">
-                    <div class="flex flex-col min-w-0 pr-4">
-                        <span class="font-semibold text-foreground group-hover:text-primary transition-colors text-sm truncate">{{ $po->no_po }}</span>
-                        <span class="text-muted-foreground text-xs truncate mt-0.5">
-                            {{ $po->supplier?->nama ?? '-' }} · {{ $po->tanggal?->format('d M Y') }}
-                        </span>
-                    </div>
-                    <div class="shrink-0 flex items-center gap-2 flex-wrap justify-end">
-                        @if(!empty($po->has_revisi_menunggu))
-                            <x-badge variant="warning" :dot="true" size="sm">
-                                Menunggu Revisi
-                            </x-badge>
-                        @endif
-
-                        @if(!empty($po->is_terlambat))
-                            <x-badge variant="danger" :dot="true" size="sm">
-                                Terlambat
-                            </x-badge>
-                        @endif
-
+                <div class="divide-y divide-border/60">
+                    @forelse($stream['items'] as $item)
                         @php
-                            $stageLabel = $po->stage_aktif
-                                ? (\App\Models\PoStage::STAGE_LABELS[$po->stage_aktif] ?? ucwords(str_replace('_', ' ', $po->stage_aktif)))
-                                : ucwords(str_replace('_', ' ', $po->status));
+                            $rowUrl = '#';
+                            $rowTitle = '-';
+                            $rowSubtitle = '-';
+                            $rowBadge = null;
+                            $rowVariant = 'neutral';
+                            $badgeDot = true;
 
-                            $badgeVariant = match($po->status) {
-                                'diajukan' => 'warning',
-                                'dikirim_ke_gudang' => 'info',
-                                'disetujui' => 'primary',
-                                'selesai' => 'success',
-                                default => 'neutral',
-                            };
-
-                            if ($po->stage_aktif) {
-                                $badgeVariant = match($po->stage_aktif) {
-                                    'approval' => 'warning',
-                                    'pengiriman', 'unloading', 'input_sistem' => 'info',
-                                    default => 'neutral',
+                            if ($item instanceof \App\Models\PurchaseOrder) {
+                                $rowUrl = route('purchasing.show', $item);
+                                $rowTitle = $item->no_po;
+                                $rowSubtitle = ($item->supplier?->nama ?? '-') . ' · ' . ($item->tanggal?->format('d M Y') ?? '');
+                                $rowBadge = $item->stage_aktif 
+                                    ? (\App\Models\PoStage::STAGE_LABELS[$item->stage_aktif] ?? ucwords(str_replace('_', ' ', $item->stage_aktif))) 
+                                    : ucwords(str_replace('_', ' ', $item->status));
+                                $rowVariant = match($item->status) {
+                                    'diajukan' => 'warning',
+                                    'disetujui' => 'primary',
+                                    'dikirim_ke_gudang' => 'info',
+                                    'selesai' => 'success',
+                                    default => 'neutral'
                                 };
+                                if ($item->stage_aktif) {
+                                    $rowVariant = match($item->stage_aktif) {
+                                        'approval' => 'warning',
+                                        'pengiriman', 'unloading', 'input_sistem' => 'info',
+                                        default => 'neutral'
+                                    };
+                                }
+                                if (!empty($item->is_terlambat)) {
+                                    $rowVariant = 'danger';
+                                    $rowBadge = 'Terlambat SLA';
+                                }
+                            } elseif ($item instanceof \App\Models\Transfer) {
+                                $rowUrl = route('transfers.show', $item);
+                                $rowTitle = $item->no_transaksi;
+                                $rowSubtitle = ($item->gudangAsal?->nama ?? '-') . ' → ' . ($item->gudangTujuan?->nama ?? '-');
+                                $rowBadge = ucwords(str_replace('_', ' ', $item->status));
+                                $rowVariant = match($item->status) {
+                                    'draft' => 'warning',
+                                    'dikirim' => 'info',
+                                    'selesai' => 'success',
+                                    default => 'neutral'
+                                };
+                            } elseif ($item instanceof \App\Models\StockRequest) {
+                                $rowUrl = route('requests.show', $item);
+                                $rowTitle = $item->no_request;
+                                $rowSubtitle = ($item->gudangAsal?->nama ?? '-') . ' → ' . ($item->gudangTujuan?->nama ?? '-');
+                                $rowBadge = ucwords(str_replace('_', ' ', $item->status));
+                                $rowVariant = match($item->status) {
+                                    'draft' => 'neutral',
+                                    'diajukan' => 'warning',
+                                    'disetujui' => 'primary',
+                                    'selesai' => 'success',
+                                    default => 'neutral'
+                                };
+                            } elseif ($item instanceof \App\Models\BatchProduksi) {
+                                $rowUrl = route('batches.show', $item);
+                                $rowTitle = $item->no_batch;
+                                $rowSubtitle = ($item->produk?->nama ?? '-') . ' · ' . number_format($item->qty_rencana, 0) . ' ' . ($item->produk?->satuan ?? 'pcs');
+                                $rowBadge = ucwords(str_replace('_', ' ', $item->status));
+                                $rowVariant = match($item->status) {
+                                    'rencana' => 'warning',
+                                    'release' => 'primary',
+                                    'selesai' => 'success',
+                                    default => 'neutral'
+                                };
+                            } elseif ($item instanceof \App\Models\Stok) {
+                                $rowUrl = route('stok.index');
+                                $rowTitle = $item->produk?->nama ?? ('SKU #' . $item->produk_id);
+                                $rowSubtitle = ($item->gudang?->nama ?? 'Gudang') . ' · ' . ($item->produk?->sku ?? '');
+                                $rowBadge = number_format($item->qty_saat_ini, 0) . ' ' . ($item->produk?->satuan ?? '');
+                                $rowVariant = $item->qty_saat_ini <= 10 ? 'danger' : 'warning';
+                            } elseif ($item instanceof \App\Models\TransferItem) {
+                                $rowUrl = route('transfers.index');
+                                $rowTitle = $item->produk?->nama ?? 'Item Rusak';
+                                $rowSubtitle = ($item->transfer?->gudangTujuan?->nama ?? 'Gudang') . ' · ' . ($item->catatan ?? 'Kerusakan fisik');
+                                $rowBadge = $item->qty_rusak . ' ' . ($item->produk?->satuan ?? 'pcs') . ' Rusak';
+                                $rowVariant = 'danger';
+                            } elseif (is_object($item)) {
+                                $rowUrl = $item->url ?? '#';
+                                $rowTitle = $item->nomor ?? $item->title ?? '-';
+                                $rowSubtitle = $item->meta ?? $item->subtitle ?? '-';
+                                $rowBadge = $item->badge_label ?? null;
+                                $rowVariant = $item->badge_variant ?? 'neutral';
                             }
                         @endphp
-                        <x-badge :variant="$badgeVariant" :dot="true" size="sm">
-                            {{ $stageLabel }}
-                        </x-badge>
-                        <span class="size-7 rounded-full border border-border flex items-center justify-center text-muted-foreground group-hover:bg-accent group-hover:text-foreground transition-colors">
-                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                        </span>
-                    </div>
-                </a>
-                @empty
-                <div class="py-12 text-center text-muted-foreground text-sm flex flex-col items-center justify-center">
-                    <svg class="size-8 mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Semua Purchase Order telah ditindaklanjuti.
+                        <a href="{{ $rowUrl }}" class="flex items-center justify-between px-3.5 py-2.5 hover:bg-muted/40 transition-colors group">
+                            <div class="flex flex-col min-w-0 pr-4">
+                                <span class="font-semibold text-foreground group-hover:text-primary transition-colors text-xs tabular-nums truncate">{{ $rowTitle }}</span>
+                                <span class="text-muted-foreground text-[11px] truncate mt-0.5">
+                                    {{ $rowSubtitle }}
+                                </span>
+                            </div>
+                            <div class="shrink-0 flex items-center gap-2">
+                                @if($rowBadge)
+                                    <x-badge :variant="$rowVariant" :dot="$badgeDot" size="sm">
+                                        {{ $rowBadge }}
+                                    </x-badge>
+                                @endif
+                                <span class="size-6 rounded-full border border-border flex items-center justify-center text-muted-foreground group-hover:bg-accent group-hover:text-foreground transition-colors">
+                                    <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </span>
+                            </div>
+                        </a>
+                    @empty
+                        <div class="py-10 text-center text-muted-foreground text-xs flex flex-col items-center justify-center">
+                            <svg class="size-6 mb-1.5 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Tidak ada data aktivitas untuk saat ini.
+                        </div>
+                    @endforelse
                 </div>
-                @endforelse
-            </div>
-        </x-card>
-
-        {{-- Card 2: Request & Transfer Aktif --}}
-        <x-card title="Request & Transfer Aktif" :noPadding="true">
-            <x-slot:tools>
-                <div class="flex items-center gap-2">
-                    @canany(['request.view', 'rt.view'])
-                    <a href="{{ route('requests.index') }}" class="text-xs font-semibold text-foreground hover:text-muted-foreground transition-colors inline-flex items-center gap-1">
-                        Requests &rarr;
-                    </a>
-                    @endcanany
-                    @canany(['request.view', 'rt.view'])
-                        @canany(['transfer.view', 'rt.view'])
-                        <span class="text-muted-foreground text-xs">·</span>
-                        @endcanany
-                    @endcanany
-                    @canany(['transfer.view', 'rt.view'])
-                    <a href="{{ route('transfers.index') }}" class="text-xs font-semibold text-foreground hover:text-muted-foreground transition-colors inline-flex items-center gap-1">
-                        Transfers &rarr;
-                    </a>
-                    @endcanany
-                </div>
-            </x-slot:tools>
-
-            <div class="divide-y divide-border/60">
-                @forelse($rtTerbaru as $item)
-                @php
-                    $itemUrl = $item->url ?? (isset($item->id) ? route('rt.show', $item) : '#');
-                    $itemNomor = $item->nomor ?? $item->no_transaksi ?? $item->no_request ?? '-';
-                    $itemJenis = $item->label_jenis ?? ucwords(str_replace('_', ' ', $item->jenis ?? 'Logistik'));
-                    $itemAsal = $item->gudang_asal_nama ?? $item->gudangAsal?->nama ?? '-';
-                    $itemTujuan = $item->gudang_tujuan_nama ?? $item->gudangTujuan?->nama ?? '-';
-                    $itemStatus = $item->badge_label ?? ucwords(str_replace('_', ' ', $item->status ?? ''));
-                    $itemVariant = $item->badge_variant ?? match($item->status ?? '') {
-                        'diajukan' => 'warning',
-                        'disetujui' => 'primary',
-                        'diproses' => 'info',
-                        'dikirim' => 'warning',
-                        'selesai' => 'success',
-                        default => 'neutral',
-                    };
-                @endphp
-                <a href="{{ $itemUrl }}" class="flex items-center justify-between px-3.5 py-2.5 hover:bg-muted/40 transition-colors group">
-                    <div class="flex flex-col min-w-0 pr-4">
-                        <span class="font-semibold text-foreground group-hover:text-primary transition-colors text-sm truncate">{{ $itemNomor }}</span>
-                        <span class="text-muted-foreground text-xs truncate mt-0.5">
-                            {{ $itemJenis }} · {{ $itemAsal }} &rarr; {{ $itemTujuan }}
-                        </span>
-                    </div>
-                    <div class="shrink-0 flex items-center gap-3">
-                        <x-badge :variant="$itemVariant" :dot="true" size="sm">
-                            {{ $itemStatus }}
-                        </x-badge>
-                        <span class="size-7 rounded-full border border-border flex items-center justify-center text-muted-foreground group-hover:bg-accent group-hover:text-foreground transition-colors">
-                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                        </span>
-                    </div>
-                </a>
-                @empty
-                <div class="py-12 text-center text-muted-foreground text-sm flex flex-col items-center justify-center">
-                    <svg class="size-8 mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Tidak ada Request & Transfer yang memerlukan tindakan.
-                </div>
-                @endforelse
-            </div>
-        </x-card>
+            </x-card>
+        @endforeach
     </div>
 </x-app-layout>
