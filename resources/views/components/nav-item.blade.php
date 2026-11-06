@@ -7,7 +7,7 @@
 
 @php
     $activeClasses = $active
-        ? 'bg-primary text-primary-foreground font-semibold shadow-md'
+        ? 'bg-primary text-primary-foreground font-semibold shadow-2xs'
         : 'text-foreground/80 hover:bg-accent hover:text-foreground';
 @endphp
 
@@ -19,11 +19,11 @@
        @click="if (window.location.pathname === new URL('{{ $href }}', window.location.origin).pathname && window.location.search === new URL('{{ $href }}', window.location.origin).search) { $event.preventDefault(); }"
    @endif
    onclick="try { sessionStorage.setItem('hs_sidebar_scroll', this.closest('.sidebar-scroll')?.scrollTop || 0); } catch(e) {}"
-   :class="collapsed ? 'justify-center h-10 w-10 mx-auto rounded-xl' : 'h-11 gap-3 rounded-lg px-3 text-[14px]'"
+   :class="collapsed ? 'justify-center h-8.5 w-8.5 mx-auto rounded-md' : 'h-8.5 gap-2.5 rounded-md px-2.5 text-xs'"
    {{ $attributes->merge(['class' => 'flex items-center transition-colors group relative cursor-pointer ' . $activeClasses]) }}>
     
     @if (isset($icon))
-        <span class="size-[18px] shrink-0 flex items-center justify-center">
+        <span class="size-4 shrink-0 flex items-center justify-center">
             {!! $icon !!}
         </span>
     @endif

@@ -1,6 +1,6 @@
 @props([
     'title' => 'Heaven Scent',
-    'subtitle' => 'Sistem Manajemen Laboratorium Produksi',
+    'subtitle' => null,
     'breadcrumbs' => [],
     'backUrl' => null,
     'actions' => null,
@@ -101,64 +101,64 @@
         {{-- DevScore Style Sidebar --}}
         <div class="fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-40"
              :class="[
-                 mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0',
-                 collapsed ? 'lg:w-[72px]' : 'lg:w-64'
+                 mobileOpen ? 'translate-x-0 w-56' : '-translate-x-full lg:translate-x-0',
+                 collapsed ? 'lg:w-16' : 'lg:w-56'
              ]">
             <aside class="bg-card flex h-full w-full flex-col border-r border-border overflow-hidden transition-all duration-300">
                 
                 {{-- Brand Header --}}
-                <div class="flex items-center pt-5 pb-4"
-                     :class="collapsed ? 'flex-col gap-4 px-2' : 'justify-between px-5'">
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5"
+                <div class="flex items-center pt-3.5 pb-3"
+                     :class="collapsed ? 'flex-col gap-3 px-2' : 'justify-between px-4'">
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2"
                        :class="collapsed ? 'justify-center' : ''">
-                        <span class="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-lg text-sm font-bold shrink-0 shadow-xs">
+                        <span class="bg-primary text-primary-foreground flex size-7 items-center justify-center rounded-md text-xs font-bold shrink-0 shadow-2xs">
                             HS
                         </span>
                         <div x-show="!collapsed" class="leading-tight">
-                            <span class="block text-sm font-bold tracking-wide text-foreground">HEAVEN SCENT</span>
-                            <span class="text-muted-foreground block text-[11px]">Production Lab</span>
+                            <span class="block text-xs font-bold tracking-wide text-foreground">HEAVEN SCENT</span>
+                            <span class="text-muted-foreground block text-[10px]">Production Lab</span>
                         </div>
                     </a>
                     
                     <button type="button"
                             @click="mobileOpen = false; toggleCollapsed()"
-                            :class="collapsed ? 'border border-border bg-muted/50 shadow-xs' : ''"
-                            class="text-muted-foreground hover:bg-accent rounded-md p-1.5 transition-colors cursor-pointer"
+                            :class="collapsed ? 'border border-border bg-muted/50 shadow-2xs' : ''"
+                            class="text-muted-foreground hover:bg-accent rounded-md p-1 transition-colors cursor-pointer"
                             aria-label="Toggle sidebar">
                         <template x-if="collapsed">
-                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
                         </template>
                         <template x-if="!collapsed">
-                            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
                         </template>
                     </button>
                 </div>
 
                 {{-- Search Bar --}}
-                <div x-show="!collapsed" class="border-b border-border px-5 pb-5">
+                <div x-show="!collapsed" class="border-b border-border px-3 pb-3">
                     <label class="relative block">
-                        <svg class="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <svg class="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         <input type="search"
                                x-model="menuQuery"
                                placeholder="Cari menu"
-                               class="bg-card placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 h-10 w-full rounded-lg border border-border pr-3 pl-9 text-sm outline-none transition" />
+                               class="bg-card placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/20 h-8 w-full rounded-md border border-border pr-2.5 pl-8 text-xs outline-none transition" />
                     </label>
                 </div>
-                <div x-show="collapsed" class="border-b border-border pb-5 flex justify-center">
-                    <button type="button" @click="toggleCollapsed()" class="text-muted-foreground hover:text-foreground rounded-md p-2 hover:bg-accent transition-colors" title="Cari menu">
-                        <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <div x-show="collapsed" class="border-b border-border pb-3 flex justify-center">
+                    <button type="button" @click="toggleCollapsed()" class="text-muted-foreground hover:text-foreground rounded-md p-1.5 hover:bg-accent transition-colors" title="Cari menu">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
                 </div>
 
                 {{-- Navigation Items --}}
                 <nav id="app-sidebar-nav"
-                     :class="collapsed ? 'px-2 scrollbar-none' : 'px-3'"
-                     class="flex-1 space-y-6 overflow-y-auto py-5 sidebar-scroll">
+                     :class="collapsed ? 'px-1.5 scrollbar-none' : 'px-2.5'"
+                     class="flex-1 space-y-4 overflow-y-auto py-3 sidebar-scroll">
                     
                     {{-- Section: MENU --}}
                     <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[10px] text-center' : 'text-xs px-3'"
-                           class="text-muted-foreground font-semibold uppercase tracking-wider mb-2 select-none">
+                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
+                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
                             Menu
                         </p>
                         <ul class="space-y-1 w-full">
@@ -175,8 +175,8 @@
 
                     {{-- Section: OPERASIONAL --}}
                     <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[10px] text-center' : 'text-xs px-3'"
-                           class="text-muted-foreground font-semibold uppercase tracking-wider mb-2 select-none">
+                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
+                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
                             Operasional
                         </p>
                         <ul class="space-y-1 w-full">
@@ -240,8 +240,8 @@
                     {{-- Section: STOK & MUTASI --}}
                     @can('stok.view')
                     <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[10px] text-center' : 'text-xs px-3'"
-                           class="text-muted-foreground font-semibold uppercase tracking-wider mb-2 select-none">
+                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
+                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
                             Stok & Mutasi
                         </p>
                         <ul class="space-y-1 w-full">
@@ -267,8 +267,8 @@
 
                     {{-- Section: MASTER DATA --}}
                     <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[10px] text-center' : 'text-xs px-3'"
-                           class="text-muted-foreground font-semibold uppercase tracking-wider mb-2 select-none">
+                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
+                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
                             Master Data
                         </p>
                         <ul class="space-y-1 w-full">
@@ -378,8 +378,8 @@
                     {{-- Section: LAPORAN --}}
                     @canany(['reports.view', 'report.view'])
                     <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[10px] text-center' : 'text-xs px-3'"
-                           class="text-muted-foreground font-semibold uppercase tracking-wider mb-2 select-none">
+                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
+                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
                             Laporan
                         </p>
                         <ul class="space-y-1 w-full">
@@ -408,8 +408,8 @@
                     {{-- Section: SISTEM --}}
                     @if(auth()->user()->can('user.manage') || auth()->user()->can('role.manage'))
                     <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[10px] text-center' : 'text-xs px-3'"
-                           class="text-muted-foreground font-semibold uppercase tracking-wider mb-2 select-none">
+                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
+                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
                             Sistem
                         </p>
                         <ul class="space-y-1 w-full">
@@ -554,73 +554,75 @@
 
         {{-- Main Canvas & DevScore Top Header --}}
         <div class="flex min-w-0 flex-1 flex-col transition-all duration-300">
-            <header class="bg-card sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border px-4 shadow-xs sm:px-8">
+            <header class="bg-card sticky top-0 z-30 flex h-12 items-center gap-3 border-b border-border px-4 shadow-2xs sm:px-6">
                 <button type="button"
                         @click="mobileOpen = true"
-                        class="text-muted-foreground hover:bg-accent rounded-md p-1.5 lg:hidden cursor-pointer"
+                        class="text-muted-foreground hover:bg-accent rounded-md p-1 lg:hidden cursor-pointer"
                         aria-label="Buka menu">
-                    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
 
-                <div class="min-w-0 flex-1 flex items-center gap-3">
+                <div class="min-w-0 flex-1 flex items-center gap-2">
                     @if ($backUrl)
                         <a href="{{ $backUrl }}"
-                           class="text-muted-foreground hover:bg-accent flex items-center justify-center rounded-md p-2 transition-colors cursor-pointer"
+                           class="text-muted-foreground hover:bg-accent flex items-center justify-center rounded-md p-1 transition-colors cursor-pointer"
                            aria-label="Kembali">
-                            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                         </a>
                     @endif
-                    <div>
-                        <h1 class="truncate text-base font-semibold text-foreground leading-tight">{!! $title !!}</h1>
-                        <p class="text-muted-foreground truncate text-xs">{!! $subtitle !!}</p>
+                    <div class="flex items-center gap-2 truncate">
+                        <h1 class="truncate text-sm font-semibold text-foreground tracking-tight leading-none">{!! $title !!}</h1>
+                        @if ($subtitle)
+                            <span class="hidden md:inline text-xs text-muted-foreground truncate before:content-['·'] before:mr-2 leading-none">{!! $subtitle !!}</span>
+                        @endif
                     </div>
                 </div>
 
                 {{-- Header Actions --}}
-                <div class="flex items-center gap-3 shrink-0">
+                <div class="flex items-center gap-2 shrink-0">
                     {{ $actions ?? '' }}
                 </div>
             </header>
 
             {{-- Main Page Content --}}
-            <main class="flex-1 px-4 py-8 sm:px-8 lg:py-10">
-                <div class="mx-auto w-full max-w-7xl">
+            <main class="flex-1 px-4 py-4 sm:px-6 lg:py-5">
+                <div class="w-full max-w-none">
                     {{-- Flash Alert Messages --}}
                     @if(session('success'))
-                        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 4000)" x-transition class="mb-6">
-                            <div class="rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900 flex items-center justify-between shadow-xs">
-                                <div class="flex items-center gap-2.5">
-                                    <svg class="size-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 4000)" x-transition class="mb-4">
+                            <div class="rounded-md border border-emerald-200 bg-emerald-50/80 px-3.5 py-2.5 text-xs text-emerald-900 flex items-center justify-between shadow-2xs">
+                                <div class="flex items-center gap-2">
+                                    <svg class="size-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span class="font-medium">{{ session('success') }}</span>
                                 </div>
                                 <button type="button" @click="show = false" class="text-emerald-700 hover:text-emerald-900">
-                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
                         </div>
                     @endif
 
                     @if(session('error'))
-                        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 6000)" x-transition class="mb-6">
-                            <div class="rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-900 flex items-center justify-between shadow-xs">
-                                <div class="flex items-center gap-2.5">
-                                    <svg class="size-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 6000)" x-transition class="mb-4">
+                            <div class="rounded-md border border-red-200 bg-red-50/80 px-3.5 py-2.5 text-xs text-red-900 flex items-center justify-between shadow-2xs">
+                                <div class="flex items-center gap-2">
+                                    <svg class="size-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                     <span class="font-medium">{{ session('error') }}</span>
                                 </div>
                                 <button type="button" @click="show = false" class="text-red-700 hover:text-red-900">
-                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
                         </div>
                     @endif
 
                     @if($errors->any())
-                        <div class="mb-6 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-900 shadow-xs">
-                            <div class="flex items-center gap-2 font-semibold mb-1">
-                                <svg class="size-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <div class="mb-4 rounded-md border border-red-200 bg-red-50/80 px-3.5 py-2.5 text-xs text-red-900 shadow-2xs">
+                            <div class="flex items-center gap-1.5 font-semibold mb-1">
+                                <svg class="size-3.5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                 <span>Terdapat Kesalahan Input:</span>
                             </div>
-                            <ul class="list-disc list-inside ml-6 space-y-0.5 text-xs text-red-800">
+                            <ul class="list-disc list-inside ml-5 space-y-0.5 text-xs text-red-800">
                                 @foreach($errors->all() as $error)
                                     <li>{{ $error }}</li>
                                 @endforeach
@@ -633,9 +635,8 @@
             </main>
 
             {{-- Footer --}}
-            <footer class="py-4 px-4 sm:px-8 text-xs text-muted-foreground flex justify-between items-center border-t border-border bg-card">
+            <footer class="py-2.5 px-4 sm:px-6 text-[11px] text-muted-foreground flex justify-between items-center border-t border-border bg-card">
                 <span>&copy; {{ date('Y') }} Heaven Scent Lab Enterprise. All rights reserved.</span>
-                <span>DevScore Theme Edition</span>
             </footer>
         </div>
     </div>

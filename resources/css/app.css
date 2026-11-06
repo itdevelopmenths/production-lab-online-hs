@@ -84,7 +84,7 @@
 
 /* Header toolbar: Search and Page Length */
 .dt-layout-header {
-    @apply flex flex-col sm:flex-row justify-between items-center px-5 py-4 border-b border-border gap-3 bg-card;
+    @apply flex flex-col sm:flex-row justify-between items-center px-4 py-2.5 border-b border-border gap-2.5 bg-muted/20;
 }
 
 .dataTables_wrapper .dataTables_length {
@@ -97,7 +97,7 @@
 }
 
 .dataTables_wrapper .dataTables_length select {
-    @apply rounded-lg border border-border shadow-xs focus:ring-2 focus:ring-primary/20 text-xs px-3 py-1.5 bg-card outline-none transition cursor-pointer text-foreground;
+    @apply rounded-md border border-input shadow-2xs focus:ring-1 focus:ring-primary/20 text-xs px-2 py-1 bg-background outline-none transition cursor-pointer text-foreground h-8;
 }
 
 .dataTables_wrapper .dataTables_filter {
@@ -110,20 +110,20 @@
 }
 
 .dataTables_wrapper .dataTables_filter input {
-    @apply rounded-lg border border-border shadow-xs focus:ring-2 focus:ring-primary/20 text-xs px-3 py-1.5 bg-card outline-none transition min-w-[240px] text-foreground placeholder:text-muted-foreground;
+    @apply rounded-md border border-input shadow-2xs focus:ring-1 focus:ring-primary/20 text-xs px-2.5 py-1 bg-background outline-none transition min-w-[200px] sm:min-w-[240px] text-foreground placeholder:text-muted-foreground h-8;
 }
 
 /* Fallback when dt-layout-header is not used */
 .dataTables_wrapper:not(:has(.dt-layout-header)) {
-    @apply p-4;
+    @apply p-3;
 }
 .dataTables_wrapper:not(:has(.dt-layout-header)) .dataTables_length {
     float: left !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.75rem !important;
 }
 .dataTables_wrapper:not(:has(.dt-layout-header)) .dataTables_filter {
     float: right !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.75rem !important;
 }
 .dataTables_wrapper:not(:has(.dt-layout-header))::after {
     content: "";
@@ -133,24 +133,24 @@
 
 /* Table styling with spacious breathing room */
 table.dataTable {
-    @apply w-full border-collapse !border-b-0 text-sm;
+    @apply w-full border-collapse !border-b-0 text-xs;
     margin: 0 !important;
 }
 
 table.dataTable thead th,
 table.dataTable thead td {
-    @apply bg-muted/70 border-b border-border text-muted-foreground font-medium px-4 py-3 text-left text-[13px] select-none;
+    @apply bg-muted/40 border-b border-border text-muted-foreground font-semibold px-3 py-2 text-left text-[11px] uppercase tracking-wider select-none whitespace-nowrap;
 }
 
 table.dataTable thead th.sorting,
 table.dataTable thead th.sorting_asc,
 table.dataTable thead th.sorting_desc {
-    @apply !pr-7 cursor-pointer;
+    @apply !pr-6 cursor-pointer;
 }
 
 table.dataTable tbody th,
 table.dataTable tbody td {
-    @apply border-b border-border/60 px-4 py-3.5 align-middle bg-card text-sm text-foreground transition-colors leading-normal;
+    @apply border-b border-border/50 px-3 py-2 align-middle bg-card text-xs text-foreground transition-colors leading-normal tabular-nums;
 }
 
 table.dataTable.no-footer {
@@ -160,16 +160,16 @@ table.dataTable.no-footer {
 table.dataTable.hover tbody tr:hover,
 table.dataTable.display tbody tr:hover,
 table.dataTable tbody tr:hover td {
-    @apply bg-muted/40;
+    @apply bg-muted/30;
 }
 
 table.dataTable tbody td.dataTables_empty {
-    @apply !py-16 !px-4 text-center text-muted-foreground font-normal text-sm;
+    @apply !py-12 !px-3 text-center text-muted-foreground font-normal text-xs;
 }
 
 /* Footer toolbar: Info and Pagination */
 .dt-layout-footer {
-    @apply flex flex-col sm:flex-row justify-between items-center px-5 py-3.5 bg-card border-t border-border gap-3 text-xs text-muted-foreground rounded-b-xl;
+    @apply flex flex-col sm:flex-row justify-between items-center px-4 py-2 bg-muted/10 border-t border-border gap-2 text-xs text-muted-foreground rounded-b-lg;
 }
 
 .dataTables_wrapper .dataTables_info {
@@ -179,13 +179,13 @@ table.dataTable tbody td.dataTables_empty {
 }
 
 .dataTables_wrapper .dataTables_paginate {
-    @apply flex items-center gap-1.5;
+    @apply flex items-center gap-1;
     float: none !important;
     padding-top: 0 !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button {
-    @apply px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground bg-card cursor-pointer hover:bg-accent transition leading-tight select-none shadow-xs;
+    @apply inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-md border border-border text-xs font-medium text-foreground bg-card cursor-pointer hover:bg-accent transition leading-tight select-none shadow-2xs;
     margin: 0 !important;
 }
 
