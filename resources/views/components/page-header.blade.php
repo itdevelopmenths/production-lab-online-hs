@@ -4,15 +4,15 @@
     'breadcrumbs' => [],
 ])
 
-<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-border/60">
-    <div>
-        <h1 class="text-xl font-bold text-foreground tracking-tight leading-tight">{!! $title !!}</h1>
+<div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
+    <div class="min-w-0">
+        <h1 class="text-lg font-bold text-foreground tracking-tight leading-tight">{!! $title !!}</h1>
         @if ($subtitle)
-            <p class="text-sm text-muted-foreground mt-1 leading-normal">{!! $subtitle !!}</p>
+            <p class="text-xs text-muted-foreground mt-0.5 leading-normal">{!! $subtitle !!}</p>
         @endif
     </div>
 
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap items-center gap-2.5">
         @if (!empty($breadcrumbs))
             <nav class="flex items-center text-xs text-muted-foreground" aria-label="Breadcrumb">
                 <ol class="inline-flex items-center space-x-1 sm:space-x-1.5">
@@ -39,7 +39,7 @@
         @endif
 
         @if (isset($actions))
-            <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-2">
                 {{ $actions }}
             </div>
         @endif

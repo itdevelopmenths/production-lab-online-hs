@@ -3,7 +3,7 @@
     'subtitle' => null,
     'icon' => null,
     'variant' => 'default',
-    'bodyClass' => 'p-5',
+    'bodyClass' => 'p-4',
     'noPadding' => false,
     'tools' => null,
     'footer' => null,
@@ -16,27 +16,27 @@
     $overflowClass = $overflow ? "overflow-{$overflow}" : ($hasExplicitOverflow ? '' : 'overflow-hidden');
 @endphp
 
-<div {{ $attributes->merge(['class' => 'bg-card text-card-foreground rounded-xl border border-border shadow-xs flex flex-col ' . $overflowClass . ' transition-all']) }}>
+<div {{ $attributes->merge(['class' => 'bg-card text-card-foreground rounded-lg border border-border shadow-2xs flex flex-col ' . $overflowClass . ' transition-all']) }}>
     @if ($title || isset($header) || isset($tools))
-        <div class="p-5 border-b border-border/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-card rounded-t-xl">
+        <div class="px-4 py-2.5 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-card rounded-t-lg">
             @if (isset($header))
                 {{ $header }}
             @else
-                <div class="flex items-center gap-3 min-w-0">
+                <div class="flex items-center gap-2.5 min-w-0">
                     @if ($icon)
                         <span class="text-muted-foreground shrink-0">{!! $icon !!}</span>
                     @endif
                     <div>
-                        <h3 class="text-lg font-semibold leading-tight text-foreground tracking-tight">{!! $title !!}</h3>
+                        <h3 class="text-sm font-semibold leading-tight text-foreground tracking-tight">{!! $title !!}</h3>
                         @if ($subtitle)
-                            <p class="text-sm text-muted-foreground mt-1 leading-normal">{!! $subtitle !!}</p>
+                            <p class="text-xs text-muted-foreground mt-0.5 leading-normal">{!! $subtitle !!}</p>
                         @endif
                     </div>
                 </div>
             @endif
 
             @if (isset($tools))
-                <div class="flex items-center gap-2.5 shrink-0">
+                <div class="flex items-center gap-2 shrink-0">
                     {{ $tools }}
                 </div>
             @endif
@@ -48,7 +48,7 @@
     </div>
 
     @if (isset($footer))
-        <div class="px-5 py-3.5 bg-muted/30 border-t border-border/60 text-xs text-muted-foreground rounded-b-xl">
+        <div class="px-4 py-2 bg-muted/20 border-t border-border text-xs text-muted-foreground rounded-b-lg">
             {{ $footer }}
         </div>
     @endif

@@ -15,18 +15,18 @@
     };
 @endphp
 
-<div {{ $attributes->merge(['class' => "border rounded-xl p-4 shadow-xs text-sm $themeClasses"]) }}>
+<div {{ $attributes->merge(['class' => "border rounded-md p-3 shadow-2xs text-xs $themeClasses"]) }}>
     @if ($title || $icon)
-        <div class="flex items-center gap-2 mb-1.5 font-semibold text-sm">
+        <div class="flex items-center gap-1.5 mb-1 font-semibold text-xs">
             @if ($icon)
-                <span class="shrink-0">{!! $icon !!}</span>
+                <span class="shrink-0 [&_svg]:size-3.5">{!! $icon !!}</span>
             @endif
             @if ($title)
                 <span>{!! $title !!}</span>
             @endif
         </div>
     @endif
-    <div class="text-xs leading-relaxed opacity-90">
+    <div class="text-[11px] leading-relaxed opacity-90">
         {{ $slot }}
     </div>
 </div>
