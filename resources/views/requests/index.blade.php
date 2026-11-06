@@ -68,7 +68,7 @@
                             <th class="px-4 py-3 text-left">Gudang Tujuan</th>
                             <th class="px-4 py-3 text-left">Batch Produksi</th>
                             <th class="px-4 py-3 text-left">Status</th>
-                            <th class="px-4 py-3 text-center">Aksi</th>
+                            <th class="px-4 py-3 text-center w-52">Aksi</th>
                         </tr>
                     </thead>
                 </table>
@@ -153,7 +153,7 @@
                     { data: 'tujuan', name: 'gudangTujuan.nama' },
                     { data: 'batch_no', name: 'batch.no_batch', className: 'font-mono text-xs' },
                     { data: 'status', name: 'status' },
-                    { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
+                    { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center whitespace-nowrap' }
                 ],
                 order: [[0, 'desc']]
             });

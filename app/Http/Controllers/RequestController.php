@@ -82,36 +82,42 @@ class RequestController extends Controller
             ->addColumn('batch_no', fn ($r) => $r->batch?->no_batch ?? '-')
             ->addColumn('action', function ($r) use ($userId, $isManager, $user) {
                 $detailUrl = route('requests.show', $r);
-                $html = '<div class="flex items-center justify-center gap-1.5 flex-wrap">';
-                $html .= '<a href="' . e($detailUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">Detail</a>';
+                $html = '<div class="flex items-center justify-center gap-1.5 whitespace-nowrap">';
 
+                // 1. Aksi Utama: Detail (konsisten di setiap baris dengan gaya neutral outline)
+                $html .= '<a href="' . e($detailUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground bg-card hover:bg-accent border border-border transition-colors shadow-2xs">Detail</a>';
+
+                // 2. Status DRAFT: Pembuat atau Manager dapat Edit & Batalkan
                 if ($r->status === 'draft' && ((int) $r->created_by === $userId || $isManager)) {
                     $editUrl = route('requests.edit', $r);
-                    $html .= '<a href="' . e($editUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded border border-amber-300">Edit</a>';
+                    $html .= '<a href="' . e($editUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground hover:bg-accent border border-border transition-colors">Edit</a>';
+                    $html .= '<button type="button" class="btn-cancel-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.cancel', $r)) . '" data-no="' . e($r->no_request) . '">Batalkan</button>';
                 }
 
-                if ($r->status === 'diajukan' && $isManager) {
-                    $csrf = csrf_field();
-                    $approveUrl = route('requests.approve', $r);
-                    $html .= '<form method="POST" action="' . e($approveUrl) . '" class="inline" onsubmit="return confirm(\'Setujui request ' . e($r->no_request) . '?\')">' . $csrf . '<button type="submit" class="inline-flex items-center px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-300">Setujui</button></form>';
-                    $html .= '<button type="button" class="btn-reject-req inline-flex items-center px-2 py-1 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 rounded border border-rose-300" data-action="' . e(route('requests.reject', $r)) . '" data-no="' . e($r->no_request) . '">Tolak</button>';
+                // 3. Status DIAJUKAN: Manager dapat Setujui (primary emerald) atau Tolak (ghost destructive)
+                if ($r->status === 'diajukan') {
+                    if ($isManager) {
+                        $csrf = csrf_field();
+                        $approveUrl = route('requests.approve', $r);
+                        $html .= '<form method="POST" action="' . e($approveUrl) . '" class="inline" onsubmit="return confirm(\'Setujui request ' . e($r->no_request) . '?\')">' . $csrf . '<button type="submit" class="px-2.5 py-1 rounded-md text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors cursor-pointer">Setujui</button></form>';
+                        $html .= '<button type="button" class="btn-reject-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.reject', $r)) . '" data-no="' . e($r->no_request) . '">Tolak</button>';
+                    } elseif ((int) $r->created_by === $userId) {
+                        $html .= '<button type="button" class="btn-cancel-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.cancel', $r)) . '" data-no="' . e($r->no_request) . '">Batalkan</button>';
+                    }
                 }
 
+                // 4. Status DISETUJUI: Alur kerja utama Buat Transfer (primary solid) & opsi Revisi (ghost)
                 if ($r->status === 'disetujui') {
                     $hasActiveTransfer = $r->transfers->where('status', '!=', 'dibatalkan')->isNotEmpty();
                     if (! $hasActiveTransfer && $user->can('rt.create')) {
                         $trfUrl = route('transfers.create', ['request_id' => $r->id]);
-                        $html .= '<a href="' . e($trfUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded border border-blue-300">Buat Transfer</a>';
+                        $html .= '<a href="' . e($trfUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 transition-colors shadow-2xs cursor-pointer">Buat Transfer</a>';
                     }
 
                     if ((int) $r->created_by === $userId || $isManager) {
                         $editUrl = route('requests.edit', $r);
-                        $html .= '<a href="' . e($editUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded border border-purple-300" title="Edit ulang request disetujui (status akan kembali diajukan)">Revisi</a>';
+                        $html .= '<a href="' . e($editUrl) . '" class="px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Revisi request disetujui (status akan kembali diajukan)">Revisi</a>';
                     }
-                }
-
-                if (in_array($r->status, ['draft', 'diajukan', 'disetujui'], true) && ((int) $r->created_by === $userId || $isManager)) {
-                    $html .= '<button type="button" class="btn-cancel-req inline-flex items-center px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded border border-amber-300" data-action="' . e(route('requests.cancel', $r)) . '" data-no="' . e($r->no_request) . '">Batalkan</button>';
                 }
 
                 $html .= '</div>';

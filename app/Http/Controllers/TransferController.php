@@ -114,12 +114,12 @@ class TransferController extends Controller
             })
             ->addColumn('action', function ($t) {
                 $detailUrl = route('transfers.show', $t);
-                $html = '<div class="flex items-center justify-center gap-1.5">';
-                $html .= '<a href="' . e($detailUrl) . '" class="inline-flex items-center px-2 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300">Detail</a>';
+                $html = '<div class="flex items-center justify-center gap-1.5 whitespace-nowrap">';
+                $html .= '<a href="' . e($detailUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground bg-card hover:bg-accent border border-border transition-colors shadow-2xs">Detail</a>';
 
                 if (in_array($t->status, ['dikirim', 'selesai'], true)) {
                     $sjUrl = route('transfers.surat-jalan', $t);
-                    $html .= '<a href="' . e($sjUrl) . '" target="_blank" class="inline-flex items-center px-2 py-1 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded border border-indigo-300" title="Cetak Surat Jalan">Surat Jalan</a>';
+                    $html .= '<a href="' . e($sjUrl) . '" target="_blank" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground hover:bg-accent border border-border transition-colors" title="Cetak Surat Jalan">Surat Jalan</a>';
                 }
 
                 $html .= '</div>';

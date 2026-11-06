@@ -84,7 +84,7 @@
                             <th class="px-4 py-3 text-right">Qty Kirim</th>
                             <th class="px-4 py-3 text-right">Qty Rusak</th>
                             <th class="px-4 py-3 text-left">Status</th>
-                            <th class="px-4 py-3 text-center">Aksi</th>
+                            <th class="px-4 py-3 text-center w-44">Aksi</th>
                         </tr>
                     </thead>
                 </table>
@@ -115,7 +115,7 @@
                     { data: 'qty_dikirim', name: 'qty_dikirim', orderable: false, searchable: false, className: 'text-right font-medium' },
                     { data: 'qty_rusak', name: 'qty_rusak', orderable: false, searchable: false, className: 'text-right' },
                     { data: 'status', name: 'status' },
-                    { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
+                    { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center whitespace-nowrap' }
                 ],
                 order: [[0, 'desc']]
             });
