@@ -44,7 +44,7 @@
             </div>
         @else
             <nav aria-label="Tahapan Purchase Order Legacy">
-                <ol class="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-0 relative z-10 list-none m-0 p-0">
+                <ol class="grid grid-cols-2 sm:grid-cols-6 gap-3 sm:gap-0 relative z-10 list-none m-0 p-0 pt-2">
                     @foreach($legacySteps as $key => $st)
                         @php
                             $isCompleted = $st['step'] < $currentStep || ($st['step'] == 6 && $po->status === 'selesai');
@@ -141,11 +141,11 @@
         @endif
 
         {{-- Progress Timeline 9-Stage --}}
-        <div class="overflow-x-auto pb-2 scrollbar-none">
+        <div class="overflow-x-auto pt-3 pb-2 px-3 scrollbar-none">
             <nav aria-label="Tahapan Purchase Order" class="min-w-[760px] sm:min-w-0">
-                <ol class="flex items-start justify-between relative list-none m-0 p-0">
+                <ol class="flex items-start justify-between relative list-none m-0 p-0 pt-2">
                     {{-- Continuous Connecting Line behind nodes --}}
-                    <div class="absolute top-4 left-6 right-6 h-0.5 bg-border -z-0"></div>
+                    <div class="absolute top-6 left-6 right-6 h-0.5 bg-border -z-0"></div>
 
                     @foreach($stageDefs as $num => $def)
                         @php
@@ -184,7 +184,7 @@
                             $nodeClass = match($state) {
                                 'selesai' => 'bg-emerald-600 text-white ring-4 ring-emerald-50 dark:ring-emerald-950/40 shadow-xs',
                                 'berjalan' => 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 ring-4 ring-primary/20 shadow-md animate-pulse',
-                                'terlambat' => 'bg-rose-600 text-white ring-4 ring-rose-100 dark:ring-rose-950/40 shadow-md animate-bounce',
+                                'terlambat' => 'bg-rose-600 text-white ring-4 ring-rose-200 dark:ring-rose-900/50 shadow-md animate-pulse',
                                 'dikembalikan' => 'bg-amber-500 text-white ring-4 ring-amber-100 dark:ring-amber-950/40 shadow-xs',
                                 default => 'bg-card border-2 border-border text-muted-foreground',
                             };
