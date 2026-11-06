@@ -1,7 +1,17 @@
 @can('defect.view')
 @if(!empty($defectAnalytics))
 {{-- DASHBOARD WIDGET: REKAPITULASI BARANG RUSAK / DEFECT PER BULAN PER GUDANG --}}
-<div x-data="{ viewMode: 'matrix' }" class="space-y-4">
+<div id="defect-dashboard"
+     class="space-y-4 scroll-mt-20"
+     x-data="{
+         viewMode: (function() {
+             try { return localStorage.getItem('hs_defect_view_mode') || 'matrix'; } catch(e) { return 'matrix'; }
+         })(),
+         setViewMode(mode) {
+             this.viewMode = mode;
+             try { localStorage.setItem('hs_defect_view_mode', mode); } catch(e) {}
+         }
+     }">
     <x-card class="border-border shadow-2xs" :noPadding="true">
         <x-slot:header>
             <div class="flex flex-col lg:flex-row lg:items-center justify-between w-full gap-3 py-1">
@@ -19,7 +29,9 @@
                 </div>
 
                 {{-- Filter Toolbar --}}
-                <form method="GET" action="{{ $formAction ?? request()->url() }}" class="flex flex-wrap items-center gap-2">
+                <form method="GET" action="{{ $formAction ?? request()->url() }}#defect-dashboard"
+                      onsubmit="try { sessionStorage.setItem('hs_defect_scroll', window.scrollY); sessionStorage.setItem('hs_defect_focused', document.activeElement?.name || ''); } catch(e) {}"
+                      class="flex flex-wrap items-center gap-2">
                     <div class="inline-flex items-center rounded-md border border-border bg-card px-2 py-1 text-xs">
                         <span class="text-muted-foreground mr-1.5 font-medium">Tahun:</span>
                         <select name="year" class="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer">
@@ -57,7 +69,9 @@
                     </button>
 
                     @if(!empty($month) || !empty($gudangId))
-                        <a href="{{ $formAction ?? request()->url() }}?year={{ $year ?? date('Y') }}" class="h-7 px-2.5 rounded-md border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted flex items-center transition-colors">
+                        <a href="{{ $formAction ?? request()->url() }}?year={{ $year ?? date('Y') }}#defect-dashboard"
+                           onclick="try { sessionStorage.setItem('hs_defect_scroll', window.scrollY); } catch(e) {}"
+                           class="h-7 px-2.5 rounded-md border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted flex items-center transition-colors">
                             Reset
                         </a>
                     @endif
@@ -120,14 +134,14 @@
             <div class="flex items-center justify-between pt-2 border-t border-border/80">
                 <div class="inline-flex items-center p-0.5 rounded-lg border border-border bg-muted/40">
                     <button type="button"
-                            @click="viewMode = 'matrix'"
+                            @click="setViewMode('matrix')"
                             :class="viewMode === 'matrix' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'"
                             class="px-3 py-1 rounded-md text-xs transition-colors cursor-pointer flex items-center gap-1.5">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         <span>Matriks Tren Bulanan</span>
                     </button>
                     <button type="button"
-                            @click="viewMode = 'sku'"
+                            @click="setViewMode('sku')"
                             :class="viewMode === 'sku' ? 'bg-card text-foreground font-semibold shadow-2xs' : 'text-muted-foreground hover:text-foreground'"
                             class="px-3 py-1 rounded-md text-xs transition-colors cursor-pointer flex items-center gap-1.5">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -148,9 +162,9 @@
 
             {{-- Tab 1: Matriks Kerusakan per Bulan --}}
             <div x-show="viewMode === 'matrix'" class="border border-border rounded-lg overflow-hidden">
-                <div class="overflow-x-auto max-h-80 overflow-y-auto">
+                <div class="overflow-x-auto">
                     <table class="w-full text-xs">
-                        <thead class="sticky top-0 bg-muted/80 border-b border-border text-muted-foreground font-medium">
+                        <thead class="bg-muted/80 border-b border-border text-muted-foreground font-medium">
                             <tr>
                                 <th class="px-3.5 py-2.5 text-left w-32">Bulan</th>
                                 <th class="px-3.5 py-2.5 text-right w-24">Transfer</th>
@@ -254,6 +268,45 @@
             </div>
         </div>
     </x-card>
+
+    {{-- Script: Preservasi Scroll Position & Focus Saat Filter Action --}}
+    <script>
+        (function() {
+            function restoreDefectScrollAndFocus() {
+                try {
+                    var savedScroll = sessionStorage.getItem('hs_defect_scroll');
+                    if (savedScroll !== null) {
+                        sessionStorage.removeItem('hs_defect_scroll');
+                        var targetY = parseInt(savedScroll, 10);
+                        if (!isNaN(targetY)) {
+                            window.scrollTo({ top: targetY, behavior: 'instant' });
+                        }
+                    } else if (window.location.hash === '#defect-dashboard') {
+                        var el = document.getElementById('defect-dashboard');
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }
+
+                    var savedFocused = sessionStorage.getItem('hs_defect_focused');
+                    if (savedFocused) {
+                        sessionStorage.removeItem('hs_defect_focused');
+                        var inputEl = document.querySelector('#defect-dashboard [name="' + savedFocused + '"]');
+                        if (inputEl) {
+                            inputEl.focus({ preventScroll: true });
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', restoreDefectScrollAndFocus);
+            } else {
+                restoreDefectScrollAndFocus();
+            }
+            requestAnimationFrame(restoreDefectScrollAndFocus);
+        })();
+    </script>
 </div>
 @endif
 @endcan
