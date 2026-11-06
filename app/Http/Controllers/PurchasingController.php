@@ -128,6 +128,19 @@ class PurchasingController extends Controller
         $query->latest('purchase_orders.created_at');
 
         return DataTables::eloquent($query)
+            ->filterColumn('supplier_nama', function ($q, $keyword) {
+                $kw = '%' . strtolower(trim($keyword)) . '%';
+                $q->whereHas('supplier', function ($sq) use ($kw) {
+                    $sq->whereRaw('LOWER(nama) LIKE ?', [$kw]);
+                });
+            })
+            ->filterColumn('no_invoice', function ($q, $keyword) {
+                $kw = '%' . strtolower(trim($keyword)) . '%';
+                $q->where(function ($sub) use ($kw) {
+                    $sub->whereRaw('LOWER(purchase_orders.no_invoice) LIKE ?', [$kw])
+                        ->orWhereRaw('LOWER(purchase_orders.no_po) LIKE ?', [$kw]);
+                });
+            })
             ->orderColumn('tanggal', fn ($q, $order) => $q->orderBy('purchase_orders.tanggal', $order)->orderBy('purchase_orders.created_at', $order))
             ->addColumn('no_invoice', fn ($po) => $po->no_invoice ? $po->no_invoice : $po->no_po)
             ->addColumn('supplier_nama', fn ($po) => $po->supplier?->nama ?? '—')
@@ -258,6 +271,19 @@ class PurchasingController extends Controller
         $query->latest('purchase_orders.created_at');
 
         return DataTables::eloquent($query)
+            ->filterColumn('supplier_nama', function ($q, $keyword) {
+                $kw = '%' . strtolower(trim($keyword)) . '%';
+                $q->whereHas('supplier', function ($sq) use ($kw) {
+                    $sq->whereRaw('LOWER(nama) LIKE ?', [$kw]);
+                });
+            })
+            ->filterColumn('no_invoice', function ($q, $keyword) {
+                $kw = '%' . strtolower(trim($keyword)) . '%';
+                $q->where(function ($sub) use ($kw) {
+                    $sub->whereRaw('LOWER(purchase_orders.no_invoice) LIKE ?', [$kw])
+                        ->orWhereRaw('LOWER(purchase_orders.no_po) LIKE ?', [$kw]);
+                });
+            })
             ->orderColumn('tanggal', fn ($q, $order) => $q->orderBy('purchase_orders.tanggal', $order)->orderBy('purchase_orders.created_at', $order))
             ->addColumn('no_invoice', fn ($po) => $po->no_invoice ? $po->no_invoice : $po->no_po)
             ->addColumn('supplier_nama', fn ($po) => $po->supplier?->nama ?? '—')

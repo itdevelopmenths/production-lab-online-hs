@@ -9,6 +9,12 @@
 
         // Setup default active tab
         $defaultTab = request('tab', 'po');
+        if ($defaultTab === 'lead-time') {
+            $defaultTab = 'lead_time';
+        }
+        if (! in_array($defaultTab, ['po', 'ap', 'approval', 'lead_time'], true)) {
+            $defaultTab = 'po';
+        }
         if (! $canSeeApprovalTab && $defaultTab === 'approval') {
             $defaultTab = 'po';
         }
@@ -34,7 +40,8 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div x-data="{ activeTab: '{{ $defaultTab }}', leadTimeLoaded: false }">
+    <div x-data="{ activeTab: '{{ $defaultTab }}', leadTimeLoaded: {{ $defaultTab === 'lead_time' ? 'true' : 'false' }} }"
+         x-init="{{ $defaultTab === 'lead_time' ? '$nextTick(() => { loadLeadTimeData(); })' : '' }}">
         {{-- DevScore Segmented Tabs --}}
         <div class="inline-flex flex-wrap items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/40 mb-6">
             {{-- TAB 1: Daftar Purchase Order --}}
@@ -538,6 +545,9 @@
             processing: true,
             serverSide: true,
             order: [],
+            search: {
+                search: @json(request('search', ''))
+            },
             ajax: {
                 url: '{{ route("purchasing.data") }}',
                 data: function(d) {
@@ -604,7 +614,9 @@
             $('#filter-status-po').val('');
             $('#filter-stage-po').val('');
             $('#filter-kategori-supplier').val('');
-            if (dtTable) dtTable.ajax.reload();
+            if (dtTable) {
+                dtTable.search('').ajax.reload();
+            }
         });
 
         // ==========================================

@@ -70,7 +70,7 @@
                                             <template x-if="r.sumber_lt !== 'otomatis'">
                                                 <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
                                             </template>
-                                            <a href="{{ route('purchasing.index', ['tab' => 'lead-time']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Histori Lead Time Supplier">Histori LT</a>
+                                            <a :href="'{{ route('purchasing.index', ['tab' => 'po']) }}' + (r.supplier_nama && r.supplier_nama !== '-' ? '&search=' + encodeURIComponent(r.supplier_nama) : '')" href="{{ route('purchasing.index', ['tab' => 'po']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Daftar Purchase Order Supplier">Histori LT</a>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 text-right font-mono text-foreground" x-text="formatNumber(r.batas_minimum)"></td>
@@ -206,7 +206,7 @@
                                             <template x-if="r.sumber_lt !== 'otomatis'">
                                                 <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
                                             </template>
-                                            <a href="{{ route('purchasing.index', ['tab' => 'lead-time']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Histori Lead Time Supplier">Histori LT</a>
+                                            <a :href="'{{ route('purchasing.index', ['tab' => 'po']) }}' + (r.supplier_nama && r.supplier_nama !== '-' ? '&search=' + encodeURIComponent(r.supplier_nama) : '')" href="{{ route('purchasing.index', ['tab' => 'po']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Daftar Purchase Order Supplier">Histori LT</a>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.total_avg_lead_time)"></td>
@@ -326,7 +326,7 @@
                                             <template x-if="r.sumber_lt !== 'otomatis'">
                                                 <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300">MANUAL</span>
                                             </template>
-                                            <a href="{{ route('purchasing.index', ['tab' => 'lead-time']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Histori Lead Time Supplier">Histori LT</a>
+                                            <a :href="'{{ route('purchasing.index', ['tab' => 'po']) }}' + (r.supplier_nama && r.supplier_nama !== '-' ? '&search=' + encodeURIComponent(r.supplier_nama) : '')" href="{{ route('purchasing.index', ['tab' => 'po']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Daftar Purchase Order Supplier">Histori LT</a>
                                         </div>
                                     </td>
                                     <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.total_avg_lead_time) + ' Hari'"></td>
