@@ -24,67 +24,21 @@
         </x-slot:actions>
     </x-page-header>
 
-    {{-- StatCards Grid --}}
+    {{-- Tier 1: Contextual KPI Strip --}}
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 mb-4">
-        <x-stat-box
-            title="Item Perlu Order"
-            :value="$stats['item_perlu_order']"
-            :subtitle="'Lokal: ' . $orderSummary['lokal'] . ' · Impor: ' . $orderSummary['impor']"
-            :href="auth()->user()->can('analisa.view') ? route('analisa.index') : null"
-            :footerText="auth()->user()->can('analisa.view') ? 'Lihat Analisa' : null"
-        >
-            <x-slot:icon>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            </x-slot:icon>
-        </x-stat-box>
-
-        <x-stat-box
-            title="PO Perlu Tindakan"
-            :value="$stats['po_perlu_tindakan']"
-            subtitle="Menunggu Verifikasi"
-            :href="auth()->user()->can('purchasing.view') ? route('purchasing.index') : null"
-            :footerText="auth()->user()->can('purchasing.view') ? 'Buka Purchasing' : null"
-        >
-            <x-slot:icon>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-            </x-slot:icon>
-        </x-stat-box>
-
-        <x-stat-box
-            title="Request & Transfer"
-            :value="$stats['rt_perlu_tindakan']"
-            subtitle="Mutasi & Permintaan"
-            :href="auth()->user()->canany(['transfer.view', 'rt.view']) ? route('transfers.index') : (auth()->user()->canany(['request.view', 'rt.view']) ? route('requests.index') : null)"
-            :footerText="auth()->user()->canany(['transfer.view', 'request.view', 'rt.view']) ? 'Kelola Logistik' : null"
-        >
-            <x-slot:icon>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-            </x-slot:icon>
-        </x-stat-box>
-
-        <x-stat-box
-            title="Batch Aktif"
-            :value="$stats['batch_aktif']"
-            subtitle="Proses Produksi Lab"
-            :href="auth()->user()->can('batch.view') ? route('batches.index') : null"
-            :footerText="auth()->user()->can('batch.view') ? 'Daftar Batch' : null"
-        >
-            <x-slot:icon>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            </x-slot:icon>
-        </x-stat-box>
-
-        <x-stat-box
-            title="Batch Selesai"
-            :value="$stats['batch_selesai']"
-            subtitle="Siap Didistribusikan"
-            :href="auth()->user()->can('batch.view') ? route('batches.index') : null"
-            :footerText="auth()->user()->can('batch.view') ? 'Riwayat Batch' : null"
-        >
-            <x-slot:icon>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </x-slot:icon>
-        </x-stat-box>
+        @foreach($kpis as $kpi)
+            <x-stat-box
+                :title="$kpi['title']"
+                :value="$kpi['value']"
+                :subtitle="$kpi['subtitle'] ?? null"
+                :href="$kpi['href'] ?? null"
+                :footerText="$kpi['footerText'] ?? null"
+            >
+                @if(isset($kpi['icon']))
+                    <x-slot:icon>{!! $kpi['icon'] !!}</x-slot:icon>
+                @endif
+            </x-stat-box>
+        @endforeach
     </div>
 
     {{-- Operational Action Lists Grid --}}

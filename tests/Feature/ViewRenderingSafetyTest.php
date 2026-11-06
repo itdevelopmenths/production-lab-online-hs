@@ -72,6 +72,18 @@ class ViewRenderingSafetyTest extends TestCase
             $response->assertViewHas('streamLeft');
             $response->assertViewHas('streamRight');
         }
+
+        $expectedTitles = [
+            'manager@heavenscent.id' => 'PO Menunggu Approval',
+            'purchasing@heavenscent.id' => 'Item Perlu Order (Lokal)',
+            'gudang@heavenscent.id' => 'Kedatangan Siap Unloading',
+            'operasional@heavenscent.id' => 'Kesiapan Bahan BOM',
+            'fulfillment@heavenscent.id' => 'Total Saldo Produk Jadi',
+        ];
+        foreach ($expectedTitles as $email => $title) {
+            $user = User::where('email', $email)->firstOrFail();
+            $this->actingAs($user)->get(route('dashboard'))->assertSee($title);
+        }
     }
 
     public function test_purchasing_views_render_safely(): void
