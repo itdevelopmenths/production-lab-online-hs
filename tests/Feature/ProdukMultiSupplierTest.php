@@ -382,4 +382,84 @@ class ProdukMultiSupplierTest extends TestCase
         $responseWeb->assertSessionHas('error');
         $this->assertDatabaseHas('supplier', ['id' => $this->supplierA->id]);
     }
+
+    public function test_supplier_form_submits_selected_produk_ids_independently_of_search_filter(): void
+    {
+        ProdukSupplier::create([
+            'produk_id' => $this->produkA->id,
+            'supplier_id' => $this->supplierA->id,
+            'status' => 'aktif',
+        ]);
+
+        foreach ([route('supplier.create'), route('supplier.edit', $this->supplierA)] as $url) {
+            $response = $this->actingAs($this->adminUser)->get($url);
+            $response->assertOk();
+            $html = $response->getContent();
+
+            // Checkbox visual tidak boleh memegang name="produk_ids[]" agar item tersembunyi oleh search filter tidak hilang saat submit
+            $this->assertDoesNotMatchRegularExpression(
+                '/<input\s+type="checkbox"[^>]*name="produk_ids\[\]"/s',
+                $html
+            );
+
+            // Hidden input kanonik harus di-render dari selectedIds di luar filteredProducts
+            $this->assertStringContainsString('<template x-for="id in selectedIds"', $html);
+            $this->assertStringContainsString('<input type="hidden" name="produk_ids[]" :value="id">', $html);
+
+            // Mendukung pencarian multi-keyword dan tab filter pilihan
+            $this->assertStringContainsString('parsedClauses', $html);
+            $this->assertStringContainsString("filterMode: 'all'", $html);
+        }
+    }
+
+    public function test_supplier_form_old_input_handles_empty_and_multiple_produk_ids_cleanly(): void
+    {
+        ProdukSupplier::create([
+            'produk_id' => $this->produkA->id,
+            'supplier_id' => $this->supplierA->id,
+            'status' => 'aktif',
+        ]);
+
+        // Validasi gagal saat 0 produk dipilih (hidden produk_ids = "") tidak boleh menyuntikkan ID 0 maupun revert ke relasi DB lama
+        $emptyRedirect = $this->actingAs($this->adminUser)
+            ->from(route('supplier.edit', $this->supplierA))
+            ->followingRedirects()
+            ->put(route('supplier.update', $this->supplierA), [
+                'nama' => '',
+                'kategori' => 'lokal',
+                'is_active' => 1,
+                'produk_ids' => '',
+            ]);
+
+        $emptyRedirect->assertOk();
+        $emptyRedirect->assertSee('supplierProdukChecklist', false);
+        $this->assertSame(
+            1,
+            preg_match("/supplierProdukChecklist\(JSON\.parse\('[^']+'\),\s*(?:JSON\.parse\('([^']+)'\)|(\[[^\]]*\]))\)/", $emptyRedirect->getContent(), $emptyMatches)
+        );
+        $emptyArg = !empty($emptyMatches[1]) ? json_decode('"' . $emptyMatches[1] . '"') : $emptyMatches[2];
+        $this->assertSame([], json_decode($emptyArg, true));
+
+        // Validasi gagal saat multiple produk dipilih harus tetap mempertahankan semua ID di old input
+        $multiRedirect = $this->actingAs($this->adminUser)
+            ->from(route('supplier.create'))
+            ->followingRedirects()
+            ->post(route('supplier.store'), [
+                'nama' => '',
+                'kategori' => 'lokal',
+                'is_active' => 1,
+                'produk_ids' => [$this->produkA->id, $this->produkB->id],
+            ]);
+
+        $multiRedirect->assertOk();
+        $this->assertSame(
+            1,
+            preg_match("/supplierProdukChecklist\(JSON\.parse\('[^']+'\),\s*(?:JSON\.parse\('([^']+)'\)|(\[[^\]]*\]))\)/", $multiRedirect->getContent(), $multiMatches)
+        );
+        $multiArg = !empty($multiMatches[1]) ? json_decode('"' . $multiMatches[1] . '"') : $multiMatches[2];
+        $this->assertSame(
+            [$this->produkA->id, $this->produkB->id],
+            json_decode($multiArg, true)
+        );
+    }
 }
