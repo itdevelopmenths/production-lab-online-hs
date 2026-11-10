@@ -183,4 +183,42 @@ class RequestAndTransferHttpTest extends TestCase
         $indexResponse->assertSee('Total Barang Rusak');
         $indexResponse->assertSee('10.00'); // 10.00 rusak displayed
     }
+
+    public function test_restricted_operasional_user_can_view_requests_datatable(): void
+    {
+        $this->operasional->update(['warehouse_access_type' => 'restricted']);
+        $this->fulfillment->update(['warehouse_access_type' => 'restricted']);
+
+        // Request operasional (melibatkan gudangLab milik operasional)
+        $opReq = StockRequest::create([
+            'no_request' => 'REQ-OP-001',
+            'jenis' => 'request_bahan',
+            'gudang_asal_id' => $this->gudangLab->id,
+            'gudang_tujuan_id' => $this->gudangPusat->id,
+            'status' => 'diajukan',
+            'created_by' => $this->operasional->id,
+        ]);
+
+        // Request tidak terkait gudangLab (toko <-> pusat oleh fulfillment)
+        $fulfillmentReq = StockRequest::create([
+            'no_request' => 'REQ-FUL-001',
+            'jenis' => 'request_produk_jadi',
+            'gudang_asal_id' => $this->gudangToko->id,
+            'gudang_tujuan_id' => $this->gudangPusat->id,
+            'status' => 'diajukan',
+            'created_by' => $this->fulfillment->id,
+        ]);
+
+        $response = $this->actingAs($this->operasional)->getJson(route('requests.data', [
+            'draw' => 1,
+            'start' => 0,
+            'length' => 10,
+        ]));
+
+        $response->assertOk()
+            ->assertJsonMissingPath('error')
+            ->assertJsonPath('recordsTotal', 1)
+            ->assertJsonFragment(['no_request' => $opReq->no_request])
+            ->assertJsonMissing(['no_request' => $fulfillmentReq->no_request]);
+    }
 }

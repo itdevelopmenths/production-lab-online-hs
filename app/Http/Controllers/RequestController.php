@@ -45,15 +45,16 @@ class RequestController extends Controller
 
         $query = StockRequest::query()
             ->with(['gudangPemohon:id,nama,kode', 'gudangTujuan:id,nama,kode', 'creator:id,name', 'batch:id,no_batch', 'transfers:id,request_id,status'])
-            ->when($accessibleIds !== null, function ($q) use ($accessibleIds) {
-                $q->where(function ($sub) use ($accessibleIds) {
-                    $sub->whereIn('gudang_pemohon_id', $accessibleIds)
-                        ->orWhereIn('gudang_tujuan_id', $accessibleIds);
+            ->when($accessibleIds !== null, function ($q) use ($accessibleIds, $userId) {
+                $q->where(function ($sub) use ($accessibleIds, $userId) {
+                    $sub->whereIn('gudang_asal_id', $accessibleIds)
+                        ->orWhereIn('gudang_tujuan_id', $accessibleIds)
+                        ->orWhere('created_by', $userId);
                 });
             })
             ->when($request->filled('jenis'), fn ($q) => $q->where('jenis', $request->jenis))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
-            ->latest('id');
+            ->latest('created_at');
 
         return DataTables::eloquent($query)
             ->orderColumn('tanggal_request', fn ($q, $order) => $q->orderBy('created_at', $order))
