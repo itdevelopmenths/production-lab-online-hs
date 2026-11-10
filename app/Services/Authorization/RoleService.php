@@ -9,6 +9,10 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RoleService
 {
+    public function __construct(
+        protected PermissionCatalogService $permissionCatalogService
+    ) {}
+
     /**
      * Membuat custom role baru dan menghubungkannya dengan wewenang yang dipilih.
      *
@@ -29,6 +33,7 @@ class RoleService
             ]);
 
             if (!empty($permissionNames)) {
+                $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
                 $role->syncPermissions($permissionNames);
             }
 
@@ -60,6 +65,7 @@ class RoleService
             }
 
             $role->update($updateData);
+            $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
             $role->syncPermissions($permissionNames);
 
             // Invalidate Spatie cached permissions

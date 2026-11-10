@@ -2,6 +2,10 @@
 
 namespace App\Services\Authorization;
 
+use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
+
 class PermissionCatalogService
 {
     /**
@@ -213,6 +217,75 @@ class PermissionCatalogService
             }
         }
         return $keys;
+    }
+
+    /**
+     * Mengembalikan seluruh permission keys yang sah untuk di-assign (katalog + database existing).
+     *
+     * @return array<int, string>
+     */
+    public function getValidAssignablePermissionKeys(): array
+    {
+        $catalogKeys = $this->getAllPermissionKeys();
+        $dbKeys = Permission::query()->pluck('name')->all();
+
+        return array_values(array_unique(array_merge($catalogKeys, $dbKeys)));
+    }
+
+    /**
+     * Aturan validasi standar untuk tiap item pada array permissions.*.
+     * Memvalidasi terhadap katalog sistem agar tidak gagal akibat database belum ter-seed penuh.
+     *
+     * @return array<int, mixed>
+     */
+    public function permissionItemRules(): array
+    {
+        return [
+            'string',
+            Rule::in($this->getValidAssignablePermissionKeys()),
+        ];
+    }
+
+    /**
+     * Menyinkronkan seluruh permission katalog ke tabel permissions.
+     */
+    public function syncCatalogToDatabase(): void
+    {
+        $this->ensurePermissionsExist($this->getAllPermissionKeys());
+    }
+
+    /**
+     * Memastikan permission katalog yang dipilih sudah tersimpan di tabel permissions.
+     *
+     * @param array<int, string> $permissionNames
+     */
+    public function ensurePermissionsExist(array $permissionNames): void
+    {
+        $catalogKeys = $this->getAllPermissionKeys();
+        $targetKeys = array_values(array_intersect(array_unique($permissionNames), $catalogKeys));
+
+        if (empty($targetKeys)) {
+            return;
+        }
+
+        $existingKeys = Permission::query()
+            ->whereIn('name', $targetKeys)
+            ->pluck('name')
+            ->all();
+
+        $missingKeys = array_diff($targetKeys, $existingKeys);
+        if (empty($missingKeys)) {
+            return;
+        }
+
+        foreach ($missingKeys as $key) {
+            Permission::firstOrCreate([
+                'name' => $key,
+                'guard_name' => 'web',
+            ]);
+        }
+
+        app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     /**

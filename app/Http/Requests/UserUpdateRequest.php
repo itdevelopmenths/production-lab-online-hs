@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\Authorization\PermissionCatalogService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UserUpdateRequest extends FormRequest
@@ -11,7 +12,7 @@ class UserUpdateRequest extends FormRequest
         return true;
     }
 
-    public function rules(): array
+    public function rules(PermissionCatalogService $catalogService): array
     {
         $userId = $this->route('user')->id;
 
@@ -27,7 +28,14 @@ class UserUpdateRequest extends FormRequest
             'gudang_ids.*' => 'exists:gudang,id',
             'primary_gudang_id' => 'nullable|exists:gudang,id',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|exists:permissions,name',
+            'permissions.*' => $catalogService->permissionItemRules(),
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'permissions.*.in' => 'Wewenang yang dipilih (:input) tidak terdaftar dalam katalog sistem.',
         ];
     }
 

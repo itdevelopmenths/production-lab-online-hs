@@ -320,6 +320,10 @@ class UserController extends Controller
     protected function syncDirectPermissions(User $user, Request $request): void
     {
         $permissions = $request->input('permissions', []);
-        $user->syncPermissions(is_array($permissions) ? $permissions : []);
+        $permList = is_array($permissions) ? $permissions : [];
+        if (!empty($permList)) {
+            $this->permissionCatalogService->ensurePermissionsExist($permList);
+        }
+        $user->syncPermissions($permList);
     }
 }

@@ -241,7 +241,7 @@
                         </div>
 
                         <div x-show="openDirectPerms" x-transition>
-                            <x-permission-matrix :catalog="$catalog" :activePermissions="old('permissions', $activeDirectPermissions)" />
+                            <x-permission-matrix :catalog="$catalog" :activePermissions="$errors->any() ? old('permissions', []) : $activeDirectPermissions" />
                         </div>
                     </div>
 

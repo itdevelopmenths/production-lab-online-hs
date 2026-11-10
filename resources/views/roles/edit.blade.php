@@ -52,7 +52,7 @@
 
                 {{-- Permission Matrix Component --}}
                 <div>
-                    <x-permission-matrix :catalog="$catalog" :activePermissions="old('permissions', $activePermissions)" />
+                    <x-permission-matrix :catalog="$catalog" :activePermissions="$errors->any() ? old('permissions', []) : $activePermissions" />
                 </div>
 
                 {{-- Action Buttons --}}

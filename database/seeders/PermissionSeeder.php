@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\Authorization\PermissionCatalogService;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -25,31 +26,36 @@ class PermissionSeeder extends Seeder
             // Purchasing
             'purchasing.view', 'purchasing.price.view', 'purchasing.create', 'purchasing.edit',
             'purchasing.submit', 'purchasing.approve', 'purchasing.receive',
-            'purchasing.pay', 'purchasing.cancel',
+            'purchasing.pay', 'purchasing.cancel', 'purchasing.audit',
 
             // Request & Transfer (PRD v2.4 + legacy aliases)
             'request.view', 'request.create', 'request.submit', 'request.approve', 'request.cancel',
             'transfer.view', 'transfer.create', 'transfer.ship', 'transfer.receive', 'transfer.cancel',
             'defect.view',
             'rt.view', 'rt.create', 'rt.submit', 'rt.approve',
-            'rt.process', 'rt.ship', 'rt.receive', 'rt.cancel',
+            'rt.process', 'rt.ship', 'rt.receive', 'rt.cancel', 'rt.audit',
 
             // Analisa Stok
             'analisa.view', 'analisa.manage', 'analisa.snapshot', 'analisa.create_po',
 
             // Produksi (Batch)
             'batch.view', 'batch.create', 'batch.release',
-            'batch.complete', 'batch.cancel', 'batch.opname',
+            'batch.complete', 'batch.cancel', 'batch.opname', 'batch.audit',
 
             // Laporan
-            'report.view', 'reports.view', 'report.export',
+            'report.view', 'reports.view', 'report.export', 'audit.view',
 
             // Admin
             'user.manage', 'role.manage',
         ];
 
-        foreach ($permissions as $perm) {
-            Permission::firstOrCreate(['name' => $perm]);
+        $allPermissions = array_values(array_unique(array_merge(
+            $permissions,
+            app(PermissionCatalogService::class)->getAllPermissionKeys()
+        )));
+
+        foreach ($allPermissions as $perm) {
+            Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
         // Manager — akses penuh + approval di semua tahap.

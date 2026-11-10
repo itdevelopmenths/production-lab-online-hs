@@ -14,6 +14,7 @@
         }
     }
     $totalCount = count($allKeys);
+    $normalizedActive = array_values(array_intersect((array) $activePermissions, $allKeys));
 @endphp
 
 <script>
@@ -70,7 +71,7 @@
     }
 </script>
 
-<div x-data="permissionMatrixState({{ Js::from(array_values($activePermissions)) }}, {{ Js::from($allKeys) }})" class="space-y-6">
+<div x-data="permissionMatrixState({{ Js::from($normalizedActive) }}, {{ Js::from($allKeys) }})" class="space-y-6">
 
     {{-- Top Action & Filter Toolbar --}}
     <div class="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">

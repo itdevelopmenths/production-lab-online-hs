@@ -224,4 +224,66 @@ class CustomRoleManagementTest extends TestCase
 
         $this->assertDatabaseMissing('roles', ['name' => 'temporary_tester']);
     }
+
+    public function test_updating_role_auto_creates_missing_catalog_permissions_and_rejects_unknown_keys(): void
+    {
+        $this->actingAs($this->manager);
+
+        $customRole = Role::create([
+            'name' => 'ops_coordinator',
+            'display_name' => 'Koordinator Operasional',
+            'is_system' => false,
+            'guard_name' => 'web',
+        ]);
+
+        // Simulasikan kondisi database belum di-seed ulang sehingga permission baru belum ada di tabel permissions
+        $newlyAddedCatalogKeys = ['request.view', 'transfer.view', 'purchasing.audit'];
+        \Spatie\Permission\Models\Permission::whereIn('name', $newlyAddedCatalogKeys)->delete();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $permissionsPayload = [
+            'produk.view', 'produk.create', 'produk.edit', 'produk.delete',
+            'gudang.view', 'gudang.create', 'gudang.edit', 'gudang.delete',
+            'supplier.view', 'bom.view', 'stok.view',
+            // Indeks 11, 12, 13 (permission katalog yang sempat terhapus dari DB)
+            'request.view', 'transfer.view', 'purchasing.audit',
+        ];
+
+        $this->put(route('roles.update', $customRole), [
+            'name' => 'ops_coordinator',
+            'display_name' => 'Koordinator Operasional',
+            'description' => 'Update izin dengan sinkronisasi otomatis',
+            'permissions' => $permissionsPayload,
+        ])->assertRedirect(route('roles.index'))
+            ->assertSessionHasNoErrors();
+
+        foreach ($newlyAddedCatalogKeys as $permName) {
+            $this->assertDatabaseHas('permissions', ['name' => $permName]);
+            $this->assertTrue($customRole->fresh()->hasPermissionTo($permName));
+        }
+
+        // Pastikan permission liar di luar katalog tetap ditolak validasi
+        $this->put(route('roles.update', $customRole), [
+            'name' => 'ops_coordinator',
+            'display_name' => 'Koordinator Operasional',
+            'permissions' => ['produk.view', 'hacked.nonexistent.permission'],
+        ])->assertSessionHasErrors('permissions.1');
+    }
+
+    public function test_updating_role_with_all_catalog_permissions_succeeds(): void
+    {
+        $this->actingAs($this->manager);
+
+        $systemRole = Role::where('name', 'gudang')->firstOrFail();
+        $allCatalogKeys = app(\App\Services\Authorization\PermissionCatalogService::class)->getAllPermissionKeys();
+
+        $this->put(route('roles.update', $systemRole), [
+            'display_name' => $systemRole->display_name,
+            'description' => $systemRole->description,
+            'permissions' => $allCatalogKeys,
+        ])->assertRedirect(route('roles.index'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals(count($allCatalogKeys), $systemRole->fresh()->permissions()->count());
+    }
 }

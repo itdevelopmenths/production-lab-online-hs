@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\Authorization\PermissionCatalogService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RoleStoreRequest extends FormRequest
@@ -11,14 +12,14 @@ class RoleStoreRequest extends FormRequest
         return $this->user()?->can('role.manage') ?? false;
     }
 
-    public function rules(): array
+    public function rules(PermissionCatalogService $catalogService): array
     {
         return [
             'name' => 'required|string|max:100|regex:/^[a-zA-Z0-9_\-\s]+$/|unique:roles,name',
             'display_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|exists:permissions,name',
+            'permissions.*' => $catalogService->permissionItemRules(),
         ];
     }
 
@@ -37,6 +38,7 @@ class RoleStoreRequest extends FormRequest
         return [
             'name.regex' => 'Kode identifikasi peran hanya boleh memuat huruf, angka, garis bawah (_), atau strip (-).',
             'name.unique' => 'Kode peran ini sudah terdaftar. Silakan gunakan kode peran yang lain.',
+            'permissions.*.in' => 'Wewenang yang dipilih (:input) tidak terdaftar dalam katalog sistem.',
         ];
     }
 }

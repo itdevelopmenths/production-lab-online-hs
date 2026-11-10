@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Role;
+use App\Services\Authorization\PermissionCatalogService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,7 +14,7 @@ class RoleUpdateRequest extends FormRequest
         return $this->user()?->can('role.manage') ?? false;
     }
 
-    public function rules(): array
+    public function rules(PermissionCatalogService $catalogService): array
     {
         $roleParam = $this->route('role');
         $role = $roleParam instanceof Role ? $roleParam : Role::findOrFail($roleParam);
@@ -22,7 +23,7 @@ class RoleUpdateRequest extends FormRequest
             'display_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'string|exists:permissions,name',
+            'permissions.*' => $catalogService->permissionItemRules(),
         ];
 
         // Hanya peran non-sistem yang dapat memperbarui kode identitas name
@@ -54,6 +55,7 @@ class RoleUpdateRequest extends FormRequest
         return [
             'name.regex' => 'Kode identifikasi peran hanya boleh memuat huruf, angka, garis bawah (_), atau strip (-).',
             'name.unique' => 'Kode peran ini sudah terdaftar. Silakan gunakan kode peran yang lain.',
+            'permissions.*.in' => 'Wewenang yang dipilih (:input) tidak terdaftar dalam katalog sistem.',
         ];
     }
 }
