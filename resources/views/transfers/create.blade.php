@@ -1,8 +1,36 @@
 <x-app-layout title="Buat Transfer Barang" subtitle="Inisiasi pengiriman / mutasi fisik barang antar gudang">
     @php
-        $initialItems = old('items', !empty($prefilledItems) ? $prefilledItems : [
-            ['produk_id' => '', 'qty_dikirim' => 1, 'keterangan' => '']
-        ]);
+        $productsById = $products->keyBy('id');
+        $prefilledByReqItemId = collect($prefilledItems)->filter(fn ($p) => !empty($p['request_item_id']))->keyBy('request_item_id');
+        $prefilledByProdukId = collect($prefilledItems)->keyBy('produk_id');
+
+        $rawItems = old('items');
+        if (is_array($rawItems) && !empty($rawItems)) {
+            $initialItems = collect($rawItems)->map(function ($it) use ($productsById, $prefilledByReqItemId, $prefilledByProdukId) {
+                $reqItemId = $it['request_item_id'] ?? null;
+                $prodId = $it['produk_id'] ?? '';
+                $prefill = ($reqItemId && $prefilledByReqItemId->has($reqItemId))
+                    ? $prefilledByReqItemId->get($reqItemId)
+                    : (!empty($prodId) ? $prefilledByProdukId->get($prodId) : null);
+                $prod = !empty($prodId) ? $productsById->get($prodId) : null;
+
+                return [
+                    'request_item_id' => $reqItemId ?? ($prefill['request_item_id'] ?? null),
+                    'produk_id' => $prodId,
+                    'sku' => $prefill['sku'] ?? ($prod?->sku ?? ''),
+                    'nama' => $prefill['nama'] ?? ($prod?->nama ?? ''),
+                    'satuan' => $prefill['satuan'] ?? ($prod?->satuan ?? '-'),
+                    'qty_diminta' => $prefill['qty_diminta'] ?? null,
+                    'stok_tersedia' => $prefill['stok_tersedia'] ?? null,
+                    'qty_dikirim' => $it['qty_dikirim'] ?? ($prefill['qty_dikirim'] ?? 1),
+                    'keterangan' => $it['keterangan'] ?? ($prefill['keterangan'] ?? ''),
+                ];
+            })->values()->toArray();
+        } else {
+            $initialItems = !empty($prefilledItems) ? $prefilledItems : [
+                ['produk_id' => '', 'sku' => '', 'nama' => '', 'satuan' => '-', 'qty_diminta' => null, 'stok_tersedia' => null, 'request_item_id' => null, 'qty_dikirim' => 1, 'keterangan' => '']
+            ];
+        }
     @endphp
 
     <script>
@@ -16,6 +44,13 @@
                 products: @js($products),
                 init() {
                     this.$watch('gudangAsalId', () => this.refreshAllStock());
+                    if (this.gudangAsalId) {
+                        this.items.forEach(item => {
+                            if (item.produk_id && (item.stok_tersedia === null || item.stok_tersedia === undefined)) {
+                                this.updateStock(item);
+                            }
+                        });
+                    }
                 },
                 addItem() {
                     this.items.push({ produk_id: '', qty_dikirim: 1, keterangan: '', stok_tersedia: null, request_item_id: null });

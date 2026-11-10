@@ -157,8 +157,11 @@ class TransferController extends Controller
         $defaultJenis = 'antar_fulfillment';
         $prefilledItems = [];
 
-        if ($request->filled('request_id')) {
-            $stockRequest = StockRequest::with(['items.produk.uom', 'gudangPemohon', 'gudangTujuan', 'batch'])->findOrFail($request->request_id);
+        $reqId = $request->input('request_id', $request->old('request_id'));
+        $batchIdParam = $request->input('batch_id', $request->old('batch_id', $request->old('referensi_batch_id')));
+
+        if (!empty($reqId)) {
+            $stockRequest = StockRequest::with(['items.produk.uom', 'gudangPemohon', 'gudangTujuan', 'batch'])->findOrFail($reqId);
 
             abort_if($stockRequest->status !== 'disetujui', 422, 'Hanya Request dengan status "disetujui" yang dapat dibuatkan Transfer.');
 
@@ -168,9 +171,10 @@ class TransferController extends Controller
             $defaultGudangTujuanId = $stockRequest->gudang_pemohon_id;
             $defaultJenis = $stockRequest->jenis === 'request_bahan' ? 'pemenuhan_request_bahan' : 'kirim_produk_jadi';
             $referensiBatchId = $stockRequest->referensi_batch_id;
+            $effectiveGudangAsalId = $request->old('gudang_asal_id') ?: $defaultGudangAsalId;
 
             foreach ($stockRequest->items as $item) {
-                $stokTersedia = $this->stokService->saldo($item->produk_id, $defaultGudangAsalId);
+                $stokTersedia = $effectiveGudangAsalId ? $this->stokService->saldo($item->produk_id, (int) $effectiveGudangAsalId) : 0;
                 $prefilledItems[] = [
                     'request_item_id' => $item->id,
                     'produk_id' => $item->produk_id,
@@ -183,16 +187,17 @@ class TransferController extends Controller
                     'keterangan' => $item->keterangan,
                 ];
             }
-        } elseif ($request->filled('batch_id')) {
-            $batch = \App\Models\BatchProduksi::with(['outputs.produk', 'gudangOperasional', 'gudangTujuan', 'produk'])->findOrFail($request->batch_id);
+        } elseif (!empty($batchIdParam)) {
+            $batch = \App\Models\BatchProduksi::with(['outputs.produk', 'gudangOperasional', 'gudangTujuan', 'produk'])->findOrFail($batchIdParam);
             $defaultGudangAsalId = $batch->gudang_operasional_id;
             $defaultGudangTujuanId = $batch->gudang_tujuan_rencana_id;
             $defaultJenis = 'kirim_produk_jadi';
             $referensiBatchId = $batch->id;
+            $effectiveGudangAsalId = $request->old('gudang_asal_id') ?: $defaultGudangAsalId;
 
             if ($batch->outputs->isNotEmpty()) {
                 foreach ($batch->outputs as $out) {
-                    $stokTersedia = $defaultGudangAsalId ? $this->stokService->saldo($out->produk_id, $defaultGudangAsalId) : 0;
+                    $stokTersedia = $effectiveGudangAsalId ? $this->stokService->saldo($out->produk_id, (int) $effectiveGudangAsalId) : 0;
                     $prefilledItems[] = [
                         'produk_id' => $out->produk_id,
                         'sku' => $out->produk?->sku,
@@ -205,7 +210,7 @@ class TransferController extends Controller
                     ];
                 }
             } elseif ($batch->produk_id) {
-                $stokTersedia = $defaultGudangAsalId ? $this->stokService->saldo($batch->produk_id, $defaultGudangAsalId) : 0;
+                $stokTersedia = $effectiveGudangAsalId ? $this->stokService->saldo($batch->produk_id, (int) $effectiveGudangAsalId) : 0;
                 $prefilledItems[] = [
                     'produk_id' => $batch->produk_id,
                     'sku' => $batch->produk?->sku,

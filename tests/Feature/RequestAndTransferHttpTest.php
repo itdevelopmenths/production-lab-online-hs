@@ -221,4 +221,66 @@ class RequestAndTransferHttpTest extends TestCase
             ->assertJsonFragment(['no_request' => $opReq->no_request])
             ->assertJsonMissing(['no_request' => $fulfillmentReq->no_request]);
     }
+
+    public function test_transfer_create_from_request_preserves_item_metadata_on_insufficient_stock_redirect(): void
+    {
+        $stockRequest = StockRequest::create([
+            'no_request' => 'REQ-STOK-KURANG-01',
+            'jenis' => 'request_bahan',
+            'gudang_asal_id' => $this->gudangLab->id,
+            'gudang_tujuan_id' => $this->gudangPusat->id,
+            'status' => 'disetujui',
+            'created_by' => $this->operasional->id,
+        ]);
+
+        $reqItem = $stockRequest->items()->create([
+            'produk_id' => $this->bahanBaku->id,
+            'qty_diminta' => 999,
+        ]);
+
+        $createUrl = route('transfers.create', ['request_id' => $stockRequest->id]);
+
+        // gudangPusat hanya punya 500 stok; kirim 999 harus gagal & kembali dengan old input
+        $response = $this->actingAs($this->gudang)
+            ->from($createUrl)
+            ->followingRedirects()
+            ->post(route('transfers.store'), [
+                'request_id' => $stockRequest->id,
+                'jenis' => 'pemenuhan_request_bahan',
+                'gudang_asal_id' => $this->gudangPusat->id,
+                'gudang_tujuan_id' => $this->gudangLab->id,
+                'action' => 'ship',
+                'items' => [
+                    [
+                        'request_item_id' => $reqItem->id,
+                        'produk_id' => $this->bahanBaku->id,
+                        'qty_dikirim' => 999,
+                        'keterangan' => 'Kirim full request',
+                    ],
+                ],
+            ]);
+
+        $response->assertOk();
+        $response->assertSee($stockRequest->no_request);
+        $response->assertSee('Qty Diminta');
+        $response->assertDontSee('Tambah Baris');
+        $response->assertSee($this->bahanBaku->nama);
+        $response->assertSee($this->bahanBaku->sku);
+
+        $html = $response->getContent();
+        $this->assertSame(1, preg_match("/items:\s*JSON\.parse\('([^']+)'\)/", $html, $matches));
+        $decodedItems = json_decode(json_decode('"' . $matches[1] . '"'), true);
+
+        $this->assertIsArray($decodedItems);
+        $this->assertCount(1, $decodedItems);
+        $this->assertNotEmpty($decodedItems[0]['request_item_id']);
+        $this->assertEquals($this->bahanBaku->id, $decodedItems[0]['produk_id']);
+        $this->assertSame($this->bahanBaku->nama, $decodedItems[0]['nama']);
+        $this->assertSame($this->bahanBaku->sku, $decodedItems[0]['sku']);
+        $this->assertSame($this->bahanBaku->satuan, $decodedItems[0]['satuan']);
+        $this->assertEquals(999, $decodedItems[0]['qty_diminta']);
+        $this->assertEquals(500, $decodedItems[0]['stok_tersedia']);
+        $this->assertEquals(999, $decodedItems[0]['qty_dikirim']);
+        $this->assertSame('Kirim full request', $decodedItems[0]['keterangan']);
+    }
 }
