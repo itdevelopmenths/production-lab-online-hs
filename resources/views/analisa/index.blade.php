@@ -247,6 +247,8 @@
           nama: '',
           sku: '',
           supplier_nama: '',
+          sumber_lt: 'manual',
+          jumlah_transaksi: 0,
           tambahan_buffer_hari: 0,
           average: {
             id: null,
@@ -734,19 +736,22 @@
         },
         openStageModal(item){
           let stg = null;
-          if (item.average || item.max) {
+          if (item.average || item.max || item.manual_average || item.manual_max) {
             stg = item;
           } else if (this.tables && this.tables.stages) {
             stg = this.tables.stages.find(s => s.produk_id === item.produk_id);
           }
-          const avg = (stg && stg.average) ? stg.average : {};
-          const max = (stg && stg.max) ? stg.max : {};
+          const isAuto = (stg?.sumber_lt || item.sumber_lt || 'manual') === 'otomatis';
+          const avg = isAuto && stg && stg.manual_average ? stg.manual_average : ((stg && stg.average) ? stg.average : {});
+          const max = isAuto && stg && stg.manual_max ? stg.manual_max : ((stg && stg.max) ? stg.max : {});
 
           this.stageForm = {
             produk_id: item.produk_id,
             nama: item.nama,
             sku: item.sku,
             supplier_nama: item.supplier_nama,
+            sumber_lt: stg?.sumber_lt || item.sumber_lt || 'manual',
+            jumlah_transaksi: stg?.jumlah_transaksi ?? item.jumlah_transaksi ?? 0,
             tambahan_buffer_hari: item.tambahan_buffer_hari ?? (stg ? stg.tambahan_buffer_hari : 0),
             average: {
               id: avg.id || null,

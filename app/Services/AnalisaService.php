@@ -12,6 +12,7 @@ use App\Models\LeadTimeImpor;
 use App\Models\LeadTimeLokal;
 use App\Models\LeadTimeLokalStage;
 use App\Models\LeadTimeStage;
+use App\Models\PoStage;
 use App\Models\Produk;
 use App\Models\PurchaseOrderItem;
 use App\Models\RekomendasiOrderLokal;
@@ -20,6 +21,7 @@ use App\Models\Stok;
 use App\Models\Supplier;
 use App\Models\SupplierProdukLtStageSummary;
 use App\Models\SupplierProdukLtSummary;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -31,6 +33,22 @@ use Illuminate\Support\Str;
  */
 class AnalisaService
 {
+    /**
+     * Pemetaan nama stage Purchasing (PoStage) ke kolom tabel 9 tahap Analisa (LeadTimeLokalStage).
+     *
+     * @var array<string, string>
+     */
+    public const STAGE_KEY_MAP = [
+        PoStage::STAGE_1 => 'perencanaan',
+        PoStage::STAGE_2 => 'approval',
+        PoStage::STAGE_3 => 'supplier_confirm',
+        PoStage::STAGE_4 => 'payment',
+        PoStage::STAGE_5 => 'po',
+        PoStage::STAGE_6 => 'pengemasan',
+        PoStage::STAGE_7 => 'pengiriman',
+        PoStage::STAGE_8 => 'unloading',
+        PoStage::STAGE_9 => 'input',
+    ];
     /**
      * Pembulatan hari lead time dengan toleransi strictly 1 angka desimal half-up.
      * Digit 2+ bernilai < 5 menjadi 0, >= 5 menjadi +0.1 (user override).
@@ -101,6 +119,124 @@ class AnalisaService
             'tambahan_buffer_hari' => self::roundLeadTimeDays($buffer),
             'safety_stock' => $safetyStock,
         ];
+    }
+
+    /**
+     * Format satu skenario (average/max) dari model manual LeadTimeLokalStage.
+     *
+     * @return array<string, float|int|null>
+     */
+    public function formatManualStageScenario(?LeadTimeLokalStage $stage): array
+    {
+        $row = ['id' => $stage?->id];
+        $sum = 0.0;
+
+        foreach (LeadTimeLokalStage::STAGE_COLUMNS as $col) {
+            $val = self::roundLeadTimeDays((float) ($stage?->{$col} ?? 0));
+            $row[$col] = $val;
+            $sum += $val;
+        }
+
+        $row['total'] = $stage ? self::roundLeadTimeDays((float) $stage->totalHari()) : self::roundLeadTimeDays($sum);
+
+        return $row;
+    }
+
+    /**
+     * Format satu skenario (average_hari / max_hari) dari ringkasan 9 stage Purchasing.
+     *
+     * @param  Collection<int, SupplierProdukLtStageSummary>  $empiricalRows
+     * @return array<string, float|null>
+     */
+    public function formatEmpiricalStageScenario(Collection $empiricalRows, string $metricColumn): array
+    {
+        $byStage = $empiricalRows->keyBy('stage');
+        $row = ['id' => null];
+        $sum = 0.0;
+
+        foreach (self::STAGE_KEY_MAP as $poStageKey => $analisaCol) {
+            $val = self::roundLeadTimeDays((float) ($byStage->get($poStageKey)?->{$metricColumn} ?? 0));
+            $row[$analisaCol] = $val;
+            $sum += $val;
+        }
+
+        $row['total'] = self::roundLeadTimeDays($sum);
+
+        return $row;
+    }
+
+    /**
+     * Resolusi rincian 9 tahap Lead Time untuk Tab 4 Analisa Lokal:
+     * Prioritaskan ringkasan empiris PO (jumlah_transaksi >= 1) per supplier-produk,
+     * dan fallback ke konfigurasi manual LeadTimeLokalStage tanpa menimpa baseline manual.
+     *
+     * @param  Collection<int, LeadTimeLokalStage>  $manualStages
+     * @param  Collection<int, SupplierProdukLtStageSummary>  $empiricalStages
+     * @return array<string, mixed>
+     */
+    public function resolveLokalStageBreakdown(Collection $manualStages, Collection $empiricalStages): array
+    {
+        $manualAvg = $this->formatManualStageScenario($manualStages->firstWhere('skenario', 'average'));
+        $manualMax = $this->formatManualStageScenario($manualStages->firstWhere('skenario', 'max'));
+
+        $activeEmpirical = $empiricalStages->filter(fn ($row) => (int) ($row->jumlah_transaksi ?? 0) >= 1);
+        if ($activeEmpirical->isNotEmpty()) {
+            return [
+                'sumber_lt' => 'otomatis',
+                'jumlah_transaksi' => (int) $activeEmpirical->max('jumlah_transaksi'),
+                'average' => $this->formatEmpiricalStageScenario($activeEmpirical, 'average_hari'),
+                'max' => $this->formatEmpiricalStageScenario($activeEmpirical, 'max_hari'),
+                'manual_average' => $manualAvg,
+                'manual_max' => $manualMax,
+            ];
+        }
+
+        return [
+            'sumber_lt' => 'manual',
+            'jumlah_transaksi' => 0,
+            'average' => $manualAvg,
+            'max' => $manualMax,
+            'manual_average' => $manualAvg,
+            'manual_max' => $manualMax,
+        ];
+    }
+
+    /**
+     * Sinkronkan working data Analisa yang sudah ada setelah pencatatan / invalidasi Lead Time PO.
+     * Hanya memperbarui produk yang sudah terinisiasi di working table Analisa agar tidak menimbulkan side-effect.
+     *
+     * @param  array<int, int|string>  $produkIds
+     */
+    public function refreshAffectedProductsFromPo(array $produkIds, ?int $userId = null): void
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $produkIds), fn ($id) => $id > 0)));
+        if (empty($ids)) {
+            return;
+        }
+
+        $products = Produk::whereIn('id', $ids)->where('is_active', true)->get();
+        if ($products->isEmpty()) {
+            return;
+        }
+
+        $imporIds = AnalisaImpor::whereIn('produk_id', $ids)->pluck('produk_id')->flip();
+        $lokalIds = AnalisaLokal::whereIn('produk_id', $ids)->pluck('produk_id')->flip();
+        $rekLokalIds = RekomendasiOrderLokal::whereIn('produk_id', $ids)->pluck('produk_id')->flip();
+
+        foreach ($products as $p) {
+            $isImpor = in_array($p->profil_analisa, ['impor', 'bahan_impor'], true) || $imporIds->has($p->id);
+            if ($isImpor) {
+                if ($imporIds->has($p->id)) {
+                    $this->generateImpor($p->id, $userId);
+                }
+                continue;
+            }
+
+            if (in_array($p->tipe, ['bahan', 'kemas', 'bahan_baku', 'kemasan'], true)
+                && ($lokalIds->has($p->id) || $rekLokalIds->has($p->id))) {
+                $this->generateLokal($p->id, $userId);
+            }
+        }
     }
 
     /**

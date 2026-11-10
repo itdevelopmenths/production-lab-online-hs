@@ -18,6 +18,7 @@ use App\Models\PurchaseOrder;
 use App\Models\RekomendasiOrderLokal;
 use App\Models\RiwayatAnalisa;
 use App\Models\Supplier;
+use App\Models\SupplierProdukLtStageSummary;
 use App\Models\Uom;
 use App\Services\AnalisaService;
 use App\Services\Purchasing\PurchasingCostCalculator;
@@ -85,6 +86,9 @@ class AnalisaController extends Controller
                 $q->select('id', 'sku', 'nama', 'satuan', 'supplier_id')->with('supplier:id,nama,kategori');
             }
         ])->get()->groupBy('produk_id');
+        $empiricalStageSummaries = SupplierProdukLtStageSummary::where('jumlah_transaksi', '>=', 1)
+            ->get()
+            ->groupBy(fn ($row) => $row->supplier_id . ':' . $row->produk_id);
         $lastGenerated = AnalisaLokal::latest('generated_at')->with('generator:id,name')->first();
 
         $rows = $rekomendasi->map(function ($rek) use ($analisa, $leadTime) {
@@ -127,50 +131,50 @@ class AnalisaController extends Controller
             ];
         });
 
-        // Format stages untuk grid tabel tahap
-        $formattedStages = [];
+        // Format stages untuk grid tabel 9 tahap: sertakan seluruh produk aktif + fallback stage manual lama
+        $stageProductsById = [];
+        foreach ($rekomendasi as $rek) {
+            if ($rek->produk) {
+                $stageProductsById[$rek->produk_id] = $rek->produk;
+            }
+        }
         foreach ($stages as $prodId => $stgList) {
-            $p = $stgList->first()->produk;
-            $avg = $stgList->firstWhere('skenario', 'average');
-            $max = $stgList->firstWhere('skenario', 'max');
+            if (! isset($stageProductsById[$prodId]) && $stgList->first()?->produk) {
+                $stageProductsById[$prodId] = $stgList->first()->produk;
+            }
+        }
+
+        $formattedStages = [];
+        foreach ($stageProductsById as $prodId => $p) {
+            $al = $analisa->get($prodId);
             $lt = $leadTime->get($prodId);
+            $activeSupplierId = $al?->supplier_terpilih_id ?? $p?->supplier_id;
+            $activeSupplierNama = $al?->supplierTerpilih?->nama ?? $p?->supplier?->nama ?? '-';
+
+            $manualRows = $stages->get($prodId) ?? collect();
+            $empiricalRows = $activeSupplierId
+                ? ($empiricalStageSummaries->get($activeSupplierId . ':' . $prodId) ?? collect())
+                : collect();
+
+            $resolvedStages = $this->analisa->resolveLokalStageBreakdown($manualRows, $empiricalRows);
+
             $formattedStages[] = [
                 'produk_id' => $prodId,
                 'sku' => $p?->sku,
                 'nama' => $p?->nama,
                 'satuan' => $p?->satuan,
-                'supplier_id' => $p?->supplier_id,
-                'supplier_nama' => $p?->supplier?->nama ?? '-',
+                'supplier_id' => $activeSupplierId,
+                'supplier_nama' => $activeSupplierNama,
+                'sumber_lt' => $resolvedStages['sumber_lt'],
+                'jumlah_transaksi' => $resolvedStages['jumlah_transaksi'],
                 'tambahan_buffer_hari' => AnalisaService::roundLeadTimeDays((float) ($lt?->tambahan_buffer_hari ?? 0)),
-                'safety_stock' => AnalisaService::roundLeadTimeDays((float) ($lt?->safety_stock ?? 0)),
-                'total_average_lead_time' => AnalisaService::roundLeadTimeDays((float) ($lt?->total_average_lead_time ?? 0)),
+                'safety_stock' => AnalisaService::roundLeadTimeDays((float) ($lt?->safety_stock ?? $al?->safety_stock ?? 0)),
+                'total_average_lead_time' => AnalisaService::roundLeadTimeDays((float) ($lt?->total_average_lead_time ?? $al?->total_average_lead_time ?? 0)),
                 'total_max_lead_time' => AnalisaService::roundLeadTimeDays((float) ($lt?->total_max_lead_time ?? 0)),
-                'average' => $avg ? [
-                    'id' => $avg->id,
-                    'perencanaan' => AnalisaService::roundLeadTimeDays((float) ($avg->perencanaan ?? 0)),
-                    'approval' => AnalisaService::roundLeadTimeDays((float) ($avg->approval ?? 0)),
-                    'supplier_confirm' => AnalisaService::roundLeadTimeDays((float) ($avg->supplier_confirm ?? 0)),
-                    'payment' => AnalisaService::roundLeadTimeDays((float) ($avg->payment ?? 0)),
-                    'po' => AnalisaService::roundLeadTimeDays((float) ($avg->po ?? 0)),
-                    'pengemasan' => AnalisaService::roundLeadTimeDays((float) ($avg->pengemasan ?? 0)),
-                    'pengiriman' => AnalisaService::roundLeadTimeDays((float) ($avg->pengiriman ?? 0)),
-                    'unloading' => AnalisaService::roundLeadTimeDays((float) ($avg->unloading ?? 0)),
-                    'input' => AnalisaService::roundLeadTimeDays((float) ($avg->input ?? 0)),
-                    'total' => AnalisaService::roundLeadTimeDays((float) $avg->totalHari()),
-                ] : null,
-                'max' => $max ? [
-                    'id' => $max->id,
-                    'perencanaan' => AnalisaService::roundLeadTimeDays((float) ($max->perencanaan ?? 0)),
-                    'approval' => AnalisaService::roundLeadTimeDays((float) ($max->approval ?? 0)),
-                    'supplier_confirm' => AnalisaService::roundLeadTimeDays((float) ($max->supplier_confirm ?? 0)),
-                    'payment' => AnalisaService::roundLeadTimeDays((float) ($max->payment ?? 0)),
-                    'po' => AnalisaService::roundLeadTimeDays((float) ($max->po ?? 0)),
-                    'pengemasan' => AnalisaService::roundLeadTimeDays((float) ($max->pengemasan ?? 0)),
-                    'pengiriman' => AnalisaService::roundLeadTimeDays((float) ($max->pengiriman ?? 0)),
-                    'unloading' => AnalisaService::roundLeadTimeDays((float) ($max->unloading ?? 0)),
-                    'input' => AnalisaService::roundLeadTimeDays((float) ($max->input ?? 0)),
-                    'total' => AnalisaService::roundLeadTimeDays((float) $max->totalHari()),
-                ] : null,
+                'average' => $resolvedStages['average'],
+                'max' => $resolvedStages['max'],
+                'manual_average' => $resolvedStages['manual_average'],
+                'manual_max' => $resolvedStages['manual_max'],
             ];
         }
 

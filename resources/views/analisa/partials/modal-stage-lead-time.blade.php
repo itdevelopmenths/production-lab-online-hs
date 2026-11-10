@@ -24,6 +24,13 @@
     </x-slot:header>
 
     <form @submit.prevent="saveStages()" class="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <template x-if="stageForm.sumber_lt === 'otomatis'">
+            <div class="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed">
+                <strong class="font-semibold">Sumber Lead Time Otomatis (<span x-text="stageForm.jumlah_transaksi"></span> PO):</strong>
+                Rincian 9 tahap aktif saat ini dihitung otomatis dari histori PO Purchasing. Nilai 9 tahap di bawah digunakan sebagai <em>fallback manual</em> jika supplier berganti ke vendor tanpa histori PO, sedangkan <strong>Tambahan Buffer Lead Time</strong> tetap langsung dihitung ke Safety Stock.
+            </div>
+        </template>
+
         {{-- Tabel Matriks Input Tahapan Lead Time (9 Tahapan) --}}
         <div class="overflow-x-auto border border-border rounded-xl shadow-xs">
             <table class="w-full text-xs text-left border-collapse">

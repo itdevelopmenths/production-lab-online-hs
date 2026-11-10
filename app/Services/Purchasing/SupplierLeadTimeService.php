@@ -270,6 +270,8 @@ class SupplierLeadTimeService
                 }
             }
 
+            app(\App\Services\AnalisaService::class)->refreshAffectedProductsFromPo($distinctProductIds, $actorUserId);
+
             return $poLt;
         });
     }
@@ -465,6 +467,8 @@ class SupplierLeadTimeService
                     }
                 }
             }
+
+            app(\App\Services\AnalisaService::class)->refreshAffectedProductsFromPo($distinctProductIds, $manager->id);
         });
     }
 }

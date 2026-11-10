@@ -529,7 +529,27 @@
                                             <div class="font-mono text-[10px] text-muted-foreground" x-text="stg.sku"></div>
                                         </td>
                                         <td class="py-2.5 px-3" x-show="type === 'average'" rowspan="2">
-                                            <div class="font-medium text-foreground text-xs" x-text="stg.supplier_nama || '-'"></div>
+                                            <div class="flex flex-col gap-1">
+                                                <button type="button" @click="openCompareSupplier(stg)" class="font-medium text-primary hover:underline text-left cursor-pointer inline-flex items-center gap-1 text-xs" title="Bandingkan & Ganti Supplier">
+                                                    <span x-text="stg.supplier_nama || 'Pilih Supplier'"></span>
+                                                    <svg class="size-3 text-muted-foreground shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
+                                                </button>
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <template x-if="stg.sumber_lt === 'otomatis'">
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" title="Sumber: Rincian 9 Stage Histori PO Otomatis">
+                                                            <span class="size-1 rounded-full bg-emerald-500 shrink-0"></span>
+                                                            <span x-text="'Otomatis' + (stg.jumlah_transaksi ? ' (' + stg.jumlah_transaksi + ' PO)' : '')"></span>
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="stg.sumber_lt !== 'otomatis'">
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20" title="Sumber: Estimasi Input Manual">
+                                                            <span class="size-1 rounded-full bg-amber-500 shrink-0"></span>
+                                                            <span>Manual</span>
+                                                        </span>
+                                                    </template>
+                                                    <a :href="'{{ route('purchasing.index', ['tab' => 'po']) }}' + (stg.supplier_nama && stg.supplier_nama !== '-' ? '&search=' + encodeURIComponent(stg.supplier_nama) : '')" href="{{ route('purchasing.index', ['tab' => 'po']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline" title="Lihat Daftar Purchase Order Supplier">Histori LT</a>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td class="py-2.5 px-3 font-mono uppercase text-[10px] font-bold text-muted-foreground" x-text="type"></td>
                                         <td class="py-2.5 px-2 text-right font-mono text-muted-foreground" x-text="formatLt(stg[type] ? stg[type].perencanaan : 0)"></td>
