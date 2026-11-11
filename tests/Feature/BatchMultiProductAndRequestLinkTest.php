@@ -189,5 +189,30 @@ class BatchMultiProductAndRequestLinkTest extends TestCase
         $this->assertEquals(500, $bahanRekap['diminta']);   // 300 + 200 = 500 diminta
         $this->assertEquals(200, $bahanRekap['diterima']);  // 200 diterima dari RT2
     }
+
+    public function test_batches_create_product_dropdown_is_unclipped_and_stacked_above_cards(): void
+    {
+        $response = $this->actingAs($this->operasional)->get(route('batches.create'));
+        $response->assertOk();
+
+        $html = $response->getContent();
+
+        // Card 2 (Multi-Output) harus memakai overflow-visible + relative z-20 agar dropdown tidak terpotong & melayang di atas Card 3 / footer
+        $this->assertMatchesRegularExpression(
+            '/<div class="bg-card text-card-foreground rounded-lg border border-border shadow-2xs flex flex-col overflow-visible transition-all relative z-20">.*?Produk Jadi Luaran \(Multi-Output\)/s',
+            $html
+        );
+
+        // Card 3 (Pratinjau BOM) harus berada di z-0 agar tidak menimpa dropdown dari Card 2
+        $this->assertMatchesRegularExpression(
+            '/<div class="bg-card text-card-foreground rounded-lg border border-border shadow-2xs flex flex-col overflow-hidden transition-all relative z-0">.*?Pratinjau Agregasi Kebutuhan BOM/s',
+            $html
+        );
+
+        // Sel & panel dropdown produk jadi memakai z-[9999] dan cell level z-index 200
+        $this->assertStringContainsString("activeRow === i ? 'position: relative; z-index: 200;' : ''", $html);
+        $this->assertStringContainsString(":class=\"open ? 'z-[9999]' : 'z-10'\"", $html);
+        $this->assertStringContainsString('class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-[320px]', $html);
+    }
 }
 
