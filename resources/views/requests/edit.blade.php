@@ -1,4 +1,4 @@
-<x-app-layout title="Edit Permintaan Barang" subtitle="Perbarui rincian permintaan barang">
+<x-app-layout title="Edit Permintaan Barang">
     @php
         $productsById = $produk->keyBy('id');
         $rawItems = old('items', $stockRequest->items->map(fn($it) => [
@@ -92,7 +92,14 @@
         }
     </script>
 
-    <div x-data="requestEditData()">
+    <div x-data="requestEditData()" class="space-y-4">
+        <x-page-header
+            title="Edit Permintaan Barang"
+            :subtitle="$stockRequest->no_request"
+            :breadcrumbs="['Permintaan' => route('requests.index'), $stockRequest->no_request => route('requests.show', $stockRequest), 'Edit' => null]"
+            :backUrl="route('requests.show', $stockRequest)"
+        />
+
         <form method="POST" action="{{ route('requests.update', $stockRequest) }}" class="space-y-6">
             @csrf
             @method('PUT')
@@ -233,7 +240,7 @@
                                                 name: `items[${index}][produk_id]`,
                                                 selectedId: item.produk_id,
                                                 selectedItem: item.selectedItem,
-                                                filterTipe: () => (jenis === 'request_bahan' ? ['bahan', 'kemas'] : ['produk_jadi']),
+                                                filterTipe: () => (jenis === 'request_bahan' ? ['bahan', 'kemas', 'bahan_baku', 'kemasan'] : ['produk_jadi']),
                                                 placeholder: jenis === 'request_bahan' ? '— Cari Bahan / Kemasan —' : '— Cari Produk Jadi —',
                                                 url: '{{ route('produk.select-data', [], false) }}'
                                             })"

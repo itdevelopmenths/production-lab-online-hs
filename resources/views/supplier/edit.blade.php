@@ -1,16 +1,11 @@
-<x-app-layout title="Edit Supplier" :backUrl="route('supplier.index')">
+<x-app-layout title="Edit Supplier">
     <div class="w-full space-y-4">
         <x-page-header
             title="Edit Supplier"
             subtitle="Perbarui data kontak, kategori, atau termin pembayaran rekanan"
             :breadcrumbs="['Master Data' => null, 'Supplier' => route('supplier.index'), $supplier->nama => null, 'Edit' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('supplier.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('supplier.index')"
+        />
 
         <form method="POST" action="{{ route('supplier.update', $supplier) }}">
             @csrf

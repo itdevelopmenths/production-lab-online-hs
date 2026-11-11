@@ -1,14 +1,14 @@
-<x-app-layout title="Transfer Barang">
-    <div class="space-y-4">
+<x-app-layout title="Transfer & Mutasi Barang">
+    <div x-data="{ openDefect: {{ (request()->hasAny(['year', 'month', 'gudang_id']) || request()->has('defect')) ? 'true' : 'false' }} }">
         <x-page-header
             title="Transfer & Mutasi Barang"
             :breadcrumbs="['Transfer' => null]"
         >
             <x-slot:actions>
-                @can('rt.create')
+                @can('transfer.create')
                 <x-button href="{{ route('transfers.create') }}" variant="primary" size="xs">
                     <x-slot:icon>
-                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     </x-slot:icon>
                     Buat Transfer
                 </x-button>
@@ -16,61 +16,49 @@
             </x-slot:actions>
         </x-page-header>
 
-        {{-- Rekapitulasi Barang Rusak / Defect Mutasi --}}
+        {{-- Filter Bar & Toggle Rekap Defect --}}
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2.5 bg-card px-3.5 py-2 rounded-xl border border-border shadow-2xs">
+            <div class="flex flex-wrap items-center gap-2.5">
+                <label for="filterTransferStatus" class="sr-only">Filter Status Transfer</label>
+                <select id="filterTransferStatus" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
+                    <option value="">Semua Status</option>
+                    <option value="draft">Draft</option>
+                    <option value="dikirim">In Transit (Dikirim)</option>
+                    <option value="selesai">Selesai Diterima</option>
+                    <option value="dibatalkan">Dibatalkan</option>
+                </select>
+
+                <label for="filterTransferJenis" class="sr-only">Filter Jenis Transfer</label>
+                <select id="filterTransferJenis" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
+                    <option value="">Semua Jenis Transfer</option>
+                    @foreach(\App\Models\Transfer::JENIS_LABELS as $jKey => $jLbl)
+                        <option value="{{ $jKey }}">{{ $jLbl }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            @can('defect.view')
+                <button type="button"
+                        @click="openDefect = !openDefect"
+                        :aria-expanded="openDefect.toString()"
+                        aria-controls="defect-rekap-panel"
+                        class="h-8 px-2.5 rounded-md border border-border bg-muted/40 hover:bg-muted text-xs font-medium text-foreground inline-flex items-center gap-1.5 transition-colors cursor-pointer">
+                    <svg class="size-3.5 text-amber-600 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <span x-text="openDefect ? 'Sembunyikan Rekap Defect' : 'Rekap Defect'"></span>
+                    <svg class="size-3 text-muted-foreground transition-transform" :class="openDefect ? 'rotate-180' : ''" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+            @endcan
+        </div>
+
+        {{-- Panel Rekapitulasi Barang Rusak / Defect Mutasi --}}
         @can('defect.view')
-            <div x-data="{ openDefect: {{ (request()->hasAny(['year', 'month', 'gudang_id']) || request()->has('defect')) ? 'true' : 'false' }} }">
-                <div class="flex items-center justify-between mb-2">
-                    <button type="button" @click="openDefect = !openDefect" class="text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors cursor-pointer">
-                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        <span x-text="openDefect ? 'Sembunyikan Rekapitulasi Defect' : 'Lihat Rekapitulasi Defect Mutasi'"></span>
-                        <svg class="size-3 transition-transform" :class="openDefect ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                    </button>
-                    <a href="{{ route('dashboard') }}" class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 font-medium">
-                        Buka di Dashboard Beranda &rarr;
-                    </a>
-                </div>
-                <div x-show="openDefect" class="transition-all mb-4">
-                    @include('partials.defect-dashboard', ['formAction' => route('transfers.index')])
-                </div>
+            <div id="defect-rekap-panel" x-show="openDefect" x-cloak class="mb-4 transition-all">
+                @include('partials.defect-dashboard', ['formAction' => route('transfers.index')])
             </div>
         @endcan
 
-        {{-- ========================================================================= --}}
-        {{-- DAFTAR TRANSAKSI TRANSFER ANTAR GUDANG --}}
-        {{-- ========================================================================= --}}
-        <x-card>
-            <x-slot:header>
-                <div>
-                    <h2 class="text-lg font-semibold text-foreground tracking-tight leading-tight">Daftar Dokumen Transfer & Pengiriman</h2>
-                    <p class="text-sm text-muted-foreground mt-0.5">Pengiriman stok fisik antar gudang, surat jalan, dan penerimaan dengan pencatatan defect</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2.5">
-                    <select id="filterTransferStatus" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
-                        <option value="">Semua Status</option>
-                        <option value="draft">Draft</option>
-                        <option value="dikirim">In Transit (Dikirim)</option>
-                        <option value="selesai">Selesai Diterima</option>
-                        <option value="dibatalkan">Dibatalkan</option>
-                    </select>
-
-                    <select id="filterTransferJenis" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
-                        <option value="">Semua Jenis Transfer</option>
-                        @foreach(\App\Models\Transfer::JENIS_LABELS as $jKey => $jLbl)
-                            <option value="{{ $jKey }}">{{ $jLbl }}</option>
-                        @endforeach
-                    </select>
-
-                    @can('rt.create')
-                    <x-button href="{{ route('transfers.create') }}" variant="primary">
-                        <x-slot:icon>
-                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        </x-slot:icon>
-                        Buat Transfer Baru
-                    </x-button>
-                    @endcan
-                </div>
-            </x-slot:header>
-
+        {{-- Daftar Transaksi Transfer Antar Gudang --}}
+        <x-card title="Daftar Dokumen Transfer" :noPadding="true">
             <div class="overflow-x-auto">
                 <table id="tblTransfers" class="w-full text-sm">
                     <thead>

@@ -21,53 +21,77 @@ class AppServiceProvider extends ServiceProvider
 
         // Manager bypass all gate checks (PRD: akses & approval seluruh menu)
         Gate::before(function ($user, $ability) {
-            if ($user->hasRole('manager')) {
+            if (method_exists($user, 'hasRole') && $user->hasRole('manager')) {
                 return true;
             }
 
-            static $checking = false;
-            if ($checking) {
+            if (! is_string($ability)) {
                 return null;
             }
 
-            // Dual compatibility for Request & Transfer aliases with legacy RT permissions
-            if (str_starts_with($ability, 'request.')) {
-                $sub = substr($ability, 8);
-                $rtMap = ['view' => 'rt.view', 'create' => 'rt.create', 'submit' => 'rt.submit', 'approve' => 'rt.approve', 'cancel' => 'rt.cancel'];
-                if (isset($rtMap[$sub])) {
-                    $checking = true;
-                    $can = $user->can($rtMap[$sub]);
-                    $checking = false;
-                    if ($can) {
+            static $activeChecks = [];
+            if (isset($activeChecks[$ability])) {
+                return null;
+            }
+
+            $abilityAliases = [
+                // Granular Request <- exact | global request | legacy rt
+                'request.bahan.create' => ['request.bahan.create', 'request.create', 'rt.create'],
+                'request.produk_jadi.create' => ['request.produk_jadi.create', 'request.create', 'rt.create'],
+
+                // Granular Transfer <- exact | global transfer | legacy rt
+                'transfer.bahan.create' => ['transfer.bahan.create', 'transfer.create', 'rt.create'],
+                'transfer.bahan.ship' => ['transfer.bahan.ship', 'transfer.ship', 'rt.ship'],
+                'transfer.bahan.receive' => ['transfer.bahan.receive', 'transfer.receive', 'rt.receive'],
+                'transfer.produk_jadi.create' => ['transfer.produk_jadi.create', 'transfer.create', 'rt.create'],
+                'transfer.produk_jadi.ship' => ['transfer.produk_jadi.ship', 'transfer.ship', 'rt.ship'],
+                'transfer.produk_jadi.receive' => ['transfer.produk_jadi.receive', 'transfer.receive', 'rt.receive'],
+
+                // Module-level Request (never leaks into Transfer)
+                'request.view' => ['request.view', 'rt.view'],
+                'request.create' => ['request.create', 'request.bahan.create', 'request.produk_jadi.create', 'rt.create'],
+                'request.submit' => ['request.submit', 'rt.submit'],
+                'request.approve' => ['request.approve', 'rt.approve'],
+                'request.cancel' => ['request.cancel', 'rt.cancel'],
+
+                // Module-level Transfer (never leaks from Request)
+                'transfer.view' => ['transfer.view', 'rt.view'],
+                'transfer.create' => ['transfer.create', 'transfer.bahan.create', 'transfer.produk_jadi.create', 'rt.create'],
+                'transfer.ship' => ['transfer.ship', 'transfer.bahan.ship', 'transfer.produk_jadi.ship', 'rt.ship'],
+                'transfer.receive' => ['transfer.receive', 'transfer.bahan.receive', 'transfer.produk_jadi.receive', 'rt.receive'],
+                'transfer.cancel' => ['transfer.cancel', 'rt.cancel'],
+
+                // Legacy rt.* compatibility
+                'rt.view' => ['rt.view', 'request.view', 'transfer.view'],
+                'rt.create' => [
+                    'rt.create',
+                    'request.create', 'request.bahan.create', 'request.produk_jadi.create',
+                    'transfer.create', 'transfer.bahan.create', 'transfer.produk_jadi.create',
+                ],
+                'rt.submit' => ['rt.submit', 'request.submit'],
+                'rt.approve' => ['rt.approve', 'request.approve'],
+                'rt.ship' => ['rt.ship', 'transfer.ship', 'transfer.bahan.ship', 'transfer.produk_jadi.ship'],
+                'rt.receive' => ['rt.receive', 'transfer.receive', 'transfer.bahan.receive', 'transfer.produk_jadi.receive'],
+                'rt.cancel' => ['rt.cancel', 'request.cancel', 'transfer.cancel'],
+            ];
+
+            if (! isset($abilityAliases[$ability])) {
+                return null;
+            }
+
+            $activeChecks[$ability] = true;
+            try {
+                foreach ($abilityAliases[$ability] as $candidate) {
+                    $matched = method_exists($user, 'checkPermissionTo')
+                        ? $user->checkPermissionTo($candidate)
+                        : $user->can($candidate);
+
+                    if ($matched) {
                         return true;
                     }
                 }
-            }
-
-            if (str_starts_with($ability, 'transfer.')) {
-                $sub = substr($ability, 9);
-                $rtMap = ['view' => 'rt.view', 'create' => 'rt.create', 'ship' => 'rt.ship', 'receive' => 'rt.receive', 'cancel' => 'rt.cancel'];
-                if (isset($rtMap[$sub])) {
-                    $checking = true;
-                    $can = $user->can($rtMap[$sub]);
-                    $checking = false;
-                    if ($can) {
-                        return true;
-                    }
-                }
-            }
-
-            if (str_starts_with($ability, 'rt.')) {
-                $sub = substr($ability, 3);
-                $reqMap = ['view' => 'request.view', 'create' => 'request.create', 'submit' => 'request.submit', 'approve' => 'request.approve', 'cancel' => 'request.cancel'];
-                $trfMap = ['view' => 'transfer.view', 'create' => 'transfer.create', 'ship' => 'transfer.ship', 'receive' => 'transfer.receive', 'cancel' => 'transfer.cancel'];
-
-                $checking = true;
-                $can = (isset($reqMap[$sub]) && $user->can($reqMap[$sub])) || (isset($trfMap[$sub]) && $user->can($trfMap[$sub]));
-                $checking = false;
-                if ($can) {
-                    return true;
-                }
+            } finally {
+                unset($activeChecks[$ability]);
             }
 
             return null;

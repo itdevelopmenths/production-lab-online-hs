@@ -95,25 +95,30 @@ class PermissionSeeder extends Seeder
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.receive',
             'request.view',
-            'transfer.view', 'transfer.create', 'transfer.ship', 'transfer.receive', 'defect.view',
-            'rt.view', 'rt.create', 'rt.submit', 'rt.process', 'rt.ship', 'rt.receive',
+            'transfer.view',
+            'transfer.bahan.create', 'transfer.bahan.ship', 'transfer.bahan.receive',
+            'transfer.produk_jadi.create', 'transfer.produk_jadi.ship', 'transfer.produk_jadi.receive',
+            'defect.view',
+            'rt.view', 'rt.submit', 'rt.process',
             'report.view',
         ]);
 
         // Operasional
         $operasional = \App\Models\Role::firstOrCreate(
             ['name' => 'operasional'],
-            ['guard_name' => 'web', 'display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan (RT), dan stock opname', 'is_system' => true]
+            ['guard_name' => 'web', 'display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan baku, penerimaan bahan, pengiriman produk jadi, dan stock opname', 'is_system' => true]
         );
-        $operasional->update(['display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan (RT), dan stock opname', 'is_system' => true]);
+        $operasional->update(['display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan baku, penerimaan bahan, pengiriman produk jadi, dan stock opname', 'is_system' => true]);
         $operasional->syncPermissions([
             'produk.view', 'gudang.view', 'uom.view', 'bom.view', 'bom.manage',
             'stok.view', 'stok.opname', 'stok.ledger.view',
             'batch.view', 'batch.create', 'batch.release',
             'batch.complete', 'batch.cancel', 'batch.opname',
-            'request.view', 'request.create', 'request.submit', 'request.cancel',
-            'transfer.view', 'transfer.ship', 'transfer.receive', 'defect.view',
-            'rt.view', 'rt.create', 'rt.submit', 'rt.ship', 'rt.receive',
+            'request.view', 'request.bahan.create', 'request.submit', 'request.cancel',
+            'transfer.view', 'transfer.bahan.receive',
+            'transfer.produk_jadi.create', 'transfer.produk_jadi.ship',
+            'defect.view',
+            'rt.view', 'rt.submit',
             'report.view',
         ]);
 
@@ -127,9 +132,11 @@ class PermissionSeeder extends Seeder
             'produk.view', 'gudang.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'analisa.view', 'analisa.manage', 'analisa.snapshot',
-            'request.view', 'request.create', 'request.submit', 'request.cancel',
-            'transfer.view', 'transfer.create', 'transfer.ship', 'transfer.receive', 'defect.view',
-            'rt.view', 'rt.create', 'rt.ship', 'rt.receive',
+            'request.view', 'request.produk_jadi.create', 'request.submit', 'request.cancel',
+            'transfer.view',
+            'transfer.produk_jadi.create', 'transfer.produk_jadi.ship', 'transfer.produk_jadi.receive',
+            'defect.view',
+            'rt.view',
             'report.view',
         ]);
     }

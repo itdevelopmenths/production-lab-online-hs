@@ -6,37 +6,41 @@ use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\StockRequest;
+use App\Models\User;
+use App\Services\Authorization\InventoryTransferAuthorizationService;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\RequestService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
 
 class RequestController extends Controller
 {
     public function __construct(
         private readonly RequestService $requestService,
-        private readonly LocationScopeService $locationScope
+        private readonly LocationScopeService $locationScope,
+        private readonly InventoryTransferAuthorizationService $authz
     ) {
     }
 
     public function index(Request $request)
     {
-        $this->authorize('rt.view');
+        $this->authorize('request.view');
 
         $user = auth()->user();
         $isManager = $user->hasAnyRole(['manager', 'admin']);
-        $isOperasional = $user->hasRole('operasional');
-        $isFulfillment = $user->hasRole('fulfillment');
+        $isOperasional = $user->can('request.bahan.create') && ! $isManager;
+        $isFulfillment = $user->can('request.produk_jadi.create') && ! $isManager;
 
         return view('requests.index', compact('isManager', 'isOperasional', 'isFulfillment'));
     }
 
     public function data(Request $request): JsonResponse
     {
-        $this->authorize('rt.view');
+        $this->authorize('request.view');
 
         $user = auth()->user();
         $userId = (int) $user->id;
@@ -90,32 +94,36 @@ class RequestController extends Controller
 
                 // 2. Status DRAFT: Pembuat atau Manager dapat Edit & Batalkan
                 if ($r->status === 'draft' && ((int) $r->created_by === $userId || $isManager)) {
-                    $editUrl = route('requests.edit', $r);
-                    $html .= '<a href="' . e($editUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground hover:bg-accent border border-border transition-colors">Edit</a>';
-                    $html .= '<button type="button" class="btn-cancel-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.cancel', $r)) . '" data-no="' . e($r->no_request) . '">Batalkan</button>';
-                }
-
-                // 3. Status DIAJUKAN: Manager dapat Setujui (primary emerald) atau Tolak (ghost destructive)
-                if ($r->status === 'diajukan') {
-                    if ($isManager) {
-                        $csrf = csrf_field();
-                        $approveUrl = route('requests.approve', $r);
-                        $html .= '<form method="POST" action="' . e($approveUrl) . '" class="inline" onsubmit="return confirm(\'Setujui request ' . e($r->no_request) . '?\')">' . $csrf . '<button type="submit" class="px-2.5 py-1 rounded-md text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors cursor-pointer">Setujui</button></form>';
-                        $html .= '<button type="button" class="btn-reject-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.reject', $r)) . '" data-no="' . e($r->no_request) . '">Tolak</button>';
-                    } elseif ((int) $r->created_by === $userId) {
+                    if ($this->authz->canCreateRequestForType($user, $r->jenis)) {
+                        $editUrl = route('requests.edit', $r);
+                        $html .= '<a href="' . e($editUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground hover:bg-accent border border-border transition-colors">Edit</a>';
+                    }
+                    if ($user->can('request.cancel')) {
                         $html .= '<button type="button" class="btn-cancel-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.cancel', $r)) . '" data-no="' . e($r->no_request) . '">Batalkan</button>';
                     }
                 }
 
-                // 4. Status DISETUJUI: Alur kerja utama Buat Transfer (primary solid) & opsi Revisi (ghost)
+                // 3. Status DIAJUKAN: Pihak berwenang approve dapat Setujui / Tolak
+                if ($r->status === 'diajukan') {
+                    if ($user->can('request.approve')) {
+                        $csrf = csrf_field();
+                        $approveUrl = route('requests.approve', $r);
+                        $html .= '<form method="POST" action="' . e($approveUrl) . '" class="inline" onsubmit="return confirm(\'Setujui request ' . e($r->no_request) . '?\')">' . $csrf . '<button type="submit" class="px-2.5 py-1 rounded-md text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors cursor-pointer">Setujui</button></form>';
+                        $html .= '<button type="button" class="btn-reject-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.reject', $r)) . '" data-no="' . e($r->no_request) . '">Tolak</button>';
+                    } elseif ((int) $r->created_by === $userId && $user->can('request.cancel')) {
+                        $html .= '<button type="button" class="btn-cancel-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.cancel', $r)) . '" data-no="' . e($r->no_request) . '">Batalkan</button>';
+                    }
+                }
+
+                // 4. Status DISETUJUI: Alur kerja utama Buat Transfer (sesuai izin kategori transfer) & opsi Revisi
                 if ($r->status === 'disetujui') {
                     $hasActiveTransfer = $r->transfers->where('status', '!=', 'dibatalkan')->isNotEmpty();
-                    if (! $hasActiveTransfer && $user->can('rt.create')) {
+                    if (! $hasActiveTransfer && $this->authz->canCreateTransferForRequest($user, $r)) {
                         $trfUrl = route('transfers.create', ['request_id' => $r->id]);
                         $html .= '<a href="' . e($trfUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 transition-colors shadow-2xs cursor-pointer">Buat Transfer</a>';
                     }
 
-                    if ((int) $r->created_by === $userId || $isManager) {
+                    if (((int) $r->created_by === $userId || $isManager) && $this->authz->canCreateRequestForType($user, $r->jenis)) {
                         $editUrl = route('requests.edit', $r);
                         $html .= '<a href="' . e($editUrl) . '" class="px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Revisi request disetujui (status akan kembali diajukan)">Revisi</a>';
                     }
@@ -130,26 +138,30 @@ class RequestController extends Controller
 
     public function create(Request $request)
     {
-        $this->authorize('rt.create');
+        $this->authorize('request.create');
         $user = auth()->user();
-        $roles = array_map('strtolower', $user->getRoleNames()->toArray());
 
-        $allowedJenis = [];
-        if (in_array('operasional', $roles, true) || in_array('manager', $roles, true) || in_array('admin', $roles, true)) {
-            $allowedJenis[] = 'request_bahan';
-        }
-        if (in_array('fulfillment', $roles, true) || in_array('manager', $roles, true) || in_array('admin', $roles, true)) {
-            $allowedJenis[] = 'request_produk_jadi';
-        }
-
+        $allowedJenis = $this->authz->allowedRequestTypes($user);
         abort_if(empty($allowedJenis), 403, 'Anda tidak memiliki hak akses untuk membuat Permintaan Barang.');
 
+        $allowBatchRequest = in_array('request_bahan', $allowedJenis, true);
+        if ($request->filled('batch_id') && ! $allowBatchRequest) {
+            abort(403, 'Anda tidak memiliki izin membuat Request Bahan Baku dari Batch Produksi.');
+        }
+
         $gudang = Gudang::active()->orderBy('nama')->get();
-        $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
-        $activeBatches = BatchProduksi::with(['alokasi.bahan', 'outputs.produk'])
-            ->whereIn('status', ['rencana', 'release'])
-            ->orderByDesc('id')
-            ->get(['id', 'no_batch', 'status', 'gudang_operasional_id']);
+        $allowedTipes = $this->authz->allowedRequestProductTipes($user);
+        $produk = Produk::active()
+            ->when($allowedTipes !== null, fn ($q) => $q->whereIn('tipe', $allowedTipes))
+            ->orderBy('nama')
+            ->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
+
+        $activeBatches = $allowBatchRequest
+            ? BatchProduksi::with(['alokasi.bahan', 'outputs.produk'])
+                ->whereIn('status', ['rencana', 'release'])
+                ->orderByDesc('id')
+                ->get(['id', 'no_batch', 'status', 'gudang_operasional_id'])
+            : collect();
 
         $gudangPusat = Gudang::bahanBakuPusat()->first()
             ?? Gudang::where('tipe', 'bahan_baku')->first()
@@ -273,7 +285,7 @@ class RequestController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $this->authorize('rt.create');
+        $this->authorize('request.create');
 
         $validated = $request->validate([
             'jenis' => 'required|in:request_bahan,request_produk_jadi',
@@ -288,21 +300,24 @@ class RequestController extends Controller
             'items.*.keterangan' => 'nullable|string|max:255',
         ]);
 
+        $user = auth()->user();
+        $this->authorizeRequestCreationPayload($user, $validated['jenis'], $validated['items']);
+
         try {
             DB::beginTransaction();
             $data = [
                 'jenis' => $validated['jenis'],
                 'gudang_asal_id' => $validated['gudang_pemohon_id'],
                 'gudang_tujuan_id' => $validated['gudang_tujuan_id'],
-                'referensi_batch_id' => $validated['batch_id'] ?? null,
+                'referensi_batch_id' => $validated['jenis'] === 'request_bahan' ? ($validated['batch_id'] ?? null) : null,
                 'catatan' => $validated['catatan'] ?? null,
                 'items' => $validated['items'],
             ];
 
-            $stockRequest = $this->requestService->create($data, auth()->user());
+            $stockRequest = $this->requestService->create($data, $user);
 
             if ($request->input('action') === 'submit') {
-                $this->requestService->submit($stockRequest, auth()->user());
+                $this->requestService->submit($stockRequest, $user);
                 $message = "Request {$stockRequest->no_request} berhasil disimpan dan langsung diajukan ke Manajer.";
             } else {
                 $message = "Draft Request {$stockRequest->no_request} berhasil dibuat.";
@@ -310,6 +325,9 @@ class RequestController extends Controller
             DB::commit();
 
             return redirect()->route('requests.show', $stockRequest)->with('success', $message);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Throwable $e) {
             DB::rollBack();
             return back()->withInput()->with('error', $e->getMessage());
@@ -318,7 +336,7 @@ class RequestController extends Controller
 
     public function show(StockRequest $stockRequest)
     {
-        $this->authorize('rt.view');
+        $this->authorize('request.view');
 
         $stockRequest->load([
             'gudangPemohon',
@@ -334,22 +352,31 @@ class RequestController extends Controller
 
         $user = auth()->user();
         $isManager = $user->hasAnyRole(['manager', 'admin']);
-        $canApprove = $isManager && $stockRequest->status === 'diajukan';
-        $canSubmit = ((int) $stockRequest->created_by === (int) $user->id || $isManager) && $stockRequest->status === 'draft';
-        $canCancel = in_array($stockRequest->status, ['draft', 'diajukan', 'disetujui'], true) &&
+        $canApprove = $user->can('request.approve') && $stockRequest->status === 'diajukan';
+        $canSubmit = $user->can('request.submit') && ((int) $stockRequest->created_by === (int) $user->id || $isManager) && $stockRequest->status === 'draft';
+        $canCancel = $user->can('request.cancel') && in_array($stockRequest->status, ['draft', 'diajukan', 'disetujui'], true) &&
             (((int) $stockRequest->created_by === (int) $user->id) || $isManager);
         $canCreateTransfer = $stockRequest->status === 'disetujui' &&
             $stockRequest->transfers->where('status', '!=', 'dibatalkan')->isEmpty() &&
-            $user->can('rt.create');
+            $this->authz->canCreateTransferForRequest($user, $stockRequest);
+        $canEdit = $this->authz->canCreateRequestForType($user, $stockRequest->jenis) &&
+            in_array($stockRequest->status, ['draft', 'disetujui'], true) &&
+            ($isManager || (int) $stockRequest->created_by === (int) $user->id);
 
-        return view('requests.show', compact('stockRequest', 'canApprove', 'canSubmit', 'canCancel', 'canCreateTransfer', 'isManager'));
+        return view('requests.show', compact('stockRequest', 'canApprove', 'canSubmit', 'canCancel', 'canCreateTransfer', 'canEdit', 'isManager'));
     }
 
     public function edit(StockRequest $stockRequest)
     {
-        $this->authorize('rt.create');
+        $this->authorize('request.create');
         $user = auth()->user();
         $isManager = $user->hasAnyRole(['manager', 'admin']);
+
+        abort_unless(
+            $this->authz->canCreateRequestForType($user, $stockRequest->jenis),
+            403,
+            'Anda tidak memiliki izin mengubah jenis Request ini.'
+        );
 
         abort_if(
             ! in_array($stockRequest->status, ['draft', 'disetujui'], true) ||
@@ -360,15 +387,34 @@ class RequestController extends Controller
 
         $stockRequest->load(['items.produk.uom', 'gudangPemohon', 'gudangTujuan', 'batch']);
         $gudang = Gudang::active()->orderBy('nama')->get();
-        $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
-        $activeBatches = BatchProduksi::whereIn('status', ['rencana', 'release'])->orderByDesc('id')->get(['id', 'no_batch', 'status']);
+        $allowedTipes = $this->authz->allowedRequestProductTipes($user);
+        $produk = Produk::active()
+            ->when($allowedTipes !== null, fn ($q) => $q->whereIn('tipe', $allowedTipes))
+            ->orderBy('nama')
+            ->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
+        $activeBatches = $stockRequest->jenis === 'request_bahan'
+            ? BatchProduksi::whereIn('status', ['rencana', 'release'])->orderByDesc('id')->get(['id', 'no_batch', 'status'])
+            : collect();
 
         return view('requests.edit', compact('stockRequest', 'gudang', 'produk', 'activeBatches'));
     }
 
     public function update(Request $request, StockRequest $stockRequest): RedirectResponse
     {
-        $this->authorize('rt.create');
+        $this->authorize('request.create');
+        $user = auth()->user();
+        $isManager = $user->hasAnyRole(['manager', 'admin']);
+
+        $this->authz->authorizeOrAbort(
+            $this->authz->canCreateRequestForType($user, $stockRequest->jenis),
+            'Anda tidak memiliki izin mengubah jenis Request ini.'
+        );
+
+        abort_if(
+            (int) $stockRequest->created_by !== (int) $user->id && ! $isManager,
+            403,
+            'Anda tidak memiliki izin mengubah Request ini.'
+        );
 
         $validated = $request->validate([
             'gudang_pemohon_id' => 'required|exists:gudang,id',
@@ -381,16 +427,18 @@ class RequestController extends Controller
             'items.*.keterangan' => 'nullable|string|max:255',
         ]);
 
+        $this->authorizeRequestCreationPayload($user, $stockRequest->jenis, $validated['items']);
+
         try {
             $wasApproved = $stockRequest->status === 'disetujui';
             $data = [
                 'gudang_asal_id' => $validated['gudang_pemohon_id'],
                 'gudang_tujuan_id' => $validated['gudang_tujuan_id'],
-                'referensi_batch_id' => $validated['batch_id'] ?? null,
+                'referensi_batch_id' => $stockRequest->jenis === 'request_bahan' ? ($validated['batch_id'] ?? null) : null,
                 'catatan' => $validated['catatan'] ?? null,
                 'items' => $validated['items'],
             ];
-            $stockRequest = $this->requestService->update($stockRequest, $data, auth()->user());
+            $stockRequest = $this->requestService->update($stockRequest, $data, $user);
 
             $msg = "Request {$stockRequest->no_request} berhasil diperbarui.";
             if ($wasApproved) {
@@ -398,6 +446,8 @@ class RequestController extends Controller
             }
 
             return redirect()->route('requests.show', $stockRequest)->with('success', $msg);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $e->getMessage());
         }
@@ -405,7 +455,7 @@ class RequestController extends Controller
 
     public function submit(StockRequest $stockRequest): RedirectResponse
     {
-        $this->authorize('rt.submit');
+        $this->authorize('request.submit');
 
         try {
             $this->requestService->submit($stockRequest, auth()->user());
@@ -417,7 +467,7 @@ class RequestController extends Controller
 
     public function approve(Request $request, StockRequest $stockRequest): RedirectResponse
     {
-        $this->authorize('rt.approve');
+        $this->authorize('request.approve');
 
         try {
             $this->requestService->approve($stockRequest, auth()->user());
@@ -429,7 +479,7 @@ class RequestController extends Controller
 
     public function reject(Request $request, StockRequest $stockRequest): RedirectResponse
     {
-        $this->authorize('rt.approve');
+        $this->authorize('request.approve');
 
         $request->validate([
             'alasan' => 'required|string|max:500',
@@ -445,7 +495,7 @@ class RequestController extends Controller
 
     public function cancel(Request $request, StockRequest $stockRequest): RedirectResponse
     {
-        $this->authorize('rt.cancel');
+        $this->authorize('request.cancel');
 
         try {
             $alasan = $request->input('alasan') ?: 'Dibatalkan oleh pengguna';
@@ -454,5 +504,25 @@ class RequestController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    /**
+     * Pastikan actor berizin atas jenis Request serta seluruh kategori produk item pada payload.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function authorizeRequestCreationPayload(User $user, string $jenis, array $items): void
+    {
+        $this->authz->authorizeOrAbort(
+            $this->authz->canCreateRequestForType($user, $jenis),
+            'Anda tidak memiliki izin untuk membuat atau mengubah jenis Request ini.'
+        );
+
+        $produkIds = collect($items)->pluck('produk_id')->filter()->all();
+        $categories = $this->authz->resolveProductCategories($produkIds);
+        $this->authz->authorizeOrAbort(
+            $this->authz->canCreateRequestWithCategories($user, $categories),
+            'Anda tidak memiliki izin Request untuk kategori produk yang dipilih.'
+        );
     }
 }

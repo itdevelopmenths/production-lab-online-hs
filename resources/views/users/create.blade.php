@@ -1,16 +1,11 @@
-<x-app-layout title="Tambah Pengguna" :backUrl="route('users.index')">
+<x-app-layout title="Tambah Pengguna">
     <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Pengguna Baru"
             subtitle="Daftarkan akun pengguna baru beserta departemen divisi, hak akses gudang, dan peran sistem"
             :breadcrumbs="['Pengaturan' => null, 'Manajemen Pengguna' => route('users.index'), 'Tambah' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('users.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('users.index')"
+        />
 
         <form action="{{ route('users.store') }}" method="POST" class="space-y-6">
             @csrf

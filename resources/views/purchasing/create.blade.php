@@ -68,13 +68,8 @@
         <x-page-header
             title="Buat Purchase Order"
             :breadcrumbs="['Purchasing' => route('purchasing.index'), 'Buat PO' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('purchasing.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('purchasing.index')"
+        />
 
         <div x-data="poForm({{ Js::from($initialData) }})" x-init="init()">
             <form method="POST" action="{{ route('purchasing.store') }}" @submit="handleSubmit($event)">

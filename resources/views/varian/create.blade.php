@@ -1,15 +1,10 @@
-<x-app-layout title="Tambah Varian Produk" :backUrl="route('varian.index')">
+<x-app-layout title="Tambah Varian Produk">
     <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Varian Baru"
             :breadcrumbs="['Master Data' => null, 'Varian Produk' => route('varian.index'), 'Tambah' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('varian.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('varian.index')"
+        />
 
         <form method="POST" action="{{ route('varian.store') }}">
             @csrf

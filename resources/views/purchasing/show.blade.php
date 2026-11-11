@@ -65,6 +65,8 @@
                 'Purchasing' => route('purchasing.index'),
                 $po->no_po => null,
             ]"
+            :backUrl="route('purchasing.index')"
+            backSize="xs"
         >
             <x-slot:actions>
                 <x-badge :variant="$poBadgeVariant" :dot="true" size="sm">
@@ -102,10 +104,6 @@
                         @endif
                     @endif
                 @endcan
-
-                <x-button href="{{ route('purchasing.index') }}" variant="outline" size="xs">
-                    &larr; Kembali
-                </x-button>
             </x-slot:actions>
         </x-page-header>
 

@@ -1,16 +1,11 @@
-<x-app-layout title="Ubah Peran & Wewenang" :backUrl="route('roles.index')">
+<x-app-layout title="Ubah Peran & Wewenang">
     <div class="w-full space-y-4">
         <x-page-header
             title="Ubah Peran: {{ $role->display_name ?: $role->name }}"
             subtitle="Sesuaikan informasi peran dan konfigurasi wewenang modul laboratorium"
             :breadcrumbs="['Sistem' => null, 'Peran & Wewenang' => route('roles.index'), 'Ubah' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('roles.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('roles.index')"
+        />
 
         @if ($role->is_system)
             <x-alert type="warning" title="Peran Sistem Terproteksi:">

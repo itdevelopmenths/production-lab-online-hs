@@ -385,5 +385,63 @@ class RequestAndTransferSeparationTest extends TestCase
         $this->assertNull($request->disetujui_oleh);
         $this->assertEquals(75, (float) $request->items->first()->qty_diminta);
     }
+
+    public function test_cancel_in_transit_transfer_refunds_origin_stock_records_ledger_and_reverts_request(): void
+    {
+        $initialOriginSaldo = $this->stokService->saldo($this->bahan->id, $this->gudangPusat->id);
+        $initialDestSaldo = $this->stokService->saldo($this->bahan->id, $this->gudangOps->id);
+        if ($initialOriginSaldo < 100) {
+            $this->stokService->masuk($this->bahan->id, $this->gudangPusat->id, 500, 'manual', null, 'Stok awal test');
+            $initialOriginSaldo = $this->stokService->saldo($this->bahan->id, $this->gudangPusat->id);
+        }
+
+        $request = $this->reqService->create([
+            'jenis' => 'request_bahan',
+            'gudang_asal_id' => $this->gudangOps->id,
+            'gudang_tujuan_id' => $this->gudangPusat->id,
+            'status' => 'diajukan',
+            'items' => [
+                ['produk_id' => $this->bahan->id, 'qty_diminta' => 60],
+            ],
+        ], $this->operasional);
+        $this->reqService->approve($request, $this->manager);
+
+        $transfer = $this->trfService->create([
+            'jenis' => 'pemenuhan_request_bahan',
+            'request_id' => $request->id,
+            'gudang_asal_id' => $this->gudangPusat->id,
+            'gudang_tujuan_id' => $this->gudangOps->id,
+            'items' => [
+                ['produk_id' => $this->bahan->id, 'qty_dikirim' => 60],
+            ],
+        ], $this->operasional);
+
+        $this->trfService->ship($transfer, $this->gudangUser);
+        $this->assertEquals('dikirim', $transfer->fresh()->status);
+        $this->assertEquals($initialOriginSaldo - 60.0, $this->stokService->saldo($this->bahan->id, $this->gudangPusat->id));
+
+        // Cancel In Transit transfer -> refund 60 back to origin warehouse + revert request to disetujui
+        $this->trfService->cancel($transfer, $this->manager, 'Armada batal berangkat');
+
+        $transfer->refresh();
+        $this->assertEquals('dibatalkan', $transfer->status);
+        $this->assertEquals('Armada batal berangkat', $transfer->alasan_batal);
+        $this->assertEquals($initialOriginSaldo, $this->stokService->saldo($this->bahan->id, $this->gudangPusat->id));
+        $this->assertEquals($initialDestSaldo, $this->stokService->saldo($this->bahan->id, $this->gudangOps->id));
+
+        $request->refresh();
+        $this->assertEquals('disetujui', $request->status);
+
+        $refundLedger = \App\Models\KartuStok::where('referensi_tipe', 'transfer')
+            ->where('referensi_id', $transfer->id)
+            ->where('tipe', 'in')
+            ->first();
+        $this->assertNotNull($refundLedger);
+        $this->assertEquals(60.0, (float) $refundLedger->qty);
+
+        // Double-cancel must be rejected so stock cannot be refunded twice
+        $this->expectException(ValidationException::class);
+        $this->trfService->cancel($transfer, $this->manager, 'Dobel batal');
+    }
 }
 

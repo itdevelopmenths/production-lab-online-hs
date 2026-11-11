@@ -1,4 +1,4 @@
-<x-app-layout title="Buat Transfer Barang" subtitle="Inisiasi pengiriman / mutasi fisik barang antar gudang">
+<x-app-layout title="Buat Transfer Barang">
     @php
         $productsById = $products->keyBy('id');
         $prefilledByReqItemId = collect($prefilledItems)->filter(fn ($p) => !empty($p['request_item_id']))->keyBy('request_item_id');
@@ -101,6 +101,8 @@
                 gudangAsalId: @js((string) old('gudang_asal_id', $defaultGudangAsalId ?? '')),
                 gudangTujuanId: @js((string) old('gudang_tujuan_id', $defaultGudangTujuanId ?? '')),
                 jenis: @js(old('jenis', $defaultJenis ?? 'antar_fulfillment')),
+                canTransferBahan: @js($canTransferBahan ?? true),
+                canTransferProdukJadi: @js($canTransferProdukJadi ?? true),
                 nextUid: {{ count($initialItems) + 1 }},
                 items: @js($initialItems),
                 products: @js($products),
@@ -124,6 +126,48 @@
                             }
                         });
                     }
+                },
+                getFilterTipe() {
+                    const bahanTipes = ['bahan', 'kemas', 'bahan_baku', 'kemasan'];
+                    const pjTipes = ['produk_jadi'];
+                    if (this.jenis === 'pemenuhan_request_bahan' || this.jenis === 'retur_bahan') {
+                        return bahanTipes;
+                    }
+                    if (this.jenis === 'kirim_produk_jadi' || this.jenis === 'retur_produk_jadi') {
+                        return pjTipes;
+                    }
+                    if (this.canTransferBahan && this.canTransferProdukJadi) {
+                        return null;
+                    }
+                    if (this.canTransferBahan) {
+                        return bahanTipes;
+                    }
+                    if (this.canTransferProdukJadi) {
+                        return pjTipes;
+                    }
+                    return [];
+                },
+                onJenisChange() {
+                    this.validationMessage = '';
+                    const allowedTipes = this.getFilterTipe();
+                    this.items.forEach(item => {
+                        const hasSelectedMismatch = item.selectedItem && item.selectedItem.tipe && Array.isArray(allowedTipes) && !allowedTipes.includes(item.selectedItem.tipe);
+                        if (hasSelectedMismatch) {
+                            item.produk_id = '';
+                            item.sku = '';
+                            item.nama = '';
+                            item.satuan = '-';
+                            item.stok_tersedia = null;
+                            item.stok_error = false;
+                            item.selectedItem = null;
+                            if (this.activeRow === item._uid) {
+                                this.activeRow = null;
+                            }
+                            item._uid = ++this.nextUid;
+                        } else if (!item.produk_id) {
+                            item._uid = ++this.nextUid;
+                        }
+                    });
                 },
                 makeEmptyRow() {
                     return {
@@ -333,7 +377,14 @@
         }
     </script>
 
-    <div x-data="transferCreateData()">
+    <div x-data="transferCreateData()" class="space-y-4">
+        <x-page-header
+            title="Buat Transfer Barang"
+            subtitle="Inisiasi pengiriman / mutasi fisik barang antar gudang"
+            :breadcrumbs="['Transfer' => route('transfers.index'), 'Buat Baru' => null]"
+            :backUrl="route('transfers.index')"
+        />
+
         <form method="POST" action="{{ route('transfers.store') }}" @submit="onSubmit($event)" class="space-y-6">
             @csrf
             @if($stockRequest)
@@ -408,9 +459,11 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div>
                         <label for="transfer-jenis" class="block text-xs font-semibold text-foreground mb-1.5">Jenis Transfer <span class="text-destructive">*</span></label>
-                        <select id="transfer-jenis" name="jenis" x-model="jenis" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
+                        <select id="transfer-jenis" name="jenis" x-model="jenis" @change="onJenisChange()" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
                             @foreach(\App\Models\Transfer::JENIS_LABELS as $key => $label)
-                                <option value="{{ $key }}">{{ $label }}</option>
+                                @if(in_array($key, $allowedJenis ?? \App\Models\Transfer::JENIS, true))
+                                    <option value="{{ $key }}">{{ $label }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
@@ -450,12 +503,6 @@
                             <h2 class="text-lg font-semibold text-foreground tracking-tight">Rincian Barang Dikirim</h2>
                             <p class="text-xs text-muted-foreground mt-0.5">Pastikan kuantitas pengiriman tidak melebihi stok yang tersedia di gudang asal</p>
                         </div>
-                        @if(!$stockRequest)
-                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition cursor-pointer">
-                            <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            Tambah Baris
-                        </button>
-                        @endif
                     </div>
                 </x-slot:header>
 
@@ -502,7 +549,8 @@
                                                     name: `items[${item._uid}][produk_id]`,
                                                     selectedId: item.produk_id,
                                                     selectedItem: item.selectedItem,
-                                                    placeholder: '— Cari & Pilih Produk / Bahan —',
+                                                    filterTipe: () => getFilterTipe(),
+                                                    placeholder: canTransferBahan && canTransferProdukJadi ? '— Cari & Pilih Produk / Bahan —' : (canTransferBahan ? '— Cari & Pilih Bahan Baku —' : '— Cari & Pilih Produk Jadi —'),
                                                     url: '{{ route('produk.select-data', [], false) }}'
                                                 })"
                                                 x-init="init()"
@@ -681,8 +729,15 @@
                     </table>
                 </div>
 
-                <div class="p-4 bg-muted/20 border-t border-border flex items-center justify-between">
-                    <x-button href="{{ route('transfers.index') }}" variant="outline">Kembali ke Daftar</x-button>
+                <div class="p-4 bg-muted/20 border-t border-border flex items-center justify-between gap-3">
+                    <div>
+                        @if(!$stockRequest)
+                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition cursor-pointer">
+                            <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Tambah Baris
+                        </button>
+                        @endif
+                    </div>
                     <div class="flex items-center gap-3">
                         <button type="submit" name="action" value="save_draft" @click="submitAction = 'save_draft'" :disabled="submitting" class="px-4 py-2 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition cursor-pointer disabled:opacity-50">
                             Simpan Sebagai Draft

@@ -3,13 +3,9 @@
         title="Kartu Stok — {{ $produk->nama }}"
         subtitle="Riwayat audit saldo mutasi fisik produk SKU {{ $produk->sku }}"
         :breadcrumbs="['Stok & Mutasi' => route('stok.index'), 'Kartu Stok' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('stok.index') }}" variant="secondary" size="xs">
-                &larr; Kembali ke Stok
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('stok.index')"
+        backSize="xs"
+    />
 
     <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border shadow-xs">
         <div class="flex flex-wrap items-center gap-3">

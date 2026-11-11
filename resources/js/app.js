@@ -18,13 +18,37 @@ window.productSearchSelect = function(config) {
         selectedItem: config ? (config.selectedItem || null) : null,
         filterTipe: config ? (config.filterTipe || null) : null,
         supplierId: config ? (config.supplierId || null) : null,
+        _lastFilterSignature: null,
         placeholder: config ? (config.placeholder || '— Pilih Produk —') : '— Pilih Produk —',
         url: config ? (config.url || '/produk/select-data') : '/produk/select-data',
+
+        _resolveFilterTipe() {
+            return (typeof this.filterTipe === 'function') ? this.filterTipe() : this.filterTipe;
+        },
+
+        _resolveSupplierId() {
+            let sId = (typeof this.supplierId === 'function') ? this.supplierId() : this.supplierId;
+            if (!sId) {
+                const suppSelect = document.querySelector('select[name="supplier_id"]');
+                if (suppSelect && suppSelect.value) {
+                    sId = suppSelect.value;
+                }
+            }
+            return sId || null;
+        },
+
+        _filterSignature() {
+            return JSON.stringify({
+                tipe: this._resolveFilterTipe() ?? null,
+                supplier: this._resolveSupplierId(),
+            });
+        },
 
         async init() {
             if (this.selectedItem && !this.selectedId) {
                 this.selectedId = this.selectedItem.id;
             }
+            this._lastFilterSignature = this._filterSignature();
         },
 
         async toggle() {
@@ -36,6 +60,12 @@ window.productSearchSelect = function(config) {
                         this.$refs.searchInput.focus();
                     }
                 });
+                const currentSignature = this._filterSignature();
+                if (this._lastFilterSignature !== currentSignature) {
+                    this.items = [];
+                    this.page = 1;
+                    this._lastFilterSignature = currentSignature;
+                }
                 if (this.items.length === 0) {
                     await this.fetchItems(1, false);
                 }
@@ -50,7 +80,7 @@ window.productSearchSelect = function(config) {
                 let baseUrl = this.url || '/produk/select-data';
                 let q = (this.search || '').trim();
                 let url = `${baseUrl}?page=${page}&q=${encodeURIComponent(q)}`;
-                let fTipe = (typeof this.filterTipe === 'function') ? this.filterTipe() : this.filterTipe;
+                let fTipe = this._resolveFilterTipe();
                 if (fTipe) {
                     if (Array.isArray(fTipe)) {
                         fTipe.forEach(t => url += `&tipe[]=${encodeURIComponent(t)}`);
@@ -58,13 +88,7 @@ window.productSearchSelect = function(config) {
                         url += `&tipe[]=${encodeURIComponent(fTipe)}`;
                     }
                 }
-                let sId = (typeof this.supplierId === 'function') ? this.supplierId() : this.supplierId;
-                if (!sId) {
-                    const suppSelect = document.querySelector('select[name="supplier_id"]');
-                    if (suppSelect && suppSelect.value) {
-                        sId = suppSelect.value;
-                    }
-                }
+                let sId = this._resolveSupplierId();
                 if (sId) {
                     url += `&supplier_id=${encodeURIComponent(sId)}`;
                 }

@@ -149,27 +149,74 @@ class TransferService
      */
     public function cancelDraft(Transfer $transfer, User $actor, string $alasan): void
     {
-        if (trim($alasan) === '') {
-            throw ValidationException::withMessages([
-                'alasan' => 'Alasan pembatalan transfer wajib diisi.',
-            ]);
-        }
-
         if ($transfer->status !== 'draft') {
             throw ValidationException::withMessages([
                 'status' => 'Hanya transfer berstatus draft yang dapat dibatalkan melalui aksi ini.',
             ]);
         }
 
-        DB::transaction(function () use ($transfer, $alasan) {
-            $transfer->update([
+        $this->executeCancellation($transfer, $alasan, ['draft']);
+    }
+
+    /**
+     * Batalkan Transfer berstatus 'draft' atau 'dikirim' (In Transit).
+     * Jika status sebelumnya 'dikirim' (In Transit), kembalikan stok fisik ke gudang asal + catat kartu stok masuk.
+     */
+    public function cancel(Transfer $transfer, User $actor, string $alasan): void
+    {
+        if (! in_array($transfer->status, ['draft', 'dikirim'], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Hanya transfer berstatus draft atau In Transit (dikirim) yang dapat dibatalkan.',
+            ]);
+        }
+
+        $this->executeCancellation($transfer, $alasan, ['draft', 'dikirim']);
+    }
+
+    /**
+     * @param  array<string>  $allowedStatuses
+     */
+    private function executeCancellation(Transfer $transfer, string $alasan, array $allowedStatuses): void
+    {
+        if (trim($alasan) === '') {
+            throw ValidationException::withMessages([
+                'alasan' => 'Alasan pembatalan transfer wajib diisi.',
+            ]);
+        }
+
+        DB::transaction(function () use ($transfer, $alasan, $allowedStatuses) {
+            $lockedTransfer = Transfer::with('items')->lockForUpdate()->findOrFail($transfer->id);
+
+            if (! in_array($lockedTransfer->status, $allowedStatuses, true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'Status transfer sudah berubah dan tidak dapat dibatalkan.',
+                ]);
+            }
+
+            $wasInTransit = $lockedTransfer->status === 'dikirim';
+
+            // Kembalikan stok asal apabila transfer sudah sempat dikirim (In Transit)
+            if ($wasInTransit && $lockedTransfer->gudang_asal_id) {
+                foreach ($lockedTransfer->items as $item) {
+                    $this->stokService->masuk(
+                        $item->produk_id,
+                        $lockedTransfer->gudang_asal_id,
+                        (float) $item->qty_dikirim,
+                        'transfer',
+                        $lockedTransfer->id,
+                        "Pembatalan Transfer In Transit {$lockedTransfer->no_transaksi} (Stok Kembali)"
+                    );
+                }
+            }
+
+            $lockedTransfer->update([
                 'status' => 'dibatalkan',
                 'alasan_batal' => $alasan,
             ]);
 
-            // Kembalikan status request ke disetujui jika ada
-            if ($transfer->request_id) {
-                $req = StockRequest::find($transfer->request_id);
+            // Kembalikan status request ke disetujui jika ada agar dapat dibuatkan Transfer pengganti
+            if ($lockedTransfer->request_id) {
+                $req = StockRequest::find($lockedTransfer->request_id);
                 if ($req && $req->status === 'diproses') {
                     $req->update(['status' => 'disetujui']);
                 }

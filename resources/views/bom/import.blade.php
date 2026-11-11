@@ -3,15 +3,9 @@
         title="Impor Formula Resep BOM (Excel & CSV)"
         subtitle="Kelola formula resep produk jadi dan kebutuhan bahan baku melalui berkas Excel/CSV atau grid interaktif (inputable)"
         :breadcrumbs="['Master Data' => null, 'BOM' => route('bom.index'), 'Impor Formula' => null]"
-    >
-        <x-slot:actions>
-            <div class="flex items-center gap-2">
-                <x-button href="{{ route('bom.index') }}" variant="secondary" size="xs">
-                    &larr; Kembali ke BOM
-                </x-button>
-            </div>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('bom.index')"
+        backSize="xs"
+    />
 
     {{-- Script SheetJS untuk Parsing & Generator Berkas Excel (.xlsx, .xls) & CSV --}}
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -87,21 +81,8 @@
             </div>
         </div>
 
-        <!-- Datalist Autocomplete SKU Produk Jadi & Bahan -->
-        <datalist id="list-produk-jadi">
-            @foreach($produkJadiList as $pj)
-                <option value="{{ $pj->sku }}">{{ $pj->nama }}</option>
-            @endforeach
-        </datalist>
-
-        <datalist id="list-bahan-baku">
-            @foreach($bahanList as $bh)
-                <option value="{{ $bh->sku }}">{{ $bh->nama }} ({{ $bh->satuan }})</option>
-            @endforeach
-        </datalist>
-
         <!-- Area Grid Interactive Inputable (Spreadsheet-like) -->
-        <x-card title="Grid Formula Resep (Column & Row Inputable)" subtitle="Dapat diketik langsung, diubah nilainya, ditambah baris, atau ditempel langsung (Ctrl+V) dari spreadsheet" :noPadding="true">
+        <x-card title="Grid Formula Resep (Column & Row Inputable)" subtitle="Pilih produk jadi dan bahan baku lewat pencarian dropdown, unggah Excel/CSV, atau tempel langsung (Ctrl+V)" :noPadding="true" class="relative z-10" overflow="visible">
             <x-slot:headerActions>
                 <div class="flex items-center gap-2">
                     <button
@@ -154,59 +135,233 @@
                 <span class="text-[11px] font-mono font-medium hidden sm:inline">Ctrl + V didukung</span>
             </div>
 
-            <div class="overflow-x-auto p-2" @paste="handlePaste($event)">
+            <div class="overflow-visible min-h-[280px] p-2" @paste="handlePaste($event)">
                 <table class="w-full text-xs border-collapse">
                     <thead>
-                        <tr>
+                        <tr class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
                             <th class="px-3 py-2.5 text-center w-12">#</th>
-                            <th class="px-3 py-2.5 text-left w-72">SKU Produk Jadi <span class="text-destructive">*</span></th>
-                            <th class="px-3 py-2.5 text-left w-72">SKU Bahan Baku / Kemasan <span class="text-destructive">*</span></th>
-                            <th class="px-3 py-2.5 text-right w-44">Kuantitas / Unit <span class="text-destructive">*</span></th>
-                            <th class="px-3 py-2.5 text-center w-40">Status Validasi</th>
-                            <th class="px-3 py-2.5 text-center w-16">Aksi</th>
+                            <th class="px-3 py-2.5 text-left w-[33%]">Produk Jadi <span class="text-destructive">*</span></th>
+                            <th class="px-3 py-2.5 text-left w-[33%]">Bahan Baku / Kemasan <span class="text-destructive">*</span></th>
+                            <th class="px-3 py-2.5 text-right w-40">Kuantitas / Unit <span class="text-destructive">*</span></th>
+                            <th class="px-3 py-2.5 text-center w-44">Status Validasi</th>
+                            <th class="px-3 py-2.5 text-center w-14">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-border">
+                    <tbody class="divide-y divide-border bg-card">
                         <template x-for="(row, index) in rows" :key="row.id">
-                            <tr :class="row.isExisting ? 'bg-amber-500/10' : (row.isDuplicate ? 'bg-purple-500/10' : (row.valid === false ? 'bg-destructive/10' : 'hover:bg-muted/40'))">
-                                <td class="px-3 py-2 text-center font-mono text-muted-foreground text-xs" x-text="index + 1"></td>
-                                
-                                {{-- Kolom 1: SKU Produk Jadi (Inputable) --}}
-                                <td class="px-3 py-1.5">
-                                    <input
-                                        type="text"
-                                        list="list-produk-jadi"
-                                        x-model="row.sku_produk_jadi"
-                                        @input="validateRow(row)"
-                                        placeholder="Ketik SKU atau pilih..."
-                                        class="w-full text-xs py-1.5 px-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono uppercase"
+                            <tr
+                                :style="'position: relative; z-index: ' + (activeDropdownKey && activeDropdownKey.startsWith(row.id + ':') ? 200 : (100 - index))"
+                                :class="row.isExisting ? 'bg-amber-500/10' : (row.isDuplicate ? 'bg-purple-500/10' : (row.valid === false ? 'bg-destructive/10' : 'hover:bg-muted/40'))"
+                                @hs-dropdown-opened.window="if ($event.detail && $event.detail.startsWith(row.id + ':')) activeDropdownKey = $event.detail"
+                                @hs-dropdown-closed.window="if ($event.detail === activeDropdownKey) activeDropdownKey = null"
+                            >
+                                <td class="px-3 py-2.5 text-center font-mono text-muted-foreground text-xs" x-text="index + 1"></td>
+
+                                {{-- Kolom 1: Produk Jadi (Dropdown Search Component) --}}
+                                <td class="px-3 py-2" :style="activeDropdownKey === `${row.id}:pj` ? 'position: relative; z-index: 200;' : ''">
+                                    <div
+                                        x-data="productSearchSelect({
+                                            name: `${row.id}:pj`,
+                                            selectedId: row.produk_jadi_id,
+                                            selectedItem: row.produk_jadi_item,
+                                            filterTipe: 'produk_jadi',
+                                            placeholder: '— Pilih Produk Jadi —',
+                                            url: '{{ route('produk.select-data', [], false) }}'
+                                        })"
+                                        x-init="init()"
+                                        @product-selected="onProdukJadiSelected(row, $event.detail)"
+                                        class="relative w-full"
+                                        :class="open ? 'z-[9999]' : 'z-10'"
+                                        style="position: relative;"
+                                        @click.outside="open = false; if (activeDropdownKey === `${row.id}:pj`) activeDropdownKey = null"
+                                        @keydown.escape.window="open = false; if (activeDropdownKey === `${row.id}:pj`) activeDropdownKey = null"
+                                        @hs-dropdown-opened.window="if ($event.detail && $event.detail !== `${row.id}:pj`) open = false"
                                     >
-                                    <span class="block text-[10px] text-muted-foreground mt-0.5 truncate" x-text="getProdukJadiName(row.sku_produk_jadi)"></span>
+                                        <div
+                                            @click="activeDropdownKey = `${row.id}:pj`; toggle()"
+                                            role="button"
+                                            tabindex="0"
+                                            :aria-expanded="open ? 'true' : 'false'"
+                                            @keydown.enter.prevent="activeDropdownKey = `${row.id}:pj`; toggle()"
+                                            @keydown.space.prevent="activeDropdownKey = `${row.id}:pj`; toggle()"
+                                            :class="(!row.produk_jadi_item && row.sku_produk_jadi) ? 'border-destructive/60 bg-destructive/5' : 'border-input bg-background hover:border-foreground/30'"
+                                            class="w-full flex items-center justify-between text-left rounded-lg border px-3 py-2 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring transition cursor-pointer select-none"
+                                        >
+                                            <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
+                                                <template x-if="selectedItem">
+                                                    <div class="flex items-center gap-1.5 truncate">
+                                                        <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
+                                                        <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
+                                                        <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan || 'pcs'"></span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!selectedItem && row.sku_produk_jadi">
+                                                    <div class="flex items-center gap-1.5 truncate text-destructive">
+                                                        <span class="font-mono font-semibold bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20 text-[10px]" x-text="row.sku_produk_jadi"></span>
+                                                        <span class="truncate text-[11px] font-medium">SKU tidak ditemukan</span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!selectedItem && !row.sku_produk_jadi">
+                                                    <span class="text-muted-foreground font-normal" x-text="placeholder"></span>
+                                                </template>
+                                            </div>
+                                            <div class="flex items-center gap-1 ml-1 shrink-0 pointer-events-none">
+                                                <svg class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-150" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            x-show="open"
+                                            x-cloak
+                                            style="display: none; position: absolute; left: 0; top: 100%; z-index: 9999; width: 100%; min-width: 320px; box-sizing: border-box;"
+                                            class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-[320px] bg-card rounded-xl border border-border shadow-xl text-xs overflow-hidden"
+                                        >
+                                            <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
+                                                <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Cari SKU / nama produk jadi..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                                            </div>
+
+                                            <div class="max-h-48 overflow-y-auto divide-y divide-border">
+                                                <template x-for="item in items" :key="item.id">
+                                                    <div
+                                                        @click="select(item)"
+                                                        :class="selectedId == item.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50'"
+                                                        class="px-3.5 py-2.5 cursor-pointer transition flex items-center justify-between gap-2 select-none"
+                                                    >
+                                                        <div class="flex items-center gap-2 truncate pointer-events-none">
+                                                            <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
+                                                            <span class="truncate font-medium text-foreground" x-text="item.nama"></span>
+                                                        </div>
+                                                        <div class="flex items-center gap-1 shrink-0 pointer-events-none">
+                                                            <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan || 'pcs'"></span>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <div x-show="!loading && items.length === 0" class="py-3 text-center text-muted-foreground">Tidak ada produk jadi cocok.</div>
+                                            </div>
+
+                                            <div class="p-2 border-t border-border bg-muted/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                                                <span x-text="`Data: ${items.length}/${total}`"></span>
+                                                <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 rounded-md bg-background border border-border hover:bg-muted text-foreground font-medium transition disabled:opacity-50 cursor-pointer shadow-xs">
+                                                    <span x-text="loading ? '...' : '+10 Lagi'"></span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
 
-                                {{-- Kolom 2: SKU Bahan (Inputable) --}}
-                                <td class="px-3 py-1.5">
-                                    <input
-                                        type="text"
-                                        list="list-bahan-baku"
-                                        x-model="row.sku_bahan"
-                                        @input="validateRow(row)"
-                                        placeholder="Ketik SKU bahan atau pilih..."
-                                        class="w-full text-xs py-1.5 px-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono uppercase"
+                                {{-- Kolom 2: Bahan Baku / Kemasan (Dropdown Search Component) --}}
+                                <td class="px-3 py-2" :style="activeDropdownKey === `${row.id}:bh` ? 'position: relative; z-index: 200;' : ''">
+                                    <div
+                                        x-data="productSearchSelect({
+                                            name: `${row.id}:bh`,
+                                            selectedId: row.bahan_id,
+                                            selectedItem: row.bahan_item,
+                                            filterTipe: ['bahan', 'kemas', 'bahan_baku', 'kemasan'],
+                                            placeholder: '— Pilih Bahan / Kemasan —',
+                                            url: '{{ route('produk.select-data', [], false) }}'
+                                        })"
+                                        x-init="init()"
+                                        @product-selected="onBahanSelected(row, $event.detail)"
+                                        class="relative w-full"
+                                        :class="open ? 'z-[9999]' : 'z-10'"
+                                        style="position: relative;"
+                                        @click.outside="open = false; if (activeDropdownKey === `${row.id}:bh`) activeDropdownKey = null"
+                                        @keydown.escape.window="open = false; if (activeDropdownKey === `${row.id}:bh`) activeDropdownKey = null"
+                                        @hs-dropdown-opened.window="if ($event.detail && $event.detail !== `${row.id}:bh`) open = false"
                                     >
-                                    <span class="block text-[10px] text-muted-foreground mt-0.5 truncate" x-text="getBahanName(row.sku_bahan)"></span>
+                                        <div
+                                            @click="activeDropdownKey = `${row.id}:bh`; toggle()"
+                                            role="button"
+                                            tabindex="0"
+                                            :aria-expanded="open ? 'true' : 'false'"
+                                            @keydown.enter.prevent="activeDropdownKey = `${row.id}:bh`; toggle()"
+                                            @keydown.space.prevent="activeDropdownKey = `${row.id}:bh`; toggle()"
+                                            :class="(!row.bahan_item && row.sku_bahan) ? 'border-destructive/60 bg-destructive/5' : 'border-input bg-background hover:border-foreground/30'"
+                                            class="w-full flex items-center justify-between text-left rounded-lg border px-3 py-2 text-xs shadow-xs focus:outline-none focus:ring-1 focus:ring-ring transition cursor-pointer select-none"
+                                        >
+                                            <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
+                                                <template x-if="selectedItem">
+                                                    <div class="flex items-center gap-1.5 truncate">
+                                                        <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
+                                                        <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
+                                                        <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan || '-'"></span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!selectedItem && row.sku_bahan">
+                                                    <div class="flex items-center gap-1.5 truncate text-destructive">
+                                                        <span class="font-mono font-semibold bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20 text-[10px]" x-text="row.sku_bahan"></span>
+                                                        <span class="truncate text-[11px] font-medium">SKU tidak ditemukan</span>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!selectedItem && !row.sku_bahan">
+                                                    <span class="text-muted-foreground font-normal" x-text="placeholder"></span>
+                                                </template>
+                                            </div>
+                                            <div class="flex items-center gap-1 ml-1 shrink-0 pointer-events-none">
+                                                <svg class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-150" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            x-show="open"
+                                            x-cloak
+                                            style="display: none; position: absolute; left: 0; top: 100%; z-index: 9999; width: 100%; min-width: 320px; box-sizing: border-box;"
+                                            class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-[320px] bg-card rounded-xl border border-border shadow-xl text-xs overflow-hidden"
+                                        >
+                                            <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
+                                                <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Cari nama / SKU bahan..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                                            </div>
+
+                                            <div class="max-h-48 overflow-y-auto divide-y divide-border">
+                                                <template x-for="item in items" :key="item.id">
+                                                    <div
+                                                        @click="isPairDuplicateInOtherRow(row, item.sku) ? alertDuplicatePair(row, item) : select(item)"
+                                                        :class="isPairDuplicateInOtherRow(row, item.sku) ? 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed opacity-60' : (selectedId == item.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50 cursor-pointer')"
+                                                        class="px-3.5 py-2.5 transition flex items-center justify-between gap-2 select-none"
+                                                    >
+                                                        <div class="flex items-center gap-2 truncate pointer-events-none">
+                                                            <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
+                                                            <span class="truncate font-medium" :class="isPairDuplicateInOtherRow(row, item.sku) ? 'text-muted-foreground' : 'text-foreground'" x-text="item.nama"></span>
+                                                            <template x-if="isPairDuplicateInOtherRow(row, item.sku)">
+                                                                <span class="text-[9px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Sudah di Tabel</span>
+                                                            </template>
+                                                            <template x-if="!isPairDuplicateInOtherRow(row, item.sku) && isPairAlreadyRegistered(row, item.sku)">
+                                                                <span class="text-[9px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Terdaftar BOM</span>
+                                                            </template>
+                                                        </div>
+                                                        <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
+                                                            <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan"></span>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <div x-show="!loading && items.length === 0" class="py-3 text-center text-muted-foreground">Tidak ada bahan cocok.</div>
+                                            </div>
+
+                                            <div class="p-2 border-t border-border bg-muted/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                                                <span x-text="`Data: ${items.length}/${total}`"></span>
+                                                <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 rounded-md bg-background border border-border hover:bg-muted text-foreground font-medium transition disabled:opacity-50 cursor-pointer shadow-xs">
+                                                    <span x-text="loading ? '...' : '+10 Lagi'"></span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </td>
 
-                                {{-- Kolom 3: Qty per Unit (Inputable) --}}
-                                <td class="px-3 py-1.5 text-right">
-                                    <input
-                                        type="number"
-                                        step="0.0001"
-                                        min="0.0001"
-                                        x-model="row.qty_per_unit"
-                                        @input="validateRow(row)"
-                                        class="w-36 text-xs py-1.5 px-2.5 text-right rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
-                                    >
+                                {{-- Kolom 3: Qty per Unit --}}
+                                <td class="px-3 py-2 text-right">
+                                    <div class="relative flex items-center justify-end">
+                                        <input
+                                            type="number"
+                                            step="0.0001"
+                                            min="0.0001"
+                                            x-model="row.qty_per_unit"
+                                            @input="validateRow(row)"
+                                            class="w-36 text-xs py-2 pl-2.5 pr-14 text-right rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring font-mono shadow-xs"
+                                        >
+                                        <span class="absolute right-2 px-1.5 py-0.5 text-[9px] font-mono font-semibold text-muted-foreground bg-muted border border-border rounded pointer-events-none" x-text="row.bahan_item?.satuan || '-'"></span>
+                                    </div>
                                 </td>
 
                                 {{-- Kolom 4: Status Validasi --}}
@@ -299,9 +454,13 @@
     function bomDualGridImporter() {
         return {
             produkJadiMap: {},
+            produkJadiObjMap: {},
             bahanMap: {},
+            bahanObjMap: {},
             existingBomMap: {},
             rows: [],
+            activeDropdownKey: null,
+            nextRowSeq: 0,
             isSubmitting: false,
 
             init() {
@@ -310,11 +469,25 @@
                 const existingList = @js($existingBoms ?? []);
 
                 pjList.forEach(item => {
-                    this.produkJadiMap[item.sku.trim().toUpperCase()] = item.nama;
+                    const cleanSku = (item.sku || '').trim().toUpperCase();
+                    this.produkJadiMap[cleanSku] = item.nama;
+                    this.produkJadiObjMap[cleanSku] = {
+                        id: item.id,
+                        sku: item.sku,
+                        nama: item.nama,
+                        satuan: item.satuan || 'pcs',
+                    };
                 });
 
                 bhList.forEach(item => {
-                    this.bahanMap[item.sku.trim().toUpperCase()] = `${item.nama} (${item.satuan})`;
+                    const cleanSku = (item.sku || '').trim().toUpperCase();
+                    this.bahanMap[cleanSku] = `${item.nama} (${item.satuan})`;
+                    this.bahanObjMap[cleanSku] = {
+                        id: item.id,
+                        sku: item.sku,
+                        nama: item.nama,
+                        satuan: item.satuan || '-',
+                    };
                 });
 
                 this.existingBomMap = existingList || {};
@@ -323,6 +496,105 @@
                 this.addRow();
                 this.addRow();
                 this.addRow();
+            },
+
+            buildRow(skuJadi = '', skuBahan = '', qty = 1.0) {
+                const cleanJadi = (skuJadi || '').trim().toUpperCase();
+                const cleanBahan = (skuBahan || '').trim().toUpperCase();
+                const pjObj = cleanJadi ? (this.produkJadiObjMap[cleanJadi] || null) : null;
+                const bhObj = cleanBahan ? (this.bahanObjMap[cleanBahan] || null) : null;
+
+                return {
+                    id: `${Date.now()}-${++this.nextRowSeq}`,
+                    sku_produk_jadi: pjObj ? pjObj.sku : skuJadi,
+                    produk_jadi_id: pjObj ? pjObj.id : '',
+                    produk_jadi_item: pjObj ? { ...pjObj } : null,
+                    sku_bahan: bhObj ? bhObj.sku : skuBahan,
+                    bahan_id: bhObj ? bhObj.id : '',
+                    bahan_item: bhObj ? { ...bhObj } : null,
+                    qty_per_unit: qty,
+                    valid: null,
+                    isDuplicate: false,
+                    isExisting: false,
+                    error: ''
+                };
+            },
+
+            onProdukJadiSelected(row, item) {
+                if (item) {
+                    const cleanSku = (item.sku || '').trim().toUpperCase();
+                    this.produkJadiMap[cleanSku] = item.nama;
+                    this.produkJadiObjMap[cleanSku] = {
+                        id: item.id,
+                        sku: item.sku,
+                        nama: item.nama,
+                        satuan: item.satuan || 'pcs',
+                    };
+                    row.sku_produk_jadi = item.sku || '';
+                    row.produk_jadi_id = item.id || '';
+                    row.produk_jadi_item = { ...item };
+                } else {
+                    row.sku_produk_jadi = '';
+                    row.produk_jadi_id = '';
+                    row.produk_jadi_item = null;
+                }
+                this.validateRow(row);
+            },
+
+            onBahanSelected(row, item) {
+                if (item) {
+                    const cleanSku = (item.sku || '').trim().toUpperCase();
+                    this.bahanMap[cleanSku] = `${item.nama} (${item.satuan || '-'})`;
+                    this.bahanObjMap[cleanSku] = {
+                        id: item.id,
+                        sku: item.sku,
+                        nama: item.nama,
+                        satuan: item.satuan || '-',
+                    };
+                    row.sku_bahan = item.sku || '';
+                    row.bahan_id = item.id || '';
+                    row.bahan_item = { ...item };
+                } else {
+                    row.sku_bahan = '';
+                    row.bahan_id = '';
+                    row.bahan_item = null;
+                }
+                this.validateRow(row);
+            },
+
+            isPairDuplicateInOtherRow(currentRow, candidateBahanSku) {
+                const cleanJadi = (currentRow.sku_produk_jadi || '').trim().toUpperCase();
+                const cleanBahan = (candidateBahanSku || '').trim().toUpperCase();
+                if (!cleanJadi || !cleanBahan) return false;
+
+                return this.rows.some(r => {
+                    if (r.id === currentRow.id) return false;
+                    return (r.sku_produk_jadi || '').trim().toUpperCase() === cleanJadi
+                        && (r.sku_bahan || '').trim().toUpperCase() === cleanBahan;
+                });
+            },
+
+            isPairAlreadyRegistered(currentRow, candidateBahanSku) {
+                const cleanJadi = (currentRow.sku_produk_jadi || '').trim().toUpperCase();
+                const cleanBahan = (candidateBahanSku || '').trim().toUpperCase();
+                if (!cleanJadi || !cleanBahan) return false;
+
+                return this.existingBomMap && this.existingBomMap[`${cleanJadi}|${cleanBahan}`] !== undefined;
+            },
+
+            alertDuplicatePair(currentRow, item) {
+                const msg = `Kombinasi "${currentRow.produk_jadi_item?.nama || currentRow.sku_produk_jadi}" dan "${item.nama}" sudah ada pada baris lain di grid.`;
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Kombinasi Sudah Ada di Tabel',
+                        text: msg,
+                        confirmButtonColor: '#0284c7',
+                        confirmButtonText: 'Mengerti'
+                    });
+                } else {
+                    alert(msg);
+                }
             },
 
             get validRowsCount() {
@@ -342,28 +614,23 @@
             },
 
             addRow(skuJadi = '', skuBahan = '', qty = 1.0) {
-                const newRow = {
-                    id: Date.now() + Math.random(),
-                    sku_produk_jadi: skuJadi,
-                    sku_bahan: skuBahan,
-                    qty_per_unit: qty,
-                    valid: null,
-                    isDuplicate: false,
-                    isExisting: false,
-                    error: ''
-                };
-                this.rows.push(newRow);
+                this.rows.push(this.buildRow(skuJadi, skuBahan, qty));
                 this.validateAll();
             },
 
             removeRow(index) {
+                const removed = this.rows[index];
                 this.rows.splice(index, 1);
+                if (removed && this.activeDropdownKey && this.activeDropdownKey.startsWith(removed.id + ':')) {
+                    this.activeDropdownKey = null;
+                }
                 this.validateAll();
             },
 
             clearAllRows() {
                 if (confirm('Kosongkan semua baris pada grid tabel?')) {
                     this.rows = [];
+                    this.activeDropdownKey = null;
                 }
             },
 
@@ -424,18 +691,6 @@
                         showConfirmButton: false
                     });
                 }
-            },
-
-            getProdukJadiName(sku) {
-                if (!sku) return '';
-                const clean = sku.trim().toUpperCase();
-                return this.produkJadiMap[clean] ? `✓ ${this.produkJadiMap[clean]}` : '— SKU tidak ditemukan';
-            },
-
-            getBahanName(sku) {
-                if (!sku) return '';
-                const clean = sku.trim().toUpperCase();
-                return this.bahanMap[clean] ? `✓ ${this.bahanMap[clean]}` : '— SKU tidak ditemukan';
             },
 
             validateRow(row) {
@@ -560,16 +815,7 @@
                             const qty = parseFloat(rawQty) || 1.0;
 
                             if (sJadi || sBahan) {
-                                const rObj = {
-                                    id: Date.now() + Math.random() + i,
-                                    sku_produk_jadi: sJadi,
-                                    sku_bahan: sBahan,
-                                    qty_per_unit: qty,
-                                    valid: null,
-                                    error: ''
-                                };
-                                this.validateRow(rObj);
-                                newRows.push(rObj);
+                                newRows.push(this.buildRow(sJadi, sBahan, qty));
                             }
                         }
 
@@ -620,16 +866,7 @@
                             return;
                         }
 
-                        const rObj = {
-                            id: Date.now() + Math.random() + idx,
-                            sku_produk_jadi: sJadi,
-                            sku_bahan: sBahan,
-                            qty_per_unit: qty,
-                            valid: null,
-                            isDuplicate: false,
-                            error: ''
-                        };
-                        newRows.push(rObj);
+                        newRows.push(this.buildRow(sJadi, sBahan, qty));
                     }
                 });
 

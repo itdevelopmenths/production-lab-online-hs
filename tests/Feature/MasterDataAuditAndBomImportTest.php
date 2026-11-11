@@ -314,4 +314,24 @@ class MasterDataAuditAndBomImportTest extends TestCase
         $this->assertEquals($manager->id, $importAudit->user_id);
         $this->assertStringContainsString('Batch Impor', $importAudit->item_name);
     }
+
+    public function test_bom_import_page_uses_product_search_select_dropdowns_instead_of_datalist(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $res = $this->get(route('bom.import-page'));
+        $res->assertOk();
+
+        // Pastikan menggunakan komponen dropdown search seperti purchasing/create, bukan datalist polos
+        $res->assertDontSee('<datalist id="list-produk-jadi">', false);
+        $res->assertDontSee('<datalist id="list-bahan-baku">', false);
+        $res->assertSee('productSearchSelect', false);
+        $res->assertSee(route('produk.select-data', [], false), false);
+        $res->assertSee("filterTipe: 'produk_jadi'", false);
+        $res->assertSee("filterTipe: ['bahan', 'kemas', 'bahan_baku', 'kemasan']", false);
+        $res->assertViewHas('produkJadiList', function ($list) {
+            return $list->isNotEmpty() && array_key_exists('satuan', $list->first()->getAttributes());
+        });
+    }
 }

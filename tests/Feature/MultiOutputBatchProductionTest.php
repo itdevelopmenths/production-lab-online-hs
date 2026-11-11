@@ -138,4 +138,66 @@ class MultiOutputBatchProductionTest extends TestCase
         $this->assertEquals('7', $row['qty_rusak']);
         $this->assertStringContainsString('97.7%', $row['yield']); // 293 / 300 = 97.666%
     }
+
+    public function test_batch_creation_rejects_produk_jadi_without_bom_and_renders_validation_ui(): void
+    {
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $gudangFf = Gudang::where('kode', 'FF-PUSAT')->firstOrFail();
+
+        $produkWithBom = Produk::where('sku', 'GOH-P50')->firstOrFail();
+        $produkWithoutBom = Produk::create([
+            'sku' => 'PJ-NO-BOM-01',
+            'nama' => 'Parfum Tanpa Resep BOM',
+            'tipe' => 'produk_jadi',
+            'satuan' => 'pcs',
+            'satuan_order_moq' => 1,
+            'is_active' => true,
+        ]);
+        $bahanBaku = Produk::bahan()->active()->firstOrFail();
+
+        $this->actingAs($operasional);
+
+        // 0. Halaman batches.create menyediakan struktur validasi & badge BOM
+        $this->get(route('batches.create'))
+            ->assertOk()
+            ->assertSee('Belum Ada BOM')
+            ->assertSee('hasBom(', false);
+
+        // 1. Multi-output dengan salah satu produk jadi tidak punya BOM -> ditolak atomik
+        $multiResp = $this->post(route('batches.store'), [
+            'gudang_operasional_id' => $gudangOp->id,
+            'gudang_tujuan_rencana_id' => $gudangFf->id,
+            'tanggal' => now()->toDateString(),
+            'outputs' => [
+                ['produk_id' => $produkWithBom->id, 'qty_rencana' => 10],
+                ['produk_id' => $produkWithoutBom->id, 'qty_rencana' => 20],
+            ],
+        ]);
+        $multiResp->assertSessionHasErrors('outputs.1.produk_id');
+        $this->assertEquals(0, BatchProduksi::count());
+
+        // 2. Legacy single produk_id tanpa BOM -> ditolak
+        $singleResp = $this->post(route('batches.store'), [
+            'produk_id' => $produkWithoutBom->id,
+            'qty_rencana' => 15,
+            'gudang_operasional_id' => $gudangOp->id,
+            'gudang_tujuan_rencana_id' => $gudangFf->id,
+            'tanggal' => now()->toDateString(),
+        ]);
+        $singleResp->assertSessionHasErrors('produk_id');
+        $this->assertEquals(0, BatchProduksi::count());
+
+        // 3. Produk non-produk_jadi (bahan baku) di outputs -> ditolak
+        $bahanResp = $this->post(route('batches.store'), [
+            'gudang_operasional_id' => $gudangOp->id,
+            'gudang_tujuan_rencana_id' => $gudangFf->id,
+            'tanggal' => now()->toDateString(),
+            'outputs' => [
+                ['produk_id' => $bahanBaku->id, 'qty_rencana' => 10],
+            ],
+        ]);
+        $bahanResp->assertSessionHasErrors('outputs.0.produk_id');
+        $this->assertEquals(0, BatchProduksi::count());
+    }
 }

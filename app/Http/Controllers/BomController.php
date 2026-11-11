@@ -69,8 +69,8 @@ class BomController extends Controller
     {
         $this->authorize('bom.import');
 
-        $produkJadiList = Produk::produkJadi()->active()->orderBy('nama')->get(['id', 'sku', 'nama']);
-        $bahanList = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+        $produkJadiList = Produk::produkJadi()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
+        $bahanList = Produk::suppliable()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan']);
 
         $existingBoms = Bom::join('produk as pj', 'bom.produk_jadi_id', '=', 'pj.id')
             ->join('produk as bh', 'bom.bahan_id', '=', 'bh.id')

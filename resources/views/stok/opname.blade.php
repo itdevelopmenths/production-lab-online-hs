@@ -3,13 +3,9 @@
         <x-page-header
             title="Stock Opname Fisik"
             :breadcrumbs="['Inventori' => null, 'Stok & Mutasi' => route('stok.index'), 'Stock Opname' => null]"
-        >
-                <x-slot:actions>
-                    <x-button href="{{ route('stok.index') }}" variant="secondary" size="xs">
-                        &larr; Kembali ke Buku Stok
-                    </x-button>
-                </x-slot:actions>
-            </x-page-header>
+            :backUrl="route('stok.index')"
+            backSize="xs"
+        />
 
             <!-- Info Guidance Box -->
             <div class="bg-muted/40 border border-border p-4 rounded-xl text-sm text-foreground shadow-xs">

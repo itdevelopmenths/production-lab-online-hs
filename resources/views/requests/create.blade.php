@@ -1,4 +1,4 @@
-<x-app-layout title="Buat Permintaan Barang" subtitle="Inisiasi pengajuan permintaan stok antar divisi/gudang">
+<x-app-layout title="Buat Permintaan Barang">
     @php
         $productsById = $produk->keyBy('id');
         $oldItems = old('items');
@@ -60,11 +60,18 @@
                         ? ['bahan', 'kemas', 'bahan_baku', 'kemasan']
                         : ['produk_jadi'];
                     this.items.forEach(item => {
-                        if (item.selectedItem && !allowedTipe.includes(item.selectedItem.tipe)) {
+                        const hasSelectedMismatch = item.selectedItem && !allowedTipe.includes(item.selectedItem.tipe);
+                        if (hasSelectedMismatch) {
                             item.produk_id = '';
                             item.selectedItem = null;
                             item.satuan = '-';
                             item.fromBatch = false;
+                            if (this.activeRow === item._uid) {
+                                this.activeRow = null;
+                            }
+                            item._uid = ++this.nextUid;
+                        } else if (!item.produk_id) {
+                            item._uid = ++this.nextUid;
                         }
                     });
                 },
@@ -168,7 +175,14 @@
         }
     </script>
 
-    <div x-data="requestCreateData()">
+    <div x-data="requestCreateData()" class="space-y-4">
+        <x-page-header
+            title="Buat Permintaan Barang"
+            subtitle="Inisiasi pengajuan permintaan stok antar divisi/gudang"
+            :breadcrumbs="['Permintaan' => route('requests.index'), 'Buat Baru' => null]"
+            :backUrl="route('requests.index')"
+        />
+
         <form method="POST" action="{{ route('requests.store') }}" class="space-y-6">
             @csrf
 
@@ -225,6 +239,7 @@
                     </div>
                 </div>
 
+                @if(in_array('request_bahan', $allowedJenis, true))
                 <div x-show="jenis === 'request_bahan'" class="mt-4 p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
                     <label for="request-batch-id" class="block text-xs font-semibold text-amber-900">
                         Pilih Batch Produksi (Opsional):
@@ -240,6 +255,7 @@
                     <p class="text-[11px] text-amber-700">Memilih batch produksi akan mengisi otomatis daftar bahan baku sesuai kebutuhan alokasi batch.</p>
                     <p x-show="batchNotice" x-cloak class="text-[11px] font-semibold text-emerald-700" x-text="batchNotice"></p>
                 </div>
+                @endif
 
                 <div class="mt-5">
                     <label class="block text-xs font-semibold text-foreground mb-1.5">Catatan / Keperluan</label>
@@ -254,10 +270,6 @@
                             <h2 class="text-lg font-semibold text-foreground tracking-tight">Daftar Barang yang Diminta</h2>
                             <p class="text-xs text-muted-foreground mt-0.5">Pastikan kuantitas dan satuan produk sesuai dengan kebutuhan operasional</p>
                         </div>
-                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition">
-                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            Tambah Baris
-                        </button>
                     </div>
                 </x-slot:header>
 
@@ -289,7 +301,7 @@
                                                 name: `items[${item._uid}][produk_id]`,
                                                 selectedId: item.produk_id,
                                                 selectedItem: item.selectedItem,
-                                                filterTipe: () => (jenis === 'request_bahan' ? ['bahan', 'kemas'] : ['produk_jadi']),
+                                                filterTipe: () => (jenis === 'request_bahan' ? ['bahan', 'kemas', 'bahan_baku', 'kemasan'] : ['produk_jadi']),
                                                 placeholder: jenis === 'request_bahan' ? '— Cari Bahan / Kemasan —' : '— Cari Produk Jadi —',
                                                 url: '{{ route('produk.select-data', [], false) }}'
                                             })"
@@ -392,8 +404,11 @@
                     </table>
                 </div>
 
-                <div class="p-4 bg-muted/20 border-t border-border flex items-center justify-between">
-                    <x-button href="{{ route('requests.index') }}" variant="outline">Kembali ke Daftar</x-button>
+                <div class="p-4 bg-muted/20 border-t border-border flex items-center justify-between gap-3">
+                    <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition cursor-pointer">
+                        <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Tambah Baris
+                    </button>
                     <div class="flex items-center gap-3">
                         <button type="submit" name="action" value="save_draft" class="px-4 py-2 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition">
                             Simpan Sebagai Draft

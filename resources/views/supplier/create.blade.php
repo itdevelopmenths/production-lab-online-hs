@@ -1,16 +1,11 @@
-<x-app-layout title="Tambah Supplier" :backUrl="route('supplier.index')">
+<x-app-layout title="Tambah Supplier">
     <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Supplier Baru"
             subtitle="Daftarkan rekanan vendor penyedia bahan baku kimia atau kemasan"
             :breadcrumbs="['Master Data' => null, 'Supplier' => route('supplier.index'), 'Tambah' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('supplier.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('supplier.index')"
+        />
 
         <form method="POST" action="{{ route('supplier.store') }}">
             @csrf

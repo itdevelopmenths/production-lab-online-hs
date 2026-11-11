@@ -176,12 +176,17 @@ class RequestAndTransferHttpTest extends TestCase
         // Destination received 90 good stock
         $this->assertEquals(90, app(StokService::class)->saldo($this->bahanBaku->id, $this->gudangLab->id));
 
-        // 5. Verify defect dashboard index renders and includes the defect metrics
+        // 5. Verify defect dashboard index renders and header avoids duplicate create CTAs / redundant links
         $indexResponse = $this->actingAs($this->manager)->get(route('transfers.index', ['year' => date('Y')]));
         $indexResponse->assertOk();
         $indexResponse->assertSee('Dashboard Barang Rusak');
         $indexResponse->assertSee('Total Barang Rusak');
         $indexResponse->assertSee('10.00'); // 10.00 rusak displayed
+
+        $indexHtml = $indexResponse->getContent();
+        $this->assertSame(1, substr_count($indexHtml, route('transfers.create')));
+        $indexResponse->assertDontSee('Buat Transfer Baru');
+        $indexResponse->assertDontSee('Buka di Dashboard Beranda');
     }
 
     public function test_restricted_operasional_user_can_view_requests_datatable(): void
@@ -476,5 +481,72 @@ class RequestAndTransferHttpTest extends TestCase
         $this->assertSame('Botol-Test', $decoded[0]['satuan']);
         $this->assertSame('SKU-TRF-UNIT-01', $decoded[0]['selectedItem']['sku']);
         $this->assertSame('Botol-Test', $decoded[0]['selectedItem']['satuan']);
+    }
+
+    public function test_in_transit_transfer_shows_cancel_button_and_can_be_cancelled_via_http(): void
+    {
+        // Creator dengan izin cancel & kategori Produk Jadi membuat transfer antar fulfillment, dikirim oleh gudang
+        $this->fulfillment->givePermissionTo('transfer.cancel');
+        app(StokService::class)->masuk(
+            $this->produkJadi->id,
+            $this->gudangPusat->id,
+            100,
+            'Saldo Awal PJ Tes',
+            null,
+            $this->manager->id
+        );
+
+        $this->actingAs($this->fulfillment)->post(route('transfers.store'), [
+            'jenis' => 'antar_fulfillment',
+            'gudang_asal_id' => $this->gudangPusat->id,
+            'gudang_tujuan_id' => $this->gudangToko->id,
+            'action' => 'save_draft',
+            'items' => [
+                ['produk_id' => $this->produkJadi->id, 'qty_dikirim' => 80],
+            ],
+        ])->assertRedirect();
+
+        $transfer = Transfer::latest('id')->firstOrFail();
+
+        $this->actingAs($this->gudang)->post(route('transfers.ship', $transfer))->assertRedirect();
+        $this->assertEquals('dikirim', $transfer->fresh()->status);
+        $this->assertEquals(20.0, app(StokService::class)->saldo($this->produkJadi->id, $this->gudangPusat->id));
+
+        // Pada status In Transit (dikirim), tombol Batalkan Transfer muncul untuk Manager dan pembuat berizin cancel
+        $managerShow = $this->actingAs($this->manager)->get(route('transfers.show', $transfer));
+        $managerShow->assertOk();
+        $managerShow->assertSee('In Transit (Dikirim)');
+        $managerShow->assertSee('Batalkan Transfer');
+        $managerShow->assertSee('Batalkan Transfer In Transit');
+
+        $creatorShow = $this->actingAs($this->fulfillment)->get(route('transfers.show', $transfer));
+        $creatorShow->assertOk();
+        $creatorShow->assertSee('Batalkan Transfer');
+
+        // User lain tanpa ownership & tanpa transfer.cancel (operasional) tidak boleh melihat atau menjalankan cancel
+        $this->actingAs($this->operasional)->get(route('transfers.show', $transfer))
+            ->assertOk()
+            ->assertDontSee('Batalkan Transfer');
+        $this->actingAs($this->operasional)->post(route('transfers.cancel', $transfer), [
+            'alasan' => 'Bukan pemilik',
+        ])->assertForbidden();
+
+        // Pembatalan In Transit berhasil mengembalikan stok asal dan menampilkan alasan batal
+        $this->actingAs($this->fulfillment)
+            ->post(route('transfers.cancel', $transfer), [
+                'alasan' => 'Kendala armada pengiriman di perjalanan',
+            ])
+            ->assertRedirect(route('transfers.show', $transfer));
+
+        $transfer->refresh();
+        $this->assertEquals('dibatalkan', $transfer->status);
+        $this->assertEquals('Kendala armada pengiriman di perjalanan', $transfer->alasan_batal);
+        $this->assertEquals(100.0, app(StokService::class)->saldo($this->produkJadi->id, $this->gudangPusat->id));
+
+        $afterShow = $this->actingAs($this->manager)->get(route('transfers.show', $transfer));
+        $afterShow->assertOk();
+        $afterShow->assertSee('Kendala armada pengiriman di perjalanan');
+        $afterShow->assertDontSee('Batalkan Transfer');
+        $afterShow->assertDontSee('Konfirmasi Penerimaan Barang');
     }
 }

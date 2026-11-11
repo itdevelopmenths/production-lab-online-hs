@@ -91,13 +91,8 @@
         <x-page-header
             title="Edit Purchase Order {{ $purchaseOrder->no_po }}"
             :breadcrumbs="['Purchasing' => route('purchasing.index'), $purchaseOrder->no_po => route('purchasing.show', $purchaseOrder), 'Edit PO' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('purchasing.show', $purchaseOrder) }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('purchasing.show', $purchaseOrder)"
+        />
 
         @if($totalDibayar > 0)
             <div>

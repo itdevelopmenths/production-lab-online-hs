@@ -3,13 +3,8 @@
         title="Laporan Lead Time Supplier"
         subtitle="Analisis performa durasi pengiriman supplier 9-stage, deviasi per produk, dan jejak histori transaksi PO"
         :breadcrumbs="['Laporan' => route('reports.index'), 'Lead Time Supplier' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('reports.index') }}" variant="outline" size="sm">
-                &larr; Kembali
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('reports.index')"
+    />
 
     {{-- Filter Toolbar --}}
     <form method="GET" action="{{ route('reports.lead-time') }}" class="mb-6 bg-card p-4 rounded-xl border border-border shadow-xs flex flex-wrap items-end justify-between gap-4">

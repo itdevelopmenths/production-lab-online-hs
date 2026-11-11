@@ -286,4 +286,42 @@ class CustomRoleManagementTest extends TestCase
 
         $this->assertEquals(count($allCatalogKeys), $systemRole->fresh()->permissions()->count());
     }
+
+    public function test_granular_bahan_and_produk_jadi_permissions_visible_in_role_ui_and_assignable(): void
+    {
+        $this->actingAs($this->manager);
+
+        $expectedKeys = [
+            'request.bahan.create',
+            'request.produk_jadi.create',
+            'transfer.bahan.create',
+            'transfer.bahan.ship',
+            'transfer.bahan.receive',
+            'transfer.produk_jadi.create',
+            'transfer.produk_jadi.ship',
+            'transfer.produk_jadi.receive',
+        ];
+
+        $createPage = $this->get(route('roles.create'))->assertOk();
+        foreach ($expectedKeys as $key) {
+            $createPage->assertSee($key);
+        }
+
+        $selected = ['request.bahan.create', 'transfer.bahan.receive', 'transfer.produk_jadi.create'];
+
+        $this->post(route('roles.store'), [
+            'name' => 'custom_lab_helper',
+            'display_name' => 'Asisten Lab Kustom',
+            'description' => 'Role uji permission granular',
+            'permissions' => $selected,
+        ])->assertRedirect(route('roles.index'))
+            ->assertSessionHasNoErrors();
+
+        $createdRole = Role::where('name', 'custom_lab_helper')->firstOrFail();
+        $assigned = $createdRole->permissions()->pluck('name')->sort()->values()->all();
+        sort($selected);
+
+        $this->assertSame($selected, $assigned);
+        $this->assertNotContains('rt.create', $assigned);
+    }
 }

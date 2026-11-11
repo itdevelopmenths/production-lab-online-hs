@@ -7,11 +7,18 @@ use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\StockRequest;
 use App\Models\User;
+use App\Services\Authorization\InventoryTransferAuthorizationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class RequestService
 {
+    private readonly InventoryTransferAuthorizationService $authz;
+
+    public function __construct(?InventoryTransferAuthorizationService $authz = null)
+    {
+        $this->authz = $authz ?? app(InventoryTransferAuthorizationService::class);
+    }
     /**
      * Generate next nomor request unik (e.g. REQ-202611-0001).
      */
@@ -31,26 +38,30 @@ class RequestService
     }
 
     /**
-     * Validasi role pembuat request berdasarkan jenis (Bab 4, FR-REQ-01).
+     * Validasi wewenang pembuat request berdasarkan jenis (berbasis permission granular, tanpa hardcode role).
      */
     public function validateCreatorRole(User $user, string $jenis): void
     {
-        $roleNames = array_map('strtolower', $user->getRoleNames()->toArray());
-        $isManagerOrAdmin = in_array('manager', $roleNames, true) || in_array('super admin', $roleNames, true) || in_array('admin', $roleNames, true);
-
-        if ($isManagerOrAdmin) {
-            return;
-        }
-
-        if ($jenis === 'request_bahan' && ! in_array('operasional', $roleNames, true)) {
+        if (! $this->authz->canCreateRequestForType($user, $jenis)) {
+            $label = $jenis === 'request_produk_jadi' ? 'Request Produk Jadi' : 'Request Bahan Baku';
             throw ValidationException::withMessages([
-                'jenis' => 'Hanya divisi Operasional yang berhak membuat Request Bahan Baku.',
+                'jenis' => "Anda tidak memiliki izin untuk membuat {$label}.",
             ]);
         }
+    }
 
-        if ($jenis === 'request_produk_jadi' && ! in_array('fulfillment', $roleNames, true)) {
+    /**
+     * Pastikan kategori produk item sesuai dengan jenis Request.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function validateItemsMatchRequestType(string $jenis, array $items): void
+    {
+        $produkIds = collect($items)->pluck('produk_id')->filter()->all();
+        $violation = $this->authz->resolveRequestItemCategoryViolations($jenis, $produkIds);
+        if ($violation !== null) {
             throw ValidationException::withMessages([
-                'jenis' => 'Hanya divisi Fulfillment yang berhak membuat Request Produk Jadi.',
+                'items' => $violation,
             ]);
         }
     }
@@ -74,6 +85,8 @@ class RequestService
                 'items' => 'Minimal satu item produk wajib dimasukkan.',
             ]);
         }
+
+        $this->validateItemsMatchRequestType($data['jenis'], $data['items']);
 
         // Peringatan non-blocking jika melebihi alokasi batch (NC-26)
         $batchId = $data['referensi_batch_id'] ?? null;
@@ -172,11 +185,17 @@ class RequestService
      */
     public function update(StockRequest $request, array $data, User $actor): StockRequest
     {
+        $this->validateCreatorRole($actor, $request->jenis);
+
         // Cek apakah sudah ada transfer aktif
         if ($request->activeTransfer()->exists() || in_array($request->status, ['diproses', 'selesai', 'dibatalkan', 'ditolak'], true)) {
             throw ValidationException::withMessages([
                 'status' => 'Request tidak dapat diubah karena sudah memiliki transfer aktif atau sudah selesai/batal.',
             ]);
+        }
+
+        if (! empty($data['items']) && is_array($data['items'])) {
+            $this->validateItemsMatchRequestType($request->jenis, $data['items']);
         }
 
         return DB::transaction(function () use ($request, $data) {

@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\BatchProduksi;
 use App\Models\Gudang;
+use App\Models\KartuStok;
 use App\Models\Produk;
 use App\Models\Stok;
 use App\Models\Transfer;
+use App\Services\Authorization\InventoryTransferAuthorizationService;
 use App\Services\StokService;
 use App\Services\TransferService;
 use Illuminate\Http\JsonResponse;
@@ -115,10 +117,12 @@ class BatchController extends Controller
 
         // Process outputs: either array or single fallback
         $outputsList = [];
+        $isLegacySingle = empty($data['outputs']);
         if (!empty($data['outputs'])) {
-            foreach ($data['outputs'] as $row) {
+            foreach ($data['outputs'] as $idx => $row) {
                 if (!empty($row['produk_id']) && (float) ($row['qty_rencana'] ?? 0) > 0) {
                     $outputsList[] = [
+                        'input_index' => $idx,
                         'produk_id' => (int) $row['produk_id'],
                         'qty_rencana' => (float) $row['qty_rencana'],
                         'catatan' => $row['catatan'] ?? null,
@@ -129,11 +133,37 @@ class BatchController extends Controller
 
         if (empty($outputsList)) {
             abort_unless(!empty($data['produk_id']) && (float) ($data['qty_rencana'] ?? 0) > 0, 422, 'Minimal satu produk jadi luaran harus ditentukan.');
+            $isLegacySingle = true;
             $outputsList[] = [
+                'input_index' => 0,
                 'produk_id' => (int) $data['produk_id'],
                 'qty_rencana' => (float) $data['qty_rencana'],
                 'catatan' => null,
             ];
+        }
+
+        // Validasi server-side: setiap produk luaran harus bertipe produk_jadi dan memiliki minimal 1 resep BOM
+        $produkIds = array_values(array_unique(array_column($outputsList, 'produk_id')));
+        $produkMap = Produk::withCount('bom')->whereIn('id', $produkIds)->get()->keyBy('id');
+        $bomErrors = [];
+
+        foreach ($outputsList as $out) {
+            $produk = $produkMap->get($out['produk_id']);
+            $fieldKey = $isLegacySingle ? 'produk_id' : 'outputs.' . $out['input_index'] . '.produk_id';
+
+            if (! $produk || $produk->tipe !== 'produk_jadi') {
+                $bomErrors[$fieldKey][] = 'Produk luaran batch harus bertipe Produk Jadi yang valid.';
+                continue;
+            }
+
+            if ((int) $produk->bom_count === 0) {
+                $bomErrors[$fieldKey][] = "Produk \"{$produk->nama}\" ({$produk->sku}) belum memiliki formula BOM sehingga tidak dapat diproduksi.";
+            }
+        }
+
+        if (! empty($bomErrors)) {
+            $bomErrors['outputs'] = collect($bomErrors)->flatten()->values()->all();
+            throw ValidationException::withMessages($bomErrors);
         }
 
         $primaryProdukId = $outputsList[0]['produk_id'];
@@ -253,6 +283,7 @@ class BatchController extends Controller
         $earlyWarnings = [];
         $hasDeficitFisik = false;
         $hasDeficitRencana = false;
+        $isBatchFinal = in_array($batch->status, ['selesai', 'dibatalkan'], true);
 
         foreach ($batch->alokasi as $a) {
             $bahanId = $a->bahan_id;
@@ -262,12 +293,13 @@ class BatchController extends Controller
             $stokRencana = $fisikOp - $totalAlok;
             $pusat = (float) ($stokPusat[$bahanId] ?? 0);
 
-            $kurangFisik = max(0, $qtyAlokasi - $fisikOp);
+            $isActiveAllocation = $a->status === 'aktif' && ! $isBatchFinal;
+            $kurangFisik = $isActiveAllocation ? max(0, $qtyAlokasi - $fisikOp) : 0.0;
 
-            if ($kurangFisik > 0) {
+            if ($isActiveAllocation && $kurangFisik > 0) {
                 $hasDeficitFisik = true;
             }
-            if ($stokRencana < 0) {
+            if ($isActiveAllocation && $stokRencana < 0) {
                 $hasDeficitRencana = true;
             }
 
@@ -277,10 +309,15 @@ class BatchController extends Controller
                 'stok_rencana' => $stokRencana,
                 'stok_pusat' => $pusat,
                 'kurang_fisik' => $kurangFisik,
-                'is_cukup_fisik' => $kurangFisik <= 0,
-                'is_cukup_rencana' => $stokRencana >= 0,
+                'is_cukup_fisik' => ! $isActiveAllocation || $kurangFisik <= 0,
+                'is_cukup_rencana' => ! $isActiveAllocation || $stokRencana >= 0,
             ];
         }
+
+        $readinessSummary = $this->buildReadinessSummary($batch, $hasDeficitFisik, $hasDeficitRencana);
+        $selesaiAudits = $batch->status === 'selesai'
+            ? $this->buildSelesaiAudits($batch, $bahanIds)
+            : [];
 
         $rekapBahan = $batch->rekapBahan();
         $showProgresPemenuhan = $this->shouldShowProgresPemenuhan($batch, $rekapBahan, $hasDeficitFisik);
@@ -290,6 +327,8 @@ class BatchController extends Controller
             'earlyWarnings',
             'hasDeficitFisik',
             'hasDeficitRencana',
+            'readinessSummary',
+            'selesaiAudits',
             'gudangPusat',
             'rekapBahan',
             'showProgresPemenuhan'
@@ -509,9 +548,9 @@ class BatchController extends Controller
     }
 
     /** Ajukan Kirim Produk Jadi ke Fulfillment (buat dokumen Transfer modern). */
-    public function kirim(BatchProduksi $batch, TransferService $transferService)
+    public function kirim(BatchProduksi $batch, TransferService $transferService, InventoryTransferAuthorizationService $authz)
     {
-        $this->authorize('rt.create');
+        $this->authorize('transfer.produk_jadi.create');
         abort_unless($batch->status === 'selesai', 422, 'Batch harus Selesai untuk dikirim.');
         abort_unless((float) $batch->qty_baik > 0, 422, 'Tidak ada qty baik untuk dikirim.');
 
@@ -540,6 +579,13 @@ class BatchController extends Controller
                 'produk_id' => $batch->produk_id,
                 'qty_dikirim' => (float) $batch->qty_baik,
             ]];
+
+        $produkIds = collect($items)->pluck('produk_id')->filter()->all();
+        $categories = $authz->resolveCategoriesForTransferPayload('kirim_produk_jadi', null, $produkIds);
+        $authz->authorizeOrAbort(
+            $authz->canCreateTransferWithCategories(auth()->user(), $categories),
+            'Anda tidak memiliki izin Transfer Produk Jadi untuk mengirim hasil batch ini.'
+        );
 
         $transfer = DB::transaction(function () use ($batch, $gudangTujuanId, $items, $transferService) {
             $transfer = $transferService->create([
@@ -603,6 +649,87 @@ class BatchController extends Controller
         );
 
         return ! $allFulfilled;
+    }
+
+    private function buildReadinessSummary(BatchProduksi $batch, bool $hasDeficitFisik, bool $hasDeficitRencana): array
+    {
+        if ($batch->status === 'selesai') {
+            return [
+                'value' => 'Selesai Dipakai',
+                'subtitle' => 'Bahan dilepas & batch selesai',
+                'variant' => 'success',
+            ];
+        }
+
+        if ($batch->status === 'dibatalkan') {
+            return [
+                'value' => 'Alokasi Dilepas',
+                'subtitle' => 'Batch dibatalkan tanpa potong stok',
+                'variant' => 'default',
+            ];
+        }
+
+        if ($hasDeficitFisik) {
+            return [
+                'value' => 'Stok Kurang',
+                'subtitle' => 'Perlu transfer dari GD Pusat',
+                'variant' => 'danger',
+            ];
+        }
+
+        if ($hasDeficitRencana) {
+            return [
+                'value' => 'Defisit Rencana',
+                'subtitle' => 'Alokasi batch lain tinggi',
+                'variant' => 'warning',
+            ];
+        }
+
+        if ($batch->status === 'release') {
+            return [
+                'value' => 'Bahan Di-Issue',
+                'subtitle' => 'Seluruh bahan telah dilepas dari GD Ops',
+                'variant' => 'primary',
+            ];
+        }
+
+        return [
+            'value' => 'Siap Rilis',
+            'subtitle' => '100% bahan tersedia',
+            'variant' => 'success',
+        ];
+    }
+
+    private function buildSelesaiAudits(BatchProduksi $batch, \Illuminate\Support\Collection $bahanIds): array
+    {
+        $issueKartuStok = $bahanIds->isEmpty()
+            ? collect()
+            : KartuStok::where('referensi_tipe', 'batch_produksi')
+                ->where('referensi_id', $batch->id)
+                ->where('tipe', 'out')
+                ->whereIn('produk_id', $bahanIds)
+                ->orderByDesc('created_at')
+                ->get()
+                ->keyBy('produk_id');
+
+        $opnameByBahan = $batch->opname->keyBy('bahan_id');
+
+        $audits = [];
+        foreach ($batch->alokasi as $a) {
+            $kartu = $issueKartuStok->get($a->bahan_id);
+            $op = $opnameByBahan->get($a->bahan_id);
+
+            $audits[$a->id] = [
+                'qty_issued' => (float) ($kartu?->qty ?? $a->qty_dialokasikan),
+                'saldo_pasca_issue' => $kartu ? (float) $kartu->saldo_setelah : null,
+                'released_at' => $kartu?->created_at ?? ($a->status === 'dilepas' ? $a->updated_at : null),
+                'opname_aktual' => $op ? (float) $op->pemakaian_aktual : null,
+                'opname_variance' => $op ? $op->variance() : null,
+                'has_opname' => $op !== null,
+            ];
+        }
+
+        return $audits;
     }
 
     private function nextNo(): string

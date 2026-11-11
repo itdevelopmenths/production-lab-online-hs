@@ -3,13 +3,8 @@
         title="Variance Pemakaian (Stock Opname)"
         subtitle="Analisis deviasi perbandingan antara formula standar teoritis BOM vs realisasi aktual di lab"
         :breadcrumbs="['Laporan' => route('reports.index'), 'Variance Opname' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('reports.index') }}" variant="outline" size="sm">
-                &larr; Kembali
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('reports.index')"
+    />
 
     @php
         $totalOpname = $opname->count();

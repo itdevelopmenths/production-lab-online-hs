@@ -3,13 +3,8 @@
         title="Laporan Pemakaian Bahan Baku"
         subtitle="Akumulasi konsumsi bahan baku dan kemasan yang telah dikeluarkan untuk proses manufaktur batch"
         :breadcrumbs="['Laporan' => route('reports.index'), 'Pemakaian Bahan' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('reports.index') }}" variant="outline" size="sm">
-                &larr; Kembali
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('reports.index')"
+    />
 
     @php
         $totalItems = $rows->count();

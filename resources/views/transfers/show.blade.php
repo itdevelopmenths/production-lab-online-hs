@@ -1,4 +1,4 @@
-<x-app-layout title="Detail Transfer Barang" subtitle="{{ $transfer->no_transfer }}">
+<x-app-layout title="Detail Transfer {{ $transfer->no_transfer }}">
     @php
         $transferItemsData = $transfer->items->map(fn($it) => [
             'id' => $it->id,
@@ -38,15 +38,22 @@
 
     <div x-data="transferShowData()" class="space-y-6">
 
+        <x-page-header
+            title="Detail Transfer Barang"
+            :subtitle="$transfer->no_transfer . ' · ' . $transfer->created_at->format('d/m/Y H:i')"
+            :breadcrumbs="['Transfer' => route('transfers.index'), $transfer->no_transfer => null]"
+            :backUrl="route('transfers.index')"
+        />
+
         {{-- Header Status Bar --}}
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-card border border-border">
             <div class="flex items-center gap-4">
                 <div class="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                    <svg class="size-6" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                 </div>
                 <div>
                     <div class="flex items-center gap-2.5">
-                        <h1 class="text-xl font-bold font-mono text-foreground">{{ $transfer->no_transfer }}</h1>
+                        <h2 class="text-xl font-bold font-mono text-foreground">{{ $transfer->no_transfer }}</h2>
                         @php
                             $statusBadge = match($transfer->status) {
                                 'draft' => 'bg-gray-100 text-gray-700 border-gray-300',
@@ -104,8 +111,8 @@
                     </span>
                 @endif
 
-                @if($canCancelDraft)
-                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-semibold rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition">
+                @if($canCancel)
+                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-semibold rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition cursor-pointer">
                         Batalkan Transfer
                     </button>
                 @endif
@@ -162,6 +169,13 @@
         <div class="p-4 rounded-xl bg-muted/40 border border-border text-xs">
             <span class="font-semibold text-foreground">Catatan Pengiriman:</span>
             <p class="text-muted-foreground mt-0.5">{{ $transfer->catatan }}</p>
+        </div>
+        @endif
+
+        @if($transfer->status === 'dibatalkan' && $transfer->alasan_batal)
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs">
+            <span class="font-bold">Alasan Pembatalan Transfer:</span>
+            <p class="mt-0.5">{{ $transfer->alasan_batal }}</p>
         </div>
         @endif
 
@@ -223,6 +237,7 @@
         </x-card>
 
         {{-- Modal Konfirmasi Penerimaan Barang (Strict Anti-Fraud Invariant) --}}
+        @if($canReceive)
         <x-modal name="openReceiveModal" maxWidth="3xl">
             <x-slot:header>
                 <div class="px-6 py-4 border-b border-border bg-emerald-50 flex items-center justify-between">
@@ -294,28 +309,54 @@
                 </div>
             </form>
         </x-modal>
+        @endif
 
         {{-- Modal Pembatalan Transfer --}}
+        @if($canCancel)
+        @php
+            $isInTransitCancel = $transfer->status === 'dikirim';
+        @endphp
         <x-modal name="openCancelModal" maxWidth="md">
             <x-slot:header>
                 <div class="px-6 py-4 border-b border-border bg-rose-50 flex items-center justify-between">
-                    <h3 class="text-base font-bold text-rose-950">Batalkan Draft Transfer</h3>
+                    <h3 class="text-base font-bold text-rose-950">
+                        {{ $isInTransitCancel ? 'Batalkan Transfer In Transit' : 'Batalkan Draft Transfer' }}
+                    </h3>
                 </div>
             </x-slot:header>
             <form method="POST" action="{{ route('transfers.cancel', $transfer) }}" class="p-6 space-y-4">
                 @csrf
+                @if($isInTransitCancel)
+                <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
+                    <strong>Perhatian:</strong> Transfer ini sedang berstatus <strong>In Transit</strong>. Membatalkan transfer akan mengembalikan seluruh kuantitas kirim ke saldo stok <strong>{{ $transfer->gudangAsal?->nama ?? 'gudang asal' }}</strong>.
+                </div>
+                @endif
                 <div>
-                    <label class="block text-xs font-semibold text-foreground mb-1">Alasan Pembatalan (Opsional)</label>
-                    <textarea name="alasan" x-model="alasanCancel" rows="3" class="w-full text-xs rounded-lg border border-border p-2 focus:ring-2 focus:ring-primary/20" placeholder="Alasan pembatalan draft transfer..."></textarea>
+                    <label for="cancel-transfer-alasan" class="block text-xs font-semibold text-foreground mb-1">
+                        Alasan Pembatalan
+                        @if($isInTransitCancel)
+                            <span class="text-destructive">*</span>
+                        @else
+                            <span class="text-muted-foreground font-normal">(Opsional)</span>
+                        @endif
+                    </label>
+                    <textarea id="cancel-transfer-alasan"
+                              name="alasan"
+                              x-model="alasanCancel"
+                              rows="3"
+                              @if($isInTransitCancel) required minlength="3" @endif
+                              class="w-full text-xs rounded-lg border border-border p-2 focus:ring-2 focus:ring-primary/20"
+                              placeholder="{{ $isInTransitCancel ? 'Jelaskan alasan pembatalan pengiriman In Transit...' : 'Alasan pembatalan draft transfer...' }}"></textarea>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <x-button type="button" variant="outline" @click="openCancelModal = false">Kembali</x-button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition">
-                        Batalkan Transfer
+                    <x-button type="button" variant="outline" @click="openCancelModal = false">Tutup</x-button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer">
+                        {{ $isInTransitCancel ? 'Konfirmasi Batalkan Transfer' : 'Batalkan Transfer' }}
                     </button>
                 </div>
             </form>
         </x-modal>
+        @endif
 
         {{-- Jejak Audit Operasional Transfer --}}
         <x-operational-audit-history :auditable="$transfer" title="Jejak Riwayat Audit Transfer {{ $transfer->no_transfer }}" />

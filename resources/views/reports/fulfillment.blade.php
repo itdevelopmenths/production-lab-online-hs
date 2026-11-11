@@ -3,13 +3,8 @@
         title="Pergerakan Stok Fulfillment"
         subtitle="Log audit mutasi dan sirkulasi persediaan produk jadi pada fasilitas gudang fulfillment pusat dan cabang"
         :breadcrumbs="['Laporan' => route('reports.index'), 'Pergerakan Fulfillment' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('reports.index') }}" variant="outline" size="sm">
-                &larr; Kembali
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('reports.index')"
+    />
 
     @php
         $totalLogs = $rows->count();

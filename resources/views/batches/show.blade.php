@@ -8,6 +8,8 @@
             'Batch' => route('batches.index'),
             $batch->no_batch => null,
         ]"
+        :backUrl="route('batches.index')"
+        backSize="xs"
     >
         <x-slot:actions>
             @php
@@ -22,10 +24,6 @@
             <x-badge :variant="$statusVariant" :dot="true" size="sm">
                 {{ $batch->status === 'release' ? 'Release (Berjalan)' : ucfirst($batch->status) }}
             </x-badge>
-
-            <x-button href="{{ route('batches.index') }}" variant="secondary" size="xs">
-                &larr; Kembali
-            </x-button>
 
             @can('batch.release')
             @if($batch->status === 'rencana')
@@ -50,7 +48,7 @@
                     Transfer: {{ $batch->transferKirim->no_transaksi }}
                 </x-button>
                 @else
-                    @can('rt.create')
+                    @can('transfer.produk_jadi.create')
                     <form method="POST" action="{{ route('batches.kirim', $batch) }}" class="inline">
                         @csrf
                         <x-button type="submit" variant="primary" size="xs">
@@ -94,9 +92,9 @@
 
         <x-stat-box
             title="Kesiapan Bahan"
-            :value="$hasDeficitFisik ? 'Stok Kurang' : ($hasDeficitRencana ? 'Defisit Rencana' : 'Siap Rilis')"
-            :subtitle="$hasDeficitFisik ? 'Perlu transfer dari GD Pusat' : ($hasDeficitRencana ? 'Alokasi batch lain tinggi' : '100% bahan tersedia')"
-            :variant="$hasDeficitFisik ? 'danger' : ($hasDeficitRencana ? 'warning' : 'success')"
+            :value="$readinessSummary['value']"
+            :subtitle="$readinessSummary['subtitle']"
+            :variant="$readinessSummary['variant']"
         />
     </div>
 
@@ -154,42 +152,106 @@
             @endif
 
             <!-- Tabel Alokasi Bahan Baku (BOM Explode) -->
-            <x-card title="Alokasi Bahan Baku (BOM Explode)" subtitle="Formula resep × target kuantitas. Stok fisik dipotong saat Release & Issue." :noPadding="true">
+            @php
+                $isBatchSelesai = $batch->status === 'selesai';
+                $alokasiSubtitle = $isBatchSelesai
+                    ? 'Realisasi bahan baku yang telah dilepas saat produksi & ringkasan hasil opname.'
+                    : 'Formula resep × target kuantitas. Stok fisik dipotong saat Release & Issue.';
+            @endphp
+            <x-card title="Alokasi Bahan Baku (BOM Explode)" :subtitle="$alokasiSubtitle" :noPadding="true">
                 <x-slot:tools>
                     <span class="text-xs text-muted-foreground font-mono font-medium">{{ $batch->alokasi->count() }} komponen resep</span>
                 </x-slot:tools>
 
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Tabel Alokasi Bahan Baku">
                     <table class="w-full text-left text-xs">
                         <thead>
+                            @if($isBatchSelesai)
                             <tr>
-                                <th class="py-2.5 px-3.5">Bahan Baku</th>
-                                <th class="py-2.5 px-3 text-right">Kebutuhan</th>
-                                <th class="py-2.5 px-3 text-right">Stok Fisik Ops</th>
-                                <th class="py-2.5 px-3 text-right">Kolom Rencana</th>
-                                <th class="py-2.5 px-3 text-right whitespace-nowrap" title="Stok fisik di {{ $gudangPusat?->nama ?? 'Gudang Bahan Baku Pusat' }}">Stok GD BB Pusat</th>
-                                <th class="py-2.5 px-3 text-center">Status</th>
-                                <th class="py-2.5 px-3.5 text-center">Aksi</th>
+                                <th scope="col" class="py-2.5 px-3.5">Bahan Baku</th>
+                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap">Di-Issue (BOM)</th>
+                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap">Saldo Pasca-Issue</th>
+                                <th scope="col" class="py-2.5 px-3 whitespace-nowrap">Waktu Dilepas</th>
+                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap">Aktual Opname</th>
+                                <th scope="col" class="py-2.5 px-3 text-center">Status</th>
+                                <th scope="col" class="py-2.5 px-3.5 text-center">Aksi</th>
                             </tr>
+                            @else
+                            <tr>
+                                <th scope="col" class="py-2.5 px-3.5">Bahan Baku</th>
+                                <th scope="col" class="py-2.5 px-3 text-right">Kebutuhan</th>
+                                <th scope="col" class="py-2.5 px-3 text-right">Stok Fisik Ops</th>
+                                <th scope="col" class="py-2.5 px-3 text-right">Kolom Rencana</th>
+                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap" title="Stok fisik di {{ $gudangPusat?->nama ?? 'Gudang Bahan Baku Pusat' }}">Stok GD BB Pusat</th>
+                                <th scope="col" class="py-2.5 px-3 text-center">Status</th>
+                                <th scope="col" class="py-2.5 px-3.5 text-center">Aksi</th>
+                            </tr>
+                            @endif
                         </thead>
                         <tbody class="divide-y divide-border">
                             @forelse($batch->alokasi as $a)
                             @php
                                 $w = $earlyWarnings[$a->id] ?? null;
+                                $audit = $selesaiAudits[$a->id] ?? null;
+                                $satuan = $a->bahan->satuan ?? '';
                             @endphp
                             <tr class="hover:bg-gray-50/70 transition">
                                 <td class="py-2.5 px-3.5">
                                     <div class="font-bold text-gray-900">{{ $a->bahan->nama }}</div>
                                     <div class="font-mono text-[11px] text-gray-400">{{ $a->bahan->sku }}</div>
                                 </td>
+                                @if($isBatchSelesai)
+                                <td class="py-2.5 px-3 text-right font-semibold text-gray-900 whitespace-nowrap font-mono tabular-nums">
+                                    {{ \App\Helpers\NumberHelper::formatQty($audit['qty_issued'] ?? $a->qty_dialokasikan) }}
+                                    <span class="text-gray-400 font-sans font-normal">{{ $satuan }}</span>
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-medium text-gray-700 whitespace-nowrap font-mono tabular-nums">
+                                    @if($audit && $audit['saldo_pasca_issue'] !== null)
+                                        {{ \App\Helpers\NumberHelper::formatQty($audit['saldo_pasca_issue']) }}
+                                        <span class="text-gray-400 font-sans font-normal">{{ $satuan }}</span>
+                                    @else
+                                        <span class="text-gray-400 font-sans">-</span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 px-3 text-gray-600 whitespace-nowrap font-mono text-[11px]">
+                                    {{ $audit && $audit['released_at'] ? $audit['released_at']->format('d/m/Y H:i') : '-' }}
+                                </td>
+                                <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                                    @if($audit && $audit['has_opname'])
+                                        <div class="font-semibold text-gray-900 font-mono tabular-nums">
+                                            {{ \App\Helpers\NumberHelper::formatQty($audit['opname_aktual']) }}
+                                            <span class="text-gray-400 font-sans font-normal">{{ $satuan }}</span>
+                                        </div>
+                                        @php
+                                            $variance = (float) ($audit['opname_variance'] ?? 0);
+                                        @endphp
+                                        @if(abs($variance) < 0.0001)
+                                            <span class="text-[10px] font-semibold text-emerald-700">Sesuai BOM</span>
+                                        @elseif($variance > 0)
+                                            <span class="text-[10px] font-semibold text-amber-700 font-mono">+{{ \App\Helpers\NumberHelper::formatQty($variance) }} {{ $satuan }}</span>
+                                        @else
+                                            <span class="text-[10px] font-semibold text-sky-700 font-mono">-{{ \App\Helpers\NumberHelper::formatQty(abs($variance)) }} {{ $satuan }}</span>
+                                        @endif
+                                    @else
+                                        <span class="text-muted-foreground">Belum opname</span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 px-3 text-center">
+                                    @if($a->status === 'dilepas')
+                                        <x-badge variant="success" size="sm">Dilepas · Selesai</x-badge>
+                                    @else
+                                        <x-badge variant="gray">{{ ucfirst($a->status) }}</x-badge>
+                                    @endif
+                                </td>
+                                @else
                                 <td class="py-2.5 px-3 text-right font-semibold text-gray-900">
                                     {{ \App\Helpers\NumberHelper::formatQty($a->qty_dialokasikan) }}
-                                    <span class="text-gray-400 font-normal">{{ $a->bahan->satuan }}</span>
+                                    <span class="text-gray-400 font-normal">{{ $satuan }}</span>
                                 </td>
                                 <td class="py-2.5 px-3 text-right font-medium text-gray-700">
                                     @if($w)
                                         {{ \App\Helpers\NumberHelper::formatQty($w['stok_fisik_op']) }}
-                                        <span class="text-gray-400 font-normal">{{ $a->bahan->satuan }}</span>
+                                        <span class="text-gray-400 font-normal">{{ $satuan }}</span>
                                     @else
                                         -
                                     @endif
@@ -197,7 +259,7 @@
                                 <td class="py-2.5 px-3 text-right font-medium {{ ($w['stok_rencana'] ?? 0) < 0 ? 'text-rose-600 font-bold' : 'text-gray-700' }}">
                                     @if($w)
                                         {{ \App\Helpers\NumberHelper::formatQty($w['stok_rencana']) }}
-                                        <span class="text-gray-400 font-normal">{{ $a->bahan->satuan }}</span>
+                                        <span class="text-gray-400 font-normal">{{ $satuan }}</span>
                                     @else
                                         -
                                     @endif
@@ -205,7 +267,7 @@
                                 <td class="py-2.5 px-3 text-right text-gray-500">
                                     @if($w)
                                         {{ \App\Helpers\NumberHelper::formatQty($w['stok_pusat']) }}
-                                        <span class="text-gray-400 font-normal">{{ $a->bahan->satuan }}</span>
+                                        <span class="text-gray-400 font-normal">{{ $satuan }}</span>
                                     @else
                                         -
                                     @endif
@@ -225,6 +287,7 @@
                                         </x-badge>
                                     @endif
                                 </td>
+                                @endif
                                 <td class="py-2.5 px-3.5 text-center whitespace-nowrap">
                                     <a href="{{ route('stok.ledger', $a->bahan_id) }}" class="text-foreground hover:underline text-xs font-semibold">
                                         Kartu Stok &rarr;
@@ -651,7 +714,7 @@
                     <p class="text-[11px] text-gray-500 text-center mt-1">Menarik stok fisik bahan baku dari gudang operasional.</p>
                     @endcan
 
-                    @can('rt.create')
+                    @can('request.bahan.create')
                     <div class="mt-2.5">
                         @if($hasDeficitFisik)
                         <x-button href="{{ route('requests.create', ['batch_id' => $batch->id]) }}" variant="danger" size="sm" class="w-full">
@@ -685,10 +748,10 @@
 
                 @if($batch->status === 'release')
                     @php
-                        $hasKekuranganRelease = $hasDeficitFisik || collect($rekapBahan)->contains(fn ($rb) => ($rb['kebutuhan'] - $rb['diterima']) > 0.0001);
+                        $hasKekuranganRelease = $hasDeficitFisik || ($showProgresPemenuhan && collect($rekapBahan)->contains(fn ($rb) => ($rb['kebutuhan'] - $rb['diterima']) > 0.0001));
                     @endphp
                     @if($hasKekuranganRelease)
-                    @can('rt.create')
+                    @can('request.bahan.create')
                     <div class="mt-2.5 mb-2.5">
                         <x-button href="{{ route('requests.create', ['batch_id' => $batch->id]) }}" variant="warning" size="sm" class="w-full">
                             <x-slot:icon>
@@ -725,7 +788,7 @@
                         </div>
                     </div>
                     @else
-                        @can('rt.create')
+                        @can('transfer.produk_jadi.create')
                         <form method="POST" action="{{ route('batches.kirim', $batch) }}">
                             @csrf
                             <x-button type="submit" variant="primary" size="md" class="w-full">

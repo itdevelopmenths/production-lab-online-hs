@@ -1,16 +1,11 @@
-<x-app-layout title="Edit Divisi" :backUrl="route('divisi.index')">
+<x-app-layout title="Edit Divisi">
     <div class="w-full space-y-4">
         <x-page-header
             title="Edit Divisi"
             subtitle="Perbarui data unit kerja, kode slug sistem, atau aksen warna identifikasi badge"
             :breadcrumbs="['Master Data' => null, 'Divisi' => route('divisi.index'), $divisi->nama => null, 'Edit' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('divisi.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('divisi.index')"
+        />
 
         <form method="POST" action="{{ route('divisi.update', $divisi) }}">
             @csrf

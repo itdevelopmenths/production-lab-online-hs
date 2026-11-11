@@ -6,6 +6,7 @@ use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\StockRequest;
 use App\Models\Transfer;
+use App\Services\Authorization\InventoryTransferAuthorizationService;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\StokService;
 use App\Services\TransferService;
@@ -13,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
 
 class TransferController extends Controller
@@ -20,13 +22,14 @@ class TransferController extends Controller
     public function __construct(
         private readonly TransferService $transferService,
         private readonly LocationScopeService $locationScope,
-        private readonly StokService $stokService
+        private readonly StokService $stokService,
+        private readonly InventoryTransferAuthorizationService $authz
     ) {
     }
 
     public function index(Request $request)
     {
-        $this->authorize('rt.view');
+        $this->authorize('transfer.view');
 
         $year = (int) $request->input('year', date('Y'));
         $month = $request->filled('month') ? (int) $request->input('month') : null;
@@ -37,14 +40,14 @@ class TransferController extends Controller
 
         $user = auth()->user();
         $isManager = $user->hasAnyRole(['manager', 'admin']);
-        $isGudang = $user->hasRole('gudang');
+        $isGudang = $user->can('transfer.bahan.ship') && ! $isManager;
 
         return view('transfers.index', compact('defectAnalytics', 'year', 'month', 'gudangId', 'warehouses', 'isManager', 'isGudang'));
     }
 
     public function data(Request $request): JsonResponse
     {
-        $this->authorize('rt.view');
+        $this->authorize('transfer.view');
 
         $user = auth()->user();
         $userId = (int) $user->id;
@@ -131,7 +134,7 @@ class TransferController extends Controller
 
     public function defectAnalytics(Request $request): JsonResponse
     {
-        $this->authorize('rt.view');
+        $this->authorize('transfer.view');
 
         $year = (int) $request->input('year', date('Y'));
         $month = $request->filled('month') ? (int) $request->input('month') : null;
@@ -144,17 +147,28 @@ class TransferController extends Controller
 
     public function create(Request $request)
     {
-        $this->authorize('rt.create');
+        $this->authorize('transfer.create');
+        $user = auth()->user();
+
+        $allowedJenis = $this->authz->allowedTransferJenis($user);
+        abort_if(empty($allowedJenis), 403, 'Anda tidak memiliki hak akses untuk membuat Transfer Barang.');
+
+        $canTransferBahan = $this->authz->canCreateTransferCategory($user, InventoryTransferAuthorizationService::CATEGORY_BAHAN);
+        $canTransferProdukJadi = $this->authz->canCreateTransferCategory($user, InventoryTransferAuthorizationService::CATEGORY_PRODUK_JADI);
+        $allowedProductTipes = $this->authz->allowedTransferProductTipes($user);
 
         $warehouses = Gudang::active()->orderBy('nama')->get();
-        $products = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
+        $products = Produk::active()
+            ->when($allowedProductTipes !== null, fn ($q) => $q->whereIn('tipe', $allowedProductTipes))
+            ->orderBy('nama')
+            ->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
 
         $stockRequest = null;
         $batch = null;
         $referensiBatchId = null;
         $defaultGudangAsalId = null;
         $defaultGudangTujuanId = null;
-        $defaultJenis = 'antar_fulfillment';
+        $defaultJenis = in_array('antar_fulfillment', $allowedJenis, true) ? 'antar_fulfillment' : $allowedJenis[0];
         $prefilledItems = [];
 
         $reqId = $request->input('request_id', $request->old('request_id'));
@@ -162,6 +176,11 @@ class TransferController extends Controller
 
         if (!empty($reqId)) {
             $stockRequest = StockRequest::with(['items.produk.uom', 'gudangPemohon', 'gudangTujuan', 'batch'])->findOrFail($reqId);
+
+            $this->authz->authorizeOrAbort(
+                $this->authz->canCreateTransferForRequest($user, $stockRequest),
+                'Anda tidak memiliki izin untuk membuat Transfer berdasarkan jenis Request ini.'
+            );
 
             abort_if($stockRequest->status !== 'disetujui', 422, 'Hanya Request dengan status "disetujui" yang dapat dibuatkan Transfer.');
 
@@ -172,6 +191,13 @@ class TransferController extends Controller
             $defaultJenis = $stockRequest->jenis === 'request_bahan' ? 'pemenuhan_request_bahan' : 'kirim_produk_jadi';
             $referensiBatchId = $stockRequest->referensi_batch_id;
             $effectiveGudangAsalId = $request->old('gudang_asal_id') ?: $defaultGudangAsalId;
+
+            $reqProdukIds = $stockRequest->items->pluck('produk_id')->filter()->all();
+            $reqCategories = $this->authz->resolveCategoriesForTransferPayload($defaultJenis, $stockRequest, $reqProdukIds);
+            $this->authz->authorizeOrAbort(
+                $this->authz->canCreateTransferWithCategories($user, $reqCategories),
+                'Anda tidak memiliki izin Transfer untuk salah satu kategori produk pada Request ini.'
+            );
 
             foreach ($stockRequest->items as $item) {
                 $stokTersedia = $effectiveGudangAsalId ? $this->stokService->saldo($item->produk_id, (int) $effectiveGudangAsalId) : 0;
@@ -189,6 +215,12 @@ class TransferController extends Controller
             }
         } elseif (!empty($batchIdParam)) {
             $batch = \App\Models\BatchProduksi::with(['outputs.produk', 'gudangOperasional', 'gudangTujuan', 'produk'])->findOrFail($batchIdParam);
+
+            $this->authz->authorizeOrAbort(
+                $this->authz->canCreateTransferForBatch($user, $batch),
+                'Anda tidak memiliki izin Transfer Produk Jadi untuk mengirimkan hasil Batch.'
+            );
+
             $defaultGudangAsalId = $batch->gudang_operasional_id;
             $defaultGudangTujuanId = $batch->gudang_tujuan_rencana_id;
             $defaultJenis = 'kirim_produk_jadi';
@@ -224,16 +256,37 @@ class TransferController extends Controller
             }
         }
 
-        if ($request->filled('jenis') && in_array($request->jenis, Transfer::JENIS, true)) {
-            $defaultJenis = $request->jenis;
+        if ($request->filled('jenis')) {
+            $requestedJenis = $request->input('jenis') === 'distribusi' ? 'antar_fulfillment' : $request->input('jenis');
+            if (in_array($requestedJenis, Transfer::JENIS, true)) {
+                $this->authz->authorizeOrAbort(
+                    in_array($requestedJenis, $allowedJenis, true),
+                    'Anda tidak memiliki izin untuk jenis Transfer yang dipilih.'
+                );
+                $defaultJenis = $requestedJenis;
+            }
         }
 
-        return view('transfers.create', compact('stockRequest', 'batch', 'referensiBatchId', 'warehouses', 'products', 'defaultGudangAsalId', 'defaultGudangTujuanId', 'defaultJenis', 'prefilledItems'));
+        return view('transfers.create', compact(
+            'stockRequest',
+            'batch',
+            'referensiBatchId',
+            'warehouses',
+            'products',
+            'defaultGudangAsalId',
+            'defaultGudangTujuanId',
+            'defaultJenis',
+            'prefilledItems',
+            'allowedJenis',
+            'canTransferBahan',
+            'canTransferProdukJadi',
+            'allowedProductTipes'
+        ));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $this->authorize('rt.create');
+        $this->authorize('transfer.create');
 
         $validated = $request->validate([
             'request_id' => 'nullable|exists:requests,id',
@@ -251,26 +304,49 @@ class TransferController extends Controller
             'items.*.keterangan' => 'nullable|string|max:255',
         ]);
 
+        $user = auth()->user();
+        $jenisInput = $validated['jenis'] ?? null;
+        if ($jenisInput === 'distribusi') {
+            $jenisInput = 'antar_fulfillment';
+        }
+
+        $stockReq = ! empty($validated['request_id'])
+            ? StockRequest::with('items.produk:id,tipe')->findOrFail($validated['request_id'])
+            : null;
+
+        $jenis = 'antar_fulfillment';
+        $batchId = $validated['batch_id'] ?? $validated['referensi_batch_id'] ?? null;
+
+        if ($stockReq) {
+            $jenis = $stockReq->jenis === 'request_bahan' ? 'pemenuhan_request_bahan' : 'kirim_produk_jadi';
+            if (! $batchId) {
+                $batchId = $stockReq->referensi_batch_id;
+            }
+        } elseif (! empty($jenisInput) && in_array($jenisInput, Transfer::JENIS, true)) {
+            $jenis = $jenisInput;
+        }
+
+        $produkIds = collect($validated['items'])->pluck('produk_id')->filter()->all();
+        $categories = $this->authz->resolveCategoriesForTransferPayload($jenis, $stockReq, $produkIds);
+
+        $this->authz->authorizeOrAbort(
+            $this->authz->canCreateTransferWithCategories($user, $categories),
+            'Anda tidak memiliki izin Transfer untuk jenis atau kategori produk yang dipilih.'
+        );
+
+        if ($request->input('action') === 'ship') {
+            $this->authz->authorizeOrAbort(
+                $this->authz->canShipCategories($user, $categories),
+                'Anda tidak memiliki izin untuk langsung mengirim Transfer kategori produk ini.'
+            );
+        }
+
+        if ($mismatch = $this->authz->resolveExplicitJenisItemMismatch($jenis, $produkIds)) {
+            throw ValidationException::withMessages(['items' => $mismatch]);
+        }
+
         try {
             DB::beginTransaction();
-
-            $jenisInput = $validated['jenis'] ?? null;
-            if ($jenisInput === 'distribusi') {
-                $jenisInput = 'antar_fulfillment';
-            }
-
-            $jenis = 'antar_fulfillment';
-            $batchId = $validated['batch_id'] ?? $validated['referensi_batch_id'] ?? null;
-
-            if (!empty($validated['request_id'])) {
-                $stockReq = StockRequest::findOrFail($validated['request_id']);
-                $jenis = $stockReq->jenis === 'request_bahan' ? 'pemenuhan_request_bahan' : 'kirim_produk_jadi';
-                if (!$batchId) {
-                    $batchId = $stockReq->referensi_batch_id;
-                }
-            } elseif (!empty($jenisInput) && in_array($jenisInput, Transfer::JENIS, true)) {
-                $jenis = $jenisInput;
-            }
 
             $transferData = [
                 'jenis' => $jenis,
@@ -282,10 +358,10 @@ class TransferController extends Controller
                 'items' => $validated['items'],
             ];
 
-            $transfer = $this->transferService->create($transferData, auth()->user());
+            $transfer = $this->transferService->create($transferData, $user);
 
             if ($request->input('action') === 'ship') {
-                $this->transferService->ship($transfer, auth()->user());
+                $this->transferService->ship($transfer, $user);
                 $message = "Transfer {$transfer->no_transfer} berhasil dibuat dan langsung dikirim (In Transit). Stok gudang asal telah dipotong.";
             } else {
                 $message = "Draft Transfer {$transfer->no_transfer} berhasil dibuat.";
@@ -293,6 +369,9 @@ class TransferController extends Controller
             DB::commit();
 
             return redirect()->route('transfers.show', $transfer)->with('success', $message);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Throwable $e) {
             DB::rollBack();
             return back()->withInput()->with('error', $e->getMessage());
@@ -301,7 +380,7 @@ class TransferController extends Controller
 
     public function show(Transfer $transfer)
     {
-        $this->authorize('rt.view');
+        $this->authorize('transfer.view');
 
         $transfer->load([
             'gudangAsal',
@@ -315,34 +394,30 @@ class TransferController extends Controller
 
         $user = auth()->user();
         $isManager = $user->hasAnyRole(['manager', 'admin']);
-        $isGudang = $user->hasRole('gudang');
-        $isFulfillment = $user->hasRole('fulfillment');
-        $isOperasional = $user->hasRole('operasional');
 
-        // Can ship if draft and user has permission
-        $canShip = $transfer->status === 'draft' && ($isGudang || $isManager || (int) $transfer->created_by === (int) $user->id);
+        $canShip = $transfer->status === 'draft' && $this->authz->canShipTransfer($user, $transfer);
 
-        // Can receive if status is dikirim AND Segregation of Duties:
-        // non-managers cannot receive transfers they created themselves
-        $canReceive = $transfer->status === 'dikirim' && (
-            $isManager || (
-                ($isGudang || $isFulfillment || $isOperasional) &&
-                (int) $transfer->created_by !== (int) $user->id
-            )
-        );
+        // Segregation of Duties: non-managers cannot receive transfers they created themselves
+        $canReceive = $transfer->status === 'dikirim'
+            && $this->authz->canReceiveTransfer($user, $transfer)
+            && ($isManager || (int) $transfer->created_by !== (int) $user->id);
 
-        // Can cancel draft
-        $canCancelDraft = $transfer->status === 'draft' && ($isManager || (int) $transfer->created_by === (int) $user->id);
+        $canCancel = $this->authz->canCancelTransfer($user, $transfer);
 
-        return view('transfers.show', compact('transfer', 'canShip', 'canReceive', 'canCancelDraft', 'isManager'));
+        return view('transfers.show', compact('transfer', 'canShip', 'canReceive', 'canCancel', 'isManager'));
     }
 
     public function ship(Request $request, Transfer $transfer): RedirectResponse
     {
-        $this->authorize('rt.ship');
+        $this->authorize('transfer.ship');
+        $user = auth()->user();
+        $this->authz->authorizeOrAbort(
+            $this->authz->canShipTransfer($user, $transfer),
+            'Anda tidak memiliki izin untuk mengirim Transfer kategori produk ini.'
+        );
 
         try {
-            $this->transferService->ship($transfer, auth()->user());
+            $this->transferService->ship($transfer, $user);
             return redirect()->route('transfers.show', $transfer)->with('success', "Transfer {$transfer->no_transfer} berhasil dikirim (In Transit). Stok gudang asal telah dikurangi.");
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
@@ -351,7 +426,19 @@ class TransferController extends Controller
 
     public function receive(Request $request, Transfer $transfer): RedirectResponse
     {
-        $this->authorize('rt.receive');
+        $this->authorize('transfer.receive');
+        $user = auth()->user();
+        $this->authz->authorizeOrAbort(
+            $this->authz->canReceiveTransfer($user, $transfer),
+            'Anda tidak memiliki izin untuk menerima Transfer kategori produk ini.'
+        );
+
+        $isManager = $user->hasAnyRole(['manager', 'admin']);
+        abort_if(
+            ! $isManager && (int) $transfer->created_by === (int) $user->id,
+            403,
+            'Pembuat transfer tidak dapat mengonfirmasi penerimaan barangnya sendiri.'
+        );
 
         $validated = $request->validate([
             'items' => 'required|array|min:1',
@@ -383,7 +470,7 @@ class TransferController extends Controller
         }
 
         try {
-            $this->transferService->receive($transfer, ['items' => $validated['items']], auth()->user());
+            $this->transferService->receive($transfer, ['items' => $validated['items']], $user);
             return redirect()->route('transfers.show', $transfer)->with('success', "Transfer {$transfer->no_transfer} berhasil diterima. Stok baik telah masuk ke gudang tujuan dan barang rusak telah dicatat dalam metrik defect bulanan.");
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $e->getMessage());
@@ -392,12 +479,24 @@ class TransferController extends Controller
 
     public function cancel(Request $request, Transfer $transfer): RedirectResponse
     {
-        $this->authorize('rt.cancel');
+        $this->authorize('transfer.cancel');
+
+        $user = auth()->user();
+        $this->authz->authorizeOrAbort(
+            $this->authz->canCancelTransfer($user, $transfer),
+            'Anda tidak memiliki wewenang untuk membatalkan dokumen Transfer ini.'
+        );
 
         try {
-            $alasan = $request->input('alasan') ?: 'Dibatalkan oleh pembuat/manager';
-            $this->transferService->cancelDraft($transfer, auth()->user(), $alasan);
-            return redirect()->route('transfers.show', $transfer)->with('info', "Draft Transfer {$transfer->no_transfer} berhasil dibatalkan.");
+            $wasInTransit = $transfer->status === 'dikirim';
+            $alasan = trim((string) $request->input('alasan')) ?: 'Dibatalkan oleh pembuat/manager';
+            $this->transferService->cancel($transfer, $user, $alasan);
+
+            $message = $wasInTransit
+                ? "Transfer In Transit {$transfer->no_transfer} berhasil dibatalkan. Stok gudang asal telah dikembalikan."
+                : "Draft Transfer {$transfer->no_transfer} berhasil dibatalkan.";
+
+            return redirect()->route('transfers.show', $transfer)->with('info', $message);
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -405,7 +504,7 @@ class TransferController extends Controller
 
     public function suratJalan(Transfer $transfer)
     {
-        $this->authorize('rt.view');
+        $this->authorize('transfer.view');
 
         $transfer->load([
             'gudangAsal',

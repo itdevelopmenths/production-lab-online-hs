@@ -1,15 +1,10 @@
-<x-app-layout title="Tambah Gudang" :backUrl="route('gudang.index')">
+<x-app-layout title="Tambah Gudang">
     <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Gudang Baru"
             :breadcrumbs="['Master Data' => null, 'Gudang' => route('gudang.index'), 'Tambah' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('gudang.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('gudang.index')"
+        />
 
         <form method="POST" action="{{ route('gudang.store') }}">
             @csrf

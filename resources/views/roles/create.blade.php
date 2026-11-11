@@ -1,16 +1,11 @@
-<x-app-layout title="Tambah Peran Baru" :backUrl="route('roles.index')">
+<x-app-layout title="Tambah Peran Baru">
     <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Peran Baru"
             subtitle="Daftarkan peran kustom baru dan atur matriks wewenang wewenang modul laboratorium"
             :breadcrumbs="['Sistem' => null, 'Peran & Wewenang' => route('roles.index'), 'Tambah' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('roles.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('roles.index')"
+        />
 
         <form action="{{ route('roles.store') }}" method="POST">
             @csrf

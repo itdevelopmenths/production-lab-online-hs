@@ -90,13 +90,8 @@
         <x-page-header
             title="Buat Draft Purchase Order"
             :breadcrumbs="['Inventori' => null, 'Analisa Stok' => route('analisa.index'), 'Buat Draft PO' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('analisa.index') }}" variant="outline" size="sm">
-                    &larr; Kembali ke Analisa Stok
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('analisa.index')"
+        />
 
         {{-- Banner Panduan Rekomendasi --}}
         <div class="rounded-xl border border-border bg-card p-4.5 flex items-start justify-between gap-4 shadow-xs">

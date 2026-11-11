@@ -1,16 +1,11 @@
-<x-app-layout title="Tambah Divisi Baru" :backUrl="route('divisi.index')">
+<x-app-layout title="Tambah Divisi Baru">
     <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Divisi Baru"
             subtitle="Daftarkan unit kerja departemen baru untuk struktur organisasi dan klasifikasi staf pengguna"
             :breadcrumbs="['Master Data' => null, 'Divisi' => route('divisi.index'), 'Tambah' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('divisi.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('divisi.index')"
+        />
 
         <form method="POST" action="{{ route('divisi.store') }}">
             @csrf

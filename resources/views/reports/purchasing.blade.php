@@ -3,13 +3,8 @@
         title="Laporan Purchasing & Hutang Dagang"
         subtitle="Rekapitulasi komitmen nilai purchase order, realisasi pembayaran, dan outstanding liabilitas hutang supplier"
         :breadcrumbs="['Laporan' => route('reports.index'), 'Purchasing & Hutang' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('reports.index') }}" variant="outline" size="sm">
-                &larr; Kembali
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('reports.index')"
+    />
 
     @php
         $activePos = $pos->where('status', '!=', 'dibatalkan');

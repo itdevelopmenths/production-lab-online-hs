@@ -1,15 +1,10 @@
-<x-app-layout title="Kelola BOM" :backUrl="route('bom.index')">
+<x-app-layout title="Kelola BOM">
     <div class="w-full space-y-4">
         <x-page-header
             title="Kelola Formula Resep (BOM)"
             :breadcrumbs="['Master Data' => null, 'BOM' => route('bom.index'), $produk->nama => null, 'Kelola Resep' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('bom.index') }}" variant="outline" size="sm">
-                    &larr; Kembali ke Daftar BOM
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('bom.index')"
+        />
 
         <div x-data="bomForm()">
             <form method="POST" action="{{ route('bom.update', $produk) }}">

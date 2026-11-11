@@ -1,16 +1,11 @@
-<x-app-layout title="Edit Satuan (UOM)" :backUrl="route('uom.index')">
+<x-app-layout title="Edit Satuan (UOM)">
     <div class="w-full space-y-4">
         <x-page-header
             title="Edit Satuan Unit"
             subtitle="Perbarui nama, kategori dimensi, atau faktor konversi acuan unit pengukuran"
             :breadcrumbs="['Master Data' => null, 'Satuan (UOM)' => route('uom.index'), $uom->nama => null, 'Edit' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('uom.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('uom.index')"
+        />
 
         <form method="POST" action="{{ route('uom.update', $uom) }}">
             @csrf

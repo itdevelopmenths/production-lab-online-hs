@@ -3,13 +3,8 @@
         title="Laporan Produksi & Yield"
         subtitle="Rekapitulasi batch manufaktur yang telah selesai, perbandingan output baik vs rusak, dan persentase yield"
         :breadcrumbs="['Laporan' => route('reports.index'), 'Produksi' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('reports.index') }}" variant="outline" size="sm">
-                &larr; Kembali
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('reports.index')"
+    />
 
     @php
         $totalBatches = $batches->count();

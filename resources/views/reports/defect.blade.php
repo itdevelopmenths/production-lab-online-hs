@@ -3,13 +3,8 @@
         title="Laporan Defect & Kerusakan Mutu"
         subtitle="Monitoring batch produksi dan pergerakan logistik transfer yang mengalami unit rusak/cacat"
         :breadcrumbs="['Laporan' => route('reports.index'), 'Defect' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('reports.index') }}" variant="outline" size="sm">
-                &larr; Kembali
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('reports.index')"
+    />
 
     {{-- Filter Toolbar --}}
     <form method="GET" action="{{ route('reports.defect') }}" class="mb-6 bg-card p-4 rounded-xl border border-border shadow-xs flex flex-wrap items-end justify-between gap-4">

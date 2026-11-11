@@ -1,16 +1,11 @@
-<x-app-layout title="Tambah Satuan (UOM)" :backUrl="route('uom.index')">
+<x-app-layout title="Tambah Satuan (UOM)">
     <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Satuan Unit Baru"
             subtitle="Daftarkan standar unit pengukuran baru untuk katalog produk dan bahan kimia"
             :breadcrumbs="['Master Data' => null, 'Satuan (UOM)' => route('uom.index'), 'Tambah' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('uom.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('uom.index')"
+        />
 
         <form method="POST" action="{{ route('uom.store') }}">
             @csrf

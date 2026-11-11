@@ -733,4 +733,162 @@ class ProductionFlowTest extends TestCase
             ->assertOk()
             ->assertDontSee('Progres Pemenuhan Bahan Baku');
     }
+
+    public function test_released_and_completed_batch_does_not_trigger_stok_kurang_and_shows_completion_audit_columns(): void
+    {
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $produk = Produk::produkJadi()->with('bom')->firstOrFail();
+        $stokService = app(StokService::class);
+
+        $this->actingAs($operasional);
+
+        $this->post(route('batches.store'), [
+            'produk_id' => $produk->id,
+            'qty_rencana' => 10,
+            'gudang_operasional_id' => $gudangOp->id,
+            'tanggal' => now()->toDateString(),
+        ]);
+
+        $batch = BatchProduksi::latest()->firstOrFail();
+
+        // Isi tepat sebesar kebutuhan BOM agar pasca-release saldo GD Ops = 0 (< kebutuhan awal)
+        foreach ($batch->alokasi as $alok) {
+            $stokService->masuk(
+                $alok->bahan_id,
+                $gudangOp->id,
+                (float) $alok->qty_dialokasikan,
+                'mutasi_manual',
+                null,
+                'Isi pas kebutuhan BOM'
+            );
+        }
+
+        // 1. State Release: seluruh bahan dilepas, stok sisa GD Ops = 0 -> tidak boleh trigger Stok Kurang
+        $this->post(route('batches.release', $batch))->assertSessionHas('success');
+
+        $releaseRes = $this->get(route('batches.show', $batch));
+        $releaseRes->assertOk();
+        $releaseRes->assertSee('Bahan Di-Issue');
+        $releaseRes->assertDontSee('Stok Kurang');
+        $releaseRes->assertDontSee('Perlu transfer dari GD Pusat');
+        $releaseRes->assertDontSee('Buat Request Bahan (Kekurangan Stok)');
+        // Saat release tabel tetap menggunakan kolom eksisting
+        $releaseRes->assertSee('Stok Fisik Ops');
+        $releaseRes->assertSee('Kolom Rencana');
+
+        // 2. State Selesai + variasi opname (boros + sesuai BOM; jika >=3 bahan sisakan 1 belum opname)
+        $this->post(route('batches.complete', $batch), [
+            'qty_baik' => 10,
+            'qty_rusak' => 0,
+        ])->assertSessionHas('success');
+
+        $alokasiRows = $batch->alokasi()->get()->values();
+        $opnameItems = [];
+        $first = $alokasiRows->get(0);
+        if ($first) {
+            $opnameItems[] = [
+                'bahan_id' => $first->bahan_id,
+                'pemakaian_aktual' => (float) $first->qty_dialokasikan + 5,
+                'keterangan' => 'Selisih boros uji',
+            ];
+        }
+        $second = $alokasiRows->get(1);
+        if ($second) {
+            $opnameItems[] = [
+                'bahan_id' => $second->bahan_id,
+                'pemakaian_aktual' => (float) $second->qty_dialokasikan,
+                'keterangan' => 'Sesuai takaran',
+            ];
+        }
+        if (! empty($opnameItems)) {
+            $this->post(route('batches.opname', $batch), ['items' => $opnameItems])
+                ->assertSessionHas('success');
+        }
+
+        $doneRes = $this->get(route('batches.show', $batch));
+        $doneRes->assertOk();
+        $doneRes->assertSee('Selesai Dipakai');
+        $doneRes->assertDontSee('Stok Kurang');
+        $doneRes->assertDontSee('Perlu transfer dari GD Pusat');
+        $doneRes->assertDontSee('Kolom Rencana');
+        $doneRes->assertSee('Di-Issue (BOM)');
+        $doneRes->assertSee('Saldo Pasca-Issue');
+        $doneRes->assertSee('Waktu Dilepas');
+        $doneRes->assertSee('Aktual Opname');
+        $doneRes->assertSee('Dilepas · Selesai');
+        if ($second) {
+            $doneRes->assertSee('Sesuai BOM');
+        }
+        if ($alokasiRows->count() >= 3) {
+            $doneRes->assertSee('Belum opname');
+        }
+    }
+
+    public function test_completed_batch_without_kartu_stok_and_cancelled_batch_render_safely_without_shortage_alert(): void
+    {
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $produk = Produk::produkJadi()->with('bom')->firstOrFail();
+
+        $this->actingAs($operasional);
+
+        // Subcase A: Batch selesai langsung tanpa baris KartuStok 'out'
+        $batchDone = BatchProduksi::create([
+            'no_batch' => 'B-LEGACY-001',
+            'produk_id' => $produk->id,
+            'qty_rencana' => 10,
+            'qty_baik' => 10,
+            'qty_rusak' => 0,
+            'gudang_operasional_id' => $gudangOp->id,
+            'status' => 'selesai',
+            'tanggal' => now()->toDateString(),
+            'created_by' => $operasional->id,
+        ]);
+        foreach ($produk->bom as $b) {
+            $batchDone->alokasi()->create([
+                'bahan_id' => $b->bahan_id,
+                'qty_dialokasikan' => 10 * (float) $b->qty_per_unit,
+                'status' => 'dilepas',
+            ]);
+        }
+
+        $doneRes = $this->get(route('batches.show', $batchDone));
+        $doneRes->assertOk();
+        $doneRes->assertSee('Selesai Dipakai');
+        $doneRes->assertDontSee('Stok Kurang');
+        $doneRes->assertSee('Dilepas · Selesai');
+        $doneRes->assertSee('Belum opname');
+
+        // Catat opname hemat (variance negatif) pada batch selesai tanpa KartuStok
+        $firstLegacy = $batchDone->alokasi()->with('bahan:id,satuan')->first();
+        if ($firstLegacy && (float) $firstLegacy->qty_dialokasikan >= 2) {
+            $batchDone->opname()->create([
+                'bahan_id' => $firstLegacy->bahan_id,
+                'pemakaian_teoritis' => (float) $firstLegacy->qty_dialokasikan,
+                'pemakaian_aktual' => (float) $firstLegacy->qty_dialokasikan - 2,
+                'keterangan' => 'Pemakaian hemat',
+            ]);
+
+            $this->get(route('batches.show', $batchDone))
+                ->assertOk()
+                ->assertSee('-2 ' . ($firstLegacy->bahan?->satuan ?? ''));
+        }
+
+        // Subcase B: Batch dibatalkan dengan stok GD Ops = 0 -> tidak trigger Stok Kurang
+        $this->post(route('batches.store'), [
+            'produk_id' => $produk->id,
+            'qty_rencana' => 10,
+            'gudang_operasional_id' => $gudangOp->id,
+            'tanggal' => now()->toDateString(),
+        ]);
+        $batchCancel = BatchProduksi::where('id', '!=', $batchDone->id)->latest()->firstOrFail();
+        $this->post(route('batches.cancel', $batchCancel))->assertSessionHas('success');
+
+        $cancelRes = $this->get(route('batches.show', $batchCancel));
+        $cancelRes->assertOk();
+        $cancelRes->assertSee('Alokasi Dilepas');
+        $cancelRes->assertDontSee('Stok Kurang');
+        $cancelRes->assertDontSee('Perlu transfer dari GD Pusat');
+    }
 }

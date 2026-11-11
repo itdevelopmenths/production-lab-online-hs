@@ -166,45 +166,45 @@ Route::middleware('auth')->group(function () {
     });
 
     // ===== PRD v2.4 Requests (Permintaan Barang) =====
-    Route::middleware('can:rt.view')->prefix('requests')->name('requests.')->group(function () {
+    Route::middleware('can:request.view')->prefix('requests')->name('requests.')->group(function () {
         Route::get('/', [\App\Http\Controllers\RequestController::class, 'index'])->name('index');
         Route::get('data', [\App\Http\Controllers\RequestController::class, 'data'])->name('data');
         Route::get('create', [\App\Http\Controllers\RequestController::class, 'create'])
-            ->middleware('can:rt.create')->name('create');
+            ->middleware('can:request.create')->name('create');
         Route::post('/', [\App\Http\Controllers\RequestController::class, 'store'])
-            ->middleware('can:rt.create')->name('store');
+            ->middleware('can:request.create')->name('store');
         Route::get('{stockRequest}', [\App\Http\Controllers\RequestController::class, 'show'])->name('show');
         Route::get('{stockRequest}/edit', [\App\Http\Controllers\RequestController::class, 'edit'])
-            ->middleware('can:rt.create')->name('edit');
+            ->middleware('can:request.create')->name('edit');
         Route::put('{stockRequest}', [\App\Http\Controllers\RequestController::class, 'update'])
-            ->middleware('can:rt.create')->name('update');
+            ->middleware('can:request.create')->name('update');
         Route::post('{stockRequest}/submit', [\App\Http\Controllers\RequestController::class, 'submit'])
-            ->middleware('can:rt.submit')->name('submit');
+            ->middleware('can:request.submit')->name('submit');
         Route::post('{stockRequest}/approve', [\App\Http\Controllers\RequestController::class, 'approve'])
-            ->middleware('can:rt.approve')->name('approve');
+            ->middleware('can:request.approve')->name('approve');
         Route::post('{stockRequest}/reject', [\App\Http\Controllers\RequestController::class, 'reject'])
-            ->middleware('can:rt.approve')->name('reject');
+            ->middleware('can:request.approve')->name('reject');
         Route::post('{stockRequest}/cancel', [\App\Http\Controllers\RequestController::class, 'cancel'])
-            ->middleware('can:rt.cancel')->name('cancel');
+            ->middleware('can:request.cancel')->name('cancel');
     });
 
     // ===== PRD v2.4 Transfers (Mutasi / Pengiriman Barang) =====
-    Route::middleware('can:rt.view')->prefix('transfers')->name('transfers.')->group(function () {
+    Route::middleware('can:transfer.view')->prefix('transfers')->name('transfers.')->group(function () {
         Route::get('/', [\App\Http\Controllers\TransferController::class, 'index'])->name('index');
         Route::get('data', [\App\Http\Controllers\TransferController::class, 'data'])->name('data');
         Route::get('defect-analytics', [\App\Http\Controllers\TransferController::class, 'defectAnalytics'])->name('defect-analytics');
         Route::get('create', [\App\Http\Controllers\TransferController::class, 'create'])
-            ->middleware('can:rt.create')->name('create');
+            ->middleware('can:transfer.create')->name('create');
         Route::post('/', [\App\Http\Controllers\TransferController::class, 'store'])
-            ->middleware('can:rt.create')->name('store');
+            ->middleware('can:transfer.create')->name('store');
         Route::get('{transfer}', [\App\Http\Controllers\TransferController::class, 'show'])->name('show');
         Route::get('{transfer}/surat-jalan', [\App\Http\Controllers\TransferController::class, 'suratJalan'])->name('surat-jalan');
         Route::post('{transfer}/ship', [\App\Http\Controllers\TransferController::class, 'ship'])
-            ->middleware('can:rt.ship')->name('ship');
+            ->middleware('can:transfer.ship')->name('ship');
         Route::post('{transfer}/receive', [\App\Http\Controllers\TransferController::class, 'receive'])
-            ->middleware('can:rt.receive')->name('receive');
+            ->middleware('can:transfer.receive')->name('receive');
         Route::post('{transfer}/cancel', [\App\Http\Controllers\TransferController::class, 'cancel'])
-            ->middleware('can:rt.cancel')->name('cancel');
+            ->middleware('can:transfer.cancel')->name('cancel');
     });
 
     // ===== Analisa Stok =====
@@ -259,7 +259,7 @@ Route::middleware('auth')->group(function () {
         Route::post('{batch}/opname', [BatchController::class, 'opname'])
             ->middleware('can:batch.opname')->name('opname');
         Route::post('{batch}/kirim', [BatchController::class, 'kirim'])
-            ->middleware('can:rt.create')->name('kirim');
+            ->middleware('can:transfer.produk_jadi.create')->name('kirim');
     });
 
     // ===== Laporan =====

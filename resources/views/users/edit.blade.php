@@ -1,16 +1,11 @@
-<x-app-layout title="Edit Pengguna" :backUrl="route('users.index')">
+<x-app-layout title="Edit Pengguna">
     <div class="w-full space-y-4">
         <x-page-header
             title="Edit Pengguna: {{ $user->name }}"
             subtitle="Perbarui profil akun, departemen divisi, hak akses gudang, dan peran wewenang sistem"
             :breadcrumbs="['Pengaturan' => null, 'Manajemen Pengguna' => route('users.index'), $user->name => null, 'Edit' => null]"
-        >
-            <x-slot:actions>
-                <x-button href="{{ route('users.index') }}" variant="outline" size="sm">
-                    &larr; Kembali
-                </x-button>
-            </x-slot:actions>
-        </x-page-header>
+            :backUrl="route('users.index')"
+        />
 
         <form action="{{ route('users.update', $user) }}" method="POST" class="space-y-6">
             @csrf

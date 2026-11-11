@@ -3,13 +3,9 @@
         title="Log Pergerakan Stok"
         subtitle="Jejak audit menyeluruh atas mutasi masuk (IN) dan keluar (OUT) seluruh barang di gudang"
         :breadcrumbs="['Stok & Mutasi' => route('stok.index'), 'Log Pergerakan' => null]"
-    >
-        <x-slot:actions>
-            <x-button href="{{ route('stok.index') }}" variant="secondary" size="xs">
-                &larr; Lihat Saldo Stok
-            </x-button>
-        </x-slot:actions>
-    </x-page-header>
+        :backUrl="route('stok.index')"
+        backSize="xs"
+    />
 
     {{-- Filter Toolbar --}}
     <div class="mb-4 bg-card p-4 rounded-xl border border-border shadow-xs flex flex-wrap items-end justify-between gap-4">
