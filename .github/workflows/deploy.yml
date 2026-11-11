@@ -65,26 +65,17 @@ jobs:
           script: |
             set -e
             IMAGE="ghcr.io/itdevelopmenths/production-lab-online-hs"
+            HOST_UID="$(id -u)"
+            HOST_GID="$(id -g)"
 
             cd /var/www/production-lab-online-hs
 
-            # Kembalikan ownership storage/bootstrap-cache ke user deploy sebelum
-            # git ops — deploy sebelumnya men-chown direktori ini ke www-data lewat
-            # docker exec, dan karena storage/bootstrap-cache di-mount dari host,
-            # itu ikut mengubah ownership host sehingga git checkout -f gagal
-            # unlink file .gitignore yang tracked di dalamnya (Permission denied).
-            sudo -n chown -R "$(id -u):$(id -g)" /var/www/production-lab-online-hs/storage /var/www/production-lab-online-hs/bootstrap/cache
-
-            # Checkout commit yang persis dibangun (kode PHP dibaca dari host).
-            git fetch origin
-            git checkout -f "$GIT_SHA"
-
-            # Login GHCR & pull image SHA ini.
+            # 1. Pull image baru & deteksi proxy network terlebih dahulu sebelum
+            #    menyentuh file/permission host agar tidak memperpanjang jendela transisi.
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
             docker pull "$IMAGE:$GIT_SHA"
             docker tag "$IMAGE:$GIT_SHA" "$IMAGE:latest"
 
-            # Deteksi network yang dipakai nginx-proxy milik POS-Harumnya (biar routing jalan).
             export PROXY_NETWORK=$(docker inspect nginx-proxy \
               -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' \
               | awk '{print $1}')
@@ -94,10 +85,24 @@ jobs:
               exit 1
             fi
 
-            # Direktori runtime.
+            # 2. Pastikan group deploy memiliki izin tulis ke storage/bootstrap-cache
+            #    TANPA mencabut ownership www-data — container aktif tetap bisa
+            #    menulis log/session/cache dan tidak memicu tempnam() saat checkout.
             mkdir -p logs/nginx storage bootstrap/cache \
                      storage/app/public storage/framework/cache/data \
                      storage/framework/sessions storage/framework/views storage/logs
+
+            if [ "$(docker inspect -f '{{.State.Running}}' sc_online_app 2>/dev/null)" = "true" ]; then
+              docker compose exec -T --user root app sh -c \
+                "chown -R www-data:${HOST_GID} /var/www/storage /var/www/bootstrap/cache && find /var/www/storage /var/www/bootstrap/cache -type d -exec chmod 2775 {} + && find /var/www/storage /var/www/bootstrap/cache -type f -exec chmod 664 {} +"
+              docker compose exec -T app php artisan down --render="errors::503" --retry=10 --refresh=15 || true
+            else
+              sudo -n chown -R "${HOST_UID}:${HOST_GID}" /var/www/production-lab-online-hs/storage /var/www/production-lab-online-hs/bootstrap/cache
+            fi
+
+            # 3. Checkout commit yang persis dibangun (kode PHP dibaca dari host).
+            git fetch origin
+            git checkout -f "$GIT_SHA"
 
             if [ ! -f .env ]; then
               echo "ERROR: .env production tidak ada di /var/www/production-lab-online-hs" && exit 1
@@ -114,10 +119,10 @@ jobs:
               docker compose exec -T --user root app chown www-data:www-data /var/www/.env
             fi
 
-            docker compose exec -T --user root app chown -R www-data:www-data \
-              /var/www/storage /var/www/bootstrap/cache
-            docker compose exec -T --user root app chmod -R 775 \
-              /var/www/storage /var/www/bootstrap/cache
+            # Pertahankan owner www-data dan group deploy + setgid (2775) agar
+            # baik PHP-FPM maupun git checkout deploy berikutnya sama-sama punya akses.
+            docker compose exec -T --user root app sh -c \
+              "chown -R www-data:${HOST_GID} /var/www/storage /var/www/bootstrap/cache && chown -R www-data:www-data /var/www/view-cache && find /var/www/storage /var/www/bootstrap/cache /var/www/view-cache -type d -exec chmod 2775 {} + && find /var/www/storage /var/www/bootstrap/cache /var/www/view-cache -type f -exec chmod 664 {} +"
 
             docker compose exec -T app php artisan migrate --force
             docker compose exec -T app php artisan storage:link --force
@@ -130,6 +135,7 @@ jobs:
             # kode di-mount dari host, jadi container kadang tidak otomatis
             # di-recreate meski app/resources/config berubah.
             docker compose restart app
+            docker compose exec -T app php artisan up || true
 
             # default.conf di-mount dari host: container nginx tidak di-recreate
             # saat file berubah, jadi reload agar konfigurasi terbaru terbaca.

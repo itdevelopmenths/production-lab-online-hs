@@ -57,10 +57,13 @@ services:
     image: ghcr.io/itdevelopmenths/production-lab-online-hs:latest
     container_name: sc_online_app
     restart: unless-stopped
+    environment:
+      VIEW_COMPILED_PATH: /var/www/view-cache
     volumes:
       - ./.env:/var/www/.env # .env dari host, bukan dari image
       - ./storage:/var/www/storage # persist upload & log
       - ./bootstrap/cache:/var/www/bootstrap/cache # persist cache
+      - view_cache:/var/www/view-cache # compiled Blade views milik container (terpisah dari repo host)
       - public_data:/var/www/public-shared # asset publik (Vite build) untuk nginx
       # Mount folder agar perubahan code (setelah git checkout SHA) langsung terbaca tanpa build ulang
       - ./app:/var/www/app
@@ -132,3 +135,4 @@ services:
 volumes:
   pgdata:
   public_data:
+  view_cache:

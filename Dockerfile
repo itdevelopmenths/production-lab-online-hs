@@ -60,7 +60,8 @@ COPY --chown=www-data:www-data --from=node-builder /var/www/public/build /var/ww
 COPY --chown=www-data:www-data --from=node-builder /var/www/public/vendor /var/www/public/vendor
 
 # Set permissions
-RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache \
+RUN mkdir -p /var/www/view-cache \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache /var/www/view-cache \
     && chown -R www-data:www-data /var/www
 
 # Change user so composer installs dependencies with correct ownership
