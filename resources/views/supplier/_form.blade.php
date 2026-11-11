@@ -1,6 +1,7 @@
 @php
     $s = $supplier ?? null;
-    $availableProduks = $produks ?? \App\Models\Produk::whereIn('tipe', ['bahan', 'kemas', 'bahan_baku', 'kemasan'])->active()->orderBy('nama')->get(['id', 'nama', 'sku', 'tipe']);
+    $availableProduks = $produks ?? \App\Models\Produk::suppliable()->orderBy('nama')->get(['id', 'nama', 'sku', 'tipe']);
+    $availableProdukIds = $availableProduks->pluck('id')->map(fn ($id) => (int) $id)->all();
     $oldInput = session()->getOldInput();
     $hasOldProdukIds = is_array($oldInput) && array_key_exists('produk_ids', $oldInput);
 
@@ -9,14 +10,15 @@
         $rawArray = is_array($rawOld)
             ? $rawOld
             : (is_string($rawOld) ? explode(',', $rawOld) : []);
-        $assignedIds = array_values(array_unique(array_filter(
-            array_map('intval', $rawArray),
-            fn ($id) => $id > 0
-        )));
+        $assignedIds = array_values(array_intersect(
+            array_unique(array_filter(array_map('intval', $rawArray), fn ($id) => $id > 0)),
+            $availableProdukIds
+        ));
     } elseif ($s) {
-        $assignedIds = $s->relationLoaded('produks')
-            ? $s->produks->pluck('id')->map(fn ($id) => (int) $id)->values()->all()
-            : $s->produks()->pluck('produk.id')->map(fn ($id) => (int) $id)->values()->all();
+        $rawAssigned = $s->relationLoaded('activeProduks')
+            ? $s->activeProduks->pluck('id')->map(fn ($id) => (int) $id)->all()
+            : $s->activeProduks()->pluck('produk.id')->map(fn ($id) => (int) $id)->all();
+        $assignedIds = array_values(array_intersect(array_unique($rawAssigned), $availableProdukIds));
     } else {
         $assignedIds = [];
     }

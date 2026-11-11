@@ -54,9 +54,12 @@ class Supplier extends Model
             ->withTimestamps();
     }
 
+    /** Produk bahan/kemas aktif yang memiliki relasi pemasokan berstatus aktif. */
     public function activeProduks(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->produks()->wherePivot('status', 'aktif');
+        return $this->produks()
+            ->wherePivot('status', 'aktif')
+            ->suppliable();
     }
 
     public function produkSuppliers(): HasMany

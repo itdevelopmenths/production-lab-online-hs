@@ -25,7 +25,7 @@
                         <th class="px-4 py-3 text-left">Kategori</th>
                         <th class="px-4 py-3 text-left">Kontak</th>
                         <th class="px-4 py-3 text-left">Termin Default</th>
-                        <th class="px-4 py-3 text-center w-28">Produk Dipasok</th>
+                        <th class="px-4 py-3 text-center w-32">Produk Dipasok</th>
                         <th class="px-4 py-3 text-center w-28">Status</th>
                         <th class="px-4 py-3 text-center w-28">Aksi</th>
                     </tr>

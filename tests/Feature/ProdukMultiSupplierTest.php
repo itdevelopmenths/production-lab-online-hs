@@ -462,4 +462,131 @@ class ProdukMultiSupplierTest extends TestCase
             json_decode($multiArg, true)
         );
     }
+
+    public function test_supplier_index_produk_count_matches_supplier_form_selected_products(): void
+    {
+        $kemasAktif = Produk::create([
+            'sku' => 'KMS-01',
+            'nama' => 'Botol Aktif',
+            'nama_produk' => 'Botol Aktif',
+            'kategori_id' => $this->kategori->id,
+            'tipe' => 'kemas',
+            'satuan' => 'pcs',
+            'satuan_order_moq' => 100,
+            'is_active' => true,
+        ]);
+
+        $produkNonaktif = Produk::create([
+            'sku' => 'MAT-OFF',
+            'nama' => 'Bahan Nonaktif',
+            'nama_produk' => 'Bahan Nonaktif',
+            'kategori_id' => $this->kategori->id,
+            'tipe' => 'bahan',
+            'satuan' => 'L',
+            'satuan_order_moq' => 10,
+            'is_active' => false,
+        ]);
+
+        $produkJadi = Produk::create([
+            'sku' => 'FG-01',
+            'nama' => 'Produk Jadi',
+            'nama_produk' => 'Produk Jadi',
+            'kategori_id' => $this->kategori->id,
+            'tipe' => 'produk_jadi',
+            'satuan' => 'pcs',
+            'satuan_order_moq' => 1,
+            'is_active' => true,
+        ]);
+
+        ProdukSupplier::create(['produk_id' => $this->produkA->id, 'supplier_id' => $this->supplierA->id, 'status' => 'aktif']);
+        ProdukSupplier::create(['produk_id' => $kemasAktif->id, 'supplier_id' => $this->supplierA->id, 'status' => 'aktif']);
+        ProdukSupplier::create(['produk_id' => $this->produkB->id, 'supplier_id' => $this->supplierA->id, 'status' => 'nonaktif']);
+        ProdukSupplier::create(['produk_id' => $produkNonaktif->id, 'supplier_id' => $this->supplierA->id, 'status' => 'aktif']);
+        ProdukSupplier::create(['produk_id' => $produkJadi->id, 'supplier_id' => $this->supplierA->id, 'status' => 'aktif']);
+
+        $dataResponse = $this->actingAs($this->adminUser)->getJson(route('supplier.data'));
+        $dataResponse->assertOk();
+        $row = collect($dataResponse->json('data'))->firstWhere('id', $this->supplierA->id);
+        $this->assertNotNull($row);
+        $this->assertSame(2, (int) $row['active_produks_count']);
+        $this->assertStringContainsString('2 Produk', $row['produk_count']);
+
+        $editResponse = $this->actingAs($this->adminUser)->get(route('supplier.edit', $this->supplierA));
+        $editResponse->assertOk();
+        $this->assertSame(
+            1,
+            preg_match("/supplierProdukChecklist\(JSON\.parse\('[^']+'\),\s*(?:JSON\.parse\('([^']+)'\)|(\[[^\]]*\]))\)/", $editResponse->getContent(), $matches)
+        );
+        $selectedArg = !empty($matches[1]) ? json_decode('"' . $matches[1] . '"') : $matches[2];
+        $selectedIds = json_decode($selectedArg, true);
+        sort($selectedIds);
+        $expectedIds = [$this->produkA->id, $kemasAktif->id];
+        sort($expectedIds);
+        $this->assertSame($expectedIds, $selectedIds);
+    }
+
+    public function test_supplier_update_preserves_nonaktif_and_inactive_product_pivots_while_syncing_active_ones(): void
+    {
+        $kemasAktif = Produk::create([
+            'sku' => 'KMS-02',
+            'nama' => 'Tutup Botol',
+            'nama_produk' => 'Tutup Botol',
+            'kategori_id' => $this->kategori->id,
+            'tipe' => 'kemas',
+            'satuan' => 'pcs',
+            'satuan_order_moq' => 100,
+            'is_active' => true,
+        ]);
+
+        $produkNonaktif = Produk::create([
+            'sku' => 'MAT-OFF-2',
+            'nama' => 'Bahan Nonaktif 2',
+            'nama_produk' => 'Bahan Nonaktif 2',
+            'kategori_id' => $this->kategori->id,
+            'tipe' => 'bahan',
+            'satuan' => 'L',
+            'satuan_order_moq' => 10,
+            'is_active' => false,
+        ]);
+
+        ProdukSupplier::create(['produk_id' => $this->produkA->id, 'supplier_id' => $this->supplierA->id, 'status' => 'aktif']);
+        ProdukSupplier::create(['produk_id' => $this->produkB->id, 'supplier_id' => $this->supplierA->id, 'status' => 'nonaktif']);
+        ProdukSupplier::create(['produk_id' => $produkNonaktif->id, 'supplier_id' => $this->supplierA->id, 'status' => 'aktif']);
+
+        $response = $this->actingAs($this->adminUser)->put(route('supplier.update', $this->supplierA), [
+            'nama' => $this->supplierA->nama,
+            'kategori' => $this->supplierA->kategori,
+            'is_active' => 1,
+            'produk_ids' => [$kemasAktif->id],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('supplier.index'));
+
+        $this->assertDatabaseMissing('produk_supplier', [
+            'supplier_id' => $this->supplierA->id,
+            'produk_id' => $this->produkA->id,
+        ]);
+        $this->assertDatabaseHas('produk_supplier', [
+            'supplier_id' => $this->supplierA->id,
+            'produk_id' => $kemasAktif->id,
+            'status' => 'aktif',
+        ]);
+        $this->assertDatabaseHas('produk_supplier', [
+            'supplier_id' => $this->supplierA->id,
+            'produk_id' => $this->produkB->id,
+            'status' => 'nonaktif',
+        ]);
+        $this->assertDatabaseHas('produk_supplier', [
+            'supplier_id' => $this->supplierA->id,
+            'produk_id' => $produkNonaktif->id,
+            'status' => 'aktif',
+        ]);
+
+        $dataResponse = $this->actingAs($this->adminUser)->getJson(route('supplier.data'));
+        $dataResponse->assertOk();
+        $row = collect($dataResponse->json('data'))->firstWhere('id', $this->supplierA->id);
+        $this->assertSame(1, (int) $row['active_produks_count']);
+        $this->assertStringContainsString('1 Produk', $row['produk_count']);
+    }
 }

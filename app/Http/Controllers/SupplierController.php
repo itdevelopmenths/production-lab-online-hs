@@ -27,8 +27,8 @@ class SupplierController extends Controller
         $canDelete = auth()->user()->can('supplier.delete');
 
         $query = Supplier::query()
-            ->withCount('activeProduks')
-            ->select('supplier.*');
+            ->select('supplier.*')
+            ->withCount('activeProduks');
 
         return DataTables::eloquent($query)
             ->editColumn('kategori', fn ($s) => ucfirst($s->kategori))
@@ -37,9 +37,9 @@ class SupplierController extends Controller
             ->addColumn('produk_count', function ($s) {
                 $count = (int) ($s->active_produks_count ?? 0);
                 if ($count > 0) {
-                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">' . $count . ' Produk</span>';
+                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">' . $count . ' Produk</span>';
                 }
-                return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20">0 Produk</span>';
+                return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20">0 Produk</span>';
             })
             ->addColumn('action', function ($s) use ($canEdit, $canDelete) {
                 $html = '<div class="flex items-center gap-3">';
@@ -60,10 +60,7 @@ class SupplierController extends Controller
     {
         $this->authorize('supplier.create');
 
-        $produks = Produk::whereIn('tipe', ['bahan', 'kemas', 'bahan_baku', 'kemasan'])
-            ->active()
-            ->orderBy('nama')
-            ->get(['id', 'nama', 'sku', 'tipe']);
+        $produks = $this->suppliableProduks();
 
         return view('supplier.create', compact('produks'));
     }
@@ -84,12 +81,8 @@ class SupplierController extends Controller
     {
         $this->authorize('supplier.edit');
 
-        $supplier->load('produks');
-
-        $produks = Produk::whereIn('tipe', ['bahan', 'kemas', 'bahan_baku', 'kemasan'])
-            ->active()
-            ->orderBy('nama')
-            ->get(['id', 'nama', 'sku', 'tipe']);
+        $supplier->load('activeProduks');
+        $produks = $this->suppliableProduks();
 
         return view('supplier.edit', compact('supplier', 'produks'));
     }
@@ -126,6 +119,13 @@ class SupplierController extends Controller
         return redirect()->route('supplier.index')->with('success', 'Supplier berhasil dihapus.');
     }
 
+    private function suppliableProduks()
+    {
+        return Produk::suppliable()
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'sku', 'tipe']);
+    }
+
     private function syncProduks(Supplier $supplier, Request $request): void
     {
         if (!$request->has('produk_ids')) {
@@ -138,16 +138,39 @@ class SupplierController extends Controller
             $raw = is_array($decoded) ? $decoded : array_filter(explode(',', $raw));
         }
 
-        $syncData = [];
+        $requestedIds = [];
         if (is_array($raw)) {
             foreach ($raw as $pId) {
-                if (!empty($pId)) {
-                    $syncData[(int) $pId] = ['status' => 'aktif'];
+                $id = (int) $pId;
+                if ($id > 0) {
+                    $requestedIds[] = $id;
                 }
             }
         }
 
-        $supplier->produks()->sync($syncData);
+        // Batasi sinkronisasi pada produk bahan/kemas aktif agar tetap sinkron dengan form & kolom index
+        $selectedIds = empty($requestedIds)
+            ? []
+            : Produk::suppliable()
+                ->whereIn('id', array_values(array_unique($requestedIds)))
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+        $currentActiveIds = $supplier->activeProduks()
+            ->pluck('produk.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $toDetach = array_values(array_diff($currentActiveIds, $selectedIds));
+        if (!empty($toDetach)) {
+            $supplier->produks()->detach($toDetach);
+        }
+
+        if (!empty($selectedIds)) {
+            $upsertData = array_fill_keys($selectedIds, ['status' => 'aktif']);
+            $supplier->produks()->syncWithoutDetaching($upsertData);
+        }
     }
 
     private function validated(Request $request): array
