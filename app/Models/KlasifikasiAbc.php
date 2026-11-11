@@ -27,6 +27,14 @@ class KlasifikasiAbc extends Model
     ];
 
     /**
+     * Relasi ke Master Produk
+     */
+    public function produks(): HasMany
+    {
+        return $this->hasMany(Produk::class, 'klasifikasi_abc_id');
+    }
+
+    /**
      * Relasi ke Analisa Impor
      */
     public function analisaImpor(): HasMany

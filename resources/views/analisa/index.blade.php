@@ -9,6 +9,11 @@
                     <template x-if="tab === 'lokal'">
                         <div class="flex items-center gap-2">
                             @can('analisa.manage')
+                            <button type="button" @click="openAddSkuModal('lokal')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Tambah atau pindahkan SKU ke Analisa Lokal / Impor">
+                                <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span>Tambah SKU</span>
+                            </button>
+
                             <!-- Fase 1: Generate -->
                             <button type="button" @click="generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 text-xs font-medium rounded-lg shadow-sm transition-colors cursor-pointer" title="Generate working data analisa dari master">
                                 <svg x-show="!generating" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -35,6 +40,11 @@
                     <template x-if="tab === 'impor'">
                         <div class="flex items-center gap-2">
                             @can('analisa.manage')
+                            <button type="button" @click="openAddSkuModal('impor')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Tambah atau pindahkan SKU ke Analisa Impor & Klasifikasi ABC">
+                                <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span>Tambah SKU</span>
+                            </button>
+
                             <!-- Fase 1: Generate -->
                             <button type="button" @click="generateImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 text-xs font-medium rounded-lg shadow-sm transition-colors cursor-pointer" title="Generate working data analisa impor">
                                 <svg x-show="!generating" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -210,6 +220,7 @@
         @include('analisa.partials.modal-stage-lead-time')
         @include('analisa.partials.modal-manual-lokal')
         @include('analisa.partials.modal-manual-impor')
+        @include('analisa.partials.modal-add-sku')
         @include('analisa.partials.modal-compare-supplier')
         @include('analisa.partials.modal-varian')
     </div>
@@ -296,6 +307,33 @@
         showManualImporModal: false,
         savingManualImpor: false,
         klasifikasiAbcList: [],
+        showAddSkuModal: false,
+        savingAddSku: false,
+        loadingAvailableAnalisaSkus: false,
+        addSkuSearch: '',
+        availableAnalisaSkus: [],
+        addSkuForm: {
+          produk_id: null,
+          selectedSku: '',
+          selectedNama: '',
+          currentProfil: '',
+          target_profil: 'impor',
+          klasifikasi_abc_id: '',
+          out: '',
+          lead_time_average: '',
+          lead_time_max: '',
+          terjual_rata_rata_4bulan: '',
+          tambahan_buffer_hari: '',
+          review_period_impor: 30,
+          review_period_lokal: 15,
+          harga_per_satuan: '',
+          currentIsOpposite() {
+            if (!this.produk_id) return false;
+            const curImpor = this.currentProfil === 'impor' || this.currentProfil === 'bahan_impor';
+            if (this.target_profil === 'impor') return this.currentProfil === 'lokal';
+            return curImpor;
+          }
+        },
         manualImporForm: {
           produk_id: null,
           nama: '',
@@ -1002,8 +1040,8 @@
             jumlah_hari_periode: item.jumlah_hari_periode || 122,
             out: item.parent_out !== undefined ? item.parent_out : (item.out || 0),
             review_period: item.review_period || 30,
-            klasifikasi_abc: item.klasifikasi_abc || 'c',
-            klasifikasi_abc_id: item.klasifikasi_abc_id || null,
+            klasifikasi_abc: item.klasifikasi_abc_id ? (item.klasifikasi_abc || null) : null,
+            klasifikasi_abc_id: item.klasifikasi_abc_id ? String(item.klasifikasi_abc_id) : '',
             stok_saat_ini: item.parent_stok !== undefined ? item.parent_stok : (item.stok_saat_ini || 0),
             inbound_before_eta: item.parent_inbound !== undefined ? item.parent_inbound : (item.inbound_before_eta || 0),
             harga_per_satuan: item.harga_per_satuan || 0,
@@ -1011,9 +1049,9 @@
 
           };
 
-          if (!this.manualImporForm.klasifikasi_abc_id && this.klasifikasiAbcList.length > 0) {
-            const found = this.klasifikasiAbcList.find(x => x.kode === this.manualImporForm.klasifikasi_abc);
-            if (found) this.manualImporForm.klasifikasi_abc_id = found.id;
+          if (!this.manualImporForm.klasifikasi_abc_id && item.klasifikasi_abc_id === null) {
+            this.manualImporForm.klasifikasi_abc_id = '';
+            this.manualImporForm.klasifikasi_abc = null;
           }
 
           this.showManualImporModal = true;
@@ -1024,6 +1062,128 @@
             if (found) {
               this.manualImporForm.klasifikasi_abc = found.kode;
             }
+          } else {
+            this.manualImporForm.klasifikasi_abc = null;
+          }
+        },
+        async openAddSkuModal(defaultProfil = 'impor'){
+          this.addSkuSearch = '';
+          this.addSkuForm.produk_id = null;
+          this.addSkuForm.selectedSku = '';
+          this.addSkuForm.selectedNama = '';
+          this.addSkuForm.currentProfil = '';
+          this.addSkuForm.target_profil = defaultProfil === 'lokal' ? 'lokal' : 'impor';
+          this.addSkuForm.klasifikasi_abc_id = '';
+          this.addSkuForm.out = '';
+          this.addSkuForm.lead_time_average = '';
+          this.addSkuForm.lead_time_max = '';
+          this.addSkuForm.terjual_rata_rata_4bulan = '';
+          this.addSkuForm.tambahan_buffer_hari = '';
+          this.addSkuForm.review_period_impor = 30;
+          this.addSkuForm.review_period_lokal = 15;
+          this.addSkuForm.harga_per_satuan = '';
+          this.showAddSkuModal = true;
+          await this.fetchAvailableAnalisaSkus();
+        },
+        async fetchAvailableAnalisaSkus(){
+          this.loadingAvailableAnalisaSkus = true;
+          try {
+            const params = new URLSearchParams();
+            if (this.addSkuSearch.trim()) params.set('q', this.addSkuSearch.trim());
+            const res = await fetch('{{ route('analisa.available-skus') }}?' + params.toString(), {
+              headers: { 'Accept': 'application/json' }
+            });
+            const d = await res.json();
+            this.availableAnalisaSkus = d.data || [];
+          } catch (e) {
+            this.availableAnalisaSkus = [];
+          } finally {
+            this.loadingAvailableAnalisaSkus = false;
+          }
+        },
+        selectSkuToAdd(item){
+          this.addSkuForm.produk_id = item.id;
+          this.addSkuForm.selectedSku = item.sku;
+          this.addSkuForm.selectedNama = item.nama;
+          this.addSkuForm.currentProfil = item.profil_analisa || '';
+          if (item.klasifikasi_abc_id) {
+            this.addSkuForm.klasifikasi_abc_id = String(item.klasifikasi_abc_id);
+          }
+          if (item.harga_hpp > 0 && !this.addSkuForm.harga_per_satuan) {
+            this.addSkuForm.harga_per_satuan = item.harga_hpp;
+          }
+        },
+        async submitAddSku(){
+          if (!this.addSkuForm.produk_id) return;
+          this.savingAddSku = true;
+          try {
+            const target = this.addSkuForm.target_profil;
+            const payload = {
+              produk_id: Number(this.addSkuForm.produk_id),
+              target_profil: target,
+            };
+            if (target === 'impor') {
+              payload.klasifikasi_abc_id = this.addSkuForm.klasifikasi_abc_id ? Number(this.addSkuForm.klasifikasi_abc_id) : null;
+              if (this.addSkuForm.out !== '' && this.addSkuForm.out !== null) payload.out = Number(this.addSkuForm.out);
+              if (this.addSkuForm.lead_time_average !== '' && this.addSkuForm.lead_time_average !== null) payload.lead_time_average = Number(this.addSkuForm.lead_time_average);
+              if (this.addSkuForm.lead_time_max !== '' && this.addSkuForm.lead_time_max !== null) payload.lead_time_max = Number(this.addSkuForm.lead_time_max);
+              payload.review_period = Number(this.addSkuForm.review_period_impor) || 30;
+            } else {
+              if (this.addSkuForm.terjual_rata_rata_4bulan !== '' && this.addSkuForm.terjual_rata_rata_4bulan !== null) payload.terjual_rata_rata_4bulan = Number(this.addSkuForm.terjual_rata_rata_4bulan);
+              if (this.addSkuForm.tambahan_buffer_hari !== '' && this.addSkuForm.tambahan_buffer_hari !== null) payload.tambahan_buffer_hari = Number(this.addSkuForm.tambahan_buffer_hari);
+              payload.review_period = Number(this.addSkuForm.review_period_lokal) || 15;
+            }
+            if (this.addSkuForm.harga_per_satuan !== '' && this.addSkuForm.harga_per_satuan !== null) {
+              payload.harga_per_satuan = Number(this.addSkuForm.harga_per_satuan);
+            }
+
+            const res = await fetch('{{ route('analisa.add-sku') }}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+              },
+              body: JSON.stringify(payload)
+            });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              this.showAddSkuModal = false;
+              this.tab = target;
+              await this.load();
+              Swal.fire({ icon: 'success', title: 'Berhasil', text: j.message, timer: 1600, showConfirmButton: false });
+            } else {
+              Swal.fire({ icon: 'error', title: 'Gagal', text: j.message || 'Gagal menambahkan SKU ke Analisa.', confirmButtonColor: '#0284c7' });
+            }
+          } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Tidak dapat terhubung ke server.', confirmButtonColor: '#0284c7' });
+          } finally {
+            this.savingAddSku = false;
+          }
+        },
+        async quickChangeImporAbc(row, newAbcId){
+          try {
+            const res = await fetch('{{ route('analisa.update-manual-impor') }}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+              },
+              body: JSON.stringify({
+                produk_id: row.produk_id,
+                klasifikasi_abc_id: newAbcId ? Number(newAbcId) : null
+              })
+            });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              await this.load();
+            } else {
+              Swal.fire({ icon: 'error', title: 'Gagal', text: j.message || 'Gagal memperbarui Klasifikasi ABC.', confirmButtonColor: '#0284c7' });
+              await this.load();
+            }
+          } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Tidak dapat terhubung ke server.', confirmButtonColor: '#0284c7' });
           }
         },
         simulasiImporJumlahHari(){
@@ -1122,7 +1282,7 @@
               periode_akhir: this.manualImporForm.periode_akhir,
               out: Number(this.manualImporForm.out) || 0,
               review_period: Number(this.manualImporForm.review_period) || 30,
-              klasifikasi_abc: this.manualImporForm.klasifikasi_abc || 'c',
+              klasifikasi_abc: this.manualImporForm.klasifikasi_abc_id ? (this.manualImporForm.klasifikasi_abc || null) : null,
               klasifikasi_abc_id: this.manualImporForm.klasifikasi_abc_id ? Number(this.manualImporForm.klasifikasi_abc_id) : null,
               stok_saat_ini: Number(this.manualImporForm.stok_saat_ini) || 0,
               inbound_before_eta: Number(this.manualImporForm.inbound_before_eta) || 0,

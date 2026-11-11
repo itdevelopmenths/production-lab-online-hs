@@ -25,6 +25,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Replikasi rumus Analisa Stok dari 3 file Excel acuan (PRD Bab 6):
@@ -49,6 +50,15 @@ class AnalisaService
         PoStage::STAGE_8 => 'unloading',
         PoStage::STAGE_9 => 'input',
     ];
+
+    /** @var array<int, string> */
+    public const IMPOR_PROFILES = ['impor', 'bahan_impor'];
+
+    public static function isImporProfile(?string $profilAnalisa): bool
+    {
+        return in_array($profilAnalisa, self::IMPOR_PROFILES, true);
+    }
+
     /**
      * Pembulatan hari lead time dengan toleransi strictly 1 angka desimal half-up.
      * Digit 2+ bernilai < 5 menjadi 0, >= 5 menjadi +0.1 (user override).
@@ -224,7 +234,7 @@ class AnalisaService
         $rekLokalIds = RekomendasiOrderLokal::whereIn('produk_id', $ids)->pluck('produk_id')->flip();
 
         foreach ($products as $p) {
-            $isImpor = in_array($p->profil_analisa, ['impor', 'bahan_impor'], true) || $imporIds->has($p->id);
+            $isImpor = self::isImporProfile($p->profil_analisa) || $imporIds->has($p->id);
             if ($isImpor) {
                 if ($imporIds->has($p->id)) {
                     $this->generateImpor($p->id, $userId);
@@ -311,7 +321,7 @@ class AnalisaService
             }
         }
 
-        $isImpor = $produk->profil_analisa === 'bahan_impor' || AnalisaImpor::where('produk_id', $produk->id)->exists();
+        $isImpor = self::isImporProfile($produk->profil_analisa) || AnalisaImpor::where('produk_id', $produk->id)->exists();
 
         $adu = 0.0;
         $reviewPeriod = 15;
@@ -413,7 +423,7 @@ class AnalisaService
     public function selectSupplierForProduct(int $produkId, int $supplierId, ?int $userId = null): array
     {
         $produk = Produk::findOrFail($produkId);
-        $isImpor = $produk->profil_analisa === 'bahan_impor' || AnalisaImpor::where('produk_id', $produkId)->exists();
+        $isImpor = self::isImporProfile($produk->profil_analisa) || AnalisaImpor::where('produk_id', $produkId)->exists();
 
         if ($isImpor) {
             $lt = $this->resolveSupplierProdukLeadTimeImpor($produkId, $supplierId);
@@ -811,29 +821,33 @@ class AnalisaService
      */
     public function generateImpor(?int $produkId = null, ?int $userId = null): array
     {
-        $query = Produk::query()->where('is_active', true);
+        $query = Produk::query()
+            ->where('is_active', true)
+            ->whereIn('tipe', ['bahan', 'kemas']);
+
         if ($produkId) {
             $query->where('id', $produkId);
         } else {
-            $query->where(function ($q) {
-                $q->where('profil_analisa', 'bahan_impor')
-                  ->orWhereHas('leadTimeImpor')
-                  ->orWhereHas('analisaImpor')
-                  ->orWhereIn('id', AnalisaImporMeta::pluck('produk_id'));
+            $metaIds = AnalisaImporMeta::pluck('produk_id');
+            $query->where(function ($q) use ($metaIds) {
+                $q->whereIn('profil_analisa', self::IMPOR_PROFILES)
+                  ->orWhere(function ($legacy) use ($metaIds) {
+                      $legacy->whereNull('profil_analisa')
+                          ->where(function ($sub) use ($metaIds) {
+                              $sub->whereHas('leadTimeImpor')
+                                  ->orWhereHas('analisaImpor');
+                              if ($metaIds->isNotEmpty()) {
+                                  $sub->orWhereIn('id', $metaIds);
+                              }
+                          });
+                  });
             });
         }
 
         $products = $query->orderBy('nama')->get();
-        if ($products->isEmpty() && ! $produkId) {
-            $metaProdIds = AnalisaImporMeta::pluck('produk_id');
-            if ($metaProdIds->isNotEmpty()) {
-                $products = Produk::whereIn('id', $metaProdIds)->orderBy('nama')->get();
-            }
-        }
 
         $generated = [];
         $now = now();
-        $abcBonusMap = ['wajib_a' => 4, 'a' => 4, 'b' => 2, 'c' => 0];
 
         foreach ($products as $p) {
             $meta = AnalisaImporMeta::where('produk_id', $p->id)->first();
@@ -850,20 +864,27 @@ class AnalisaService
                 $reviewPeriod = 30;
             }
 
-            // Master Klasifikasi ABC Resolution
+            // Master Klasifikasi ABC Resolution (pertahankan null saat SKU dilepas murni)
             $abcRecord = null;
-            if ($existingAnalisa?->klasifikasi_abc_id) {
-                $abcRecord = KlasifikasiAbc::find($existingAnalisa->klasifikasi_abc_id);
-            } elseif ($meta?->klasifikasi_abc_id) {
-                $abcRecord = KlasifikasiAbc::find($meta->klasifikasi_abc_id);
+            if ($existingAnalisa) {
+                if ($existingAnalisa->klasifikasi_abc_id) {
+                    $abcRecord = KlasifikasiAbc::find($existingAnalisa->klasifikasi_abc_id);
+                } elseif ($p->klasifikasi_abc_id) {
+                    $abcRecord = KlasifikasiAbc::find($p->klasifikasi_abc_id);
+                }
+            } else {
+                if ($p->klasifikasi_abc_id) {
+                    $abcRecord = KlasifikasiAbc::find($p->klasifikasi_abc_id);
+                } elseif ($meta?->klasifikasi_abc_id) {
+                    $abcRecord = KlasifikasiAbc::find($meta->klasifikasi_abc_id);
+                } elseif (! empty($meta?->klasifikasi_abc)) {
+                    $abcRecord = KlasifikasiAbc::where('kode', strtolower((string) $meta->klasifikasi_abc))->first();
+                }
             }
-            if (! $abcRecord) {
-                $code = strtolower((string) ($existingAnalisa?->klasifikasi_abc ?? $meta?->klasifikasi_abc ?? 'c'));
-                $abcRecord = KlasifikasiAbc::where('kode', $code)->first();
-            }
+
             $klasifikasiAbc = $abcRecord ? $abcRecord->kode : 'c';
             $klasifikasiAbcId = $abcRecord?->id;
-            $tambahanHari = $abcRecord ? (float) $abcRecord->tambahan_buffer_hari : (float) ($abcBonusMap[$klasifikasiAbc] ?? 0);
+            $tambahanHari = $abcRecord ? (float) $abcRecord->tambahan_buffer_hari : 0.0;
             $bufferDays = self::roundLeadTimeDays(max(0.0, $ltMax - $ltAvg) + $tambahanHari);
 
             // 1. Simpan LeadTimeImpor
@@ -984,9 +1005,16 @@ class AnalisaService
         DB::transaction(function () use ($tipe, $sessionId, $actorId, $today, &$count) {
             // 1. Finalisasi Bahan Lokal
             if ($tipe === 'bahan_lokal' || $tipe === 'all') {
-                $rekomendasiList = RekomendasiOrderLokal::with('produk.supplier')->get();
-                $analisaMap = AnalisaLokal::with('supplierTerpilih')->get()->keyBy('produk_id');
-                $ltMap = LeadTimeLokal::all()->keyBy('produk_id');
+                $lokalIds = $this->lokalEligibleProdukIds();
+                $rekomendasiList = empty($lokalIds)
+                    ? collect()
+                    : RekomendasiOrderLokal::with('produk.supplier')->whereIn('produk_id', $lokalIds)->get();
+                $analisaMap = empty($lokalIds)
+                    ? collect()
+                    : AnalisaLokal::with('supplierTerpilih')->whereIn('produk_id', $lokalIds)->get()->keyBy('produk_id');
+                $ltMap = empty($lokalIds)
+                    ? collect()
+                    : LeadTimeLokal::whereIn('produk_id', $lokalIds)->get()->keyBy('produk_id');
 
                 foreach ($rekomendasiList as $rek) {
                     $an = $analisaMap->get($rek->produk_id);
@@ -1035,8 +1063,13 @@ class AnalisaService
 
             // 2. Finalisasi Bahan Impor
             if ($tipe === 'bahan_impor' || $tipe === 'all') {
-                $analisaImporList = AnalisaImpor::with(['produk.supplier', 'supplierTerpilih'])->get();
-                $ltImporMap = LeadTimeImpor::all()->keyBy('produk_id');
+                $imporIds = $this->imporEligibleProdukIds();
+                $analisaImporList = empty($imporIds)
+                    ? collect()
+                    : AnalisaImpor::with(['produk.supplier', 'supplierTerpilih'])->whereIn('produk_id', $imporIds)->get();
+                $ltImporMap = empty($imporIds)
+                    ? collect()
+                    : LeadTimeImpor::whereIn('produk_id', $imporIds)->get()->keyBy('produk_id');
 
                 foreach ($analisaImporList as $ai) {
                     $ltImp = $ltImporMap->get($ai->produk_id);
@@ -1192,15 +1225,17 @@ class AnalisaService
     {
         $byProduct = [];
         $byProductGudang = [];
+        $lokalIds = $this->lokalEligibleProdukIds();
+        $imporIds = $this->imporEligibleProdukIds();
 
         // 1. Profil Bahan Lokal (prioritaskan tabel analisa_lokal tersimpan)
-        $analisaLokalList = AnalisaLokal::all();
+        $analisaLokalList = empty($lokalIds) ? collect() : AnalisaLokal::whereIn('produk_id', $lokalIds)->get();
         if ($analisaLokalList->isNotEmpty()) {
             foreach ($analisaLokalList as $al) {
                 $byProduct[$al->produk_id] = (float) $al->batas_minimum;
             }
-        } else {
-            $lokalInputs = AnalisaLokalInput::with('produk')->get();
+        } elseif (! empty($lokalIds)) {
+            $lokalInputs = AnalisaLokalInput::with('produk')->whereIn('produk_id', $lokalIds)->get();
             foreach ($lokalInputs as $input) {
                 $hasil = $this->lokal($input);
                 $min = (float) ($hasil['batas_minimum'] ?? 0);
@@ -1209,12 +1244,13 @@ class AnalisaService
         }
 
         // 2. Profil Bahan Impor
-        if (AnalisaImpor::exists()) {
-            foreach (AnalisaImpor::all() as $ai) {
+        $analisaImporList = empty($imporIds) ? collect() : AnalisaImpor::whereIn('produk_id', $imporIds)->get();
+        if ($analisaImporList->isNotEmpty()) {
+            foreach ($analisaImporList as $ai) {
                 $byProduct[$ai->produk_id] = (float) $ai->minimum_stock;
             }
-        } else {
-            $imporMetas = AnalisaImporMeta::with('produk')->get();
+        } elseif (! empty($imporIds) && AnalisaImporMeta::whereIn('produk_id', $imporIds)->exists()) {
+            $imporMetas = AnalisaImporMeta::with('produk')->whereIn('produk_id', $imporIds)->get();
             foreach ($imporMetas as $meta) {
                 $hasil = $this->impor($meta);
                 $minTotal = 0.0;
@@ -1262,16 +1298,23 @@ class AnalisaService
      */
     public function getItemPerluOrderSummary(): array
     {
-        $lokalOrder = RekomendasiOrderLokal::where('status', 'order')->count();
-        if ($lokalOrder === 0 && AnalisaLokalInput::exists()) {
-            $lokalOrder = AnalisaLokalInput::with('produk')->get()
+        $lokalIds = $this->lokalEligibleProdukIds();
+        $imporIds = $this->imporEligibleProdukIds();
+
+        $lokalOrder = empty($lokalIds)
+            ? 0
+            : RekomendasiOrderLokal::whereIn('produk_id', $lokalIds)->where('status', 'order')->count();
+        if ($lokalOrder === 0 && ! empty($lokalIds) && AnalisaLokalInput::whereIn('produk_id', $lokalIds)->exists()) {
+            $lokalOrder = AnalisaLokalInput::with('produk')->whereIn('produk_id', $lokalIds)->get()
                 ->filter(fn ($i) => $this->lokal($i)['status'] === 'order')
                 ->count();
         }
 
-        $imporOrder = AnalisaImpor::where('status', 'po')->count();
-        if ($imporOrder === 0 && AnalisaImporMeta::exists()) {
-            $imporOrder = AnalisaImporMeta::with('produk')->get()
+        $imporOrder = empty($imporIds)
+            ? 0
+            : AnalisaImpor::whereIn('produk_id', $imporIds)->where('status', 'po')->count();
+        if ($imporOrder === 0 && ! empty($imporIds) && AnalisaImporMeta::whereIn('produk_id', $imporIds)->exists()) {
+            $imporOrder = AnalisaImporMeta::with('produk')->whereIn('produk_id', $imporIds)->get()
                 ->filter(fn ($m) => $this->impor($m)['status'] === 'po')
                 ->count();
         }
@@ -1287,5 +1330,250 @@ class AnalisaService
             'impor' => $imporOrder,
             'fulfillment' => $ffOrder,
         ];
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function lokalEligibleProdukIds(): array
+    {
+        return Produk::query()
+            ->where('is_active', true)
+            ->whereIn('tipe', ['bahan', 'kemas'])
+            ->where(function ($q) {
+                $q->where('profil_analisa', 'lokal')
+                  ->orWhereNull('profil_analisa');
+            })
+            ->pluck('id')
+            ->all();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function imporEligibleProdukIds(): array
+    {
+        return Produk::query()
+            ->where('is_active', true)
+            ->whereIn('tipe', ['bahan', 'kemas'])
+            ->where(function ($q) {
+                $q->whereIn('profil_analisa', self::IMPOR_PROFILES)
+                  ->orWhereNull('profil_analisa');
+            })
+            ->pluck('id')
+            ->all();
+    }
+
+    /**
+     * Bersihkan working table profil lama agar satu SKU tidak muncul ganda setelah berpindah profil/tipe.
+     */
+    public function cleanupWorkingTablesForProfile(Produk $produk, ?string $targetProfil): void
+    {
+        if ($produk->tipe === 'produk_jadi' || ! $produk->is_active) {
+            AnalisaLokal::where('produk_id', $produk->id)->delete();
+            RekomendasiOrderLokal::where('produk_id', $produk->id)->delete();
+            LeadTimeLokal::where('produk_id', $produk->id)->delete();
+            AnalisaImpor::where('produk_id', $produk->id)->delete();
+            LeadTimeImpor::where('produk_id', $produk->id)->delete();
+
+            return;
+        }
+
+        if (self::isImporProfile($targetProfil)) {
+            AnalisaLokal::where('produk_id', $produk->id)->delete();
+            RekomendasiOrderLokal::where('produk_id', $produk->id)->delete();
+            LeadTimeLokal::where('produk_id', $produk->id)->delete();
+
+            return;
+        }
+
+        AnalisaImpor::where('produk_id', $produk->id)->delete();
+        LeadTimeImpor::where('produk_id', $produk->id)->delete();
+    }
+
+    /**
+     * Sinkronisasi 2 arah Klasifikasi ABC antara Master Produk, analisa_impor, dan analisa_impor_meta.
+     *
+     * @param  array{promote_to_impor?: bool, ensure_analisa_row?: bool, user_id?: int|null}  $options
+     */
+    public function syncProdukKlasifikasiAbc(Produk $produk, ?int $klasifikasiAbcId, array $options = []): void
+    {
+        if ($produk->tipe === 'produk_jadi') {
+            throw ValidationException::withMessages([
+                'produk_id' => 'Produk Jadi tidak dapat ditetapkan ke Klasifikasi ABC.',
+            ]);
+        }
+
+        $promoteToImpor = (bool) ($options['promote_to_impor'] ?? false);
+        $ensureAnalisaRow = (bool) ($options['ensure_analisa_row'] ?? false);
+        $userId = $options['user_id'] ?? auth()->id();
+
+        DB::transaction(function () use ($produk, $klasifikasiAbcId, $promoteToImpor, $ensureAnalisaRow, $userId) {
+            if ($promoteToImpor && ! self::isImporProfile($produk->profil_analisa)) {
+                $produk->profil_analisa = 'impor';
+                $this->cleanupWorkingTablesForProfile($produk, 'impor');
+            }
+
+            $abc = $klasifikasiAbcId ? KlasifikasiAbc::findOrFail($klasifikasiAbcId) : null;
+
+            $produk->klasifikasi_abc_id = $abc?->id;
+            $produk->save();
+
+            $meta = AnalisaImporMeta::where('produk_id', $produk->id)->first();
+            if ($meta) {
+                $meta->klasifikasi_abc_id = $abc?->id;
+                $meta->klasifikasi_abc = $abc?->kode ?? 'c';
+                $meta->save();
+            }
+
+            $existingAnalisa = AnalisaImpor::where('produk_id', $produk->id)->first();
+            if ($existingAnalisa) {
+                $existingAnalisa->klasifikasi_abc_id = $abc?->id;
+                $existingAnalisa->klasifikasi_abc = $abc?->kode ?? 'c';
+                $existingAnalisa->tambahan_buffer_hari = $abc ? (int) $abc->tambahan_buffer_hari : 0;
+                $existingAnalisa->save();
+
+                $this->generateImpor($produk->id, $userId);
+            } elseif ($ensureAnalisaRow) {
+                $this->generateImpor($produk->id, $userId);
+            }
+        });
+    }
+
+    /**
+     * Tetapkan banyak SKU sekaligus ke suatu Klasifikasi ABC.
+     *
+     * @param  array<int, int|string>  $produkIds
+     */
+    public function assignKlasifikasiAbcToSkus(int $klasifikasiAbcId, array $produkIds, bool $ensureAnalisaRow = false, ?int $userId = null): int
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $produkIds), fn ($id) => $id > 0)));
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $abc = KlasifikasiAbc::findOrFail($klasifikasiAbcId);
+        $products = Produk::query()
+            ->whereIn('id', $ids)
+            ->where('is_active', true)
+            ->whereIn('tipe', ['bahan', 'kemas'])
+            ->get();
+
+        if ($products->count() !== count($ids)) {
+            throw ValidationException::withMessages([
+                'produk_ids' => 'Semua SKU yang dipilih harus berstatus aktif dan bertipe Bahan Baku atau Kemasan.',
+            ]);
+        }
+
+        $updatedCount = 0;
+        DB::transaction(function () use ($products, $abc, $ensureAnalisaRow, $userId, &$updatedCount) {
+            foreach ($products as $produk) {
+                $this->syncProdukKlasifikasiAbc($produk, $abc->id, [
+                    'promote_to_impor' => true,
+                    'ensure_analisa_row' => $ensureAnalisaRow,
+                    'user_id' => $userId,
+                ]);
+                $updatedCount++;
+            }
+        });
+
+        return $updatedCount;
+    }
+
+    /**
+     * Tambahkan / pindahkan SKU langsung ke Analisa Lokal atau Analisa Impor (dengan Klasifikasi ABC).
+     *
+     * @param  array<string, mixed>  $initialParams
+     */
+    public function addSkuToAnalisa(Produk $produk, string $targetProfil, ?int $klasifikasiAbcId = null, array $initialParams = [], ?int $userId = null): void
+    {
+        if (! $produk->is_active || ! in_array($produk->tipe, ['bahan', 'kemas'], true)) {
+            throw ValidationException::withMessages([
+                'produk_id' => 'Hanya SKU Bahan Baku atau Kemasan yang aktif yang dapat ditambahkan ke Analisa Stok.',
+            ]);
+        }
+
+        if (! in_array($targetProfil, ['lokal', 'impor'], true)) {
+            throw ValidationException::withMessages([
+                'target_profil' => 'Profil analisa tujuan harus Lokal atau Impor.',
+            ]);
+        }
+
+        DB::transaction(function () use ($produk, $targetProfil, $klasifikasiAbcId, $initialParams, $userId) {
+            if ($targetProfil === 'lokal') {
+                $produk->profil_analisa = 'lokal';
+                $produk->klasifikasi_abc_id = null;
+                $produk->save();
+
+                $this->cleanupWorkingTablesForProfile($produk, 'lokal');
+
+                $hasLokalInput = array_key_exists('terjual_rata_rata_4bulan', $initialParams)
+                    || array_key_exists('review_period', $initialParams)
+                    || array_key_exists('harga_per_satuan', $initialParams);
+                if ($hasLokalInput) {
+                    $input = AnalisaLokalInput::firstOrNew(['produk_id' => $produk->id]);
+                    if (array_key_exists('terjual_rata_rata_4bulan', $initialParams) && $initialParams['terjual_rata_rata_4bulan'] !== null) {
+                        $input->terjual_rata_rata_4bulan = (float) $initialParams['terjual_rata_rata_4bulan'];
+                    }
+                    if (array_key_exists('review_period', $initialParams) && $initialParams['review_period'] !== null) {
+                        $input->review_period = (int) $initialParams['review_period'];
+                    }
+                    if (array_key_exists('harga_per_satuan', $initialParams) && $initialParams['harga_per_satuan'] !== null) {
+                        $input->harga_per_satuan = (float) $initialParams['harga_per_satuan'];
+                    }
+                    $input->save();
+                }
+
+                if (array_key_exists('tambahan_buffer_hari', $initialParams) && $initialParams['tambahan_buffer_hari'] !== null) {
+                    LeadTimeLokal::updateOrCreate(
+                        ['produk_id' => $produk->id],
+                        ['tambahan_buffer_hari' => self::roundLeadTimeDays((float) $initialParams['tambahan_buffer_hari'])]
+                    );
+                }
+
+                $this->generateLokal($produk->id, $userId);
+
+                return;
+            }
+
+            if (array_key_exists('lead_time_average', $initialParams) || array_key_exists('lead_time_max', $initialParams)) {
+                $lt = LeadTimeImpor::firstOrNew(['produk_id' => $produk->id]);
+                if (array_key_exists('lead_time_average', $initialParams) && $initialParams['lead_time_average'] !== null) {
+                    $lt->lead_time_average = (float) $initialParams['lead_time_average'];
+                }
+                if (array_key_exists('lead_time_max', $initialParams) && $initialParams['lead_time_max'] !== null) {
+                    $lt->lead_time_max = (float) $initialParams['lead_time_max'];
+                }
+                $lt->save();
+            }
+
+            // Generate/sync row first so stok_saat_ini & inbound_before_eta terisi dari DB jika baris baru
+            $this->syncProdukKlasifikasiAbc($produk, $klasifikasiAbcId, [
+                'promote_to_impor' => true,
+                'ensure_analisa_row' => true,
+                'user_id' => $userId,
+            ]);
+
+            $hasImporParams = array_key_exists('out', $initialParams)
+                || array_key_exists('review_period', $initialParams)
+                || array_key_exists('harga_per_satuan', $initialParams);
+
+            if ($hasImporParams) {
+                $ai = AnalisaImpor::where('produk_id', $produk->id)->first();
+                if ($ai) {
+                    if (array_key_exists('out', $initialParams) && $initialParams['out'] !== null) {
+                        $ai->out = (float) $initialParams['out'];
+                    }
+                    if (array_key_exists('review_period', $initialParams) && $initialParams['review_period'] !== null) {
+                        $ai->review_period = (int) $initialParams['review_period'];
+                    }
+                    if (array_key_exists('harga_per_satuan', $initialParams) && $initialParams['harga_per_satuan'] !== null) {
+                        $ai->harga_per_satuan = (float) $initialParams['harga_per_satuan'];
+                    }
+                    $ai->save();
+                    $this->generateImpor($produk->id, $userId);
+                }
+            }
+        });
     }
 }

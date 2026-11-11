@@ -215,7 +215,7 @@
 
                             @canany(['transfer.view', 'rt.view'])
                             <li class="w-full" x-show="!menuQuery || 'transfer mutasi kirim logistik defect'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('transfers.index') }}" :active="request()->routeIs('transfers.*') || request()->routeIs('rt.*')">
+                                <x-nav-item href="{{ route('transfers.index') }}" :active="request()->routeIs('transfers.*')">
                                     <x-slot:icon>
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                                     </x-slot:icon>
@@ -297,6 +297,9 @@
                                     Varian
                                 </x-nav-item>
                             </li>
+                            @endcan
+
+                            @can('analisa.view')
                             <li class="w-full" x-show="!menuQuery || 'klasifikasi abc analisa'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ route('klasifikasi-abc.index') }}" :active="request()->routeIs('klasifikasi-abc.*')">
                                     <x-slot:icon>

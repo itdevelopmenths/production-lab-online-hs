@@ -110,6 +110,7 @@
                         Buffer: <span class="font-bold font-mono text-foreground" x-text="'+' + simulasiImporTambahanBuffer() + ' Hari'"></span>
                     </p>
                     <select x-model="manualImporForm.klasifikasi_abc_id" @change="onAbcChange()" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-semibold text-foreground shadow-xs">
+                        <option value="">— Default (Tanpa Kelas / +0 Hari) —</option>
                         <template x-for="abc in klasifikasiAbcList" :key="abc.id">
                             <option :value="abc.id" :selected="manualImporForm.klasifikasi_abc_id == abc.id" x-text="abc.nama + ' (+' + abc.tambahan_buffer_hari + ' Hari)'"></option>
                         </template>

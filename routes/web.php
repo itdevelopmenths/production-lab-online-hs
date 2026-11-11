@@ -14,7 +14,6 @@ use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\VarianController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\RequestTransferController;
 use App\Http\Controllers\StokController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RoleSwitcherController;
@@ -57,9 +56,17 @@ Route::middleware('auth')->group(function () {
 
         Route::get('varian/data', [VarianController::class, 'data'])->name('varian.data');
         Route::resource('varian', VarianController::class)->except(['show']);
+    });
 
+    Route::middleware('can:analisa.view')->group(function () {
         Route::get('klasifikasi-abc/options', [KlasifikasiAbcController::class, 'options'])->name('klasifikasi-abc.options');
         Route::get('klasifikasi-abc/data', [KlasifikasiAbcController::class, 'data'])->name('klasifikasi-abc.data');
+        Route::get('klasifikasi-abc/available-skus', [KlasifikasiAbcController::class, 'availableSkus'])->name('klasifikasi-abc.available-skus');
+        Route::get('klasifikasi-abc/{klasifikasiAbc}/skus', [KlasifikasiAbcController::class, 'skus'])->name('klasifikasi-abc.skus');
+        Route::post('klasifikasi-abc/{klasifikasiAbc}/skus', [KlasifikasiAbcController::class, 'assignSkus'])
+            ->middleware('can:analisa.manage')->name('klasifikasi-abc.assign-skus');
+        Route::delete('klasifikasi-abc/{klasifikasiAbc}/skus/{produk}', [KlasifikasiAbcController::class, 'unassignSku'])
+            ->middleware('can:analisa.manage')->name('klasifikasi-abc.unassign-sku');
         Route::resource('klasifikasi-abc', KlasifikasiAbcController::class)->except(['show', 'create', 'edit']);
     });
 
@@ -158,25 +165,6 @@ Route::middleware('auth')->group(function () {
         Route::post('lead-time/{poLeadTime}/invalidate', [\App\Http\Controllers\PurchasingStageController::class, 'invalidateLeadTime'])->name('lead-time.invalidate');
     });
 
-    // ===== Request & Transfer (Legacy) =====
-    Route::middleware('can:rt.view')->prefix('request-transfer')->name('rt.')->group(function () {
-        Route::get('/', [RequestTransferController::class, 'index'])->name('index');
-        Route::get('data', [RequestTransferController::class, 'data'])->name('data');
-        Route::get('stok-tersedia', [RequestTransferController::class, 'stokTersedia'])->name('stok-tersedia');
-        Route::get('create', [RequestTransferController::class, 'create'])
-            ->middleware('can:rt.create')->name('create');
-        Route::post('/', [RequestTransferController::class, 'store'])
-            ->middleware('can:rt.create')->name('store');
-        Route::get('{requestTransfer}', [RequestTransferController::class, 'show'])->name('show');
-        Route::get('{requestTransfer}/edit', [RequestTransferController::class, 'edit'])
-            ->middleware('can:rt.create')->name('edit');
-        Route::put('{requestTransfer}', [RequestTransferController::class, 'update'])
-            ->middleware('can:rt.create')->name('update');
-        Route::get('{requestTransfer}/surat-jalan', [RequestTransferController::class, 'suratJalan'])->name('surat-jalan');
-        Route::post('{requestTransfer}/transition', [RequestTransferController::class, 'transition'])
-            ->name('transition');
-    });
-
     // ===== PRD v2.4 Requests (Permintaan Barang) =====
     Route::middleware('can:rt.view')->prefix('requests')->name('requests.')->group(function () {
         Route::get('/', [\App\Http\Controllers\RequestController::class, 'index'])->name('index');
@@ -224,6 +212,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [AnalisaController::class, 'index'])->name('index');
         Route::get('lokal/data', [AnalisaController::class, 'lokalData'])->name('lokal.data');
         Route::get('impor/data', [AnalisaController::class, 'imporData'])->name('impor.data');
+        Route::get('available-skus', [AnalisaController::class, 'availableSkus'])->name('available-skus');
+        Route::post('add-sku', [AnalisaController::class, 'addSku'])
+            ->middleware('can:analisa.manage')->name('add-sku');
         Route::get('fulfillment/data', [AnalisaController::class, 'fulfillmentData'])->name('fulfillment.data');
         Route::get('riwayat/data', [AnalisaController::class, 'riwayatData'])->name('riwayat.data');
         Route::post('generate-lokal', [AnalisaController::class, 'generateLokal'])

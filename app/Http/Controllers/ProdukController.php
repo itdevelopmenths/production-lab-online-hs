@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnalisaImpor;
+use App\Models\AnalisaImporMeta;
 use App\Models\Kategori;
+use App\Models\KlasifikasiAbc;
 use App\Models\Produk;
 use App\Models\Supplier;
 use App\Models\Uom;
 use App\Models\Varian;
+use App\Services\AnalisaService;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +37,7 @@ class ProdukController extends Controller
         $canDelete = $request->user()->can('produk.delete');
 
         $query = Produk::query()
-            ->with(['kategori', 'varian', 'uom'])
+            ->with(['kategori', 'varian', 'uom', 'klasifikasiAbc'])
             ->withCount('activeSuppliers')
             ->select('produk.*')
             ->when($request->filled('tipe') && $request->tipe !== 'all', function ($q) use ($request) {
@@ -91,6 +95,29 @@ class ProdukController extends Controller
                 return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">0 Supplier</span>';
             })
             ->editColumn('satuan', fn ($p) => '<span class="font-mono text-xs text-muted-foreground font-medium">' . e($p->satuan) . '</span>')
+            ->addColumn('klasifikasi_abc_badge', function ($p) {
+                if ($p->tipe === 'produk_jadi') {
+                    return '<span class="text-xs text-muted-foreground font-mono">—</span>';
+                }
+
+                if (AnalisaService::isImporProfile($p->profil_analisa)) {
+                    if ($p->klasifikasiAbc) {
+                        $color = match ($p->klasifikasiAbc->warna_badge) {
+                            'red' => 'bg-rose-50 text-rose-700 border-rose-200',
+                            'amber' => 'bg-amber-50 text-amber-700 border-amber-200',
+                            'blue' => 'bg-sky-50 text-sky-700 border-sky-200',
+                            'emerald', 'green' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                            default => 'bg-zinc-100 text-zinc-700 border-zinc-200',
+                        };
+
+                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ' . $color . '" title="' . e($p->klasifikasiAbc->nama) . '">Impor · ' . e(strtoupper($p->klasifikasiAbc->kode)) . '</span>';
+                    }
+
+                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-100 text-zinc-600 border border-zinc-200/60">Impor · Default C</span>';
+                }
+
+                return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-muted-foreground border border-border">Lokal</span>';
+            })
             ->editColumn('is_active', fn ($p) => $p->is_active
                 ? '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200/60">Aktif</span>'
                 : '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-zinc-100 text-zinc-500 border border-zinc-200/60">Nonaktif</span>'
@@ -106,7 +133,7 @@ class ProdukController extends Controller
 
                 return $html . '</div>';
             })
-            ->rawColumns(['sku', 'nama', 'kategori_nama', 'varian_nama', 'tipe', 'supplier_count', 'satuan', 'is_active', 'action'])
+            ->rawColumns(['sku', 'nama', 'kategori_nama', 'varian_nama', 'tipe', 'supplier_count', 'satuan', 'klasifikasi_abc_badge', 'is_active', 'action'])
             ->toJson();
     }
 
@@ -185,11 +212,14 @@ class ProdukController extends Controller
         $kategoriList = Kategori::with(['varians' => fn ($q) => $q->orderBy('nama')])->orderBy('nama')->get();
         $uomList = Uom::active()->orderBy('nama')->get();
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
+        $klasifikasiAbcList = KlasifikasiAbc::where('is_active', true)
+            ->orderByDesc('tambahan_buffer_hari')
+            ->get(['id', 'kode', 'nama', 'tambahan_buffer_hari', 'warna_badge']);
 
-        return view('produk.create', compact('kategoriList', 'uomList', 'suppliers'));
+        return view('produk.create', compact('kategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, AnalisaService $analisaService)
     {
         $this->authorize('produk.create');
 
@@ -204,6 +234,10 @@ class ProdukController extends Controller
         $produk = Produk::create($data);
 
         $this->syncSuppliers($produk, $rawSuppliers);
+        $analisaService->cleanupWorkingTablesForProfile(
+            $produk,
+            ($produk->tipe === 'produk_jadi' || ! $produk->is_active) ? null : $produk->profil_analisa
+        );
 
         return redirect()->route('produk.index')->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -212,15 +246,18 @@ class ProdukController extends Controller
     {
         $this->authorize('produk.edit');
 
-        $produk->load(['kategori', 'varian', 'suppliers']);
+        $produk->load(['kategori', 'varian', 'suppliers', 'klasifikasiAbc']);
         $kategoriList = Kategori::with(['varians' => fn ($q) => $q->orderBy('nama')])->orderBy('nama')->get();
         $uomList = Uom::active()->orderBy('nama')->get();
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
+        $klasifikasiAbcList = KlasifikasiAbc::where('is_active', true)
+            ->orderByDesc('tambahan_buffer_hari')
+            ->get(['id', 'kode', 'nama', 'tambahan_buffer_hari', 'warna_badge']);
 
-        return view('produk.edit', compact('produk', 'kategoriList', 'uomList', 'suppliers'));
+        return view('produk.edit', compact('produk', 'kategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList'));
     }
 
-    public function update(Request $request, Produk $produk)
+    public function update(Request $request, Produk $produk, AnalisaService $analisaService)
     {
         $this->authorize('produk.edit');
 
@@ -236,6 +273,19 @@ class ProdukController extends Controller
         $produk->update($data);
 
         $this->syncSuppliers($produk, $rawSuppliers);
+        $analisaService->cleanupWorkingTablesForProfile(
+            $produk,
+            ($produk->tipe === 'produk_jadi' || ! $produk->is_active) ? null : $produk->profil_analisa
+        );
+
+        if (AnalisaService::isImporProfile($produk->profil_analisa)
+            && $produk->tipe !== 'produk_jadi'
+            && (AnalisaImpor::where('produk_id', $produk->id)->exists() || AnalisaImporMeta::where('produk_id', $produk->id)->exists())) {
+            $analisaService->syncProdukKlasifikasiAbc($produk, $produk->klasifikasi_abc_id, [
+                'ensure_analisa_row' => false,
+                'user_id' => auth()->id(),
+            ]);
+        }
 
         return redirect()->route('produk.index')->with('success', 'Produk berhasil diperbarui.');
     }
@@ -345,7 +395,8 @@ class ProdukController extends Controller
             'satuan' => ['required', 'string', 'max:15', 'exists:uom,kode'],
             'faktor_konversi' => ['nullable', 'numeric', 'min:0.0001'],
             'satuan_order_moq' => ['required', 'numeric', 'min:0'],
-            'profil_analisa' => ['nullable', Rule::in(['lokal', 'impor'])],
+            'profil_analisa' => ['nullable', Rule::in(['lokal', 'impor', 'bahan_impor'])],
+            'klasifikasi_abc_id' => ['nullable', 'integer', 'exists:klasifikasi_abc,id'],
             'is_active' => ['boolean'],
             'supplier_id' => ['nullable', 'integer', 'exists:supplier,id'],
             'suppliers' => ['nullable'],
@@ -376,6 +427,12 @@ class ProdukController extends Controller
         }
         $validated['faktor_konversi'] = (float) ($validated['faktor_konversi'] ?? 1);
         $validated['nama'] = trim($validated['nama_produk'] . $varianNama);
+        if (($validated['tipe'] ?? '') === 'produk_jadi') {
+            $validated['profil_analisa'] = null;
+            $validated['klasifikasi_abc_id'] = null;
+        } elseif (! AnalisaService::isImporProfile($validated['profil_analisa'] ?? null)) {
+            $validated['klasifikasi_abc_id'] = null;
+        }
 
         return $validated;
     }

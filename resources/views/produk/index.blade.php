@@ -71,6 +71,7 @@
                             <th class="px-4 py-3 text-left w-28">Tipe</th>
                             <th class="px-4 py-3 text-center w-28">Supplier</th>
                             <th class="px-4 py-3 text-center w-20">Satuan</th>
+                            <th class="px-4 py-3 text-center w-32">Analisa / ABC</th>
                             <th class="px-4 py-3 text-center w-24">Status</th>
                             <th class="px-4 py-3 text-center w-28">Aksi</th>
                         </tr>
@@ -143,6 +144,7 @@
                 { data: 'tipe', name: 'tipe', searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
                 { data: 'supplier_count', name: 'supplier_count', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
                 { data: 'satuan', name: 'satuan', searchable: false, className: 'px-4 py-3.5 align-middle text-center font-mono text-xs' },
+                { data: 'klasifikasi_abc_badge', name: 'klasifikasi_abc_id', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
                 { data: 'is_active', name: 'is_active', searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
                 { data: 'action', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' }
             ]

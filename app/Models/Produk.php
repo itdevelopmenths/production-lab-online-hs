@@ -27,6 +27,7 @@ class Produk extends Model
         'satuan_order_moq',
         'harga_hpp',
         'profil_analisa',
+        'klasifikasi_abc_id',
         'is_active',
     ];
 
@@ -34,10 +35,13 @@ class Produk extends Model
         'satuan_order_moq' => 'decimal:2',
         'harga_hpp' => 'decimal:4',
         'faktor_konversi' => 'decimal:4',
+        'klasifikasi_abc_id' => 'integer',
         'is_active' => 'boolean',
     ];
 
     public const TIPE = ['bahan', 'kemas', 'produk_jadi'];
+
+    public const SUPPLIABLE_TIPES = ['bahan', 'kemas', 'bahan_baku', 'kemasan'];
 
     protected static function booted(): void
     {
@@ -107,6 +111,11 @@ class Produk extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    public function klasifikasiAbc(): BelongsTo
+    {
+        return $this->belongsTo(KlasifikasiAbc::class, 'klasifikasi_abc_id');
     }
 
     public function suppliers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
@@ -187,6 +196,13 @@ class Produk extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /** Produk aktif yang dapat dipasok oleh supplier (bahan baku & kemasan). */
+    public function scopeSuppliable($query)
+    {
+        return $query->whereIn($this->qualifyColumn('tipe'), self::SUPPLIABLE_TIPES)
+            ->where($this->qualifyColumn('is_active'), true);
     }
 
     public function scopeBahan($query)

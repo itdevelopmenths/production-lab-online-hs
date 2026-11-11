@@ -90,7 +90,22 @@
                                     </template>
                                 </td>
                                 <td class="py-3 px-3 text-center font-mono">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" :class="abcBadgeClass(r.klasifikasi_abc)" :title="r.klasifikasi_abc_nama || r.klasifikasi_abc" x-text="r.klasifikasi_abc"></span>
+                                    @can('analisa.manage')
+                                    <select
+                                        :value="r.klasifikasi_abc_id ? String(r.klasifikasi_abc_id) : ''"
+                                        @change="quickChangeImporAbc(r, $event.target.value)"
+                                        :class="r.klasifikasi_abc_id ? abcBadgeClass(r.klasifikasi_abc) : 'bg-zinc-100 text-zinc-600 border border-zinc-300'"
+                                        class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+                                        :title="r.klasifikasi_abc_nama || 'Default (Belum Diset)'"
+                                    >
+                                        <option value="">Default (C)</option>
+                                        <template x-for="abc in klasifikasiAbcList" :key="abc.id">
+                                            <option :value="abc.id" :selected="r.klasifikasi_abc_id == abc.id" x-text="abc.kode.toUpperCase()"></option>
+                                        </template>
+                                    </select>
+                                    @else
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" :class="r.klasifikasi_abc_id ? abcBadgeClass(r.klasifikasi_abc) : 'bg-zinc-100 text-zinc-600 border border-zinc-300'" :title="r.klasifikasi_abc_nama || r.klasifikasi_abc" x-text="r.klasifikasi_abc_id ? r.klasifikasi_abc : 'Default (C)'"></span>
+                                    @endcan
                                 </td>
                                 <td class="py-3 px-4 text-center font-mono text-muted-foreground" x-text="formatLt(r.lead_time_average) + ' / ' + formatLt(r.lead_time_max) + ' hr'"></td>
                                 <td class="py-3 px-4 text-right font-mono text-muted-foreground" x-text="formatLt(r.buffer_days) + ' hr'"></td>

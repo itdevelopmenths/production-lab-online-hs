@@ -2,6 +2,13 @@
     $p = $produk ?? null;
     $categories = $kategoriList ?? \App\Models\Kategori::with(['varians' => fn($q) => $q->orderBy('nama')])->orderBy('nama')->get();
     $supplierListAll = $suppliers ?? \App\Models\Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
+    $abcOptions = $klasifikasiAbcList ?? \App\Models\KlasifikasiAbc::where('is_active', true)->orderByDesc('tambahan_buffer_hari')->get(['id', 'kode', 'nama', 'tambahan_buffer_hari', 'warna_badge']);
+
+    $initialProfil = old('profil_analisa', $p?->profil_analisa ?? '');
+    if ($initialProfil === 'bahan_impor') {
+        $initialProfil = 'impor';
+    }
+    $initialAbcId = old('klasifikasi_abc_id', $p?->klasifikasi_abc_id ?? '');
 
     $rawMoq = old('satuan_order_moq', $p?->satuan_order_moq ?? 1);
     $floatMoq = ($rawMoq !== null && $rawMoq !== '') ? (float) $rawMoq : 1;
@@ -57,16 +64,22 @@
 @endphp
 
 <script>
-function produkFormState(categories, initialKategoriId, initialVarianId, initialNamaProduk, initialTipe, allSuppliers, initialAssignedSuppliers) {
+function produkFormState(categories, initialKategoriId, initialVarianId, initialNamaProduk, initialTipe, initialProfilAnalisa, initialKlasifikasiAbcId, allSuppliers, initialAssignedSuppliers) {
     return {
         categories: categories || [],
         selectedKategoriId: initialKategoriId || '',
         selectedVarianId: initialVarianId || '',
         namaProduk: initialNamaProduk || '',
         tipe: initialTipe || 'bahan',
+        profilAnalisa: initialProfilAnalisa || '',
+        selectedKlasifikasiAbcId: initialKlasifikasiAbcId ? String(initialKlasifikasiAbcId) : '',
         allSuppliers: allSuppliers || [],
         assignedSuppliers: initialAssignedSuppliers || [],
         selectedSupplierToAdd: '',
+
+        get showKlasifikasiAbc() {
+            return this.tipe !== 'produk_jadi' && (this.profilAnalisa === 'impor' || this.profilAnalisa === 'bahan_impor');
+        },
 
         get currentVarians() {
             var catId = String(this.selectedKategoriId);
@@ -138,6 +151,8 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
     '{{ addslashes(old('varian_id', $p?->varian_id ?? '')) }}',
     '{{ addslashes(old('nama_produk', $p?->nama_produk ?? $p?->nama ?? '')) }}',
     '{{ addslashes(old('tipe', $p?->tipe ?? 'bahan')) }}',
+    '{{ addslashes((string) $initialProfil) }}',
+    '{{ addslashes((string) $initialAbcId) }}',
     {{ Js::from($supplierListAll) }},
     {{ Js::from($initialSuppliers) }}
 )" class="space-y-6">
@@ -242,12 +257,27 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
         </x-form-group>
 
         {{-- Profil Analisa --}}
-        <x-form-group name="profil_analisa" label="Profil Analisa Stok" help="Kategori perhitungan batas aman stok">
-            <x-select name="profil_analisa" placeholder="— Pilih Profil Analisa —">
-                <option value="lokal" @selected(old('profil_analisa', $p?->profil_analisa) === 'lokal')>Lokal</option>
-                <option value="impor" @selected(old('profil_analisa', $p?->profil_analisa) === 'impor')>Impor</option>
-            </x-select>
-        </x-form-group>
+        <div x-show="tipe !== 'produk_jadi'" x-transition>
+            <x-form-group name="profil_analisa" label="Profil Analisa Stok" help="Kategori perhitungan batas aman stok (Lokal atau Impor)">
+                <x-select name="profil_analisa" x-model="profilAnalisa" placeholder="— Pilih Profil Analisa —">
+                    <option value="lokal" @selected($initialProfil === 'lokal')>Lokal</option>
+                    <option value="impor" @selected($initialProfil === 'impor')>Impor</option>
+                </x-select>
+            </x-form-group>
+        </div>
+
+        {{-- Klasifikasi ABC (khusus profil Impor) --}}
+        <div x-show="showKlasifikasiAbc" x-transition>
+            <x-form-group name="klasifikasi_abc_id" label="Klasifikasi ABC (Impor)" help="Menentukan tambahan hari buffer lead time di Analisa Stok Impor">
+                <x-select name="klasifikasi_abc_id" x-model="selectedKlasifikasiAbcId" ::disabled="!showKlasifikasiAbc" placeholder="— Belum Ditentukan (Default Buffer +0 Hari) —">
+                    @foreach($abcOptions as $abc)
+                        <option value="{{ $abc->id }}" @selected((string) $initialAbcId === (string) $abc->id)>
+                            {{ $abc->nama }} (+{{ $abc->tambahan_buffer_hari }} Hari)
+                        </option>
+                    @endforeach
+                </x-select>
+            </x-form-group>
+        </div>
 
         {{-- Panel Daftar Supplier Pemasok (PRODUK_SUPPLIER) --}}
         <div x-show="tipe !== 'produk_jadi'" x-transition class="md:col-span-2 border border-border/80 bg-card rounded-xl p-4 space-y-4 shadow-xs">
