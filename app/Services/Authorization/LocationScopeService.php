@@ -80,7 +80,7 @@ class LocationScopeService
             $query->whereIn('id', $allowedIds);
         }
 
-        return $query->get(['id', 'kode', 'nama', 'tipe']);
+        return $query->get(['id', 'kode', 'nama', 'tipe', 'is_pusat']);
     }
 
     /**

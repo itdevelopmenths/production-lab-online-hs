@@ -32,7 +32,21 @@ class StokController extends Controller
         $isGlobal = $this->locationScope->isGlobal($user);
         $canSeePrice = $user->can('purchasing.price.view');
 
-        return view('stok.index', compact('gudang', 'isGlobal', 'canSeePrice'));
+        // Prioritaskan Gudang Bahan Baku Pusat (GD-PUSAT), lalu gudang pusat lain yang dapat diakses user
+        $defaultPusat = $gudang->first(fn (Gudang $g) => $g->isBahanBaku() && $g->isPusat())
+            ?? $gudang->first(fn (Gudang $g) => $g->isPusat())
+            ?? $gudang->firstWhere('kode', 'GD-PUSAT');
+
+        $defaultFilterGudangId = $defaultPusat?->id ?? ($isGlobal ? null : $gudang->first()?->id);
+        $defaultMutasiGudangId = $defaultPusat?->id ?? $gudang->first()?->id;
+
+        return view('stok.index', compact(
+            'gudang',
+            'isGlobal',
+            'canSeePrice',
+            'defaultFilterGudangId',
+            'defaultMutasiGudangId',
+        ));
     }
 
     public function data(Request $request): JsonResponse

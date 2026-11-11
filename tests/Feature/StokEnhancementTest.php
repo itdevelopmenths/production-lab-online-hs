@@ -195,4 +195,76 @@ class StokEnhancementTest extends TestCase
         $resOpname->assertSee('Stok di Sistem');
         $resOpname->assertSee('Estimasi Deviasi');
     }
+
+    public function test_stok_index_defaults_lokasi_gudang_and_mutasi_modal_to_pusat_for_global_user(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $gBahanPusat = Gudang::bahanBakuPusat()->firstOrFail();
+
+        $res = $this->actingAs($manager)->get(route('stok.index'));
+        $res->assertOk();
+
+        $html = $res->getContent();
+
+        // Filter Lokasi Gudang tetap memuat opsi "Semua Gudang", namun default terpilih adalah GD-PUSAT
+        $this->assertMatchesRegularExpression(
+            '/<select[^>]*id="filter-gudang"[^>]*>(?:(?!<\/select>).)*?<option value="">— Semua Gudang —<\/option>(?:(?!<\/select>).)*?<option value="' . $gBahanPusat->id . '"\s+selected>/s',
+            $html
+        );
+
+        // Modal Mutasi Manual juga men-default-kan gudangId & selected option ke GD-PUSAT
+        $this->assertStringContainsString("stokMutasiForm('{$gBahanPusat->id}'", $html);
+        $this->assertMatchesRegularExpression(
+            '/<select[^>]*name="gudang_id"[^>]*x-model="gudangId"[^>]*>(?:(?!<\/select>).)*?<option value="' . $gBahanPusat->id . '"\s+selected>/s',
+            $html
+        );
+    }
+
+    public function test_stok_index_defaults_lokasi_gudang_to_accessible_pusat_for_restricted_user(): void
+    {
+        $ffPusat = Gudang::where('kode', 'FF-PUSAT')->firstOrFail();
+        $ffSby = Gudang::where('kode', 'FF-SBY')->firstOrFail();
+        $gOps = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+
+        // Buat gudang non-pusat yang namanya muncul sebelum "Fulfillment Pusat" secara alfabet
+        $ffCabangA = Gudang::create([
+            'kode' => 'FF-AAA',
+            'nama' => 'AAA Cabang Fulfillment',
+            'tipe' => 'fulfillment',
+            'is_pusat' => false,
+            'status' => 'aktif',
+        ]);
+
+        $ffUser = User::factory()->create([
+            'warehouse_access_type' => 'restricted',
+        ]);
+        $ffUser->givePermissionTo(['stok.view', 'stok.mutasi']);
+        $ffUser->gudangs()->sync([$ffCabangA->id, $ffSby->id, $ffPusat->id]);
+
+        $resFf = $this->actingAs($ffUser)->get(route('stok.index'));
+        $resFf->assertOk();
+        $resFf->assertDontSee('— Semua Gudang —');
+
+        $htmlFf = $resFf->getContent();
+        $this->assertMatchesRegularExpression(
+            '/<select[^>]*id="filter-gudang"[^>]*>(?:(?!<\/select>).)*?<option value="' . $ffPusat->id . '"\s+selected>/s',
+            $htmlFf
+        );
+        $this->assertStringContainsString("stokMutasiForm('{$ffPusat->id}'", $htmlFf);
+
+        // Jika user restricted tidak memiliki akses gudang pusat sama sekali, fallback ke gudang pertama miliknya
+        $opsUser = User::factory()->create([
+            'warehouse_access_type' => 'restricted',
+        ]);
+        $opsUser->givePermissionTo(['stok.view', 'stok.mutasi']);
+        $opsUser->gudangs()->sync([$gOps->id]);
+
+        $resOps = $this->actingAs($opsUser)->get(route('stok.index'));
+        $resOps->assertOk();
+        $this->assertMatchesRegularExpression(
+            '/<select[^>]*id="filter-gudang"[^>]*>(?:(?!<\/select>).)*?<option value="' . $gOps->id . '"\s+selected>/s',
+            $resOps->getContent()
+        );
+        $this->assertStringContainsString("stokMutasiForm('{$gOps->id}'", $resOps->getContent());
+    }
 }

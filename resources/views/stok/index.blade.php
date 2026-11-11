@@ -25,12 +25,12 @@
             <div class="flex flex-wrap items-center gap-3">
                 <div>
                     <label for="filter-gudang" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Lokasi Gudang</label>
-                    <select id="filter-gudang" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
+                    <select id="filter-gudang" autocomplete="off" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
                         @if($isGlobal)
                             <option value="">— Semua Gudang —</option>
                         @endif
                         @foreach($gudang as $g)
-                            <option value="{{ $g->id }}">{{ $g->nama }}</option>
+                            <option value="{{ $g->id }}" @selected((string) ($defaultFilterGudangId ?? '') === (string) $g->id)>{{ $g->nama }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -128,8 +128,11 @@
             }
         </script>
         <x-modal name="openMutasi" title="Mutasi Stok Manual" maxWidth="md">
+            @php
+                $mutasiInitialGudangId = (string) old('gudang_id', $defaultMutasiGudangId ?? $gudang->first()?->id ?? '');
+            @endphp
             <form method="POST" action="{{ route('stok.mutasi') }}" id="form-mutasi-manual" class="space-y-3"
-                x-data="stokMutasiForm('{{ $gudang->first()->id ?? '' }}', '{{ route('stok.current-stock') }}')"
+                x-data="stokMutasiForm('{{ $mutasiInitialGudangId }}', '{{ route('stok.current-stock') }}')"
                 @product-selected="onProductSelected($event.detail)"
             >
                 @csrf
@@ -143,9 +146,9 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1">Gudang <span class="text-rose-500">*</span></label>
-                    <select name="gudang_id" x-model="gudangId" @change="fetchStock()" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
+                    <select name="gudang_id" x-model="gudangId" @change="fetchStock()" autocomplete="off" class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
                         @foreach($gudang as $g)
-                            <option value="{{ $g->id }}">{{ $g->nama }}</option>
+                            <option value="{{ $g->id }}" @selected($mutasiInitialGudangId === (string) $g->id)>{{ $g->nama }}</option>
                         @endforeach
                     </select>
                 </div>
