@@ -6,7 +6,8 @@ use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\KartuStok;
 use App\Models\Produk;
-use App\Models\RequestTransfer;
+use App\Models\StockRequest;
+use App\Models\Transfer;
 use App\Models\User;
 use App\Services\StokService;
 use Illuminate\Database\Eloquent\Model;
@@ -141,11 +142,11 @@ class ProductionFlowTest extends TestCase
 
         // 5. Send Finished Goods to Fulfillment
         $this->post(route('batches.kirim', $batch))->assertSessionHas('success');
-        $rt = RequestTransfer::where('referensi_batch_id', $batch->id)->first();
-        $this->assertNotNull($rt);
-        $this->assertEquals('kirim_produk_jadi', $rt->jenis);
-        $this->assertEquals('draft', $rt->status);
-        $this->assertEquals($qtyBaik, (float) $rt->items->first()->qty_diminta);
+        $trf = Transfer::where('referensi_batch_id', $batch->id)->first();
+        $this->assertNotNull($trf);
+        $this->assertEquals('kirim_produk_jadi', $trf->jenis);
+        $this->assertEquals('draft', $trf->status);
+        $this->assertEquals($qtyBaik, (float) $trf->items->first()->qty_dikirim);
     }
 
     // ==========================================
@@ -579,7 +580,157 @@ class ProductionFlowTest extends TestCase
 
         // 4. Jika mencoba kirim lagi via POST: Di-redirect ke transfer eksisting tanpa duplikasi
         $retryRes = $this->post(route('batches.kirim', $batch));
-        $retryRes->assertRedirect(route('rt.show', $batch->transferKirim));
-        $this->assertEquals(1, RequestTransfer::where('referensi_batch_id', $batch->id)->count());
+        $retryRes->assertRedirect(route('transfers.show', $batch->transferKirim));
+        $this->assertEquals(1, Transfer::where('referensi_batch_id', $batch->id)->count());
+    }
+
+    public function test_batch_show_hides_progres_pemenuhan_when_stock_sufficient_unless_active_process_exists(): void
+    {
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $gudangUser = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $gudangPusat = Gudang::where('kode', 'GD-PUSAT')->firstOrFail();
+        $produk = Produk::produkJadi()->with('bom')->firstOrFail();
+        $stokService = app(StokService::class);
+        $requestService = app(\App\Services\RequestService::class);
+        $transferService = app(\App\Services\TransferService::class);
+
+        $this->actingAs($operasional);
+
+        // 1. Batch rencana dengan stok GD Ops kosong (kurang) -> tabel progres TAMPIL
+        $this->post(route('batches.store'), [
+            'produk_id' => $produk->id,
+            'qty_rencana' => 10,
+            'gudang_operasional_id' => $gudangOp->id,
+            'tanggal' => now()->toDateString(),
+        ]);
+
+        $batch = BatchProduksi::latest()->firstOrFail();
+        $this->get(route('batches.show', $batch))
+            ->assertOk()
+            ->assertSee('Progres Pemenuhan Bahan Baku');
+
+        // 2. Isi stok GD Ops hingga cukup (Siap Rilis, tanpa request/transfer aktif) -> tabel HIDDEN
+        foreach ($batch->alokasi as $alok) {
+            $stokService->masuk(
+                $alok->bahan_id,
+                $gudangOp->id,
+                (float) $alok->qty_dialokasikan + 100,
+                'mutasi_manual',
+                null,
+                'Stok ops mencukupi'
+            );
+            $stokService->masuk(
+                $alok->bahan_id,
+                $gudangPusat->id,
+                (float) $alok->qty_dialokasikan + 100,
+                'mutasi_manual',
+                null,
+                'Stok pusat untuk transfer'
+            );
+        }
+
+        $this->get(route('batches.show', $batch))
+            ->assertOk()
+            ->assertSee('Siap Rilis')
+            ->assertDontSee('Progres Pemenuhan Bahan Baku');
+
+        // 3. Meski stok ops cukup, jika ada Request aktif -> tabel TETAP TAMPIL
+        $reqItems = $batch->alokasi->map(fn ($alok) => [
+            'produk_id' => $alok->bahan_id,
+            'qty_diminta' => (float) $alok->qty_dialokasikan,
+        ])->values()->all();
+
+        $stockRequest = $requestService->create([
+            'jenis' => 'request_bahan',
+            'gudang_asal_id' => $gudangOp->id,
+            'gudang_tujuan_id' => $gudangPusat->id,
+            'referensi_batch_id' => $batch->id,
+            'items' => $reqItems,
+        ], $operasional);
+        $requestService->submit($stockRequest, $operasional);
+
+        $this->get(route('batches.show', $batch))
+            ->assertOk()
+            ->assertSee('Progres Pemenuhan Bahan Baku');
+
+        // 4. Request disetujui -> Transfer dibuat & dikirim -> masih aktif, tabel TETAP TAMPIL
+        $requestService->approve($stockRequest, $manager);
+        $transferItems = $stockRequest->items()->get()->map(fn ($ri) => [
+            'produk_id' => $ri->produk_id,
+            'request_item_id' => $ri->id,
+            'qty_dikirim' => (float) $ri->qty_diminta,
+        ])->all();
+
+        $transfer = $transferService->create([
+            'jenis' => 'pemenuhan_request_bahan',
+            'gudang_asal_id' => $gudangPusat->id,
+            'gudang_tujuan_id' => $gudangOp->id,
+            'request_id' => $stockRequest->id,
+            'referensi_batch_id' => $batch->id,
+            'items' => $transferItems,
+        ], $gudangUser);
+        $transferService->ship($transfer, $gudangUser);
+
+        $this->get(route('batches.show', $batch))
+            ->assertOk()
+            ->assertSee('Progres Pemenuhan Bahan Baku');
+
+        // 5. Transfer diterima selesai (semua Lengkap 100%, tidak ada proses aktif) -> tabel HIDDEN
+        $receiveItems = $transfer->items()->get()->map(fn ($ti) => [
+            'id' => $ti->id,
+            'qty_baik' => (float) $ti->qty_dikirim,
+            'qty_rusak' => 0.0,
+        ])->all();
+        $transferService->receive($transfer, ['items' => $receiveItems], $operasional);
+
+        $this->get(route('batches.show', $batch))
+            ->assertOk()
+            ->assertDontSee('Progres Pemenuhan Bahan Baku');
+
+        // 6. Setelah batch di-release tanpa request aktif -> tabel tetap HIDDEN
+        $this->post(route('batches.release', $batch))->assertSessionHas('success');
+        $this->get(route('batches.show', $batch))
+            ->assertOk()
+            ->assertDontSee('Progres Pemenuhan Bahan Baku');
+    }
+
+    public function test_batch_show_hides_progres_pemenuhan_after_release_when_post_issue_stock_becomes_zero(): void
+    {
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $produk = Produk::produkJadi()->with('bom')->firstOrFail();
+        $stokService = app(StokService::class);
+
+        $this->actingAs($operasional);
+
+        $this->post(route('batches.store'), [
+            'produk_id' => $produk->id,
+            'qty_rencana' => 10,
+            'gudang_operasional_id' => $gudangOp->id,
+            'tanggal' => now()->toDateString(),
+        ]);
+
+        $batch = BatchProduksi::latest()->firstOrFail();
+
+        // Isi tepat sebesar kebutuhan BOM (0 sisa setelah di-release)
+        foreach ($batch->alokasi as $alok) {
+            $stokService->masuk(
+                $alok->bahan_id,
+                $gudangOp->id,
+                (float) $alok->qty_dialokasikan,
+                'mutasi_manual',
+                null,
+                'Isi pas kebutuhan BOM'
+            );
+        }
+
+        $this->post(route('batches.release', $batch))->assertSessionHas('success');
+
+        // Saldo GD Ops kini 0 (< kebutuhan BOM awal), namun bahan sudah di-issue & tidak ada Request aktif -> HIDDEN
+        $this->get(route('batches.show', $batch))
+            ->assertOk()
+            ->assertDontSee('Progres Pemenuhan Bahan Baku');
     }
 }

@@ -43,7 +43,7 @@
 
             @if($batch->status === 'selesai')
                 @if($batch->transferKirim)
-                <x-button href="{{ route('rt.show', $batch->transferKirim) }}" variant="secondary" size="xs">
+                <x-button href="{{ route('transfers.show', $batch->transferKirim) }}" variant="secondary" size="xs">
                     <x-slot:icon>
                         <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </x-slot:icon>
@@ -244,7 +244,7 @@
             </x-card>
 
             <!-- Rekap Pemenuhan Bahan per Batch (FR-PRD-05, TC-41) -->
-            @if(!empty($rekapBahan))
+            @if($showProgresPemenuhan ?? !empty($rekapBahan))
             <x-card title="Progres Pemenuhan Bahan Baku" subtitle="Perbandingan Kebutuhan BOM vs Total Diminta (Request) vs Total Diterima (Transfer) untuk batch ini." :noPadding="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
@@ -301,8 +301,7 @@
             <!-- Card: Dokumen Request & Transfer Terkait -->
             @php
                 $hasRelatedDocs = ($batch->stockRequests && $batch->stockRequests->isNotEmpty()) ||
-                                  ($batch->modernTransfers && $batch->modernTransfers->isNotEmpty()) ||
-                                  ($batch->transfers && $batch->transfers->isNotEmpty());
+                                  ($batch->modernTransfers && $batch->modernTransfers->isNotEmpty());
             @endphp
             @if($hasRelatedDocs)
             <x-card title="Dokumen Request & Transfer Terkait" subtitle="Daftar permintaan bahan dan mutasi pengiriman yang terhubung dengan batch ini" :noPadding="true">
@@ -349,23 +348,6 @@
                                 </td>
                                 <td class="py-2 px-3 text-center">
                                     <a href="{{ route('transfers.show', $trf) }}" class="text-primary hover:underline font-semibold text-xs">Detail &rarr;</a>
-                                </td>
-                            </tr>
-                            @endforeach
-
-                            @foreach($batch->transfers as $legacyTrf)
-                            <tr class="hover:bg-muted/30 transition">
-                                <td class="py-2 px-3.5 font-medium text-purple-700">Transfer (Legacy)</td>
-                                <td class="py-2 px-3 font-mono font-bold text-foreground">{{ $legacyTrf->no_transaksi }}</td>
-                                <td class="py-2 px-3 text-muted-foreground">{{ $legacyTrf->gudangAsal?->nama ?? '-' }}</td>
-                                <td class="py-2 px-3 text-muted-foreground">{{ $legacyTrf->gudangTujuan?->nama ?? '-' }}</td>
-                                <td class="py-2 px-3 text-center">
-                                    <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 text-purple-800 border border-purple-200">
-                                        {{ ucfirst($legacyTrf->status) }}
-                                    </span>
-                                </td>
-                                <td class="py-2 px-3 text-center">
-                                    <a href="{{ route('rt.show', $legacyTrf) }}" class="text-primary hover:underline font-semibold text-xs">Detail &rarr;</a>
                                 </td>
                             </tr>
                             @endforeach
@@ -733,11 +715,11 @@
                             </x-badge>
                         </div>
                         <p class="text-[11px] text-emerald-800 leading-relaxed">
-                            Produk jadi telah dikirim ke fulfillment hub via dokumen <a href="{{ route('rt.show', $batch->transferKirim) }}" class="font-mono font-bold underline hover:text-emerald-950">{{ $batch->transferKirim->no_transaksi }}</a>.
+                            Produk jadi telah dikirim ke fulfillment hub via dokumen <a href="{{ route('transfers.show', $batch->transferKirim) }}" class="font-mono font-bold underline hover:text-emerald-950">{{ $batch->transferKirim->no_transaksi }}</a>.
                         </p>
                         <div class="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between">
                             <span class="text-[10px] text-emerald-700 font-mono">Tujuan: {{ $batch->gudangTujuan?->nama ?? 'Fulfillment' }}</span>
-                            <a href="{{ route('rt.show', $batch->transferKirim) }}" class="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1">
+                            <a href="{{ route('transfers.show', $batch->transferKirim) }}" class="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1">
                                 Dokumen Transfer &rarr;
                             </a>
                         </div>

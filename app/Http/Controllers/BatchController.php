@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\Produk;
-use App\Models\RequestTransfer;
 use App\Models\Stok;
+use App\Models\Transfer;
 use App\Services\StokService;
+use App\Services\TransferService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -202,8 +203,7 @@ class BatchController extends Controller
             'stockRequests.gudangTujuan',
             'modernTransfers.gudangAsal',
             'modernTransfers.gudangTujuan',
-            'transfers.gudangAsal',
-            'transfers.gudangTujuan',
+            'transfers:id,referensi_batch_id,jenis,status',
         ]);
 
         $bahanIds = $batch->alokasi->pluck('bahan_id')->unique()->filter()->values();
@@ -283,6 +283,7 @@ class BatchController extends Controller
         }
 
         $rekapBahan = $batch->rekapBahan();
+        $showProgresPemenuhan = $this->shouldShowProgresPemenuhan($batch, $rekapBahan, $hasDeficitFisik);
 
         return view('batches.show', compact(
             'batch',
@@ -290,7 +291,8 @@ class BatchController extends Controller
             'hasDeficitFisik',
             'hasDeficitRencana',
             'gudangPusat',
-            'rekapBahan'
+            'rekapBahan',
+            'showProgresPemenuhan'
         ));
     }
 
@@ -506,66 +508,101 @@ class BatchController extends Controller
         return back()->with('success', 'Stock opname batch dicatat.');
     }
 
-    /** Ajukan Kirim Produk Jadi ke Fulfillment (buat dokumen Request & Transfer). */
-    public function kirim(BatchProduksi $batch)
+    /** Ajukan Kirim Produk Jadi ke Fulfillment (buat dokumen Transfer modern). */
+    public function kirim(BatchProduksi $batch, TransferService $transferService)
     {
         $this->authorize('rt.create');
         abort_unless($batch->status === 'selesai', 422, 'Batch harus Selesai untuk dikirim.');
         abort_unless((float) $batch->qty_baik > 0, 422, 'Tidak ada qty baik untuk dikirim.');
 
-        $existing = RequestTransfer::where('referensi_batch_id', $batch->id)
+        $existing = Transfer::where('referensi_batch_id', $batch->id)
             ->where('jenis', 'kirim_produk_jadi')
             ->where('status', '!=', 'dibatalkan')
             ->first();
 
         if ($existing) {
-            return redirect()->route('rt.show', $existing)
+            return redirect()->route('transfers.show', $existing)
                 ->with('info', "Dokumen transfer untuk batch {$batch->no_batch} sudah dibuat ({$existing->no_transaksi}).");
         }
 
-        $rt = DB::transaction(function () use ($batch) {
-            $year = now()->year;
-            $no = sprintf('TR-%d-%04d', $year, RequestTransfer::whereYear('created_at', $year)->count() + 1);
-            $rt = RequestTransfer::create([
-                'no_transaksi' => $no,
+        $gudangTujuanId = $batch->gudang_tujuan_rencana_id
+            ?: Gudang::where('tipe', 'fulfillment')->where('is_pusat', true)->value('id')
+            ?: Gudang::where('tipe', 'fulfillment')->value('id');
+        abort_unless($gudangTujuanId, 422, 'Gudang tujuan fulfillment belum tersedia.');
+
+        $outputs = $batch->outputs()->where('qty_baik', '>', 0)->get();
+        $items = $outputs->isNotEmpty()
+            ? $outputs->map(fn ($out) => [
+                'produk_id' => $out->produk_id,
+                'qty_dikirim' => (float) $out->qty_baik,
+            ])->all()
+            : [[
+                'produk_id' => $batch->produk_id,
+                'qty_dikirim' => (float) $batch->qty_baik,
+            ]];
+
+        $transfer = DB::transaction(function () use ($batch, $gudangTujuanId, $items, $transferService) {
+            $transfer = $transferService->create([
                 'jenis' => 'kirim_produk_jadi',
                 'gudang_asal_id' => $batch->gudang_operasional_id,
-                'gudang_tujuan_id' => $batch->gudang_tujuan_rencana_id,
+                'gudang_tujuan_id' => $gudangTujuanId,
                 'referensi_batch_id' => $batch->id,
-                'status' => 'draft',
                 'catatan' => "Kirim hasil batch {$batch->no_batch}",
-                'created_by' => auth()->id(),
-            ]);
-
-            $outputs = $batch->outputs()->where('qty_baik', '>', 0)->get();
-            if ($outputs->isNotEmpty()) {
-                foreach ($outputs as $out) {
-                    $rt->items()->create([
-                        'produk_id' => $out->produk_id,
-                        'qty_diminta' => $out->qty_baik,
-                    ]);
-                }
-            } else {
-                $rt->items()->create([
-                    'produk_id' => $batch->produk_id,
-                    'qty_diminta' => $batch->qty_baik,
-                ]);
-            }
+                'items' => $items,
+            ], auth()->user());
 
             $batch->recordAudit(
                 event: 'kirim',
-                actionTitle: "Pengajuan Pengiriman Produk Jadi Batch {$batch->no_batch} ke Fulfillment ({$rt->no_transaksi})",
+                actionTitle: "Pengajuan Pengiriman Produk Jadi Batch {$batch->no_batch} ke Fulfillment ({$transfer->no_transaksi})",
                 metadata: [
-                    'rt_id' => $rt->id,
-                    'no_transaksi' => $rt->no_transaksi,
+                    'transfer_id' => $transfer->id,
+                    'no_transaksi' => $transfer->no_transaksi,
                     'qty_dikirim' => (float) $batch->qty_baik,
                 ]
             );
 
-            return $rt;
+            return $transfer;
         });
 
-        return redirect()->route('rt.show', $rt)->with('success', "Dokumen kirim {$rt->no_transaksi} dibuat.");
+        return redirect()->route('transfers.show', $transfer)->with('success', "Dokumen kirim {$transfer->no_transaksi} dibuat.");
+    }
+
+    /**
+     * Tentukan visibilitas card "Progres Pemenuhan Bahan Baku":
+     * sembunyikan saat stok operasional cukup (Siap Rilis), seluruh rekap sudah lengkap 100%,
+     * atau batch tidak lagi rencana — kecuali masih ada Request/Transfer bahan yang belum selesai.
+     */
+    private function shouldShowProgresPemenuhan(BatchProduksi $batch, array $rekapBahan, bool $hasDeficitFisik): bool
+    {
+        $rekap = collect($rekapBahan);
+        if ($rekap->isEmpty()) {
+            return false;
+        }
+
+        $hasActiveBahanProcess = $batch->stockRequests->contains(
+            fn ($sr) => $sr->jenis === 'request_bahan'
+                && ! in_array($sr->status, ['selesai', 'ditolak', 'dibatalkan'], true)
+        ) || $batch->modernTransfers->contains(
+            fn ($trf) => $trf->jenis === 'pemenuhan_request_bahan'
+                && in_array($trf->status, ['draft', 'dikirim'], true)
+        ) || $batch->transfers->contains(
+            fn ($lt) => in_array($lt->jenis, ['req_bahan', 'pemenuhan_request_bahan'], true)
+                && ! in_array($lt->status, ['selesai', 'ditolak', 'dibatalkan'], true)
+        );
+
+        if ($hasActiveBahanProcess) {
+            return true;
+        }
+
+        if ($batch->status !== 'rencana' || ! $hasDeficitFisik) {
+            return false;
+        }
+
+        $allFulfilled = $rekap->every(
+            fn ($rb) => ((float) ($rb['kebutuhan'] ?? 0) - (float) ($rb['diterima'] ?? 0)) <= 0.0001
+        );
+
+        return ! $allFulfilled;
     }
 
     private function nextNo(): string

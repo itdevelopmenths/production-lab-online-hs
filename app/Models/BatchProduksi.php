@@ -94,7 +94,7 @@ class BatchProduksi extends Model
 
     public function transferKirim(): HasOne
     {
-        return $this->hasOne(RequestTransfer::class, 'referensi_batch_id')
+        return $this->hasOne(Transfer::class, 'referensi_batch_id')
             ->where('jenis', 'kirim_produk_jadi')
             ->where('status', '!=', 'dibatalkan');
     }

@@ -23,7 +23,8 @@ class AuthorizationTest extends TestCase
         $this->get(route('dashboard'))->assertRedirect(route('login'));
         $this->get(route('purchasing.index'))->assertRedirect(route('login'));
         $this->get(route('batches.index'))->assertRedirect(route('login'));
-        $this->get(route('rt.index'))->assertRedirect(route('login'));
+        $this->get(route('requests.index'))->assertRedirect(route('login'));
+        $this->get(route('transfers.index'))->assertRedirect(route('login'));
         $this->get(route('analisa.index'))->assertRedirect(route('login'));
         $this->get(route('stok.index'))->assertRedirect(route('login'));
         $this->get(route('users.index'))->assertRedirect(route('login'));
@@ -38,7 +39,8 @@ class AuthorizationTest extends TestCase
         $this->get(route('dashboard'))->assertOk();
         $this->get(route('purchasing.index'))->assertOk();
         $this->get(route('batches.index'))->assertOk();
-        $this->get(route('rt.index'))->assertOk();
+        $this->get(route('requests.index'))->assertOk();
+        $this->get(route('transfers.index'))->assertOk();
         $this->get(route('analisa.index'))->assertOk();
         $this->get(route('stok.index'))->assertOk();
         $this->get(route('reports.index'))->assertOk();
@@ -79,7 +81,8 @@ class AuthorizationTest extends TestCase
 
         // Allowed menus
         $this->get(route('dashboard'))->assertOk();
-        $this->get(route('rt.index'))->assertOk();
+        $this->get(route('requests.index'))->assertOk();
+        $this->get(route('transfers.index'))->assertOk();
         $this->get(route('stok.index'))->assertOk();
         $this->get(route('purchasing.index'))->assertOk(); // to receive incoming goods
 
@@ -100,7 +103,8 @@ class AuthorizationTest extends TestCase
         $this->get(route('dashboard'))->assertOk();
         $this->get(route('batches.index'))->assertOk();
         $this->get(route('batches.create'))->assertOk();
-        $this->get(route('rt.index'))->assertOk();
+        $this->get(route('requests.index'))->assertOk();
+        $this->get(route('transfers.index'))->assertOk();
         $this->get(route('stok.index'))->assertOk();
 
         // Forbidden menus & actions
@@ -118,7 +122,8 @@ class AuthorizationTest extends TestCase
         // Allowed menus
         $this->get(route('dashboard'))->assertOk();
         $this->get(route('analisa.index'))->assertOk();
-        $this->get(route('rt.index'))->assertOk();
+        $this->get(route('requests.index'))->assertOk();
+        $this->get(route('transfers.index'))->assertOk();
         $this->get(route('stok.index'))->assertOk();
 
         // Forbidden menus & actions

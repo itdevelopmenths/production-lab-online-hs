@@ -76,7 +76,6 @@ class OperationalAuditController extends Controller
                     'produksi' => route('batches.show', $a->auditable_id),
                     'request' => route('requests.show', $a->auditable_id),
                     'transfer' => route('transfers.show', $a->auditable_id),
-                    'request_transfer' => route('rt.show', $a->auditable_id),
                     default => null,
                 };
 

@@ -570,8 +570,6 @@ class StokController extends Controller
                         $url = route('transfers.show', $id);
                     } elseif (\Illuminate\Support\Facades\Route::has('transfers.show') && \Illuminate\Support\Facades\Schema::hasTable('transfers') && DB::table('transfers')->where('id', $id)->exists()) {
                         $url = route('transfers.show', $id);
-                    } elseif (\Illuminate\Support\Facades\Route::has('rt.show')) {
-                        $url = route('rt.show', $id);
                     }
                 } elseif ($type === 'batch_produksi' && \Illuminate\Support\Facades\Route::has('batches.show')) {
                     $url = route('batches.show', $id);

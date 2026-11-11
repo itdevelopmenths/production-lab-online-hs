@@ -6,8 +6,9 @@ use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\PurchaseOrder;
-use App\Models\RequestTransfer;
+use App\Models\StockRequest;
 use App\Models\Supplier;
+use App\Models\Transfer;
 use App\Models\Uom;
 use App\Models\User;
 use App\Services\StokService;
@@ -217,42 +218,63 @@ class ViewRenderingSafetyTest extends TestCase
         $response->assertSee('B-TEST-001');
     }
 
-    public function test_request_transfer_views_render_safely(): void
+    public function test_request_and_transfer_views_render_safely(): void
     {
         $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
         $this->actingAs($operasional);
 
-        // Index
-        $this->get(route('rt.index'))->assertOk();
-
-        // Create
-        $this->get(route('rt.create'))
-            ->assertOk()
-            ->assertDontSee('max-w-5xl');
-
-        // Show: Request Transfer with items and warehouses
         $gudangAsal = Gudang::where('kode', 'GD-PUSAT')->firstOrFail();
         $gudangTujuan = Gudang::where('kode', 'GD-OPS')->firstOrFail();
         $bahan = Produk::bahan()->firstOrFail();
 
-        $rt = RequestTransfer::create([
-            'no_transaksi' => 'TR-TEST-001',
-            'jenis' => 'req_bahan',
-            'gudang_asal_id' => $gudangAsal->id,
-            'gudang_tujuan_id' => $gudangTujuan->id,
-            'status' => 'diproses',
-            'catatan' => 'Uji rendering detail',
+        // Requests: Index, Create, Show
+        $this->get(route('requests.index'))->assertOk();
+        $this->get(route('requests.create'))->assertOk();
+
+        $stockRequest = StockRequest::create([
+            'no_request' => 'REQ-TEST-001',
+            'jenis' => 'request_bahan',
+            'gudang_asal_id' => $gudangTujuan->id,
+            'gudang_tujuan_id' => $gudangAsal->id,
+            'status' => 'diajukan',
+            'catatan' => 'Uji rendering detail request',
             'created_by' => $operasional->id,
         ]);
-        $rt->items()->create([
+        $stockRequest->items()->create([
             'produk_id' => $bahan->id,
             'qty_diminta' => 100,
-            'qty_dikirim' => 100,
         ]);
 
-        $response = $this->get(route('rt.show', $rt));
-        $response->assertOk();
-        $response->assertSee('TR-TEST-001');
+        $this->get(route('requests.show', $stockRequest))
+            ->assertOk()
+            ->assertSee('REQ-TEST-001');
+
+        // Transfers: Index, Create, Show, Surat Jalan
+        $this->get(route('transfers.index'))->assertOk();
+        $this->get(route('transfers.create'))->assertOk();
+
+        $transfer = Transfer::create([
+            'no_transaksi' => 'TRF-TEST-001',
+            'jenis' => 'pemenuhan_request_bahan',
+            'gudang_asal_id' => $gudangAsal->id,
+            'gudang_tujuan_id' => $gudangTujuan->id,
+            'request_id' => $stockRequest->id,
+            'status' => 'dikirim',
+            'catatan' => 'Uji rendering detail transfer',
+            'created_by' => $operasional->id,
+        ]);
+        $transfer->items()->create([
+            'produk_id' => $bahan->id,
+            'qty_dikirim' => 100,
+            'qty_rusak' => 0,
+        ]);
+
+        $this->get(route('transfers.show', $transfer))
+            ->assertOk()
+            ->assertSee('TRF-TEST-001');
+        $this->get(route('transfers.surat-jalan', $transfer))
+            ->assertOk()
+            ->assertSee('TRF-TEST-001');
     }
 
     public function test_stok_and_ledger_views_render_safely(): void
