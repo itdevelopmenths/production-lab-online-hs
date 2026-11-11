@@ -656,5 +656,94 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->assertGreaterThan(0, $sp1->jumlah_transaksi);
         $this->assertGreaterThan(0, $sp2->jumlah_transaksi);
     }
+
+    public function test_completed_po_keeps_hr_duration_instead_of_selesai_in_sla_column(): void
+    {
+        // 1. PO selesai via 9-stage (2.5 hari = 3600 menit)
+        $poStaged = $this->createSamplePo('tempo');
+        $poStaged->stage_aktif = PoStage::STAGE_9;
+        $poStaged->save();
+        $poStaged->stages()->create([
+            'stage' => PoStage::STAGE_9,
+            'urutan' => 9,
+            'putaran' => 1,
+            'status' => 'berjalan',
+            'waktu_mulai' => now()->subMinutes(3600),
+        ]);
+
+        $bardat1 = $poStaged->barangDatang()->create([
+            'tanggal_terima' => now()->toDateString(),
+            'kondisi' => 'baik',
+            'status_posting' => 'belum',
+            'created_by' => $this->gudangUser->id,
+        ]);
+        $bardat1->items()->create(['po_item_id' => $poStaged->items[0]->id, 'qty_fisik' => 100]);
+        $bardat1->items()->create(['po_item_id' => $poStaged->items[1]->id, 'qty_fisik' => 50]);
+
+        $this->stageService->completeStage9($poStaged, $this->gudangUser, now());
+
+        // 2. PO selesai lebih lama (5 hari = 7200 menit) pada supplier yang sama -> melewati Avg supplier
+        $poLate = $this->createSamplePo('tempo');
+        $poLate->stage_aktif = PoStage::STAGE_9;
+        $poLate->save();
+        $poLate->stages()->create([
+            'stage' => PoStage::STAGE_9,
+            'urutan' => 9,
+            'putaran' => 1,
+            'status' => 'berjalan',
+            'waktu_mulai' => now()->subMinutes(7200),
+        ]);
+
+        $bardat2 = $poLate->barangDatang()->create([
+            'tanggal_terima' => now()->toDateString(),
+            'kondisi' => 'baik',
+            'status_posting' => 'belum',
+            'created_by' => $this->gudangUser->id,
+        ]);
+        $bardat2->items()->create(['po_item_id' => $poLate->items[0]->id, 'qty_fisik' => 100]);
+        $bardat2->items()->create(['po_item_id' => $poLate->items[1]->id, 'qty_fisik' => 50]);
+
+        $this->stageService->completeStage9($poLate, $this->gudangUser, now());
+
+        // 3. PO legacy / langsung selesai tanpa PoLeadTime maupun stage durasi (selisih tanggal PO ke tanggal tiba = 3 hari)
+        $poLegacy = PurchaseOrder::create([
+            'no_po' => 'PO-LEGACY-' . uniqid(),
+            'no_invoice' => 'INV-LEGACY-' . uniqid(),
+            'supplier_id' => $this->supplier->id,
+            'gudang_id' => $this->gudang->id,
+            'tanggal' => now()->subDays(3)->toDateString(),
+            'skema_bayar' => 'cash',
+            'status' => 'selesai',
+            'subtotal_produk' => 100000,
+            'grand_total' => 100000,
+            'created_by' => $this->purchasing->id,
+        ]);
+        $poLegacy->barangDatang()->create([
+            'tanggal_terima' => now()->toDateString(),
+            'kondisi' => 'baik',
+            'created_by' => $this->gudangUser->id,
+        ]);
+
+        $this->actingAs($this->manager);
+        $res = $this->getJson(route('purchasing.data'));
+        $res->assertOk();
+
+        $rows = collect($res->json('data'));
+        $rowStaged = $rows->firstWhere('no_po', $poStaged->no_po);
+        $rowLate = $rows->firstWhere('no_po', $poLate->no_po);
+        $rowLegacy = $rows->firstWhere('no_po', $poLegacy->no_po);
+
+        $this->assertNotNull($rowStaged);
+        $this->assertNotSame('Selesai', $rowStaged['sla']);
+        $this->assertStringContainsString('2.5 hr', $rowStaged['sla']);
+
+        $this->assertNotNull($rowLate);
+        $this->assertNotSame('Selesai', $rowLate['sla']);
+        $this->assertStringContainsString('⚠️ 5 hr', $rowLate['sla']);
+
+        $this->assertNotNull($rowLegacy);
+        $this->assertNotSame('Selesai', $rowLegacy['sla']);
+        $this->assertStringContainsString('3 hr', $rowLegacy['sla']);
+    }
 }
 

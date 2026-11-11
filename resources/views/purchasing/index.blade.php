@@ -595,7 +595,7 @@
                     className: 'font-mono text-xs',
                     render: function(data, type, row) {
                         if (!data || data === '—') return '—';
-                        if (row.stage_badge_state === 'terlambat') {
+                        if (row.stage_badge_state === 'terlambat' || String(data).includes('⚠️')) {
                             return `<span class="text-rose-600 font-bold">${data}</span>`;
                         }
                         return `<span class="text-foreground">${data}</span>`;

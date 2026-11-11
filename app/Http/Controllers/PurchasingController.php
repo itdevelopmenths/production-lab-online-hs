@@ -71,7 +71,16 @@ class PurchasingController extends Controller
         $query = PurchaseOrder::query()
             ->select('purchase_orders.*')
             ->leftJoin('gudang', 'purchase_orders.gudang_id', '=', 'gudang.id')
-            ->addSelect('gudang.nama as gudang_nama')
+            ->leftJoin('po_lead_time', 'purchase_orders.id', '=', 'po_lead_time.po_id')
+            ->leftJoin('supplier_lt_summary', 'purchase_orders.supplier_id', '=', 'supplier_lt_summary.supplier_id')
+            ->addSelect([
+                'gudang.nama as gudang_nama',
+                'po_lead_time.total_lt_menit as completed_lt_menit',
+                'po_lead_time.total_lt_hari as completed_lt_hari',
+                'supplier_lt_summary.jumlah_transaksi as supplier_lt_count',
+                'supplier_lt_summary.total_lt_menit as supplier_lt_total_menit',
+                'supplier_lt_summary.average_lt_hari as supplier_lt_avg_hari',
+            ])
             ->with([
                 'supplier:id,nama,kategori',
                 'supplier.stageSummaries',
@@ -199,29 +208,7 @@ class PurchasingController extends Controller
             ->addColumn('has_pending_revisi', function ($po) {
                 return $po->revisis->where('status', 'menunggu')->isNotEmpty();
             })
-            ->addColumn('sla', function ($po) {
-                if ($po->status === 'selesai') {
-                    return 'Selesai';
-                }
-                if (! $po->stage_aktif) {
-                    return '—';
-                }
-                $currentStage = $po->stages->where('stage', $po->stage_aktif)->sortByDesc('putaran')->first();
-                if (! $currentStage || ! $currentStage->waktu_mulai) {
-                    return '—';
-                }
-                $elapsedMinutes = $currentStage->waktu_mulai->diffInMinutes(now());
-                $elapsedDays = SupplierLeadTimeService::minutesToDays($elapsedMinutes);
-                $benchmark = $po->supplier?->stageSummaries?->firstWhere('stage', $po->stage_aktif);
-                if ($benchmark && $benchmark->jumlah_transaksi > 0 && (float) $benchmark->average_hari > 0) {
-                    $avgMinutes = $benchmark->total_menit / $benchmark->jumlah_transaksi;
-                    $isLate = ($elapsedMinutes > $avgMinutes);
-
-                    return ($isLate ? '⚠️ ' : '') . $elapsedDays . ' hr (Avg: ' . $benchmark->average_hari . ' hr)';
-                }
-
-                return $elapsedDays . ' hr';
-            })
+            ->addColumn('sla', fn ($po) => $this->resolvePoSlaLabel($po))
             ->addColumn('status_pembayaran', fn ($po) => $canSeePrice ? ucwords(str_replace('_', ' ', $po->status_pembayaran ?? 'belum_lunas')) : '—')
             ->addColumn('total_nilai', fn ($po) => $canSeePrice ? number_format((float) $po->totalNilai(), 0, ',', '.') : '—')
             ->addColumn('sisa', fn ($po) => $canSeePrice ? number_format((float) $po->sisaTagihan(), 0, ',', '.') : '—')
@@ -982,6 +969,84 @@ class PurchasingController extends Controller
             'supplier_produk_stages' => $supplierProdukStages,
             'transaksi' => $transaksi,
         ]);
+    }
+
+    private function resolvePoSlaLabel(PurchaseOrder $po): string
+    {
+        if ($po->status === 'selesai') {
+            return $this->resolveCompletedPoSlaLabel($po);
+        }
+
+        if (! $po->stage_aktif) {
+            return '—';
+        }
+
+        $currentStage = $po->stages->where('stage', $po->stage_aktif)->sortByDesc('putaran')->first();
+        if (! $currentStage || ! $currentStage->waktu_mulai) {
+            return '—';
+        }
+
+        $elapsedMinutes = (float) $currentStage->waktu_mulai->diffInMinutes(now());
+        $elapsedDays = SupplierLeadTimeService::minutesToDays($elapsedMinutes);
+        $benchmark = $po->supplier?->stageSummaries?->firstWhere('stage', $po->stage_aktif);
+
+        $avgHari = ($benchmark && $benchmark->jumlah_transaksi > 0) ? (float) $benchmark->average_hari : null;
+        $avgMinutes = ($avgHari && $avgHari > 0) ? ($benchmark->total_menit / $benchmark->jumlah_transaksi) : null;
+
+        return $this->formatSlaDuration($elapsedMinutes, $elapsedDays, $avgHari, $avgMinutes);
+    }
+
+    private function resolveCompletedPoSlaLabel(PurchaseOrder $po): string
+    {
+        if ($po->completed_lt_menit !== null || $po->completed_lt_hari !== null) {
+            $totalMinutes = (float) ($po->completed_lt_menit ?? ((float) $po->completed_lt_hari * 1440));
+            $totalDays = $po->completed_lt_hari !== null
+                ? (float) $po->completed_lt_hari
+                : SupplierLeadTimeService::minutesToDays($totalMinutes);
+        } elseif ($po->stages->isNotEmpty()) {
+            $stageMinutes = (int) $po->stages->sum('durasi_menit');
+            if ($stageMinutes > 0) {
+                $totalMinutes = (float) $stageMinutes;
+            } else {
+                $firstStart = $po->stages->whereNotNull('waktu_mulai')->sortBy('waktu_mulai')->first()?->waktu_mulai;
+                $lastEnd = $po->stages->whereNotNull('waktu_selesai')->sortByDesc('waktu_selesai')->first()?->waktu_selesai
+                    ?? $po->updated_at;
+                $totalMinutes = ($firstStart && $lastEnd && $lastEnd->greaterThanOrEqualTo($firstStart))
+                    ? (float) $firstStart->diffInMinutes($lastEnd)
+                    : 0.0;
+            }
+            $totalDays = SupplierLeadTimeService::minutesToDays($totalMinutes);
+        } else {
+            $lastBardat = $po->barangDatang->sortByDesc('tanggal_terima')->first();
+            $startAt = $po->tanggal?->copy()->startOfDay() ?? $po->created_at;
+            $endAt = $lastBardat?->tanggal_terima?->copy()->startOfDay() ?? $po->updated_at;
+
+            $totalMinutes = ($startAt && $endAt && $endAt->greaterThanOrEqualTo($startAt))
+                ? (float) $startAt->diffInMinutes($endAt)
+                : 0.0;
+            $totalDays = SupplierLeadTimeService::minutesToDays($totalMinutes);
+        }
+
+        $supplierCount = (int) ($po->supplier_lt_count ?? 0);
+        $avgHari = ($supplierCount > 0 && (float) ($po->supplier_lt_avg_hari ?? 0) > 0)
+            ? (float) $po->supplier_lt_avg_hari
+            : null;
+        $avgMinutes = $avgHari !== null
+            ? ((float) ($po->supplier_lt_total_menit ?? ($avgHari * 1440 * $supplierCount))) / $supplierCount
+            : null;
+
+        return $this->formatSlaDuration($totalMinutes, $totalDays, $avgHari, $avgMinutes);
+    }
+
+    private function formatSlaDuration(float $elapsedMinutes, float $elapsedDays, ?float $avgHari = null, ?float $avgMinutes = null): string
+    {
+        if ($avgHari !== null && $avgHari > 0 && $avgMinutes !== null && $avgMinutes > 0) {
+            $isLate = $elapsedMinutes > $avgMinutes;
+
+            return ($isLate ? '⚠️ ' : '') . $elapsedDays . ' hr (Avg: ' . $avgHari . ' hr)';
+        }
+
+        return $elapsedDays . ' hr';
     }
 
     private function ensureStatus(PurchaseOrder $po, array $allowed): void
