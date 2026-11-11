@@ -1,17 +1,21 @@
 <x-app-layout title="Buat Permintaan Barang" subtitle="Inisiasi pengajuan permintaan stok antar divisi/gudang">
     @php
         $productsById = $produk->keyBy('id');
-        $rawItems = old('items', !empty($prefilledItems) ? $prefilledItems : [
+        $oldItems = old('items');
+        $isFromBatchPrefill = $oldItems === null && !empty($prefilledItems);
+        $rawItems = $oldItems ?? (!empty($prefilledItems) ? $prefilledItems : [
             ['produk_id' => '', 'qty_diminta' => 1, 'keterangan' => '']
         ]);
-        $initialItems = collect($rawItems)->map(function($it) use ($productsById) {
+        $initialItems = collect($rawItems)->values()->map(function($it, $idx) use ($productsById, $isFromBatchPrefill) {
             $prodId = $it['produk_id'] ?? '';
             $prod = !empty($prodId) ? $productsById->get($prodId) : null;
             return [
+                '_uid' => $idx + 1,
                 'produk_id' => $prodId,
                 'qty_diminta' => $it['qty_diminta'] ?? 1,
                 'keterangan' => $it['keterangan'] ?? '',
                 'satuan' => $prod?->satuan ?? '-',
+                'fromBatch' => $isFromBatchPrefill,
                 'selectedItem' => $prod ? [
                     'id' => $prod->id,
                     'sku' => $prod->sku,
@@ -25,36 +29,98 @@
 
     <script>
         function requestCreateData() {
+            const initialRows = @js($initialItems);
             return {
                 jenis: @js(old('jenis', $allowedJenis[0] ?? 'request_bahan')),
-                batchId: @js(old('batch_id', $batch?->id ?? '')),
+                batchId: @js((string) old('batch_id', $batch?->id ?? '')),
+                batchPrefills: @js($batchPrefills ?? []),
+                batchNotice: @js($batch ? ('Menampilkan alokasi bahan dari batch ' . $batch->no_batch . '.') : ''),
                 gudangPemohonId: @js((string) old('gudang_pemohon_id', $defaultGudangPemohonId ?? '')),
                 gudangTujuanId: @js((string) old('gudang_tujuan_id', $defaultGudangTujuanId ?? '')),
-                items: @js($initialItems),
+                nextUid: initialRows.length + 1,
+                items: initialRows,
                 activeRow: null,
+                makeEmptyRow() {
+                    return {
+                        _uid: ++this.nextUid,
+                        produk_id: '',
+                        qty_diminta: 1,
+                        keterangan: '',
+                        satuan: '-',
+                        fromBatch: false,
+                        selectedItem: null
+                    };
+                },
                 onJenisChange() {
-                    const allowedTipe = this.jenis === 'request_bahan' ? ['bahan', 'kemas'] : ['produk_jadi'];
+                    if (this.jenis !== 'request_bahan') {
+                        this.batchId = '';
+                        this.batchNotice = '';
+                    }
+                    const allowedTipe = this.jenis === 'request_bahan'
+                        ? ['bahan', 'kemas', 'bahan_baku', 'kemasan']
+                        : ['produk_jadi'];
                     this.items.forEach(item => {
                         if (item.selectedItem && !allowedTipe.includes(item.selectedItem.tipe)) {
                             item.produk_id = '';
                             item.selectedItem = null;
                             item.satuan = '-';
+                            item.fromBatch = false;
                         }
                     });
                 },
+                onBatchChange() {
+                    this.activeRow = null;
+                    this.batchNotice = '';
+
+                    if (!this.batchId) {
+                        const allFromBatch = this.items.length > 0 && this.items.every(it => it.fromBatch === true);
+                        if (allFromBatch) {
+                            this.items = [this.makeEmptyRow()];
+                        }
+                        return;
+                    }
+
+                    const batchData = this.batchPrefills[String(this.batchId)];
+                    if (!batchData) {
+                        return;
+                    }
+
+                    this.jenis = 'request_bahan';
+
+                    if (batchData.gudang_pemohon_id) {
+                        this.gudangPemohonId = String(batchData.gudang_pemohon_id);
+                    }
+                    if (!this.gudangTujuanId && batchData.gudang_tujuan_id) {
+                        this.gudangTujuanId = String(batchData.gudang_tujuan_id);
+                    }
+
+                    if (Array.isArray(batchData.items) && batchData.items.length > 0) {
+                        this.items = batchData.items.map(it => ({
+                            _uid: ++this.nextUid,
+                            produk_id: it.produk_id,
+                            qty_diminta: it.qty_diminta,
+                            keterangan: it.keterangan || ('Alokasi batch ' + batchData.no_batch),
+                            satuan: it.satuan || '-',
+                            fromBatch: true,
+                            selectedItem: it.selectedItem ? { ...it.selectedItem } : null
+                        }));
+                        this.batchNotice = `Auto-fill ${batchData.items.length} bahan baku dari batch ${batchData.no_batch}.`;
+                    } else {
+                        const allFromBatch = this.items.length > 0 && this.items.every(it => it.fromBatch === true);
+                        if (allFromBatch || this.items.length === 0) {
+                            this.items = [this.makeEmptyRow()];
+                        }
+                        this.batchNotice = `Batch ${batchData.no_batch} belum memiliki daftar alokasi bahan BOM.`;
+                    }
+                },
                 addItem() {
-                    this.items.push({
-                        produk_id: '',
-                        qty_diminta: 1,
-                        keterangan: '',
-                        satuan: '-',
-                        selectedItem: null
-                    });
+                    this.items.push(this.makeEmptyRow());
                 },
                 removeItem(index) {
                     if (this.items.length > 1) {
+                        const removed = this.items[index];
                         this.items.splice(index, 1);
-                        if (this.activeRow === index) {
+                        if (removed && this.activeRow === removed._uid) {
                             this.activeRow = null;
                         }
                     }
@@ -90,10 +156,12 @@
                         item.produk_id = product.id;
                         item.satuan = product.satuan || '-';
                         item.selectedItem = product;
+                        item.fromBatch = false;
                     } else {
                         item.produk_id = '';
                         item.satuan = '-';
                         item.selectedItem = null;
+                        item.fromBatch = false;
                     }
                 }
             };
@@ -158,10 +226,10 @@
                 </div>
 
                 <div x-show="jenis === 'request_bahan'" class="mt-4 p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
-                    <label class="block text-xs font-semibold text-amber-900">
+                    <label for="request-batch-id" class="block text-xs font-semibold text-amber-900">
                         Pilih Batch Produksi (Opsional):
                     </label>
-                    <select name="batch_id" x-model="batchId" class="w-full h-9 rounded-lg border border-border bg-card px-3 text-xs focus:ring-2 focus:ring-primary/20">
+                    <select id="request-batch-id" name="batch_id" x-model="batchId" @change="onBatchChange()" class="w-full h-9 rounded-lg border border-border bg-card px-3 text-xs focus:ring-2 focus:ring-primary/20">
                         <option value="">-- Tanpa Batch (Permintaan Bebas) --</option>
                         @foreach($activeBatches as $ab)
                             <option value="{{ $ab->id }}" @selected(old('batch_id', $batch?->id) == $ab->id)>
@@ -169,7 +237,8 @@
                             </option>
                         @endforeach
                     </select>
-                    <p class="text-[11px] text-amber-700">Hubungkan permintaan bahan baku ini ke rencana/rilis batch produksi tertentu.</p>
+                    <p class="text-[11px] text-amber-700">Memilih batch produksi akan mengisi otomatis daftar bahan baku sesuai kebutuhan alokasi batch.</p>
+                    <p x-show="batchNotice" x-cloak class="text-[11px] font-semibold text-emerald-700" x-text="batchNotice"></p>
                 </div>
 
                 <div class="mt-5">
@@ -205,19 +274,19 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border">
-                            <template x-for="(item, index) in items" :key="index">
+                            <template x-for="(item, index) in items" :key="item._uid">
                                 <tr
                                     class="hover:bg-muted/30 transition"
-                                    :style="'position: relative; z-index: ' + (activeRow === index ? 200 : (100 - index))"
-                                    @hs-dropdown-opened.window="if ($event.detail === `items[${index}][produk_id]`) activeRow = index"
-                                    @hs-dropdown-closed.window="if ($event.detail === `items[${index}][produk_id]` && activeRow === index) activeRow = null"
+                                    :style="'position: relative; z-index: ' + (activeRow === item._uid ? 200 : (100 - index))"
+                                    @hs-dropdown-opened.window="if ($event.detail === `items[${item._uid}][produk_id]`) activeRow = item._uid"
+                                    @hs-dropdown-closed.window="if ($event.detail === `items[${item._uid}][produk_id]` && activeRow === item._uid) activeRow = null"
                                     @product-selected="onProductSelected(item, $event.detail, index)"
                                 >
                                     <td class="px-4 py-3 font-medium text-muted-foreground text-center" x-text="index + 1"></td>
-                                    <td class="px-4 py-3" :style="activeRow === index ? 'position: relative; z-index: 200;' : ''">
+                                    <td class="px-4 py-3" :style="activeRow === item._uid ? 'position: relative; z-index: 200;' : ''">
                                         <div
                                             x-data="productSearchSelect({
-                                                name: `items[${index}][produk_id]`,
+                                                name: `items[${item._uid}][produk_id]`,
                                                 selectedId: item.produk_id,
                                                 selectedItem: item.selectedItem,
                                                 filterTipe: () => (jenis === 'request_bahan' ? ['bahan', 'kemas'] : ['produk_jadi']),
@@ -228,18 +297,18 @@
                                             class="relative w-full"
                                             :class="open ? 'z-[9999]' : 'z-10'"
                                             style="position: relative;"
-                                            @click.outside="open = false; if (activeRow === index) activeRow = null"
-                                            @keydown.escape.window="open = false; if (activeRow === index) activeRow = null"
-                                            @hs-dropdown-opened.window="if ($event.detail && $event.detail !== `items[${index}][produk_id]`) open = false"
+                                            @click.outside="open = false; if (activeRow === item._uid) activeRow = null"
+                                            @keydown.escape.window="open = false; if (activeRow === item._uid) activeRow = null"
+                                            @hs-dropdown-opened.window="if ($event.detail && $event.detail !== `items[${item._uid}][produk_id]`) open = false"
                                         >
                                             <input type="hidden" :name="`items[${index}][produk_id]`" :value="selectedId" required>
 
                                             <div
-                                                @click="activeRow = index; toggle()"
+                                                @click="activeRow = item._uid; toggle()"
                                                 role="button"
                                                 tabindex="0"
-                                                @keydown.enter.prevent="activeRow = index; toggle()"
-                                                @keydown.space.prevent="activeRow = index; toggle()"
+                                                @keydown.enter.prevent="activeRow = item._uid; toggle()"
+                                                @keydown.space.prevent="activeRow = item._uid; toggle()"
                                                 class="w-full flex items-center justify-between text-left rounded-lg border border-input bg-card px-3 py-2 text-xs shadow-xs hover:border-foreground/30 focus:outline-none focus:ring-1 focus:ring-ring transition cursor-pointer select-none"
                                             >
                                                 <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">

@@ -283,4 +283,112 @@ class RequestAndTransferHttpTest extends TestCase
         $this->assertEquals(999, $decodedItems[0]['qty_dikirim']);
         $this->assertSame('Kirim full request', $decodedItems[0]['keterangan']);
     }
+
+    public function test_request_create_exposes_batch_material_prefills_and_uid_reactive_list(): void
+    {
+        $kemasan = Produk::create([
+            'nama' => 'Botol Kaca 50ml',
+            'sku' => 'KMS-50',
+            'tipe' => 'kemas',
+            'satuan' => 'Pcs',
+            'is_active' => true,
+        ]);
+
+        $batch = \App\Models\BatchProduksi::create([
+            'no_batch' => 'BATCH-AUTO-01',
+            'produk_id' => $this->produkJadi->id,
+            'qty_rencana' => 100,
+            'gudang_operasional_id' => $this->gudangLab->id,
+            'status' => 'rencana',
+            'tanggal' => now()->toDateString(),
+            'created_by' => $this->operasional->id,
+        ]);
+        $batch->alokasi()->create(['bahan_id' => $this->bahanBaku->id, 'qty_dialokasikan' => 50, 'status' => 'aktif']);
+        $batch->alokasi()->create(['bahan_id' => $kemasan->id, 'qty_dialokasikan' => 100, 'status' => 'aktif']);
+
+        // Buka /requests/create tanpa query batch_id (user akan memilih batch langsung di dropdown)
+        $response = $this->actingAs($this->operasional)->get(route('requests.create'));
+        $response->assertOk();
+
+        $html = $response->getContent();
+        $this->assertStringContainsString('@change="onBatchChange()"', $html);
+        $this->assertStringContainsString(':key="item._uid"', $html);
+        $this->assertDoesNotMatchRegularExpression('/<template\s+x-for="\(item,\s*index\)\s+in\s+items"\s*:key="index"/', $html);
+
+        $this->assertSame(
+            1,
+            preg_match("/batchPrefills:\s*(?:JSON\.parse\('([^']+)'\)|(\{.*?\})),\n/s", $html, $matches)
+        );
+        $rawJson = !empty($matches[1]) ? json_decode('"' . $matches[1] . '"') : $matches[2];
+        $batchPrefills = json_decode($rawJson, true);
+
+        $this->assertIsArray($batchPrefills);
+        $key = (string) $batch->id;
+        $this->assertArrayHasKey($key, $batchPrefills);
+        $this->assertSame('BATCH-AUTO-01', $batchPrefills[$key]['no_batch']);
+        $this->assertSame((string) $this->gudangLab->id, $batchPrefills[$key]['gudang_pemohon_id']);
+        $this->assertSame((string) $this->gudangPusat->id, $batchPrefills[$key]['gudang_tujuan_id']);
+
+        $items = collect($batchPrefills[$key]['items']);
+        $this->assertCount(2, $items);
+
+        $teh = $items->firstWhere('produk_id', $this->bahanBaku->id);
+        $this->assertNotNull($teh);
+        $this->assertEquals(50, $teh['qty_diminta']);
+        $this->assertSame('Kg', $teh['satuan']);
+        $this->assertSame('BB-TEH', $teh['selectedItem']['sku']);
+        $this->assertSame('Daun Teh Grade A', $teh['selectedItem']['nama']);
+
+        $btl = $items->firstWhere('produk_id', $kemasan->id);
+        $this->assertNotNull($btl);
+        $this->assertEquals(100, $btl['qty_diminta']);
+        $this->assertSame('KMS-50', $btl['selectedItem']['sku']);
+    }
+
+    public function test_request_create_with_batch_id_query_prefills_items_and_saves_request(): void
+    {
+        $batch = \App\Models\BatchProduksi::create([
+            'no_batch' => 'BATCH-QUERY-02',
+            'produk_id' => $this->produkJadi->id,
+            'qty_rencana' => 40,
+            'gudang_operasional_id' => $this->gudangLab->id,
+            'status' => 'release',
+            'tanggal' => now()->toDateString(),
+            'created_by' => $this->operasional->id,
+        ]);
+        $batch->alokasi()->create(['bahan_id' => $this->bahanBaku->id, 'qty_dialokasikan' => 25, 'status' => 'aktif']);
+
+        $response = $this->actingAs($this->operasional)->get(route('requests.create', ['batch_id' => $batch->id]));
+        $response->assertOk();
+        $html = $response->getContent();
+
+        $this->assertSame(1, preg_match("/const\s+initialRows\s*=\s*JSON\.parse\('([^']+)'\);/", $html, $matches));
+        $initialItems = json_decode(json_decode('"' . $matches[1] . '"'), true);
+        $this->assertCount(1, $initialItems);
+        $this->assertEquals($this->bahanBaku->id, $initialItems[0]['produk_id']);
+        $this->assertEquals(25, $initialItems[0]['qty_diminta']);
+        $this->assertSame('BB-TEH', $initialItems[0]['selectedItem']['sku']);
+        $this->assertTrue($initialItems[0]['fromBatch']);
+
+        $storeRes = $this->actingAs($this->operasional)->post(route('requests.store'), [
+            'jenis' => 'request_bahan',
+            'gudang_pemohon_id' => $this->gudangLab->id,
+            'gudang_tujuan_id' => $this->gudangPusat->id,
+            'batch_id' => $batch->id,
+            'action' => 'submit',
+            'items' => [
+                [
+                    'produk_id' => $this->bahanBaku->id,
+                    'qty_diminta' => 25,
+                    'keterangan' => 'Alokasi batch BATCH-QUERY-02',
+                ],
+            ],
+        ]);
+        $storeRes->assertSessionHasNoErrors();
+        $storeRes->assertRedirect();
+
+        $created = StockRequest::latest('id')->firstOrFail();
+        $this->assertSame($batch->id, $created->referensi_batch_id);
+        $this->assertEquals(25.0, (float) $created->items()->firstOrFail()->qty_diminta);
+    }
 }

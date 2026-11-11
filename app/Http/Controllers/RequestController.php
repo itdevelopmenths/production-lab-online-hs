@@ -146,7 +146,33 @@ class RequestController extends Controller
 
         $gudang = Gudang::active()->orderBy('nama')->get();
         $produk = Produk::active()->orderBy('nama')->get(['id', 'sku', 'nama', 'satuan', 'tipe']);
-        $activeBatches = BatchProduksi::whereIn('status', ['rencana', 'release'])->orderByDesc('id')->get(['id', 'no_batch', 'status']);
+        $activeBatches = BatchProduksi::with(['alokasi.bahan', 'outputs.produk'])
+            ->whereIn('status', ['rencana', 'release'])
+            ->orderByDesc('id')
+            ->get(['id', 'no_batch', 'status', 'gudang_operasional_id']);
+
+        $gudangPusat = Gudang::bahanBakuPusat()->first()
+            ?? Gudang::where('tipe', 'bahan_baku')->first()
+            ?? Gudang::where('kode', 'GD-PUSAT')->first();
+        $defaultBatchTujuanId = $gudangPusat?->id ? (string) $gudangPusat->id : '';
+
+        $productsById = $produk->keyBy('id');
+        $batchBahanById = $activeBatches->flatMap->alokasi->pluck('bahan')->filter()->keyBy('id');
+
+        $batchPrefills = [];
+        foreach ($activeBatches as $ab) {
+            $batchPrefills[(string) $ab->id] = [
+                'id' => $ab->id,
+                'no_batch' => $ab->no_batch,
+                'gudang_pemohon_id' => $ab->gudang_operasional_id ? (string) $ab->gudang_operasional_id : '',
+                'gudang_tujuan_id' => $defaultBatchTujuanId,
+                'items' => $this->hydratePrefillItems(
+                    $this->buildBatchPrefillItems($ab),
+                    $productsById,
+                    $batchBahanById
+                ),
+            ];
+        }
 
         $batch = null;
         $defaultGudangPemohonId = null;
@@ -154,41 +180,95 @@ class RequestController extends Controller
         $prefilledItems = [];
 
         if ($request->filled('batch_id')) {
-            $batch = BatchProduksi::with(['alokasi.bahan', 'gudangOperasional', 'outputs.produk'])->find($request->batch_id);
+            $batch = $activeBatches->firstWhere('id', (int) $request->batch_id)
+                ?? BatchProduksi::with(['alokasi.bahan', 'gudangOperasional', 'outputs.produk'])->find($request->batch_id);
             if ($batch) {
                 $defaultGudangPemohonId = $batch->gudang_operasional_id;
-                $gudangPusat = Gudang::bahanBakuPusat()->first()
-                    ?? Gudang::where('tipe', 'bahan_baku')->first()
-                    ?? Gudang::where('kode', 'GD-PUSAT')->first();
                 $defaultGudangTujuanId = $gudangPusat?->id;
+                $prefilledItems = $this->buildBatchPrefillItems($batch);
+            }
+        }
 
-                $rekap = $batch->rekapBahan();
-                if (!empty($rekap)) {
-                    foreach ($rekap as $item) {
-                        $sisa = max(0.0, (float) $item['kebutuhan'] - (float) $item['diterima']);
-                        $qty = $sisa > 0 ? $sisa : (float) $item['kebutuhan'];
-                        if ($qty > 0) {
-                            $prefilledItems[] = [
-                                'produk_id' => $item['bahan_id'],
-                                'qty_diminta' => $qty,
-                                'keterangan' => 'Alokasi batch ' . $batch->no_batch,
-                            ];
-                        }
-                    }
-                }
-                if (empty($prefilledItems)) {
-                    foreach ($batch->alokasi as $alokasi) {
-                        $prefilledItems[] = [
-                            'produk_id' => $alokasi->bahan_id,
-                            'qty_diminta' => (float) $alokasi->qty_dialokasikan,
-                            'keterangan' => 'Alokasi batch ' . $batch->no_batch,
-                        ];
-                    }
+        return view('requests.create', compact(
+            'gudang',
+            'produk',
+            'batch',
+            'allowedJenis',
+            'defaultGudangPemohonId',
+            'defaultGudangTujuanId',
+            'prefilledItems',
+            'activeBatches',
+            'batchPrefills'
+        ));
+    }
+
+    /**
+     * Susun item bahan baku yang perlu diminta untuk satu batch produksi.
+     *
+     * @return array<int, array{produk_id: int, qty_diminta: float, keterangan: string}>
+     */
+    private function buildBatchPrefillItems(BatchProduksi $batch): array
+    {
+        $items = [];
+        $rekap = $batch->rekapBahan();
+
+        if (! empty($rekap)) {
+            foreach ($rekap as $item) {
+                $sisa = max(0.0, (float) $item['kebutuhan'] - (float) $item['diterima']);
+                $qty = $sisa > 0 ? $sisa : (float) $item['kebutuhan'];
+                if ($qty > 0) {
+                    $items[] = [
+                        'produk_id' => (int) $item['bahan_id'],
+                        'qty_diminta' => $qty,
+                        'keterangan' => 'Alokasi batch ' . $batch->no_batch,
+                    ];
                 }
             }
         }
 
-        return view('requests.create', compact('gudang', 'produk', 'batch', 'allowedJenis', 'defaultGudangPemohonId', 'defaultGudangTujuanId', 'prefilledItems', 'activeBatches'));
+        if (empty($items)) {
+            $batch->loadMissing('alokasi');
+            foreach ($batch->alokasi as $alokasi) {
+                $qty = (float) $alokasi->qty_dialokasikan;
+                if ($qty > 0) {
+                    $items[] = [
+                        'produk_id' => (int) $alokasi->bahan_id,
+                        'qty_diminta' => $qty,
+                        'keterangan' => 'Alokasi batch ' . $batch->no_batch,
+                    ];
+                }
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Lengkapi metadata produk untuk kebutuhan komponen dropdown search pada Alpine.
+     *
+     * @param  array<int, array{produk_id: int, qty_diminta: float, keterangan: string}>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function hydratePrefillItems(array $items, $productsById, $fallbackProductsById): array
+    {
+        return collect($items)->map(function ($it) use ($productsById, $fallbackProductsById) {
+            $prodId = (int) ($it['produk_id'] ?? 0);
+            $prod = $prodId > 0 ? ($productsById->get($prodId) ?? $fallbackProductsById->get($prodId)) : null;
+
+            return [
+                'produk_id' => $prodId,
+                'qty_diminta' => $it['qty_diminta'] ?? 1,
+                'keterangan' => $it['keterangan'] ?? '',
+                'satuan' => $prod?->satuan ?? '-',
+                'selectedItem' => $prod ? [
+                    'id' => $prod->id,
+                    'sku' => $prod->sku,
+                    'nama' => $prod->nama,
+                    'satuan' => $prod->satuan,
+                    'tipe' => $prod->tipe,
+                ] : null,
+            ];
+        })->filter(fn ($it) => $it['selectedItem'] !== null)->values()->all();
     }
 
     public function store(Request $request): RedirectResponse
