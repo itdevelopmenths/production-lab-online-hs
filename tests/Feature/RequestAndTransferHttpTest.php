@@ -391,4 +391,90 @@ class RequestAndTransferHttpTest extends TestCase
         $this->assertSame($batch->id, $created->referensi_batch_id);
         $this->assertEquals(25.0, (float) $created->items()->firstOrFail()->qty_diminta);
     }
+
+    public function test_transfer_create_renders_searchable_product_dropdown_unit_and_stock_validation(): void
+    {
+        $manager = \App\Models\User::where('email', 'manager@heavenscent.id')->first();
+        if (! $manager) {
+            $this->seed();
+            $manager = \App\Models\User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        }
+
+        $res = $this->actingAs($manager)->get(route('transfers.create'));
+        $res->assertOk();
+
+        $html = $res->getContent();
+        $this->assertSame(0, preg_match('/<select\b[^>]*produk_id/', $html));
+        $this->assertStringContainsString('productSearchSelect(', $html);
+        $this->assertStringContainsString(route('produk.select-data', [], false), $html);
+        $this->assertStringContainsString('overflow-visible', $html);
+        $this->assertStringContainsString(route('stok.current-stock', [], false), $html);
+        $this->assertStringContainsString('data.qty ?? data.stok_tersedia', $html);
+        $this->assertStringContainsString('displaySatuan(item)', $html);
+        $this->assertStringContainsString('isExceedingStock(item)', $html);
+        $this->assertStringContainsString('Melebihi stok tersedia!', $html);
+        $this->assertStringContainsString('@submit="onSubmit($event)"', $html);
+    }
+
+    public function test_transfer_create_from_batch_prefills_unit_satuan_and_selected_item(): void
+    {
+        $manager = \App\Models\User::where('email', 'manager@heavenscent.id')->first();
+        if (! $manager) {
+            $this->seed();
+            $manager = \App\Models\User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        }
+
+        $gudangOps = \App\Models\Gudang::where('kode', 'GD-OPS')->first()
+            ?? \App\Models\Gudang::where('tipe', 'operasional')->firstOrFail();
+        $gudangFf = \App\Models\Gudang::where('kode', 'FF-PUSAT')->first()
+            ?? \App\Models\Gudang::where('id', '!=', $gudangOps->id)->firstOrFail();
+
+        $produk = \App\Models\Produk::create([
+            'sku' => 'SKU-TRF-UNIT-01',
+            'nama' => 'Serum Batch Prefill',
+            'tipe' => 'produk_jadi',
+            'satuan' => 'Botol-Test',
+            'is_active' => true,
+            'harga_hpp' => 15000,
+        ]);
+
+        \App\Models\Stok::updateOrCreate(
+            ['produk_id' => $produk->id, 'gudang_id' => $gudangOps->id],
+            ['qty_saat_ini' => 45]
+        );
+
+        $batch = \App\Models\BatchProduksi::create([
+            'no_batch' => 'BATCH-TRF-UNIT-01',
+            'produk_id' => $produk->id,
+            'qty_rencana' => 50,
+            'qty_baik' => 45,
+            'gudang_operasional_id' => $gudangOps->id,
+            'gudang_tujuan_rencana_id' => $gudangFf->id,
+            'status' => 'selesai',
+            'tanggal' => now()->toDateString(),
+            'created_by' => $manager->id,
+        ]);
+
+        \App\Models\BatchProduksiOutput::create([
+            'batch_id' => $batch->id,
+            'produk_id' => $produk->id,
+            'qty_rencana' => 50,
+            'qty_baik' => 45,
+            'gudang_tujuan_rencana_id' => $gudangFf->id,
+        ]);
+
+        $res = $this->actingAs($manager)->get(route('transfers.create', ['batch_id' => $batch->id]));
+        $res->assertOk();
+
+        $html = $res->getContent();
+        $this->assertSame(1, preg_match("/items:\s*JSON\.parse\('([^']+)'\)/", $html, $matches));
+
+        $decoded = json_decode((string) json_decode('"' . $matches[1] . '"', true), true);
+        $this->assertIsArray($decoded);
+        $this->assertNotEmpty($decoded);
+        $this->assertSame($produk->id, $decoded[0]['produk_id']);
+        $this->assertSame('Botol-Test', $decoded[0]['satuan']);
+        $this->assertSame('SKU-TRF-UNIT-01', $decoded[0]['selectedItem']['sku']);
+        $this->assertSame('Botol-Test', $decoded[0]['selectedItem']['satuan']);
+    }
 }
