@@ -44,14 +44,16 @@
             })->values()->toArray(),
         ];
 
-        $payBadge = match($po->status_pembayaran) {
+        $effectivePayStatus = $po->status === 'dibatalkan' ? 'batal' : ($po->status_pembayaran ?? 'belum_lunas');
+        $payBadge = match($effectivePayStatus) {
             'overdue' => 'danger',
             'belum_lunas' => 'warning',
             'parsial' => 'info',
             'lunas' => 'success',
+            'batal' => 'danger',
             default => 'neutral',
         };
-        $isTempoOverdue = $po->skema_bayar === 'tempo' && $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas();
+        $isTempoOverdue = $po->status !== 'dibatalkan' && $po->skema_bayar === 'tempo' && $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas();
         $isEtaPast = $po->eta && $po->eta->isPast() && $po->status !== 'selesai';
         $fmtQtyDisplay = static fn (float $v): string => rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ',');
     @endphp
@@ -73,9 +75,9 @@
                     {{ ucwords(str_replace('_',' ',$po->status)) }}
                 </x-badge>
 
-                @if($canSeePrice && $po->status_pembayaran)
+                @if($canSeePrice && $effectivePayStatus)
                     <x-badge :variant="$payBadge" :dot="true" size="sm">
-                        AP: {{ ucwords(str_replace('_',' ',$po->status_pembayaran)) }}
+                        AP: {{ ucwords(str_replace('_',' ',$effectivePayStatus)) }}
                     </x-badge>
                 @endif
 
@@ -618,7 +620,16 @@
                 <p class="font-semibold text-xs text-foreground mt-0.5 truncate">{{ $po->gudang?->nama ?? 'Semua Gudang' }}</p>
             </div>
             <div class="bg-card p-3.5 rounded-xl border border-border shadow-2xs min-w-0">
-                <span class="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">Estimasi Tiba (ETA)</span>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">Estimasi Tiba (ETA)</span>
+                    @can('purchasing.edit')
+                        @if($hasStages && !in_array($po->status, ['selesai', 'dibatalkan']))
+                            <button type="button" @click="openDirectEditModal = true" aria-label="Edit ETA" title="Edit ETA" class="text-xs font-medium text-primary hover:underline cursor-pointer">
+                                Edit
+                            </button>
+                        @endif
+                    @endcan
+                </div>
                 <p class="font-mono text-xs {{ $isEtaPast ? 'text-destructive font-bold' : 'text-foreground font-medium' }} mt-0.5">
                     {{ $po->eta ? $po->eta->format('d/m/Y') : '—' }}
                 </p>
@@ -1221,11 +1232,7 @@
                                 @csrf
                                 <div>
                                     <label class="block font-semibold mb-1 text-foreground">No. Referensi / Sales Order Supplier</label>
-                                    <input type="text" name="confirmation[no_referensi]" value="{{ $po->no_referensi_supplier ?? '' }}" placeholder="Contoh: SO-SUPPLIER-1234" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
-                                </div>
-                                <div>
-                                    <label class="block font-semibold mb-1 text-foreground">Estimasi Tanggal Tiba Supplier (ETA)</label>
-                                    <input type="date" name="confirmation[eta_supplier]" value="{{ $po->eta_supplier ? $po->eta_supplier->format('Y-m-d') : ($po->eta ? $po->eta->format('Y-m-d') : '') }}" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
+                                    <input type="text" name="confirmation[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" placeholder="Contoh: SO-SUPPLIER-1234" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
                                 </div>
                                 <div>
                                     <label class="block font-semibold mb-1 text-foreground">Catatan Konfirmasi</label>
@@ -1330,10 +1337,6 @@
                                         <label class="block font-semibold mb-1 text-foreground">Tanggal Kirim</label>
                                         <input type="date" name="shipping[tgl_kirim]" value="{{ $po->pengiriman?->tgl_kirim ? $po->pengiriman->tgl_kirim->format('Y-m-d') : date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
                                     </div>
-                                </div>
-                                <div>
-                                    <label class="block font-semibold mb-1 text-foreground">Estimasi Tiba di Gudang</label>
-                                    <input type="date" name="shipping[eta_tiba]" value="{{ $po->pengiriman?->eta_tiba ? $po->pengiriman->eta_tiba->format('Y-m-d') : ($po->eta ? $po->eta->format('Y-m-d') : '') }}" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
                                 </div>
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
                                     Konfirmasi Barang Telah Berangkat
@@ -1522,7 +1525,7 @@
                             <span class="text-muted-foreground">Status Pembayaran (AP)</span>
                             <span>
                                 <x-badge :variant="$payBadge" :dot="true" size="sm">
-                                    {{ ucwords(str_replace('_',' ',$po->status_pembayaran ?? 'belum_lunas')) }}
+                                    {{ ucwords(str_replace('_',' ',$effectivePayStatus)) }}
                                 </x-badge>
                             </span>
                         </div>
@@ -1561,7 +1564,7 @@
                         </div>
                         <div class="flex justify-between pt-1.5 border-t border-border">
                             <span class="font-semibold text-foreground">Sisa Tagihan</span>
-                            <span class="font-bold font-mono {{ $po->isLunas() ? 'text-emerald-700' : 'text-destructive' }}">
+                            <span class="font-bold font-mono {{ $po->status === 'dibatalkan' ? 'text-muted-foreground' : ($po->isLunas() ? 'text-emerald-700' : 'text-destructive') }}">
                                 Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }}
                             </span>
                         </div>
@@ -1962,8 +1965,8 @@
                         <input type="text" name="fields[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" class="w-full rounded-lg border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring">
                     </div>
                     <div>
-                        <label class="block font-semibold mb-1 text-foreground">Estimasi Tiba Supplier (ETA)</label>
-                        <input type="date" name="fields[eta_supplier]" value="{{ $po->eta_supplier ? $po->eta_supplier->format('Y-m-d') : '' }}" class="w-full rounded-lg border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring">
+                        <label class="block font-semibold mb-1 text-foreground">Estimasi Tiba (ETA)</label>
+                        <input type="date" name="fields[eta]" value="{{ $po->eta ? $po->eta->format('Y-m-d') : '' }}" class="w-full rounded-lg border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring">
                     </div>
                     <div>
                         <label class="block font-semibold mb-1 text-foreground">Catatan Dokumen</label>

@@ -9,6 +9,7 @@ use App\Models\PoStage;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -27,49 +28,93 @@ class PurchaseOrderRevisionService
      */
     public function updateOperationalFields(PurchaseOrder $po, array $fields, User $actor): void
     {
+        if (in_array($po->status, ['selesai', 'dibatalkan'], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'PO sudah final dan tidak dapat diubah field operasionalnya.',
+            ]);
+        }
+
         DB::transaction(function () use ($po, $fields, $actor) {
-            $allowedPoFields = ['catatan', 'eta_supplier', 'no_referensi_supplier', 'no_invoice'];
+            $allowedPoFields = ['catatan', 'eta', 'eta_supplier', 'no_referensi_supplier', 'no_invoice'];
             $allowedPengirimanFields = ['ekspedisi', 'moda', 'no_resi', 'no_kontainer', 'jumlah_koli', 'berat_kg', 'catatan_pengemasan', 'eta_tiba'];
 
             $pengiriman = PoPengiriman::firstOrCreate(['po_id' => $po->id]);
 
-            foreach ($fields as $key => $newValue) {
-                if (in_array($key, $allowedPoFields, true)) {
-                    $oldValue = (string) ($po->{$key} ?? '');
-                    $newValStr = (string) ($newValue ?? '');
+            $this->syncOperationalFieldGroup($po, $po, $fields, $allowedPoFields, ['eta', 'eta_supplier'], '', $actor->id);
+            $this->syncOperationalFieldGroup($po, $pengiriman, $fields, $allowedPengirimanFields, ['eta_tiba'], 'pengiriman.', $actor->id);
 
-                    if ($oldValue !== $newValStr) {
-                        PoLogPerubahan::create([
-                            'po_id' => $po->id,
-                            'nama_field' => $key,
-                            'nilai_lama' => $oldValue ?: null,
-                            'nilai_baru' => $newValStr ?: null,
-                            'diubah_oleh' => $actor->id,
-                            'diubah_pada' => now(),
-                        ]);
-                        $po->{$key} = $newValue;
-                    }
-                } elseif (in_array($key, $allowedPengirimanFields, true)) {
-                    $oldValue = (string) ($pengiriman->{$key} ?? '');
-                    $newValStr = (string) ($newValue ?? '');
-
-                    if ($oldValue !== $newValStr) {
-                        PoLogPerubahan::create([
-                            'po_id' => $po->id,
-                            'nama_field' => 'pengiriman.' . $key,
-                            'nilai_lama' => $oldValue ?: null,
-                            'nilai_baru' => $newValStr ?: null,
-                            'diubah_oleh' => $actor->id,
-                            'diubah_pada' => now(),
-                        ]);
-                        $pengiriman->{$key} = $newValue;
-                    }
-                }
+            if ($po->isDirty('eta')) {
+                $po->refreshStatusPembayaran();
             }
 
             $po->save();
             $pengiriman->save();
         });
+    }
+
+    /**
+     * Sinkronisasi field operasional yang diizinkan pada target model dan catat log perubahan.
+     */
+    private function syncOperationalFieldGroup(
+        PurchaseOrder $po,
+        object $target,
+        array $fields,
+        array $allowedFields,
+        array $dateFields,
+        string $logPrefix,
+        int $actorId,
+    ): void {
+        foreach ($fields as $key => $newValue) {
+            if (! in_array($key, $allowedFields, true)) {
+                continue;
+            }
+
+            [$oldValue, $newValStr, $assigned] = $this->resolveOperationalFieldDiff(
+                $target,
+                $key,
+                $newValue,
+                in_array($key, $dateFields, true),
+            );
+
+            if ($oldValue !== $newValStr) {
+                PoLogPerubahan::create([
+                    'po_id' => $po->id,
+                    'nama_field' => $logPrefix . $key,
+                    'nilai_lama' => $oldValue ?: null,
+                    'nilai_baru' => $newValStr ?: null,
+                    'diubah_oleh' => $actorId,
+                    'diubah_pada' => now(),
+                ]);
+                $target->{$key} = $assigned;
+            }
+        }
+    }
+
+    /**
+     * Normalisasi nilai lama dan nilai baru untuk perbandingan diff dan penyimpanan field operasional.
+     *
+     * @return array{0: string, 1: string, 2: mixed}
+     */
+    private function resolveOperationalFieldDiff(object $target, string $key, mixed $newValue, bool $isDate): array
+    {
+        if (! $isDate) {
+            return [(string) ($target->{$key} ?? ''), (string) ($newValue ?? ''), $newValue];
+        }
+
+        $oldValue = $target->{$key} ? Carbon::parse($target->{$key})->format('Y-m-d') : '';
+        if (! filled($newValue)) {
+            return [$oldValue, '', null];
+        }
+
+        try {
+            $assigned = Carbon::parse($newValue)->format('Y-m-d');
+        } catch (\Throwable) {
+            throw ValidationException::withMessages([
+                "fields.{$key}" => "Format tanggal untuk {$key} tidak valid.",
+            ]);
+        }
+
+        return [$oldValue, $assigned, $assigned];
     }
 
     /**

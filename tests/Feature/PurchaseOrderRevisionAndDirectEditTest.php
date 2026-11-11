@@ -357,5 +357,192 @@ class PurchaseOrderRevisionAndDirectEditTest extends TestCase
         $gudangRes->assertDontSee('Setujui Revisi Komitmen');
         $gudangRes->assertDontSee('Tolak Usulan');
     }
+
+    public function test_direct_edit_updates_eta_logs_changes_and_syncs_payment_status(): void
+    {
+        $po = $this->createSamplePo(PoStage::STAGE_3);
+        $po->update([
+            'eta' => now()->subDays(3)->toDateString(),
+            'status_pembayaran' => 'overdue',
+        ]);
+
+        $newEta = now()->addDays(10)->toDateString();
+
+        // 1. Update via HTTP updates eta, logs po_log_perubahan, and clears overdue status
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.direct-edit', $po), [
+                'fields' => [
+                    'eta' => $newEta,
+                    'catatan' => 'Jadwal tiba diperbarui supplier',
+                ],
+            ])
+            ->assertRedirect();
+
+        $po->refresh();
+        $this->assertEquals($newEta, $po->eta?->format('Y-m-d'));
+        $this->assertEquals('belum_lunas', $po->status_pembayaran);
+        $this->assertTrue(
+            PoLogPerubahan::where('po_id', $po->id)->where('nama_field', 'eta')->where('nilai_baru', $newEta)->exists()
+        );
+
+        // 2. Submitting the same eta when editing another field must not create a duplicate eta log
+        $etaLogCountBefore = PoLogPerubahan::where('po_id', $po->id)->where('nama_field', 'eta')->count();
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.direct-edit', $po), [
+                'fields' => [
+                    'eta' => $newEta,
+                    'catatan' => 'Update catatan saja',
+                ],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(
+            $etaLogCountBefore,
+            PoLogPerubahan::where('po_id', $po->id)->where('nama_field', 'eta')->count()
+        );
+
+        // 3. Clearing eta to empty string persists null cleanly
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.direct-edit', $po), [
+                'fields' => ['eta' => ''],
+            ])
+            ->assertRedirect();
+
+        $po->refresh();
+        $this->assertNull($po->eta);
+
+        // 4. Invalid date fails validation (web route flashes validation errors to session)
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.direct-edit', $po), [
+                'fields' => ['eta' => 'not-a-date'],
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('fields.eta');
+    }
+
+    public function test_purchasing_show_uses_single_eta_in_header_and_direct_edit_without_stage_eta_inputs(): void
+    {
+        $initialEta = now()->addDays(15)->toDateString();
+        $poStage3 = $this->createSamplePo(PoStage::STAGE_3);
+        $poStage3->update(['eta' => $initialEta]);
+
+        $res3 = $this->actingAs($this->purchasing)->get(route('purchasing.show', $poStage3));
+        $res3->assertOk();
+        $res3->assertSee(now()->addDays(15)->format('d/m/Y'));
+        $res3->assertDontSee('name="confirmation[eta_supplier]"', false);
+        $res3->assertDontSee('name="fields[eta_supplier]"', false);
+        $res3->assertSee('name="fields[eta]"', false);
+
+        $poStage7 = $this->createSamplePo(PoStage::STAGE_7);
+        $poStage7->update(['eta' => $initialEta]);
+
+        $res7 = $this->actingAs($this->purchasing)->get(route('purchasing.show', $poStage7));
+        $res7->assertOk();
+        $res7->assertSee('aria-label="Edit ETA"', false);
+        $res7->assertDontSee('name="shipping[eta_tiba]"', false);
+
+        // Finalized PO hides quick-edit ETA trigger
+        $poStage7->update(['status' => 'selesai']);
+        $resClosed = $this->actingAs($this->purchasing)->get(route('purchasing.show', $poStage7));
+        $resClosed->assertOk();
+        $resClosed->assertDontSee('aria-label="Edit ETA"', false);
+    }
+
+    public function test_direct_edit_validates_legacy_date_fields_and_avoids_duplicate_pengiriman_eta_logs(): void
+    {
+        $po = $this->createSamplePo(PoStage::STAGE_7);
+        $etaTiba = now()->addDays(5)->toDateString();
+
+        // 1. Invalid eta_supplier fails request validation cleanly (no 500 Carbon exception)
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.direct-edit', $po), [
+                'fields' => ['eta_supplier' => 'not-a-date'],
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('fields.eta_supplier');
+
+        // 2. Resubmitting unchanged pengiriman.eta_tiba does not duplicate PoLogPerubahan entries
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.direct-edit', $po), [
+                'fields' => ['eta_tiba' => $etaTiba],
+            ])
+            ->assertRedirect();
+
+        $etaTibaLogsBefore = PoLogPerubahan::where('po_id', $po->id)->where('nama_field', 'pengiriman.eta_tiba')->count();
+
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.direct-edit', $po), [
+                'fields' => ['eta_tiba' => $etaTiba, 'no_resi' => 'RESI-999'],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(
+            $etaTibaLogsBefore,
+            PoLogPerubahan::where('po_id', $po->id)->where('nama_field', 'pengiriman.eta_tiba')->count()
+        );
+
+        // 3. Direct service call with invalid date throws ValidationException
+        $this->expectException(ValidationException::class);
+        $this->revisionService->updateOperationalFields($po, ['eta' => 'invalid-date'], $this->purchasing);
+    }
+
+    public function test_direct_edit_rejects_finalized_po_statuses(): void
+    {
+        foreach (['selesai', 'dibatalkan'] as $finalStatus) {
+            $po = $this->createSamplePo(PoStage::STAGE_7);
+            $po->update([
+                'status' => $finalStatus,
+                'catatan' => 'Catatan awal',
+            ]);
+
+            $this->actingAs($this->purchasing)
+                ->post(route('purchasing.direct-edit', $po), [
+                    'fields' => [
+                        'catatan' => 'Diubah paksa',
+                        'eta' => now()->addDays(20)->toDateString(),
+                    ],
+                ])
+                ->assertRedirect()
+                ->assertSessionHasErrors('status');
+
+            $po->refresh();
+            $this->assertSame('Catatan awal', $po->catatan);
+        }
+    }
+
+    public function test_stage3_view_and_complete_persists_no_referensi_supplier(): void
+    {
+        $po = $this->createSamplePo(PoStage::STAGE_3);
+
+        $showRes = $this->actingAs($this->purchasing)->get(route('purchasing.show', $po));
+        $showRes->assertOk();
+        $showRes->assertSee('name="confirmation[no_referensi_supplier]"', false);
+        $showRes->assertDontSee('name="confirmation[no_referensi]"', false);
+
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_3]), [
+                'confirmation' => [
+                    'no_referensi_supplier' => 'SO-SUP-2026-01',
+                ],
+            ])
+            ->assertRedirect();
+
+        $po->refresh();
+        $this->assertSame('SO-SUP-2026-01', $po->no_referensi_supplier);
+        $this->assertSame(PoStage::STAGE_4, $po->stage_aktif);
+
+        // Legacy payload key confirmation[no_referensi] remains backward-compatible
+        $poLegacy = $this->createSamplePo(PoStage::STAGE_3);
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.stages.complete', [$poLegacy, PoStage::STAGE_3]), [
+                'confirmation' => [
+                    'no_referensi' => 'SO-LEGACY-99',
+                ],
+            ])
+            ->assertRedirect();
+
+        $poLegacy->refresh();
+        $this->assertSame('SO-LEGACY-99', $poLegacy->no_referensi_supplier);
+    }
 }
 

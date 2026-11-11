@@ -25,6 +25,12 @@ class PurchasingPaymentService
      */
     public function recordPayment(PurchaseOrder $po, array $data): Payment
     {
+        if ($po->status === 'dibatalkan') {
+            throw ValidationException::withMessages([
+                'status' => 'Pembayaran tidak dapat dicatat karena Purchase Order telah dibatalkan.',
+            ]);
+        }
+
         $nominal = round((float) $data['nominal'], 2);
         $sisaTagihan = round($po->sisaTagihan(), 2);
         $skema = $data['skema'] ?? 'termin';
@@ -162,9 +168,10 @@ class PurchasingPaymentService
         $overdueCount = 0;
         $poIds = collect();
 
-        // 1. Perbarui status termin yang jatuh tempo sebelum hari ini
+        // 1. Perbarui status termin yang jatuh tempo sebelum hari ini (kecuali PO dibatalkan)
         $termins = PurchaseOrderTermin::where('status', '!=', 'lunas')
             ->whereDate('tanggal_tempo', '<', now()->toDateString())
+            ->whereHas('purchaseOrder', fn ($q) => $q->where('status', '!=', 'dibatalkan'))
             ->get();
 
         foreach ($termins as $termin) {
@@ -174,8 +181,9 @@ class PurchasingPaymentService
             $overdueCount++;
         }
 
-        // 2. Kumpulkan PO tempo yang memiliki ETA lewat hari ini dan belum lunas
-        $posTempo = PurchaseOrder::where('status_pembayaran', '!=', 'lunas')
+        // 2. Kumpulkan PO tempo yang memiliki ETA lewat hari ini dan belum lunas (kecuali PO dibatalkan)
+        $posTempo = PurchaseOrder::whereNotIn('status_pembayaran', ['lunas', 'batal'])
+            ->where('status', '!=', 'dibatalkan')
             ->whereNotNull('eta')
             ->whereDate('eta', '<', now()->toDateString())
             ->pluck('id');

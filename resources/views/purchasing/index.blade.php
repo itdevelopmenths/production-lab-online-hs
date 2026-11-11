@@ -183,6 +183,7 @@
                             <option value="belum_lunas">🟡 Belum Lunas</option>
                             <option value="parsial">🔵 Parsial (Sebagian)</option>
                             <option value="lunas">🟢 Lunas</option>
+                            <option value="batal">⚫ Batal</option>
                         </select>
                     </div>
                     <div>
@@ -501,7 +502,11 @@
             let dotClass = 'bg-muted-foreground';
             let label = data.replace(/_/g, ' ');
 
-            if (norm.includes('overdue')) {
+            if (norm.includes('batal')) {
+                badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 font-semibold';
+                dotClass = 'bg-rose-500';
+                label = 'Batal';
+            } else if (norm.includes('overdue')) {
                 badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 font-bold';
                 dotClass = 'bg-rose-600 animate-pulse';
                 label = 'Overdue';
@@ -661,7 +666,11 @@
                         className: 'text-right font-mono font-bold',
                         render: function(data, type, row) {
                             if (data === '—' || data === null || data === undefined) return '—';
-                            const isLunas = data === '0' || (row.status_pembayaran && row.status_pembayaran.toLowerCase().trim() === 'lunas');
+                            const statusNorm = (row.status_pembayaran || '').toLowerCase().trim();
+                            if (statusNorm.includes('batal')) {
+                                return `<span class="text-muted-foreground font-semibold font-mono">Rp 0</span>`;
+                            }
+                            const isLunas = data === '0' || statusNorm === 'lunas';
                             if (isLunas) {
                                 return `<span class="text-emerald-600 font-semibold font-mono">Rp 0</span>`;
                             }

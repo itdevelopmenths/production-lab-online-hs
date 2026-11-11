@@ -92,14 +92,7 @@ class PurchasingController extends Controller
             ->withSum('payments as total_dibayar', 'nominal');
 
         if ($canSeePrice && $request->filled('status_bayar')) {
-            if ($request->status_bayar === 'belum_lunas') {
-                $query->where(function ($q) {
-                    $q->where('purchase_orders.status_pembayaran', 'belum_lunas')
-                      ->orWhereNull('purchase_orders.status_pembayaran');
-                });
-            } else {
-                $query->where('purchase_orders.status_pembayaran', $request->status_bayar);
-            }
+            $this->applyStatusBayarFilter($query, (string) $request->status_bayar);
         }
 
         if ($request->boolean('approval_queue')) {
@@ -209,7 +202,7 @@ class PurchasingController extends Controller
                 return $po->revisis->where('status', 'menunggu')->isNotEmpty();
             })
             ->addColumn('sla', fn ($po) => $this->resolvePoSlaLabel($po))
-            ->addColumn('status_pembayaran', fn ($po) => $canSeePrice ? ucwords(str_replace('_', ' ', $po->status_pembayaran ?? 'belum_lunas')) : '—')
+            ->addColumn('status_pembayaran', fn ($po) => $canSeePrice ? ucwords(str_replace('_', ' ', $this->resolveEffectivePaymentStatus($po))) : '—')
             ->addColumn('total_nilai', fn ($po) => $canSeePrice ? number_format((float) $po->totalNilai(), 0, ',', '.') : '—')
             ->addColumn('sisa', fn ($po) => $canSeePrice ? number_format((float) $po->sisaTagihan(), 0, ',', '.') : '—')
             ->addColumn('action', function ($po) use ($canEditUser) {
@@ -241,14 +234,7 @@ class PurchasingController extends Controller
             ->withSum('payments as total_dibayar', 'nominal');
 
         if ($request->filled('status_bayar')) {
-            if ($request->status_bayar === 'belum_lunas') {
-                $query->where(function ($q) {
-                    $q->where('purchase_orders.status_pembayaran', 'belum_lunas')
-                      ->orWhereNull('purchase_orders.status_pembayaran');
-                });
-            } else {
-                $query->where('purchase_orders.status_pembayaran', $request->status_bayar);
-            }
+            $this->applyStatusBayarFilter($query, (string) $request->status_bayar);
         }
 
         if ($request->filled('skema_bayar')) {
@@ -280,6 +266,9 @@ class PurchasingController extends Controller
             ->addColumn('total_dibayar', fn ($po) => number_format((float) $po->totalDibayar(), 0, ',', '.'))
             ->addColumn('sisa', fn ($po) => number_format((float) $po->sisaTagihan(), 0, ',', '.'))
             ->addColumn('jatuh_tempo_terdekat', function ($po) {
+                if ($po->status === 'dibatalkan') {
+                    return '—';
+                }
                 if ($po->skema_bayar === 'tempo' && $po->tanggal_tempo) {
                     return $po->tanggal_tempo->format('d/m/Y');
                 }
@@ -287,7 +276,7 @@ class PurchasingController extends Controller
 
                 return $nextTermin ? $nextTermin->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—');
             })
-            ->addColumn('status_pembayaran', fn ($po) => $po->status_pembayaran ?? 'belum_lunas')
+            ->addColumn('status_pembayaran', fn ($po) => $this->resolveEffectivePaymentStatus($po))
             ->addColumn('action', function ($po) {
                 $showUrl = e(route('purchasing.show', $po));
                 $html = '<div class="flex items-center justify-center gap-2">'
@@ -822,12 +811,14 @@ class PurchasingController extends Controller
         $alasan = !empty($data['alasan']) ? trim($data['alasan']) : 'Dibatalkan oleh pengguna';
 
         $oldStatus = $purchaseOrder->status;
+        $oldStatusPembayaran = $purchaseOrder->status_pembayaran;
         $oldCatatan = $purchaseOrder->catatan;
         $alasanEntry = "[Alasan Pembatalan: {$alasan}]";
         $newCatatan = $oldCatatan ? ($oldCatatan . "\n" . $alasanEntry) : $alasanEntry;
 
         $purchaseOrder->update([
             'status' => 'dibatalkan',
+            'status_pembayaran' => 'batal',
             'alasan_batal' => $alasan,
             'dibatalkan_oleh' => auth()->id(),
             'catatan' => $newCatatan,
@@ -846,6 +837,7 @@ class PurchasingController extends Controller
             actionTitle: "Pembatalan Dokumen PO {$purchaseOrder->no_po}: {$alasan}",
             customChanges: [
                 'status' => [$oldStatus, 'dibatalkan'],
+                'status_pembayaran' => [$oldStatusPembayaran, 'batal'],
                 'catatan' => [$oldCatatan, $newCatatan],
             ],
             metadata: [
@@ -1047,6 +1039,40 @@ class PurchasingController extends Controller
         }
 
         return $elapsedDays . ' hr';
+    }
+
+    private function applyStatusBayarFilter($query, string $statusBayar): void
+    {
+        if ($statusBayar === 'batal') {
+            $query->where(function ($q) {
+                $q->where('purchase_orders.status', 'dibatalkan')
+                  ->orWhere('purchase_orders.status_pembayaran', 'batal');
+            });
+
+            return;
+        }
+
+        $query->where('purchase_orders.status', '!=', 'dibatalkan');
+
+        if ($statusBayar === 'belum_lunas') {
+            $query->where(function ($q) {
+                $q->where('purchase_orders.status_pembayaran', 'belum_lunas')
+                  ->orWhereNull('purchase_orders.status_pembayaran');
+            });
+
+            return;
+        }
+
+        $query->where('purchase_orders.status_pembayaran', $statusBayar);
+    }
+
+    private function resolveEffectivePaymentStatus(PurchaseOrder $po): string
+    {
+        if ($po->status === 'dibatalkan') {
+            return 'batal';
+        }
+
+        return $po->status_pembayaran ?? 'belum_lunas';
     }
 
     private function ensureStatus(PurchaseOrder $po, array $allowed): void

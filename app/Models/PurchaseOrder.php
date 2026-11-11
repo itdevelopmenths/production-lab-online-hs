@@ -58,7 +58,7 @@ class PurchaseOrder extends Model
 
     public const STATUS = ['draft', 'berjalan', 'diajukan', 'disetujui', 'dikirim_ke_gudang', 'selesai', 'dibatalkan'];
     public const SKEMA_BAYAR = ['tempo', 'termin', 'pelunasan', 'cash'];
-    public const STATUS_PEMBAYARAN = ['belum_lunas', 'parsial', 'lunas', 'overdue'];
+    public const STATUS_PEMBAYARAN = ['belum_lunas', 'parsial', 'lunas', 'overdue', 'batal'];
 
     public function stages(): HasMany
     {
@@ -166,16 +166,29 @@ class PurchaseOrder extends Model
 
     public function sisaTagihan(): float
     {
+        if ($this->status === 'dibatalkan') {
+            return 0.0;
+        }
+
         return max(0, $this->totalNilai() - $this->totalDibayar());
     }
 
     public function isLunas(): bool
     {
-        return $this->sisaTagihan() <= 0 && $this->totalNilai() > 0;
+        return $this->status !== 'dibatalkan'
+            && $this->status_pembayaran !== 'batal'
+            && $this->sisaTagihan() <= 0
+            && $this->totalNilai() > 0;
     }
 
     public function refreshStatusPembayaran(): void
     {
+        if ($this->status === 'dibatalkan') {
+            $this->status_pembayaran = 'batal';
+
+            return;
+        }
+
         $total = $this->totalNilai();
         $dibayar = $this->totalDibayar();
 

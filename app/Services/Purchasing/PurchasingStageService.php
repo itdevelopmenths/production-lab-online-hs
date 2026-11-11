@@ -305,8 +305,9 @@ class PurchasingStageService
             if (! empty($confirmationData['eta_supplier'])) {
                 $po->eta_supplier = $confirmationData['eta_supplier'];
             }
-            if (! empty($confirmationData['no_referensi_supplier'])) {
-                $po->no_referensi_supplier = $confirmationData['no_referensi_supplier'];
+            $noReferensi = $confirmationData['no_referensi_supplier'] ?? $confirmationData['no_referensi'] ?? null;
+            if (! empty($noReferensi)) {
+                $po->no_referensi_supplier = $noReferensi;
             }
 
             $current->update([
@@ -768,6 +769,7 @@ class PurchasingStageService
 
         DB::transaction(function () use ($po, $manager, $alasan) {
             $po->status = 'dibatalkan';
+            $po->status_pembayaran = 'batal';
             $po->alasan_batal = $alasan;
             $po->dibatalkan_oleh = $manager->id;
             $po->save();

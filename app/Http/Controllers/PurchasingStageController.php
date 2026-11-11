@@ -157,6 +157,12 @@ class PurchasingStageController extends Controller
     public function directEdit(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse|JsonResponse
     {
         $this->authorize('purchasing.edit');
+        $request->validate([
+            'fields' => ['required', 'array'],
+            'fields.eta' => ['nullable', 'date'],
+            'fields.eta_supplier' => ['nullable', 'date'],
+            'fields.eta_tiba' => ['nullable', 'date'],
+        ]);
         $fields = $request->input('fields', []);
 
         $this->revisionService->updateOperationalFields($purchaseOrder, $fields, auth()->user());
