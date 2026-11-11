@@ -733,5 +733,23 @@ class PurchasingRevampFlowTest extends TestCase
         $this->assertEquals($newTempoDate, $audit->new_values['tanggal_tempo']);
         $this->assertEquals($newTempoDate, $audit->metadata['tanggal_tempo_baru']);
     }
+
+    public function test_create_po_page_marks_lokasi_po_gudang_as_required(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+
+        $res = $this->actingAs($purchasing)->get(route('purchasing.create'));
+
+        $res->assertOk();
+        $html = $res->getContent();
+        $this->assertMatchesRegularExpression(
+            '/<label\b[^>]*for="gudang_id"[^>]*>.*?Lokasi PO \(Gudang Tujuan\).*?\*.*?<\/label>/s',
+            $html
+        );
+        $this->assertMatchesRegularExpression(
+            '/<select\b[^>]*name="gudang_id"[^>]*\brequired\b/s',
+            $html
+        );
+    }
 }
 

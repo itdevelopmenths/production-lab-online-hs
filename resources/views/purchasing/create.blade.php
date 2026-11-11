@@ -130,8 +130,8 @@
                             </x-select>
                         </x-form-group>
 
-                        <x-form-group name="gudang_id" label="Lokasi PO (Gudang Tujuan)" help="Gudang penerima saat barang datang">
-                            <x-select name="gudang_id" x-model="gudangId" placeholder="— Pilih Gudang Penerima —">
+                        <x-form-group name="gudang_id" label="Lokasi PO (Gudang Tujuan)" :required="true" help="Gudang penerima saat barang datang">
+                            <x-select name="gudang_id" x-model="gudangId" placeholder="— Pilih Gudang Penerima —" :required="true">
                                 @foreach($gudang as $g)
                                     <option value="{{ $g->id }}" @selected(old('gudang_id') == $g->id)>
                                         {{ $g->nama }} ({{ ucwords(str_replace('_', ' ', $g->tipe)) }})
