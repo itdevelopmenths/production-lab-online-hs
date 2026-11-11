@@ -287,3 +287,19 @@ aside nav::-webkit-scrollbar-thumb:hover,
 :root {
     background-color: var(--color-background);
 }
+
+/* Native Modal Dialog scroll containment & backdrop */
+dialog:modal {
+    overscroll-behavior: contain;
+    margin: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+dialog::backdrop {
+    overflow: hidden;
+    overscroll-behavior: contain;
+    background: rgb(0 0 0 / 0.45);
+    backdrop-filter: blur(2px);
+}

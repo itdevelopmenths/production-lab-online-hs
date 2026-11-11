@@ -53,6 +53,7 @@
         };
         $isTempoOverdue = $po->skema_bayar === 'tempo' && $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas();
         $isEtaPast = $po->eta && $po->eta->isPast() && $po->status !== 'selesai';
+        $fmtQtyDisplay = static fn (float $v): string => rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ',');
     @endphp
 
     <div x-data="{ openDirectEditModal: false, openRevisiModal: false, openInvalidateModal: false }">
@@ -114,155 +115,498 @@
         </div>
 
         {{-- Panel Approval Usulan Revisi Komitmen (PRD v2.4) --}}
-        @if($po->relationLoaded('revisis') && $po->revisis->where('status', 'menunggu')->count() > 0)
-        <div class="mb-5 bg-card border border-amber-500/40 rounded-xl shadow-xs overflow-hidden">
-            <div class="px-4 py-3 bg-amber-500/10 border-b border-amber-500/20 flex flex-wrap items-center justify-between gap-2">
-                <div class="flex items-center gap-2 text-amber-900 font-semibold text-xs">
-                    <span class="size-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>Antrean Persetujuan Revisi Komitmen (Revisi ke-{{ $po->revisis->where('status', 'menunggu')->first()->revisi_ke }})</span>
-                </div>
-                <x-badge variant="warning" size="sm">Menunggu Approval Manager</x-badge>
-            </div>
-            <div class="p-4 space-y-3">
-                @foreach($po->revisis->where('status', 'menunggu') as $rev)
-                    <div class="bg-muted/20 rounded-lg p-3.5 border border-border text-xs space-y-2.5">
-                        <div class="flex flex-wrap justify-between items-center gap-2 text-muted-foreground">
-                            <div>
-                                Diajukan oleh: <strong class="text-foreground">{{ $rev->requester?->name ?? 'Purchasing' }}</strong>
-                                <span class="ml-2">pada: {{ $rev->created_at->format('d/m/Y H:i') }}</span>
-                            </div>
+        @php
+            $pendingRevisis = $po->relationLoaded('revisis')
+                ? $po->revisis->where('status', 'menunggu')->values()
+                : collect();
+        @endphp
+        @if($pendingRevisis->isNotEmpty())
+        @php
+            $fmtQty = static fn (float $n): string => rtrim(rtrim(number_format($n, 2, ',', '.'), '0'), ',') ?: '0';
+            $fmtRp = static fn (float $n): string => 'Rp ' . number_format($n, 0, ',', '.');
+            $fmtSignedRp = static function (float $delta): string {
+                if (abs($delta) < 0.5) {
+                    return 'Rp 0';
+                }
+                return ($delta > 0 ? '+Rp ' : '-Rp ') . number_format(abs($delta), 0, ',', '.');
+            };
+        @endphp
+        <section aria-labelledby="pending-revisi-heading" class="mb-5 bg-card border border-amber-300/80 rounded-xl shadow-xs overflow-hidden">
+            <div class="px-4 sm:px-5 py-3.5 bg-amber-50/70 border-b border-amber-200/80 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="size-8 rounded-lg bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0" aria-hidden="true">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </span>
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h2 id="pending-revisi-heading" class="text-sm font-semibold text-foreground tracking-tight">
+                                Antrean Persetujuan Revisi Komitmen
+                            </h2>
+                            <x-badge variant="warning" size="sm">Revisi ke-{{ $pendingRevisis->first()->revisi_ke }}</x-badge>
+                            @if($pendingRevisis->count() > 1)
+                                <x-badge variant="neutral" size="sm">{{ $pendingRevisis->count() }} Antrean</x-badge>
+                            @endif
                         </div>
-                        <div class="p-2.5 bg-card rounded-lg border border-border text-foreground">
-                            <strong class="text-muted-foreground">Alasan Revisi:</strong> {{ $rev->alasan }}
+                        <p class="text-[11px] text-muted-foreground mt-0.5">
+                            Tinjau selisih kuantitas dan dampak biaya sebelum menyetujui pembaruan komitmen PO aktif.
+                        </p>
+                    </div>
+                </div>
+                <x-badge variant="warning" :dot="true" size="sm">Menunggu Approval Manager</x-badge>
+            </div>
+
+            <div class="divide-y divide-border">
+                @foreach($pendingRevisis as $rev)
+                    @php
+                        $dLama = is_array($rev->data_lama ?? null) ? $rev->data_lama : [];
+                        $dUsul = is_array($rev->data_usulan ?? null) ? $rev->data_usulan : [];
+
+                        $oldItemsRaw = collect($dLama['items'] ?? [])->filter(fn ($it) => is_array($it));
+                        $oldByPoItemId = $oldItemsRaw->filter(fn ($it) => !empty($it['po_item_id']))->keyBy('po_item_id');
+                        $oldByProdukId = $oldItemsRaw->filter(fn ($it) => !empty($it['produk_id']))->keyBy('produk_id');
+
+                        $poItemsById = $po->items->keyBy('id');
+                        $poItemsByProdukId = $po->items->keyBy('produk_id');
+
+                        $itemComparisons = collect($dUsul['items'] ?? [])
+                            ->filter(fn ($it) => is_array($it))
+                            ->values()
+                            ->map(function ($itUsul, $idx) use ($oldByPoItemId, $oldByProdukId, $poItemsById, $poItemsByProdukId, $canSeePrice) {
+                                $poItemId = $itUsul['po_item_id'] ?? null;
+                                $produkId = $itUsul['produk_id'] ?? null;
+
+                                $poItemMatch = ($poItemId ? $poItemsById->get($poItemId) : null)
+                                    ?? ($produkId ? $poItemsByProdukId->get($produkId) : null);
+
+                                $oldIt = ($poItemId ? $oldByPoItemId->get($poItemId) : null)
+                                    ?? ($produkId ? $oldByProdukId->get($produkId) : null);
+
+                                $satDasar = $poItemMatch?->produk?->satuan ?? 'unit';
+                                $oldQtyDasar = (float) ($oldIt['qty'] ?? $poItemMatch?->qty ?? 0);
+                                $newQtyDasar = (float) ($itUsul['qty'] ?? $oldQtyDasar);
+
+                                $oldSatBeli = ($oldIt['satuan_beli'] ?? $poItemMatch?->satuan_beli) ?: $satDasar;
+                                $newSatBeli = ($itUsul['satuan_beli'] ?? null) ?: $oldSatBeli;
+
+                                $oldQtyBeliRaw = $oldIt['qty_satuan_beli'] ?? $poItemMatch?->qty_satuan_beli;
+                                $oldQtyBeli = (float) ($oldQtyBeliRaw !== null && $oldQtyBeliRaw > 0 ? $oldQtyBeliRaw : $oldQtyDasar);
+
+                                $newQtyBeliRaw = $itUsul['qty_satuan_beli'] ?? null;
+                                $newQtyBeli = (float) ($newQtyBeliRaw !== null ? $newQtyBeliRaw : $newQtyDasar);
+
+                                $oldHarga = (float) ($oldIt['harga_total'] ?? $poItemMatch?->harga_total ?? 0);
+                                $newHarga = (float) ($itUsul['harga_total'] ?? $oldHarga);
+
+                                $sameUnitBeli = strcasecmp((string) $oldSatBeli, (string) $newSatBeli) === 0;
+                                $deltaQtyBeli = $sameUnitBeli ? ($newQtyBeli - $oldQtyBeli) : null;
+                                $deltaQtyDasar = $newQtyDasar - $oldQtyDasar;
+                                $deltaHarga = $newHarga - $oldHarga;
+
+                                $qtyChanged = !$sameUnitBeli
+                                    || abs($newQtyBeli - $oldQtyBeli) > 0.0001
+                                    || abs($deltaQtyDasar) > 0.0001;
+                                $hargaChanged = $canSeePrice && abs($deltaHarga) > 0.5;
+
+                                return [
+                                    'nama' => $poItemMatch?->produk?->nama ?? ('Item #' . ($idx + 1)),
+                                    'sku' => $poItemMatch?->produk?->sku ?? '—',
+                                    'sat_dasar' => $satDasar,
+                                    'old_sat_beli' => $oldSatBeli,
+                                    'new_sat_beli' => $newSatBeli,
+                                    'old_qty_beli' => $oldQtyBeli,
+                                    'new_qty_beli' => $newQtyBeli,
+                                    'old_qty_dasar' => $oldQtyDasar,
+                                    'new_qty_dasar' => $newQtyDasar,
+                                    'old_harga' => $oldHarga,
+                                    'new_harga' => $newHarga,
+                                    'delta_qty_beli' => $deltaQtyBeli,
+                                    'delta_qty_dasar' => $deltaQtyDasar,
+                                    'delta_harga' => $deltaHarga,
+                                    'same_unit_beli' => $sameUnitBeli,
+                                    'qty_changed' => $qtyChanged,
+                                    'changed' => $qtyChanged || $hargaChanged,
+                                ];
+                            });
+
+                        $changedItemCount = $itemComparisons->where('changed', true)->count();
+                        $totalItemCount = $itemComparisons->count();
+
+                        $usulItemsSubtotal = (float) $itemComparisons->sum('new_harga');
+                        $oldSubtotal = (float) ($dLama['subtotal_produk'] ?? $po->subtotal_produk ?? 0);
+                        $newSubtotal = (float) ($dUsul['subtotal_produk'] ?? ($itemComparisons->isNotEmpty() ? $usulItemsSubtotal : $oldSubtotal));
+
+                        $oldDiskon = (float) ($dLama['diskon_total'] ?? $po->diskon_total ?? 0);
+                        $newDiskon = (float) ($dUsul['diskon_total'] ?? $oldDiskon);
+
+                        $oldPpn = (float) ($dLama['ppn_nominal'] ?? $po->ppn_nominal ?? 0);
+                        $newPpn = (float) ($dUsul['ppn_nominal'] ?? $oldPpn);
+
+                        $oldOngkir = (float) ($dLama['ongkos_kirim'] ?? $po->ongkos_kirim ?? 0);
+                        $newOngkir = (float) ($dUsul['ongkos_kirim'] ?? $oldOngkir);
+
+                        $oldAdj = (float) ($dLama['adjustment'] ?? $po->adjustment ?? 0);
+                        $newAdj = (float) ($dUsul['adjustment'] ?? $oldAdj);
+
+                        $oldGrandTotal = (float) ($dLama['grand_total'] ?? $po->grand_total ?? 0);
+                        $computedNewGt = max(0, round($newSubtotal - $newDiskon + $newPpn + $newOngkir + $newAdj));
+                        $newGrandTotal = (float) ($dUsul['grand_total'] ?? $computedNewGt);
+                        $deltaGrandTotal = $newGrandTotal - $oldGrandTotal;
+
+                        $financeRows = [
+                            ['label' => 'Subtotal Bahan (Kotor)', 'old' => $oldSubtotal, 'new' => $newSubtotal, 'is_discount' => false, 'is_signed' => false],
+                            ['label' => 'Diskon Global PO', 'old' => $oldDiskon, 'new' => $newDiskon, 'is_discount' => true, 'is_signed' => false],
+                            ['label' => 'PPN Global PO', 'old' => $oldPpn, 'new' => $newPpn, 'is_discount' => false, 'is_signed' => false],
+                            ['label' => 'Ongkos Kirim Global', 'old' => $oldOngkir, 'new' => $newOngkir, 'is_discount' => false, 'is_signed' => false],
+                            ['label' => 'Adjustment / Pembulatan', 'old' => $oldAdj, 'new' => $newAdj, 'is_discount' => false, 'is_signed' => true],
+                        ];
+
+                        $submittedAt = ($rev->diajukan_pada ?? $rev->created_at)?->format('d/m/Y H:i') ?? '—';
+                        $stageLabel = \App\Models\PoStage::STAGE_LABELS[$rev->stage_saat_ajukan]
+                            ?? ($rev->stage_saat_ajukan ? ucwords(str_replace('_', ' ', $rev->stage_saat_ajukan)) : '—');
+                    @endphp
+
+                    <div class="p-4 sm:p-5 space-y-4 text-xs">
+                        {{-- 1. Konteks Pengajuan: Alasan & Audit Metadata --}}
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+                            <div class="lg:col-span-8 rounded-xl border border-border bg-muted/25 p-3.5 flex items-start gap-3">
+                                <span class="size-7 rounded-lg bg-card border border-border text-muted-foreground flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
+                                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h6m-2 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                    </svg>
+                                </span>
+                                <div class="min-w-0 flex-1">
+                                    <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                        Alasan Pengajuan Revisi
+                                    </span>
+                                    <p class="text-xs sm:text-[13px] text-foreground leading-relaxed font-medium break-words">
+                                        {{ $rev->alasan }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <dl class="lg:col-span-4 rounded-xl border border-border bg-card p-3.5 space-y-2">
+                                <div class="flex items-center justify-between gap-3">
+                                    <dt class="text-[11px] text-muted-foreground">Diajukan oleh</dt>
+                                    <dd class="font-semibold text-foreground text-right truncate">{{ $rev->requester?->name ?? 'Purchasing' }}</dd>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <dt class="text-[11px] text-muted-foreground">Waktu pengajuan</dt>
+                                    <dd class="font-mono tabular-nums text-foreground text-right">{{ $submittedAt }}</dd>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <dt class="text-[11px] text-muted-foreground">Stage saat ajukan</dt>
+                                    <dd class="font-medium text-foreground text-right truncate" title="{{ $stageLabel }}">{{ $stageLabel }}</dd>
+                                </div>
+                            </dl>
                         </div>
 
-                        {{-- Tabel Perbandingan Data Usulan vs Sebelum --}}
-                        <div tabindex="0" role="region" aria-label="Perbandingan Data Revisi Komitmen" class="overflow-x-auto rounded-lg border border-border bg-card">
-                            <table class="w-full text-[11px] text-left">
-                                <thead class="bg-muted/60 text-muted-foreground font-semibold border-b border-border uppercase">
-                                    <tr>
-                                        <th class="p-2.5">Parameter</th>
-                                        <th class="p-2.5">Data Sebelumnya</th>
-                                        <th class="p-2.5 text-foreground bg-muted/40">Data Usulan Baru</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-border">
-                                    @php
-                                        $dSeb = $rev->data_sebelum ?? [];
-                                        $dUsul = $rev->data_usulan ?? [];
-                                    @endphp
-                                    @foreach($dUsul as $k => $val)
-                                        @if($k === 'items' && is_array($val))
-                                            <tr class="bg-muted/30">
-                                                <td class="p-2.5 font-semibold text-foreground" colspan="3">Item Bahan Baku &amp; Harga:</td>
+                        {{-- 2. KPI Ringkas Dampak Perubahan --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 {{ $canSeePrice ? 'lg:grid-cols-4' : '' }} gap-3">
+                            <div class="rounded-xl border border-border bg-card px-3.5 py-2.5 flex items-center justify-between gap-3">
+                                <div>
+                                    <span class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block">Item Diubah</span>
+                                    <span class="font-mono tabular-nums text-sm font-bold text-foreground mt-0.5 block">
+                                        {{ $changedItemCount }} / {{ $totalItemCount }} item
+                                    </span>
+                                </div>
+                                <x-badge :variant="$changedItemCount > 0 ? 'warning' : 'neutral'" size="sm">
+                                    {{ $changedItemCount > 0 ? 'Ada Perubahan' : 'Item Tetap' }}
+                                </x-badge>
+                            </div>
+
+                            <div class="rounded-xl border border-border bg-card px-3.5 py-2.5 flex items-center justify-between gap-3">
+                                <div>
+                                    <span class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block">Versi Komitmen</span>
+                                    <span class="font-mono tabular-nums text-sm font-bold text-foreground mt-0.5 block">
+                                        Rev ke-{{ (int) $po->revisi_ke }} &rarr; ke-{{ $rev->revisi_ke }}
+                                    </span>
+                                </div>
+                                <x-badge variant="info" size="sm">Usulan</x-badge>
+                            </div>
+
+                            @if($canSeePrice)
+                                <div class="rounded-xl border border-border bg-card px-3.5 py-2.5">
+                                    <span class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block">Grand Total Sebelumnya</span>
+                                    <span class="font-mono tabular-nums text-sm font-semibold text-muted-foreground mt-0.5 block whitespace-nowrap">
+                                        {{ $fmtRp($oldGrandTotal) }}
+                                    </span>
+                                </div>
+
+                                <div class="rounded-xl border {{ abs($deltaGrandTotal) >= 0.5 ? 'border-amber-300/80 bg-amber-50/40' : 'border-border bg-card' }} px-3.5 py-2.5">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Grand Total Usulan Baru</span>
+                                        @php
+                                            $deltaGtVariant = $deltaGrandTotal > 0.5 ? 'warning' : ($deltaGrandTotal < -0.5 ? 'success' : 'neutral');
+                                        @endphp
+                                        <x-badge :variant="$deltaGtVariant" size="sm">{{ $fmtSignedRp($deltaGrandTotal) }}</x-badge>
+                                    </div>
+                                    <span class="font-mono tabular-nums text-sm font-extrabold text-foreground mt-0.5 block whitespace-nowrap">
+                                        {{ $fmtRp($newGrandTotal) }}
+                                    </span>
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- 3. Tabel Perbandingan Rincian Item --}}
+                        @if($itemComparisons->isNotEmpty())
+                            <div class="space-y-2">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <h3 id="revisi-items-title-{{ $rev->id }}" class="text-xs font-semibold text-foreground uppercase tracking-wider">
+                                        Perbandingan Rincian Item
+                                    </h3>
+                                    <span class="text-[11px] text-muted-foreground font-mono tabular-nums">
+                                        {{ $totalItemCount }} item · {{ $changedItemCount }} berubah
+                                    </span>
+                                </div>
+
+                                <div tabindex="0" role="region" aria-labelledby="revisi-items-title-{{ $rev->id }}" class="overflow-x-auto rounded-xl border border-border bg-card">
+                                    <table class="w-full text-xs text-left">
+                                        <caption class="sr-only">Perbandingan item Purchase Order {{ $po->no_po }} pada Revisi ke-{{ $rev->revisi_ke }}</caption>
+                                        <thead class="bg-muted/60 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider border-b border-border">
+                                            <tr>
+                                                <th scope="col" class="py-2.5 px-3.5 min-w-[200px]">Bahan Baku / SKU</th>
+                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Sebelum</th>
+                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap bg-muted/80 text-foreground">Usulan Baru</th>
+                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Selisih</th>
                                             </tr>
-                                            @foreach($val as $itemIdx => $itUsul)
-                                                @php
-                                                    $poItemMatch = $po->items->firstWhere('id', $itUsul['po_item_id'] ?? $itemIdx)
-                                                        ?? $po->items->firstWhere('produk_id', $itUsul['produk_id'] ?? null)
-                                                        ?? $po->items->first();
-                                                    $namaIt = $poItemMatch?->produk?->nama ?? 'Item #' . $itemIdx;
-                                                    $satBeliOld = $poItemMatch?->satuan_beli ?: ($poItemMatch?->produk?->satuan ?? 'pcs');
-                                                    $qBeliOld = $poItemMatch?->qty_satuan_beli ?: $poItemMatch?->qty;
-                                                    $satBeliNew = $itUsul['satuan_beli'] ?? $satBeliOld;
-                                                    $qBeliNew = $itUsul['qty_satuan_beli'] ?? $itUsul['qty'] ?? 0;
-                                                @endphp
-                                                <tr>
-                                                    <td class="p-2.5 pl-4">
-                                                        <div class="font-semibold text-foreground">{{ $namaIt }}</div>
-                                                        <div class="text-[10px] text-muted-foreground font-mono">
-                                                            {{ $poItemMatch?->produk?->sku }} · Satuan: {{ $poItemMatch?->produk?->satuan }}
+                                        </thead>
+                                        <tbody class="divide-y divide-border bg-card">
+                                            @foreach($itemComparisons as $itRow)
+                                                <tr class="{{ $itRow['changed'] ? 'bg-amber-50/35' : 'opacity-80' }} hover:bg-muted/30 transition-colors">
+                                                    <th scope="row" class="py-3 px-3.5 font-normal text-left align-top">
+                                                        <div class="flex flex-wrap items-center gap-2">
+                                                            <span class="font-semibold text-foreground leading-snug">{{ $itRow['nama'] }}</span>
+                                                            <x-badge :variant="$itRow['changed'] ? 'warning' : 'muted'" size="sm">
+                                                                {{ $itRow['changed'] ? 'Berubah' : 'Tetap' }}
+                                                            </x-badge>
                                                         </div>
-                                                    </td>
-                                                    <td class="p-2.5 font-mono text-muted-foreground">
-                                                        <div>Qty Beli: {{ $qBeliOld }} {{ $satBeliOld }}</div>
-                                                        @if(strtolower($satBeliOld) !== strtolower($poItemMatch?->produk?->satuan ?? ''))
-                                                            <div class="text-[10px]">Fisik: {{ $poItemMatch?->qty }} {{ $poItemMatch?->produk?->satuan }}</div>
+                                                        <div class="font-mono text-[10px] text-muted-foreground mt-0.5">
+                                                            {{ $itRow['sku'] }} · Satuan dasar: {{ $itRow['sat_dasar'] }}
+                                                        </div>
+                                                    </th>
+
+                                                    <td class="py-3 px-3.5 text-right align-top font-mono tabular-nums text-muted-foreground whitespace-nowrap">
+                                                        <div class="text-foreground/90 font-medium">
+                                                            {{ $fmtQty($itRow['old_qty_beli']) }} <span class="text-[11px] font-normal text-muted-foreground">{{ $itRow['old_sat_beli'] }}</span>
+                                                        </div>
+                                                        @if(strcasecmp((string) $itRow['old_sat_beli'], (string) $itRow['sat_dasar']) !== 0)
+                                                            <div class="text-[10px] text-muted-foreground mt-0.5">
+                                                                = {{ $fmtQty($itRow['old_qty_dasar']) }} {{ $itRow['sat_dasar'] }}
+                                                            </div>
                                                         @endif
                                                         @if($canSeePrice)
-                                                            <div class="font-semibold text-foreground">Rp {{ number_format((float) ($poItemMatch?->harga_total ?? 0), 0, ',', '.') }}</div>
+                                                            <div class="text-[11px] text-muted-foreground mt-1">
+                                                                {{ $fmtRp($itRow['old_harga']) }}
+                                                            </div>
                                                         @endif
                                                     </td>
-                                                    <td class="p-2.5 font-mono font-semibold text-foreground bg-muted/20">
-                                                        <div>Qty Beli: {{ $qBeliNew }} {{ $satBeliNew }}</div>
-                                                        @if(isset($itUsul['qty']) && strtolower($satBeliNew) !== strtolower($poItemMatch?->produk?->satuan ?? ''))
-                                                            <div class="text-[10px] text-muted-foreground font-normal">Fisik: {{ $itUsul['qty'] }} {{ $poItemMatch?->produk?->satuan }}</div>
+
+                                                    <td class="py-3 px-3.5 text-right align-top font-mono tabular-nums bg-muted/20 whitespace-nowrap">
+                                                        <div class="font-semibold text-foreground">
+                                                            {{ $fmtQty($itRow['new_qty_beli']) }} <span class="text-[11px] font-normal text-muted-foreground">{{ $itRow['new_sat_beli'] }}</span>
+                                                        </div>
+                                                        @if(strcasecmp((string) $itRow['new_sat_beli'], (string) $itRow['sat_dasar']) !== 0)
+                                                            <div class="text-[10px] text-muted-foreground mt-0.5">
+                                                                = {{ $fmtQty($itRow['new_qty_dasar']) }} {{ $itRow['sat_dasar'] }}
+                                                            </div>
                                                         @endif
-                                                        @if($canSeePrice && isset($itUsul['harga_total']))
-                                                            <div class="font-bold text-foreground">Rp {{ number_format((float) $itUsul['harga_total'], 0, ',', '.') }}</div>
+                                                        @if($canSeePrice)
+                                                            <div class="text-[11px] font-bold text-foreground mt-1">
+                                                                {{ $fmtRp($itRow['new_harga']) }}
+                                                            </div>
+                                                        @endif
+                                                    </td>
+
+                                                    <td class="py-3 px-3.5 text-right align-top font-mono tabular-nums whitespace-nowrap">
+                                                        @if($itRow['qty_changed'])
+                                                            @if($itRow['delta_qty_beli'] !== null && abs($itRow['delta_qty_beli']) > 0.0001)
+                                                                <div class="font-semibold {{ $itRow['delta_qty_beli'] > 0 ? 'text-amber-700' : 'text-emerald-700' }}">
+                                                                    {{ ($itRow['delta_qty_beli'] > 0 ? '+' : '-') . $fmtQty(abs($itRow['delta_qty_beli'])) }} {{ $itRow['new_sat_beli'] }}
+                                                                </div>
+                                                            @else
+                                                                <div class="text-[11px] font-semibold text-amber-700">Ubah UOM</div>
+                                                            @endif
+                                                            @if(abs($itRow['delta_qty_dasar']) > 0.0001 && !$itRow['same_unit_beli'])
+                                                                <div class="text-[10px] text-muted-foreground mt-0.5">
+                                                                    ({{ ($itRow['delta_qty_dasar'] > 0 ? '+' : '-') . $fmtQty(abs($itRow['delta_qty_dasar'])) }} {{ $itRow['sat_dasar'] }})
+                                                                </div>
+                                                            @endif
+                                                        @else
+                                                            <div class="text-[11px] text-muted-foreground">0</div>
+                                                        @endif
+
+                                                        @if($canSeePrice)
+                                                            @if(abs($itRow['delta_harga']) >= 0.5)
+                                                                <div class="text-[11px] font-semibold mt-1 {{ $itRow['delta_harga'] > 0 ? 'text-amber-700' : 'text-emerald-700' }}">
+                                                                    {{ $fmtSignedRp($itRow['delta_harga']) }}
+                                                                </div>
+                                                            @else
+                                                                <div class="text-[11px] text-muted-foreground mt-1">Rp 0</div>
+                                                            @endif
                                                         @endif
                                                     </td>
                                                 </tr>
                                             @endforeach
-                                        @else
-                                            @php
-                                                $labelParam = match($k) {
-                                                    'subtotal_produk' => 'Subtotal Bahan (Kotor)',
-                                                    'diskon_total' => 'Diskon Global PO',
-                                                    'ppn_nominal' => 'PPN Global PO',
-                                                    'ongkos_kirim' => 'Ongkos Kirim Global',
-                                                    'adjustment' => 'Adjustment / Pembulatan',
-                                                    'grand_total' => 'Grand Total Tagihan',
-                                                    default => ucwords(str_replace('_', ' ', $k))
-                                                };
-                                                $oldVal = $dSeb[$k] ?? null;
-                                                $isCurrency = in_array($k, ['subtotal_produk', 'diskon_total', 'ppn_nominal', 'ongkos_kirim', 'adjustment', 'grand_total', 'nominal_tagihan'], true);
-                                            @endphp
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- 4. Tabel Dampak Finansial PO (Khusus Role Dengan Izin Harga) --}}
+                        @if($canSeePrice)
+                            <div class="space-y-2">
+                                <h3 id="revisi-finance-title-{{ $rev->id }}" class="text-xs font-semibold text-foreground uppercase tracking-wider">
+                                    Dampak Finansial PO
+                                </h3>
+
+                                <div tabindex="0" role="region" aria-labelledby="revisi-finance-title-{{ $rev->id }}" class="overflow-x-auto rounded-xl border border-border bg-card">
+                                    <table class="w-full text-xs text-left">
+                                        <caption class="sr-only">Perbandingan komponen biaya global dan Grand Total PO {{ $po->no_po }}</caption>
+                                        <thead class="bg-muted/60 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider border-b border-border">
                                             <tr>
-                                                <td class="p-2.5 font-medium text-foreground">{{ $labelParam }}</td>
-                                                <td class="p-2.5 font-mono text-muted-foreground">
-                                                    @if($isCurrency && is_numeric($oldVal))
-                                                        Rp {{ number_format((float) $oldVal, 0, ',', '.') }}
-                                                    @else
-                                                        {{ is_array($oldVal) ? json_encode($oldVal) : ($oldVal ?? '—') }}
-                                                    @endif
+                                                <th scope="col" class="py-2.5 px-3.5 min-w-[200px]">Komponen Biaya</th>
+                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Sebelum</th>
+                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap bg-muted/80 text-foreground">Usulan Baru</th>
+                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Selisih</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-border bg-card">
+                                            @foreach($financeRows as $fRow)
+                                                @php
+                                                    $fDelta = $fRow['is_discount']
+                                                        ? -($fRow['new'] - $fRow['old'])
+                                                        : ($fRow['new'] - $fRow['old']);
+                                                    $fChanged = abs($fDelta) >= 0.5;
+                                                    $fmtFinanceCell = static function (float $v) use ($fRow, $fmtRp, $fmtSignedRp): string {
+                                                        if ($fRow['is_discount']) {
+                                                            return $v > 0 ? '-' . $fmtRp($v) : 'Rp 0';
+                                                        }
+                                                        if ($fRow['is_signed']) {
+                                                            return $fmtSignedRp($v);
+                                                        }
+                                                        return $fmtRp($v);
+                                                    };
+                                                @endphp
+                                                <tr class="{{ $fChanged ? 'bg-amber-50/30' : '' }} hover:bg-muted/30 transition-colors">
+                                                    <th scope="row" class="py-2.5 px-3.5 font-medium text-foreground text-left">
+                                                        {{ $fRow['label'] }}
+                                                    </th>
+                                                    <td class="py-2.5 px-3.5 text-right font-mono tabular-nums text-muted-foreground whitespace-nowrap">
+                                                        {{ $fmtFinanceCell($fRow['old']) }}
+                                                    </td>
+                                                    <td class="py-2.5 px-3.5 text-right font-mono tabular-nums font-semibold text-foreground bg-muted/20 whitespace-nowrap">
+                                                        {{ $fmtFinanceCell($fRow['new']) }}
+                                                    </td>
+                                                    <td class="py-2.5 px-3.5 text-right font-mono tabular-nums whitespace-nowrap {{ $fChanged ? ($fDelta > 0 ? 'text-amber-700 font-semibold' : 'text-emerald-700 font-semibold') : 'text-muted-foreground' }}">
+                                                        {{ $fmtSignedRp($fDelta) }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="bg-muted/50 border-t-2 border-border">
+                                                <th scope="row" class="py-3 px-3.5 font-bold text-foreground text-left">
+                                                    Grand Total Tagihan
+                                                </th>
+                                                <td class="py-3 px-3.5 text-right font-mono tabular-nums font-semibold text-muted-foreground whitespace-nowrap">
+                                                    {{ $fmtRp($oldGrandTotal) }}
                                                 </td>
-                                                <td class="p-2.5 font-mono font-bold text-foreground bg-muted/20">
-                                                    @if($isCurrency && is_numeric($val))
-                                                        Rp {{ number_format((float) $val, 0, ',', '.') }}
-                                                    @else
-                                                        {{ is_array($val) ? json_encode($val) : $val }}
-                                                    @endif
+                                                <td class="py-3 px-3.5 text-right font-mono tabular-nums font-extrabold text-sm text-foreground bg-muted/40 whitespace-nowrap">
+                                                    {{ $fmtRp($newGrandTotal) }}
+                                                </td>
+                                                <td class="py-3 px-3.5 text-right font-mono tabular-nums font-bold whitespace-nowrap {{ $deltaGrandTotal > 0.5 ? 'text-amber-700' : ($deltaGrandTotal < -0.5 ? 'text-emerald-700' : 'text-muted-foreground') }}">
+                                                    {{ $fmtSignedRp($deltaGrandTotal) }}
                                                 </td>
                                             </tr>
-                                        @endif
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
 
+                        {{-- 5. Footer Keputusan Manager --}}
                         @can('purchasing.approve')
-                        <div class="pt-2 flex items-center justify-end gap-2" x-data="{ openRejectRev: false, alasanReject: '', isRejectDisabled() { return this.alasanReject.trim().length < 3; } }">
-                            <form method="POST" action="{{ route('purchasing.revisi.approve', $rev) }}" class="inline">
-                                @csrf
-                                <x-button type="submit" variant="success" size="xs">
-                                    ✓ Setujui Revisi Komitmen
+                        <div class="pt-3 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                             x-data="{
+                                 alasanReject: '',
+                                 openRejectDialog() { this.$refs.rejectDialog.showModal(); },
+                                 closeRejectDialog() { this.$refs.rejectDialog.close(); },
+                                 isRejectDisabled() { return this.alasanReject.trim().length < 3; }
+                             }">
+                            <p class="text-[11px] text-muted-foreground leading-relaxed">
+                                Menyetujui usulan akan memperbarui nilai komitmen PO aktif ke <strong class="text-foreground font-semibold">Revisi ke-{{ $rev->revisi_ke }}</strong> tanpa mereset waktu stage.
+                            </p>
+
+                            <div class="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                                <x-button type="button" variant="outline" size="sm" class="border-destructive/30 !text-destructive hover:!text-destructive hover:bg-destructive/10" @click="openRejectDialog()">
+                                    ✕ Tolak Usulan
                                 </x-button>
-                            </form>
 
-                            <x-button type="button" variant="outline" size="xs" class="border-destructive/30 text-destructive hover:bg-destructive/10" @click="openRejectRev = true">
-                                ✕ Tolak Usulan
-                            </x-button>
+                                <form method="POST" action="{{ route('purchasing.revisi.approve', $rev) }}" class="inline">
+                                    @csrf
+                                    <x-button type="submit" variant="success" size="sm">
+                                        ✓ Setujui Revisi Komitmen
+                                    </x-button>
+                                </form>
+                            </div>
 
-                            <div x-show="openRejectRev" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" x-cloak>
-                                <div class="bg-card rounded-xl border border-border p-4 max-w-sm w-full space-y-3 shadow-xl">
-                                    <h4 class="font-bold text-xs text-foreground">Alasan Penolakan Revisi</h4>
-                                    <form method="POST" action="{{ route('purchasing.revisi.reject', $rev) }}" class="space-y-3">
+                            <dialog id="reject-revisi-dialog-{{ $rev->id }}"
+                                    x-ref="rejectDialog"
+                                    aria-labelledby="reject-revisi-title-{{ $rev->id }}"
+                                    closedby="closerequest"
+                                    class="w-full max-w-md">
+                                <div class="bg-card rounded-2xl border border-border shadow-2xl overflow-hidden text-left">
+                                    <div class="px-5 py-4 border-b border-border bg-card flex items-center justify-between gap-3">
+                                        <h2 id="reject-revisi-title-{{ $rev->id }}" class="text-sm font-semibold text-foreground tracking-tight">
+                                            Tolak Usulan Revisi ke-{{ $rev->revisi_ke }}
+                                        </h2>
+                                        <button type="button"
+                                                @click="closeRejectDialog()"
+                                                aria-label="Tutup dialog penolakan revisi"
+                                                class="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent flex items-center justify-center transition cursor-pointer">
+                                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    <form method="POST" action="{{ route('purchasing.revisi.reject', $rev) }}" class="p-5 space-y-4">
                                         @csrf
-                                        <textarea name="alasan" x-model="alasanReject" required minlength="3" placeholder="Masukkan alasan penolakan..." class="w-full text-xs p-2.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring" rows="3"></textarea>
-                                        <div class="flex justify-end gap-2">
-                                            <x-button type="button" variant="outline" size="xs" @click="openRejectRev = false">Batal</x-button>
-                                            <x-button type="submit" variant="danger" size="xs" x-bind:disabled="isRejectDisabled()">Tolak Usulan</x-button>
+                                        <div>
+                                            <label for="reject-alasan-{{ $rev->id }}" class="block text-xs font-semibold text-foreground mb-1">
+                                                Alasan Penolakan <span class="text-destructive">*</span>
+                                            </label>
+                                            <p id="reject-hint-{{ $rev->id }}" class="text-[11px] text-muted-foreground mb-2">
+                                                Nilai PO aktif tetap dipertahankan. Masukkan alasan penolakan minimal 3 karakter untuk tim Purchasing.
+                                            </p>
+                                            <textarea id="reject-alasan-{{ $rev->id }}"
+                                                      name="alasan"
+                                                      x-model="alasanReject"
+                                                      autofocus
+                                                      required
+                                                      minlength="3"
+                                                      aria-describedby="reject-hint-{{ $rev->id }}"
+                                                      placeholder="Masukkan alasan penolakan usulan revisi..."
+                                                      class="w-full text-xs p-2.5 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                                      rows="3"></textarea>
+                                        </div>
+
+                                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                                            <x-button type="button" variant="outline" size="sm" @click="closeRejectDialog()">Batal</x-button>
+                                            <x-button type="submit" variant="danger" size="sm" x-bind:disabled="isRejectDisabled()">Konfirmasi Tolak</x-button>
                                         </div>
                                     </form>
                                 </div>
-                            </div>
+                            </dialog>
                         </div>
                         @endcan
                     </div>
                 @endforeach
             </div>
-        </div>
+        </section>
         @endif
 
         <!-- Metadata Singkat PO -->
@@ -319,36 +663,33 @@
 
                     <div tabindex="0" role="region" aria-label="Tabel Rincian Item Purchase Order" class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
+                            <caption class="sr-only">Rincian Item Purchase Order {{ $po->no_po }}</caption>
                             <thead class="bg-muted/60 border-b border-border text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">
                                 <tr>
-                                    <th class="py-2.5 px-3">Bahan Baku</th>
-                                    <th class="py-2.5 px-3 text-right">Qty PO</th>
+                                    <th scope="col" class="py-3 px-4 min-w-[180px]">Bahan Baku</th>
+                                    <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Qty PO</th>
                                     @if($canSeePrice)
-                                        <th class="py-2.5 px-3 text-right">Total Kotor</th>
-                                        <th class="py-2.5 px-2 text-right">Diskon</th>
-                                        <th class="py-2.5 px-2 text-right">PPN</th>
-                                        <th class="py-2.5 px-2 text-right">Ongkir</th>
-                                        <th class="py-2.5 px-2 text-right">Adjustment</th>
-                                        <th class="py-2.5 px-3 text-right">Net Total</th>
-                                        <th class="py-2.5 px-3 text-right bg-muted/80 text-foreground">HPP / Unit</th>
+                                        <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Total Kotor</th>
+                                        <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Net Total</th>
+                                        <th scope="col" class="py-3 px-4 text-right whitespace-nowrap bg-muted/80 text-foreground">HPP / Unit</th>
                                     @endif
-                                    <th class="py-2.5 px-3.5 text-right">Diterima Fisik</th>
+                                    <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Diterima Fisik</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-border bg-card">
-                                @foreach($po->items as $it)
+                                @forelse($po->items as $it)
                                 <tr class="hover:bg-muted/30 transition-colors">
-                                    <td class="py-2.5 px-3">
-                                        <div class="font-semibold text-foreground">{{ $it->produk->nama }}</div>
-                                        <div class="font-mono text-[11px] text-muted-foreground">{{ $it->produk->sku }}</div>
-                                    </td>
-                                    <td class="py-2.5 px-3 text-right font-mono font-medium text-foreground">
+                                    <th scope="row" class="py-3.5 px-4 font-normal text-left align-top">
+                                        <div class="font-semibold text-foreground leading-snug">{{ $it->produk?->nama ?? '—' }}</div>
+                                        <div class="font-mono text-[11px] text-muted-foreground mt-0.5">{{ $it->produk?->sku ?? '—' }}</div>
+                                    </th>
+                                    <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums font-medium text-foreground whitespace-nowrap">
                                         @if($it->qty_satuan_beli && $it->satuan_beli && strcasecmp($it->satuan_beli, $it->produk?->satuan ?? '') !== 0)
                                             <div class="text-foreground font-semibold">
                                                 {{ rtrim(rtrim(number_format($it->qty_satuan_beli, 2, ',', '.'), '0'), ',') }}
                                                 <span class="text-xs font-normal text-muted-foreground">{{ $it->satuan_beli }}</span>
                                             </div>
-                                            <div class="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border inline-block mt-0.5">
+                                            <div class="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border inline-block mt-1">
                                                 = {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk?->satuan }}
                                             </div>
                                         @else
@@ -359,80 +700,112 @@
                                         @endif
                                     </td>
                                     @if($canSeePrice)
-                                        <td class="py-2.5 px-3 text-right font-mono text-foreground">
+                                        <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums text-foreground whitespace-nowrap">
                                             Rp {{ number_format($it->harga_total, 0, ',', '.') }}
                                         </td>
-                                        <td class="py-2.5 px-2 text-right font-mono {{ (float)$it->diskon > 0 ? 'text-destructive' : 'text-muted-foreground' }}">
-                                            {{ (float)$it->diskon > 0 ? '-Rp ' . number_format($it->diskon, 0, ',', '.') : '—' }}
-                                        </td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground">
-                                            {{ (float)$it->ppn > 0 ? '+Rp ' . number_format($it->ppn, 0, ',', '.') : '—' }}
-                                        </td>
-                                        <td class="py-2.5 px-2 text-right font-mono text-muted-foreground">
-                                            {{ (float)$it->ongkir > 0 ? '+Rp ' . number_format($it->ongkir, 0, ',', '.') : '—' }}
-                                        </td>
-                                        <td class="py-2.5 px-2 text-right font-mono {{ (float)$it->adjustment < 0 ? 'text-destructive' : 'text-muted-foreground' }}">
-                                            @if((float)$it->adjustment != 0)
-                                                {{ (float)$it->adjustment > 0 ? '+Rp ' . number_format($it->adjustment, 0, ',', '.') : '-Rp ' . number_format(abs($it->adjustment), 0, ',', '.') }}
-                                            @else
-                                                —
-                                            @endif
-                                        </td>
-                                        <td class="py-2.5 px-3 text-right font-mono font-semibold text-foreground">
+                                        <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums font-semibold text-foreground whitespace-nowrap">
                                             Rp {{ number_format($it->netTotal(), abs($it->netTotal() - round($it->netTotal())) < 0.00001 ? 0 : 2, ',', '.') }}
                                         </td>
-                                        <td class="py-2.5 px-3 text-right font-mono font-bold text-foreground bg-muted/40" title="HPP / Satuan Dasar ({{ $it->produk?->satuan }}): {{ $it->formattedHpp() }}">
+                                        <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums font-bold text-foreground bg-muted/40 whitespace-nowrap" title="HPP / Satuan Dasar ({{ $it->produk?->satuan }}): {{ $it->formattedHpp() }}">
                                             <div>{{ $it->formattedHpp() }}</div>
                                             @if($it->qty_satuan_beli && $it->satuan_beli && strcasecmp($it->satuan_beli, $it->produk?->satuan ?? '') !== 0 && (float)$it->qty_satuan_beli > 0)
                                                 @php
                                                     $hppPerSatuanBeli = $it->netTotal() / (float)$it->qty_satuan_beli;
                                                 @endphp
-                                                <div class="text-[9px] font-normal text-muted-foreground">
+                                                <div class="text-[10px] font-normal text-muted-foreground mt-0.5">
                                                     (Rp {{ number_format($hppPerSatuanBeli, 0, ',', '.') }} / {{ $it->satuan_beli }})
                                                 </div>
                                             @endif
                                         </td>
                                     @endif
-                                    <td class="py-2.5 px-3.5 text-right font-mono font-medium {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-emerald-700 font-bold' : 'text-foreground' }}">
+                                    <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums font-medium whitespace-nowrap {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-foreground' }}">
                                         {{ rtrim(rtrim(number_format($it->qtyDiterima(), 2, ',', '.'), '0'), ',') }}
-                                        <span class="text-muted-foreground font-normal text-[10px]">{{ $it->produk->satuan }}</span>
+                                        <span class="text-muted-foreground font-normal text-[10px]">{{ $it->produk?->satuan }}</span>
                                     </td>
                                 </tr>
-                                @endforeach
-                            </tbody>
-                            @if($canSeePrice)
-                            <tfoot class="bg-muted/40 border-t border-border font-semibold text-foreground text-xs">
+                                @empty
                                 <tr>
-                                    <td class="py-2.5 px-3">Grand Total Nilai Pesanan</td>
-                                    <td></td>
-                                    <td class="py-2.5 px-3 text-right font-mono text-muted-foreground">
-                                        Rp {{ number_format($po->subtotal_produk ?: $po->items->sum('harga_total'), 0, ',', '.') }}
+                                    <td colspan="{{ $canSeePrice ? 6 : 3 }}" class="py-6 px-4 text-center text-muted-foreground">
+                                        Belum ada item pada Purchase Order ini.
                                     </td>
-                                    <td class="py-2.5 px-2 text-right font-mono {{ (float)$po->diskon_total > 0 ? 'text-destructive' : 'text-muted-foreground' }}">
-                                        {{ (float)$po->diskon_total > 0 ? '-Rp ' . number_format($po->diskon_total, 0, ',', '.') : '—' }}
-                                    </td>
-                                    <td class="py-2.5 px-2 text-right font-mono text-muted-foreground">
-                                        {{ (float)$po->ppn_nominal > 0 ? '+Rp ' . number_format($po->ppn_nominal, 0, ',', '.') : '—' }}
-                                    </td>
-                                    <td class="py-2.5 px-2 text-right font-mono text-muted-foreground">
-                                        {{ (float)$po->ongkos_kirim > 0 ? '+Rp ' . number_format($po->ongkos_kirim, 0, ',', '.') : '—' }}
-                                    </td>
-                                    <td class="py-2.5 px-2 text-right font-mono {{ (float)$po->adjustment < 0 ? 'text-destructive' : 'text-muted-foreground' }}">
-                                        @if((float)$po->adjustment != 0)
-                                            {{ (float)$po->adjustment > 0 ? '+Rp ' . number_format($po->adjustment, 0, ',', '.') : '-Rp ' . number_format(abs($po->adjustment), 0, ',', '.') }}
-                                        @else
-                                            —
-                                        @endif
-                                    </td>
-                                    <td colspan="2" class="py-2.5 px-3 text-right font-mono text-foreground font-bold text-sm">
-                                        Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}
-                                    </td>
-                                    <td></td>
                                 </tr>
-                            </tfoot>
-                            @endif
+                                @endforelse
+                            </tbody>
                         </table>
                     </div>
+
+                    @if($canSeePrice)
+                        @php
+                            $subtotalKotor = (float) ($po->subtotal_produk ?: $po->items->sum('harga_total'));
+                            $diskonGlobal = (float) ($po->diskon_total ?: $po->items->sum('diskon'));
+                            $ppnGlobal = (float) ($po->ppn_nominal ?: $po->items->sum('ppn'));
+                            $ongkirGlobal = (float) ($po->ongkos_kirim ?: $po->items->sum('ongkir'));
+                            $adjustmentGlobal = (float) $po->adjustment != 0
+                                ? (float) $po->adjustment
+                                : (float) $po->items->sum('adjustment');
+                        @endphp
+                        <div class="border-t border-border bg-muted/20 p-4 sm:px-5 sm:py-4">
+                            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                                <p class="text-[11px] leading-relaxed text-muted-foreground max-w-sm">
+                                    Komponen <strong class="font-semibold text-foreground">Diskon</strong>, <strong class="font-semibold text-foreground">PPN</strong>, <strong class="font-semibold text-foreground">Ongkir</strong>, dan <strong class="font-semibold text-foreground">Adjustment</strong> dikelompokkan di tingkat PO serta dialokasikan proporsional ke Net Total dan HPP per unit.
+                                </p>
+
+                                <div class="w-full md:w-[360px] md:ms-auto shrink-0 rounded-xl border border-border bg-card p-3.5 sm:p-4 shadow-2xs space-y-3">
+                                    <dl class="flex items-center justify-between gap-4 text-xs">
+                                        <dt class="text-muted-foreground font-medium">Subtotal Bahan (Kotor)</dt>
+                                        <dd class="font-mono tabular-nums font-semibold text-foreground whitespace-nowrap">
+                                            Rp {{ number_format($subtotalKotor, 0, ',', '.') }}
+                                        </dd>
+                                    </dl>
+
+                                    <div class="rounded-lg bg-muted/40 border border-border/70 px-3 py-2.5 space-y-2">
+                                        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-1 border-b border-border/60">
+                                            Biaya &amp; Penyesuaian Global PO
+                                        </div>
+                                        <dl class="space-y-1.5 text-xs">
+                                            <div class="flex items-center justify-between gap-4">
+                                                <dt class="text-muted-foreground">Diskon</dt>
+                                                <dd class="font-mono tabular-nums whitespace-nowrap {{ $diskonGlobal > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground' }}">
+                                                    {{ $diskonGlobal > 0 ? '-Rp ' . number_format($diskonGlobal, 0, ',', '.') : 'Rp 0' }}
+                                                </dd>
+                                            </div>
+                                            <div class="flex items-center justify-between gap-4">
+                                                <dt class="text-muted-foreground">PPN</dt>
+                                                <dd class="font-mono tabular-nums whitespace-nowrap {{ $ppnGlobal > 0 ? 'text-foreground font-semibold' : 'text-muted-foreground' }}">
+                                                    {{ $ppnGlobal > 0 ? '+Rp ' . number_format($ppnGlobal, 0, ',', '.') : 'Rp 0' }}
+                                                </dd>
+                                            </div>
+                                            <div class="flex items-center justify-between gap-4">
+                                                <dt class="text-muted-foreground">Ongkir</dt>
+                                                <dd class="font-mono tabular-nums whitespace-nowrap {{ $ongkirGlobal > 0 ? 'text-foreground font-semibold' : 'text-muted-foreground' }}">
+                                                    {{ $ongkirGlobal > 0 ? '+Rp ' . number_format($ongkirGlobal, 0, ',', '.') : 'Rp 0' }}
+                                                </dd>
+                                            </div>
+                                            <div class="flex items-center justify-between gap-4">
+                                                <dt class="text-muted-foreground">Adjustment</dt>
+                                                <dd class="font-mono tabular-nums whitespace-nowrap {{ $adjustmentGlobal < 0 ? 'text-destructive font-semibold' : ($adjustmentGlobal > 0 ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-muted-foreground') }}">
+                                                    @if($adjustmentGlobal > 0)
+                                                        +Rp {{ number_format($adjustmentGlobal, 0, ',', '.') }}
+                                                    @elseif($adjustmentGlobal < 0)
+                                                        -Rp {{ number_format(abs($adjustmentGlobal), 0, ',', '.') }}
+                                                    @else
+                                                        Rp 0
+                                                    @endif
+                                                </dd>
+                                            </div>
+                                        </dl>
+                                    </div>
+
+                                    <dl class="pt-2.5 border-t border-border flex items-baseline justify-between gap-4">
+                                        <dt class="text-xs sm:text-sm font-bold text-foreground">Grand Total Nilai Pesanan</dt>
+                                        <dd class="font-mono tabular-nums font-extrabold text-base text-foreground whitespace-nowrap">
+                                            Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </x-card>
 
                 <!-- Riwayat Penerimaan Barang Datang & Selisih (Requirement 13) -->
@@ -440,49 +813,61 @@
                 <x-card title="Riwayat Penerimaan Barang di Gudang" :noPadding="true">
                     <div class="divide-y divide-border">
                         @foreach($po->barangDatang as $bardat)
-                        <div class="p-3.5 space-y-2">
-                            <div class="flex items-center justify-between text-xs">
-                                <div class="flex items-center gap-2">
+                        <div class="p-4 space-y-2.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <div class="flex flex-wrap items-center gap-2">
                                     <span class="font-semibold text-foreground">Terima: {{ $bardat->tanggal_terima->format('d/m/Y') }}</span>
                                     <x-badge :variant="$bardat->kondisi === 'baik' ? 'success' : 'warning'" size="sm">
                                         Kondisi {{ ucfirst(str_replace('_',' ', $bardat->kondisi)) }}
                                     </x-badge>
+                                    @if($hasStages && $bardat->status_posting === 'belum')
+                                        <x-badge variant="info" size="sm">Menunggu Posting Stok</x-badge>
+                                    @endif
                                 </div>
                                 <span class="text-muted-foreground text-[11px]">Dicatat oleh: {{ $bardat->creator->name ?? 'Gudang' }}</span>
                             </div>
-                            <div tabindex="0" role="region" aria-label="Detail Barang Datang" class="overflow-x-auto bg-muted/20 rounded-lg p-2 border border-border">
+                            <div tabindex="0" role="region" aria-label="Detail Barang Datang" class="overflow-x-auto bg-muted/20 rounded-lg border border-border">
                                 <table class="w-full text-xs text-left">
-                                    <thead class="text-muted-foreground text-[10px] uppercase">
+                                    <caption class="sr-only">Detail penerimaan barang di gudang pada {{ $bardat->tanggal_terima->format('d/m/Y') }}</caption>
+                                    <thead class="bg-muted/50 border-b border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
                                         <tr>
-                                            <th class="py-1 px-1.5">Bahan</th>
-                                            <th class="py-1 px-1.5 text-right">Diterima</th>
-                                            <th class="py-1 px-1.5 text-right">Selisih</th>
-                                            <th class="py-1 pl-3 pr-1.5">Keterangan Selisih</th>
+                                            <th scope="col" class="py-2 px-3">Bahan</th>
+                                            <th scope="col" class="py-2 px-3 text-right whitespace-nowrap">Diterima</th>
+                                            <th scope="col" class="py-2 px-3 text-right whitespace-nowrap">Selisih</th>
+                                            <th scope="col" class="py-2 px-3">Keterangan Selisih</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-border">
+                                    <tbody class="divide-y divide-border bg-card">
                                         @foreach($bardat->items as $bItem)
                                         @php
                                             $poItem = $bItem->relationLoaded('poItem')
                                                 ? $bItem->poItem
                                                 : $po->items->firstWhere('id', $bItem->po_item_id);
                                             $namaProduk = $poItem?->produk?->nama ?? '—';
+                                            $satuanProduk = $poItem?->produk?->satuan ?? '';
+                                            $qtyRiwayatDiterima = $bItem->qty_diterima !== null
+                                                ? (float) $bItem->qty_diterima
+                                                : (float) ($bItem->qty_fisik ?? 0);
+                                            $selisihVal = (float) ($bItem->selisih ?? 0);
                                         @endphp
-                                        <tr>
-                                            <td class="py-1.5 px-1.5 font-medium text-foreground">{{ $namaProduk }}</td>
-                                            <td class="py-1.5 px-1.5 text-right font-mono font-semibold text-foreground">
-                                                {{ rtrim(rtrim(number_format($bItem->qty_diterima, 2, ',', '.'), '0'), ',') }}
-                                            </td>
-                                            <td class="py-1.5 px-1.5 text-right font-mono">
-                                                @if((float)$bItem->selisih < 0)
-                                                    <span class="text-destructive font-semibold">{{ number_format($bItem->selisih, 2, ',', '.') }} (Kurang)</span>
-                                                @elseif((float)$bItem->selisih > 0)
-                                                    <span class="text-sky-700 font-semibold">+{{ number_format($bItem->selisih, 2, ',', '.') }} (Lebih)</span>
-                                                @else
-                                                    <span class="text-emerald-700">Sesuai</span>
+                                        <tr class="hover:bg-muted/30 transition-colors">
+                                            <th scope="row" class="py-2.5 px-3 font-medium text-foreground text-left">{{ $namaProduk }}</th>
+                                            <td class="py-2.5 px-3 text-right font-mono tabular-nums font-semibold text-foreground whitespace-nowrap">
+                                                {{ $fmtQtyDisplay($qtyRiwayatDiterima) }}
+                                                @if($satuanProduk !== '')
+                                                    <span class="text-muted-foreground font-normal text-[10px]">{{ $satuanProduk }}</span>
                                                 @endif
                                             </td>
-                                            <td class="py-1.5 pl-3 pr-1.5 text-muted-foreground italic">{{ $bItem->keterangan_selisih ?? '—' }}</td>
+                                            <td class="py-2.5 px-3 text-right font-mono tabular-nums whitespace-nowrap">
+                                                @if($selisihVal < 0)
+                                                    <span class="text-destructive font-semibold">{{ $fmtQtyDisplay($selisihVal) }} (Kurang)</span>
+                                                @elseif($selisihVal > 0)
+                                                    <span class="text-sky-700 dark:text-sky-400 font-semibold">+{{ $fmtQtyDisplay($selisihVal) }} (Lebih)</span>
+                                                @else
+                                                    <span class="text-emerald-700 dark:text-emerald-400">Sesuai</span>
+                                                @endif
+                                            </td>
+                                            <td class="py-2.5 px-3 text-muted-foreground italic">{{ $bItem->keterangan_selisih ?? '—' }}</td>
                                         </tr>
                                         @endforeach
                                     </tbody>
@@ -717,20 +1102,22 @@
                                     @foreach($latestBardat->items as $bItem)
                                     @php
                                         $pItem = $bItem->poItem;
+                                        $stg9Fisik = $bItem->qty_fisik !== null ? (float) $bItem->qty_fisik : (float) ($bItem->qty_diterima ?? 0);
+                                        $stg9Selisih = (float) ($bItem->selisih ?? 0);
                                     @endphp
                                     <tr class="hover:bg-muted/20">
                                         <td class="p-2.5 font-medium text-foreground">{{ $pItem?->produk?->nama ?? '—' }}</td>
-                                        <td class="p-2.5 text-right font-mono text-muted-foreground">{{ number_format($pItem?->qty ?? 0, 2, ',', '.') }} {{ $pItem?->produk?->satuan }}</td>
-                                        <td class="p-2.5 text-right font-mono font-bold text-emerald-700">
-                                            {{ number_format($bItem->qty_fisik, 2, ',', '.') }} {{ $pItem?->produk?->satuan }}
+                                        <td class="p-2.5 text-right font-mono tabular-nums text-muted-foreground whitespace-nowrap">{{ $fmtQtyDisplay((float) ($pItem?->qty ?? 0)) }} {{ $pItem?->produk?->satuan }}</td>
+                                        <td class="p-2.5 text-right font-mono tabular-nums font-bold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                                            {{ $fmtQtyDisplay($stg9Fisik) }} {{ $pItem?->produk?->satuan }}
                                         </td>
-                                        <td class="p-2.5 text-right font-mono font-semibold">
-                                            @if((float)$bItem->selisih < 0)
-                                                <span class="text-destructive">{{ number_format($bItem->selisih, 2, ',', '.') }} (Kurang/Rusak)</span>
-                                            @elseif((float)$bItem->selisih > 0)
-                                                <span class="text-sky-700">+{{ number_format($bItem->selisih, 2, ',', '.') }} (Lebih)</span>
+                                        <td class="p-2.5 text-right font-mono tabular-nums font-semibold whitespace-nowrap">
+                                            @if($stg9Selisih < 0)
+                                                <span class="text-destructive">{{ $fmtQtyDisplay($stg9Selisih) }} (Kurang/Rusak)</span>
+                                            @elseif($stg9Selisih > 0)
+                                                <span class="text-sky-700 dark:text-sky-400">+{{ $fmtQtyDisplay($stg9Selisih) }} (Lebih)</span>
                                             @else
-                                                <span class="text-emerald-700">✓ Sesuai</span>
+                                                <span class="text-emerald-700 dark:text-emerald-400">✓ Sesuai</span>
                                             @endif
                                         </td>
                                         <td class="p-2.5 text-muted-foreground italic">{{ $bItem->keterangan_selisih ?? '—' }}</td>

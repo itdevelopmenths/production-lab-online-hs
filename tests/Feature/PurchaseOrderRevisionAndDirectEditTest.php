@@ -284,5 +284,78 @@ class PurchaseOrderRevisionAndDirectEditTest extends TestCase
         // HPP per satuan dasar = net total / qty dasar = 2.700.000 / 250 = 10.800
         $this->assertEquals(10800, (float) $updatedItem->hpp_per_satuan);
     }
+
+    public function test_revision_approval_card_displays_old_vs_new_deltas_and_hides_prices_from_gudang(): void
+    {
+        $po = $this->createSamplePo(PoStage::STAGE_4);
+        $originalItem = $po->items->first();
+        $gudang = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($this->purchasing)->post(route('purchasing.revisi.submit', $po), [
+            'alasan' => 'Penyesuaian qty ke 10 box isi 25 pcs dan diskon supplier',
+            'data_usulan' => [
+                'items' => [
+                    [
+                        'po_item_id' => $originalItem->id,
+                        'produk_id' => $this->produk1->id,
+                        'qty_satuan_beli' => 10,
+                        'satuan_beli' => 'box',
+                        'faktor_konversi' => 25.0,
+                        'qty' => 250,
+                        'harga_total' => 2500000,
+                    ],
+                ],
+                'subtotal_produk' => 2500000,
+                'diskon_total' => 100000,
+                'ppn_nominal' => 264000,
+                'ongkos_kirim' => 50000,
+                'adjustment' => -14000,
+                'grand_total' => 2700000,
+            ],
+        ])->assertRedirect();
+
+        $revisi = $po->revisis()->where('status', PoRevisi::STATUS_MENUNGGU)->firstOrFail();
+
+        // 1. Manager melihat perbandingan lengkap (data_lama -> data_usulan + selisih) dan kontrol approval
+        $managerRes = $this->actingAs($this->manager)->get(route('purchasing.show', $po));
+        $managerRes->assertOk();
+        $managerHtml = $managerRes->getContent();
+
+        $managerRes->assertSee('Antrean Persetujuan Revisi Komitmen');
+        $managerRes->assertSee('Revisi ke-1');
+        $managerRes->assertSee('Menunggu Approval Manager');
+        $managerRes->assertSee('Penyesuaian qty ke 10 box isi 25 pcs dan diskon supplier');
+        // KPI / Summary dampak finansial menampilkan snapshot lama (data_lama), usulan baru, dan selisih (+Rp 1.700.000)
+        $managerRes->assertSee('Grand Total Sebelumnya');
+        $managerRes->assertSee('Grand Total Usulan Baru');
+        $managerRes->assertSee('+Rp 1.700.000');
+        $managerRes->assertSee('-Rp 100.000');
+        $managerRes->assertSee('2.700.000');
+        $managerRes->assertSee('264.000');
+        // Tabel & dialog semantik modern
+        $managerRes->assertSee('Dampak Finansial PO', false);
+        $managerRes->assertSee('<th scope="col"', false);
+        $managerRes->assertSee('<dialog id="reject-revisi-dialog-' . $revisi->id . '"', false);
+        $managerRes->assertSee('Setujui Revisi Komitmen');
+        $managerRes->assertSee('Tolak Usulan');
+
+        // Pastikan baris finansial lama di card Antrean Persetujuan tidak jatuh menjadi '—' akibat salah baca $rev->data_sebelum
+        $this->assertMatchesRegularExpression(
+            '/Grand Total Sebelumnya.*?Rp 1\.000\.000/s',
+            $managerHtml
+        );
+
+        // 2. User Gudang tidak boleh melihat nominal rupiah, ringkasan finansial, maupun tombol approval manager
+        $gudangRes = $this->actingAs($gudang)->get(route('purchasing.show', $po));
+        $gudangRes->assertOk();
+        $gudangRes->assertSee('Antrean Persetujuan Revisi Komitmen');
+        $gudangRes->assertSee('10 box');
+        $gudangRes->assertDontSee('2.700.000');
+        $gudangRes->assertDontSee('1.700.000');
+        $gudangRes->assertDontSee('264.000');
+        $gudangRes->assertDontSee('Grand Total Sebelumnya');
+        $gudangRes->assertDontSee('Setujui Revisi Komitmen');
+        $gudangRes->assertDontSee('Tolak Usulan');
+    }
 }
 

@@ -1494,6 +1494,106 @@ class PurchasingComprehensiveQATest extends TestCase
         $res->assertDontSee('Rp 15.000,00');
     }
 
+    /**
+     * TC-SHOW-02: Verifikasi pengelompokan Diskon, PPN, Ongkir, dan Adjustment
+     * di bottom summary PO, tanpa kolom terpisah per bahan baku pada tabel rincian item.
+     */
+    public function test_show_view_groups_global_adjustments_in_bottom_summary_instead_of_per_item_columns(): void
+    {
+        $po = PurchaseOrder::create([
+            'no_po' => 'PO-SHOW-GROUP-TEST',
+            'no_invoice' => 'INV/TEST/GROUP',
+            'supplier_id' => $this->supplier->id,
+            'gudang_id' => $this->gudangPusat->id,
+            'tanggal' => now()->toDateString(),
+            'status' => 'draft',
+            'status_pembayaran' => 'belum_lunas',
+            'skema_bayar' => 'cash',
+            'subtotal_produk' => 2500000,
+            'diskon_total' => 100000,
+            'ppn_nominal' => 264000,
+            'ongkos_kirim' => 50000,
+            'adjustment' => -4000,
+            'grand_total' => 2710000,
+            'created_by' => $this->purchasing->id,
+        ]);
+
+        $item1 = Produk::where('sku', 'ALK-01')->firstOrFail();
+        $item2 = Produk::where('sku', 'OIL-GOH')->firstOrFail();
+
+        $po->items()->create([
+            'produk_id' => $item1->id,
+            'qty' => 100,
+            'harga_total' => 1500000,
+            'diskon' => 60000,
+            'ppn' => 158400,
+            'ongkir' => 30000,
+            'adjustment' => -2400,
+            'hpp_per_satuan' => 16260,
+        ]);
+
+        $po->items()->create([
+            'produk_id' => $item2->id,
+            'qty' => 50,
+            'harga_total' => 1000000,
+            'diskon' => 40000,
+            'ppn' => 105600,
+            'ongkir' => 20000,
+            'adjustment' => -1600,
+            'hpp_per_satuan' => 21680,
+        ]);
+
+        $res = $this->actingAs($this->purchasing)->get(route('purchasing.show', $po));
+        $res->assertOk();
+
+        $html = $res->getContent();
+
+        $this->assertSame(
+            1,
+            preg_match('/aria-label="Tabel Rincian Item Purchase Order".*?<thead\b[^>]*>(.*?)<\/thead>/s', $html, $theadMatch)
+        );
+        $thead = $theadMatch[1];
+        $this->assertStringContainsString('Bahan Baku', $thead);
+        $this->assertStringContainsString('Qty PO', $thead);
+        $this->assertStringContainsString('Total Kotor', $thead);
+        $this->assertStringContainsString('Net Total', $thead);
+        $this->assertStringContainsString('HPP / Unit', $thead);
+        $this->assertStringContainsString('Diterima Fisik', $thead);
+        $this->assertStringNotContainsString('Diskon', $thead);
+        $this->assertStringNotContainsString('PPN', $thead);
+        $this->assertStringNotContainsString('Ongkir', $thead);
+        $this->assertStringNotContainsString('Adjustment', $thead);
+
+        $this->assertSame(
+            1,
+            preg_match('/aria-label="Tabel Rincian Item Purchase Order".*?<tbody\b[^>]*>(.*?)<\/tbody>/s', $html, $tbodyMatch)
+        );
+        $tbody = $tbodyMatch[1];
+        $this->assertStringNotContainsString('-Rp 60.000', $tbody);
+        $this->assertStringNotContainsString('+Rp 158.400', $tbody);
+        $this->assertStringNotContainsString('+Rp 30.000', $tbody);
+        $this->assertStringNotContainsString('-Rp 2.400', $tbody);
+
+        // Pastikan komponen global muncul sebagai satu grup ringkasan di bawah tabel
+        $res->assertSee('Subtotal Bahan (Kotor)');
+        $res->assertSee('Biaya & Penyesuaian Global PO');
+        $res->assertSee('Rp 2.500.000');
+        $res->assertSee('-Rp 100.000');
+        $res->assertSee('+Rp 264.000');
+        $res->assertSee('+Rp 50.000');
+        $res->assertSee('-Rp 4.000');
+        $res->assertSee('Grand Total Nilai Pesanan');
+        $res->assertSee('Rp 2.710.000');
+
+        // User tanpa permission purchasing.price.view tidak melihat ringkasan harga maupun kolom biaya
+        $viewerNoPrice = User::factory()->create(['warehouse_access_type' => 'global']);
+        $viewerNoPrice->givePermissionTo(['purchasing.view']);
+        $resNoPrice = $this->actingAs($viewerNoPrice)->get(route('purchasing.show', $po));
+        $resNoPrice->assertOk();
+        $resNoPrice->assertDontSee('Biaya & Penyesuaian Global PO');
+        $resNoPrice->assertDontSee('Grand Total Nilai Pesanan');
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // TEST HELPERS
     // ──────────────────────────────────────────────────────────────────────────

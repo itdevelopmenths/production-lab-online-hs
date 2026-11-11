@@ -380,6 +380,28 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
 
         // Stage 9: Posting Stok
         $this->assertEquals(PoStage::STAGE_9, $po->fresh()->stage_aktif);
+
+        // Verifikasi angka pada tabel Riwayat Penerimaan & Verifikasi Tahap 9 tampil akurat (tidak 0 saat belum posting) dan tanpa ,00
+        $preStage9View = $this->get(route('purchasing.show', $po));
+        $preStage9View->assertOk();
+        $preStage9View->assertSee('Riwayat Penerimaan Barang di Gudang');
+        $preStage9View->assertSee('Verifikasi dan Input Sistem Penerimaan (Tahap 9)');
+        $preStage9View->assertSee('-20 (Kurang)');
+        $preStage9View->assertSee('-20 (Kurang/Rusak)');
+        $preStage9View->assertDontSee('100,00');
+        $preStage9View->assertDontSee('80,00');
+        $preStage9View->assertDontSee('50,00');
+        $preStage9View->assertDontSee('-20,00');
+
+        $preHtml = $preStage9View->getContent();
+        $this->assertSame(
+            1,
+            preg_match('/aria-label="Detail Barang Datang".*?<tbody\b[^>]*>(.*?)<\/tbody>/s', $preHtml, $riwayatBody)
+        );
+        $this->assertMatchesRegularExpression('/<td[^>]*>\s*80\b/', $riwayatBody[1]);
+        $this->assertMatchesRegularExpression('/<td[^>]*>\s*50\b/', $riwayatBody[1]);
+        $this->assertDoesNotMatchRegularExpression('/<td[^>]*>\s*0\s*(?:<span[^>]*>[^<]*<\/span>)?\s*<\/td>/', $riwayatBody[1]);
+
         $response9 = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_9]), [
             'waktu_selesai' => now()->toDateTimeString(),
             'catatan' => 'Posting stok hasil unloading',
@@ -408,6 +430,10 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $viewResponse->assertOk();
         $viewResponse->assertSee('Audit Penerimaan dan Posting Stok (Tahap 9 - Selesai)');
         $viewResponse->assertSee('Stok Diposting');
+        $viewResponse->assertSee('-20 (Kurang/Rusak)');
+        $viewResponse->assertDontSee('100,00');
+        $viewResponse->assertDontSee('80,00');
+        $viewResponse->assertDontSee('-20,00');
         $viewResponse->assertDontSee('Posting Stok ke Gudang & Selesaikan PO');
 
         // 2. Jika route completeStage9 dipanggil ulang (double-submission), sistem menolak secara elegan
