@@ -193,5 +193,129 @@ class TransferMonthlyWarehouseDefectDashboardTest extends TestCase
         $response->assertSee('11.11%');
         $response->assertSee('Maret');
     }
+
+    public function test_completed_transfer_without_waktu_diterima_falls_back_to_timestamps_in_analytics(): void
+    {
+        $year = (int) date('Y');
+        $month = (int) date('n');
+
+        $trf = Transfer::create([
+            'no_transaksi' => 'TRF-NULL-WAKTU-01',
+            'jenis' => 'kirim_produk_jadi',
+            'gudang_asal_id' => $this->gudangPusat->id,
+            'gudang_tujuan_id' => $this->gudangOps->id,
+            'status' => 'selesai',
+            'waktu_diterima' => null,
+            'diterima_oleh' => $this->operasional->id,
+            'created_by' => $this->gudangUser->id,
+        ]);
+        $trf->items()->create([
+            'produk_id' => $this->bahan1->id,
+            'qty_dikirim' => 25,
+            'qty_diterima' => 20,
+            'qty_baik' => 20,
+            'qty_rusak' => 5,
+            'keterangan_rusak' => 'Pecah tanpa timestamp terima',
+        ]);
+
+        $analytics = $this->trfService->getMonthlyWarehouseDefectAnalytics($year, $month);
+        $this->assertEquals(5.0, (float) $analytics['summary']['total_qty_rusak']);
+
+        $monthRow = collect($analytics['monthly_matrix'])->firstWhere('month', $month);
+        $this->assertNotNull($monthRow);
+        $this->assertEquals(5.0, (float) $monthRow['qty_rusak']);
+    }
+
+    public function test_combined_analytics_aggregates_transfer_purchasing_and_batch_defects(): void
+    {
+        $year = (int) date('Y');
+        $month = (int) date('n');
+        $supplier = \App\Models\Supplier::firstOrFail();
+        $produkJadi = Produk::produkJadi()->active()->firstOrFail();
+
+        // 1. Transfer (5 rusak dari 50)
+        $trf = Transfer::create([
+            'no_transaksi' => 'TRF-SVC-COMB',
+            'jenis' => 'kirim_produk_jadi',
+            'gudang_asal_id' => $this->gudangPusat->id,
+            'gudang_tujuan_id' => $this->gudangOps->id,
+            'status' => 'selesai',
+            'waktu_diterima' => now(),
+            'diterima_oleh' => $this->operasional->id,
+            'created_by' => $this->gudangUser->id,
+        ]);
+        $trf->items()->create([
+            'produk_id' => $this->bahan1->id,
+            'qty_dikirim' => 50,
+            'qty_diterima' => 45,
+            'qty_baik' => 45,
+            'qty_rusak' => 5,
+            'keterangan_rusak' => 'Transfer pecah',
+        ]);
+
+        // 2. Purchasing (10 rusak dari 100, termasuk saat kondisi PO dibiarkan 'baik' namun ada selisih negatif)
+        $po = \App\Models\PurchaseOrder::create([
+            'no_po' => 'PO-SVC-COMB',
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $this->gudangPusat->id,
+            'tanggal' => now()->toDateString(),
+            'status' => 'selesai',
+            'created_by' => $this->gudangUser->id,
+        ]);
+        $poItem = $po->items()->create([
+            'produk_id' => $this->bahan2->id,
+            'qty' => 100,
+            'harga_total' => 100000,
+        ]);
+        $bardat = \App\Models\BarangDatang::create([
+            'po_id' => $po->id,
+            'tanggal_terima' => now()->toDateString(),
+            'waktu_tiba' => now(),
+            'kondisi' => 'baik',
+            'status_posting' => 'diposting',
+            'created_by' => $this->gudangUser->id,
+        ]);
+        $bardat->items()->create([
+            'po_item_id' => $poItem->id,
+            'qty_fisik' => 90,
+            'qty_diterima' => 90,
+            'selisih' => -10,
+            'keterangan_selisih' => 'Rusak unboxing PO',
+        ]);
+
+        // 3. Batch Produksi multi-output (3 + 2 = 5 rusak dari 50)
+        $batch = \App\Models\BatchProduksi::create([
+            'no_batch' => 'B-SVC-COMB',
+            'produk_id' => $produkJadi->id,
+            'qty_rencana' => 50,
+            'qty_baik' => 45,
+            'qty_rusak' => 5,
+            'gudang_operasional_id' => $this->gudangOps->id,
+            'status' => 'selesai',
+            'tanggal' => now()->toDateString(),
+            'created_by' => $this->operasional->id,
+        ]);
+        $batch->outputs()->create([
+            'produk_id' => $produkJadi->id,
+            'qty_rencana' => 50,
+            'qty_baik' => 45,
+            'qty_rusak' => 5,
+        ]);
+
+        // Combined analytics: 5 + 10 + 5 = 20 rusak dari 200 volume -> 10.00%
+        $combined = $this->trfService->getCombinedMonthlyWarehouseDefectAnalytics($year, $month);
+        $this->assertEquals(20.0, (float) $combined['summary']['total_qty_rusak']);
+        $this->assertEquals(200.0, (float) $combined['summary']['total_qty_dikirim']);
+        $this->assertEquals(10.0, (float) $combined['summary']['defect_rate_percent']);
+        $this->assertEquals(3, $combined['summary']['total_transfers']);
+        $this->assertEquals(5.0, (float) $combined['summary']['by_source']['transfer']);
+        $this->assertEquals(10.0, (float) $combined['summary']['by_source']['purchasing']);
+        $this->assertEquals(5.0, (float) $combined['summary']['by_source']['batch']);
+
+        // Transfer-only analytics (untuk Report & transfers.index) tetap menghitung Transfer saja (5 rusak)
+        $transferOnly = $this->trfService->getMonthlyWarehouseDefectAnalytics($year, $month);
+        $this->assertEquals(5.0, (float) $transferOnly['summary']['total_qty_rusak']);
+        $this->assertEquals(1, $transferOnly['summary']['total_transfers']);
+    }
 }
 

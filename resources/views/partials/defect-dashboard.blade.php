@@ -22,9 +22,15 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h2 class="text-sm font-semibold text-foreground tracking-tight">Dashboard Barang Rusak & Defect Mutasi</h2>
-                            <x-badge variant="neutral" size="sm">Audit Logistik</x-badge>
+                            <x-badge variant="neutral" size="sm">{{ !empty($isCombinedDefectSources) ? 'PO, Batch & Mutasi' : 'Audit Logistik' }}</x-badge>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-0.5">Akumulasi barang rusak per bulan per fasilitas gudang dari penerimaan transfer fisik</p>
+                        <p class="text-xs text-muted-foreground mt-0.5">
+                            @if(!empty($isCombinedDefectSources))
+                                Akumulasi barang rusak dari Transfer, Purchasing (PO), dan Batch Produksi per bulan per fasilitas gudang
+                            @else
+                                Akumulasi barang rusak per bulan per fasilitas gudang dari penerimaan transfer fisik
+                            @endif
+                        </p>
                     </div>
                 </div>
 
@@ -85,13 +91,13 @@
                 <div class="p-3 rounded-lg bg-card border border-border shadow-2xs flex flex-col justify-between">
                     <span class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total Selesai</span>
                     <div class="text-xl font-bold font-mono tabular-nums text-foreground mt-1">{{ number_format($defectAnalytics['summary']['total_transfers'] ?? 0) }}</div>
-                    <span class="text-[11px] text-muted-foreground mt-0.5">Transaksi mutasi</span>
+                    <span class="text-[11px] text-muted-foreground mt-0.5">{{ !empty($isCombinedDefectSources) ? 'Transaksi selesai' : 'Transaksi mutasi' }}</span>
                 </div>
 
                 <div class="p-3 rounded-lg bg-card border border-border shadow-2xs flex flex-col justify-between">
-                    <span class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total Dikirim</span>
+                    <span class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{{ !empty($isCombinedDefectSources) ? 'Total Volume' : 'Total Dikirim' }}</span>
                     <div class="text-xl font-bold font-mono tabular-nums text-foreground mt-1">{{ number_format($defectAnalytics['summary']['total_qty_dikirim'] ?? 0, 2) }}</div>
-                    <span class="text-[11px] text-muted-foreground mt-0.5">Volume mutasi fisik</span>
+                    <span class="text-[11px] text-muted-foreground mt-0.5">{{ !empty($isCombinedDefectSources) ? 'Volume Transfer, PO & Batch' : 'Volume mutasi fisik' }}</span>
                 </div>
 
                 <div class="p-3 rounded-lg bg-card border border-border shadow-2xs flex flex-col justify-between">
@@ -99,7 +105,16 @@
                     <div class="text-xl font-bold font-mono tabular-nums mt-1 {{ ($defectAnalytics['summary']['total_qty_rusak'] ?? 0) > 0 ? 'text-destructive' : 'text-foreground' }}">
                         {{ number_format($defectAnalytics['summary']['total_qty_rusak'] ?? 0, 2) }}
                     </div>
-                    <span class="text-[11px] text-muted-foreground mt-0.5">Penerimaan rusak</span>
+                    <span class="text-[11px] text-muted-foreground mt-0.5">
+                        @php
+                            $bySrc = $defectAnalytics['summary']['by_source'] ?? [];
+                        @endphp
+                        @if(!empty($isCombinedDefectSources) && ($defectAnalytics['summary']['total_qty_rusak'] ?? 0) > 0)
+                            Trf: {{ \App\Helpers\NumberHelper::formatQty($bySrc['transfer'] ?? 0) }} &middot; PO: {{ \App\Helpers\NumberHelper::formatQty($bySrc['purchasing'] ?? 0) }} &middot; Batch: {{ \App\Helpers\NumberHelper::formatQty($bySrc['batch'] ?? 0) }}
+                        @else
+                            Penerimaan rusak
+                        @endif
+                    </span>
                 </div>
 
                 <div class="p-3 rounded-lg bg-card border border-border shadow-2xs flex flex-col justify-between">
@@ -112,7 +127,7 @@
                     <div class="text-xl font-bold font-mono tabular-nums mt-1 {{ ($defectAnalytics['summary']['defect_rate_percent'] ?? 0) > 0 ? 'text-destructive' : 'text-foreground' }}">
                         {{ number_format($defectAnalytics['summary']['defect_rate_percent'] ?? 0, 2) }}%
                     </div>
-                    <span class="text-[11px] text-muted-foreground mt-0.5">Rasio rusak vs kirim</span>
+                    <span class="text-[11px] text-muted-foreground mt-0.5">{{ !empty($isCombinedDefectSources) ? 'Rasio rusak vs volume' : 'Rasio rusak vs kirim' }}</span>
                 </div>
 
                 <div class="p-3 rounded-lg bg-card border border-border shadow-2xs col-span-2 md:col-span-1 flex flex-col justify-between">
@@ -167,12 +182,12 @@
                         <thead class="bg-muted/80 border-b border-border text-muted-foreground font-medium">
                             <tr>
                                 <th class="px-3.5 py-2.5 text-left w-32">Bulan</th>
-                                <th class="px-3.5 py-2.5 text-right w-24">Transfer</th>
-                                <th class="px-3.5 py-2.5 text-right w-32">Qty Dikirim</th>
+                                <th class="px-3.5 py-2.5 text-right w-24">{{ !empty($isCombinedDefectSources) ? 'Transaksi' : 'Transfer' }}</th>
+                                <th class="px-3.5 py-2.5 text-right w-32">{{ !empty($isCombinedDefectSources) ? 'Total Volume' : 'Qty Dikirim' }}</th>
                                 <th class="px-3.5 py-2.5 text-right w-32">Qty Baik</th>
                                 <th class="px-3.5 py-2.5 text-right w-32 text-destructive font-bold">Qty Rusak</th>
                                 <th class="px-3.5 py-2.5 text-right w-24">Defect %</th>
-                                <th class="px-3.5 py-2.5 text-left">Rincian per Gudang Penerima</th>
+                                <th class="px-3.5 py-2.5 text-left">{{ !empty($isCombinedDefectSources) ? 'Rincian per Gudang / Lokasi' : 'Rincian per Gudang Penerima' }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border bg-card">

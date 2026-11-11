@@ -10,6 +10,7 @@ use App\Models\Transfer;
 use App\Models\TransferItem;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -350,87 +351,242 @@ class TransferService
     }
 
     /**
-     * Engine Kalkulasi & Rekapitulasi Barang Rusak Bulanan per Gudang (TC-42, User Override).
+     * Engine Kalkulasi & Rekapitulasi Barang Rusak Bulanan per Gudang — Khusus Transfer (TC-42, User Override).
      */
     public function getMonthlyWarehouseDefectAnalytics(int $year, ?int $month = null, ?int $gudangId = null): array
     {
-        // Query dasar transaksi transfer yang sudah selesai pada tahun bersangkutan
-        $baseQuery = DB::table('transfers as t')
-            ->join('transfer_items as ti', 'ti.transfer_id', '=', 't.id')
-            ->join('gudang as g', 'g.id', '=', 't.gudang_tujuan_id')
+        return $this->buildWarehouseDefectAnalytics($year, $month, $gudangId, false, false);
+    }
+
+    /**
+     * Rekapitulasi Barang Rusak Gabungan untuk Dashboard: Transfer + Purchasing (PO) + Batch Produksi.
+     */
+    public function getCombinedMonthlyWarehouseDefectAnalytics(int $year, ?int $month = null, ?int $gudangId = null): array
+    {
+        return $this->buildWarehouseDefectAnalytics($year, $month, $gudangId, true, true);
+    }
+
+    /**
+     * Daftar ringkas barang rusak terbaru dari Transfer, Purchasing (Barang Datang), dan Batch Produksi.
+     *
+     * @return Collection<int, object>
+     */
+    public function getRecentDefectLogs(int $limit = 5): Collection
+    {
+        $transferLogs = DB::table('transfer_items as ti')
+            ->join('transfers as t', 't.id', '=', 'ti.transfer_id')
             ->join('produk as p', 'p.id', '=', 'ti.produk_id')
+            ->leftJoin('gudang as g', 'g.id', '=', 't.gudang_tujuan_id')
             ->where('t.status', 'selesai')
-            ->whereYear('t.waktu_diterima', $year);
+            ->where('ti.qty_rusak', '>', 0)
+            ->orderByRaw('COALESCE(t.waktu_diterima, t.updated_at, ti.updated_at, ti.created_at) DESC')
+            ->limit($limit)
+            ->select([
+                't.id as doc_id',
+                't.no_transaksi as nomor',
+                'p.nama as produk_nama',
+                'p.satuan as satuan',
+                'g.nama as gudang_nama',
+                'ti.qty_rusak as qty_rusak',
+                'ti.keterangan_rusak as keterangan',
+                DB::raw('COALESCE(t.waktu_diterima, t.updated_at, ti.updated_at, ti.created_at) as sort_at'),
+            ])
+            ->get()
+            ->map(fn ($row) => $this->formatDefectLogItem(
+                sourceBadge: 'Transfer',
+                nomor: $row->nomor,
+                produkNama: $row->produk_nama,
+                satuan: $row->satuan,
+                gudangNama: $row->gudang_nama,
+                qtyRusak: (float) $row->qty_rusak,
+                keterangan: $row->keterangan ?: 'Kerusakan fisik transfer',
+                url: route('transfers.show', $row->doc_id),
+                sortAt: $row->sort_at
+            ));
 
-        if ($gudangId) {
-            $baseQuery->where('t.gudang_tujuan_id', $gudangId);
+        $purchasingLogs = DB::table('barang_datang_items as bdi')
+            ->join('barang_datang as bd', 'bd.id', '=', 'bdi.bardat_id')
+            ->join('purchase_orders as po', 'po.id', '=', 'bd.po_id')
+            ->join('purchase_order_items as poi', 'poi.id', '=', 'bdi.po_item_id')
+            ->join('produk as p', 'p.id', '=', 'poi.produk_id')
+            ->leftJoin('gudang as g', 'g.id', '=', 'po.gudang_id')
+            ->where('po.status', '!=', 'dibatalkan')
+            ->where('bdi.selisih', '<', 0)
+            ->orderByRaw('COALESCE(bd.waktu_tiba, bd.created_at, bd.tanggal_terima) DESC')
+            ->limit($limit)
+            ->select([
+                'po.id as doc_id',
+                'po.no_po as nomor',
+                'p.nama as produk_nama',
+                'p.satuan as satuan',
+                'g.nama as gudang_nama',
+                DB::raw('ABS(bdi.selisih) as qty_rusak'),
+                'bdi.keterangan_selisih as keterangan',
+                DB::raw('COALESCE(bd.waktu_tiba, bd.created_at, bd.tanggal_terima) as sort_at'),
+            ])
+            ->get()
+            ->map(fn ($row) => $this->formatDefectLogItem(
+                sourceBadge: 'Purchasing',
+                nomor: $row->nomor,
+                produkNama: $row->produk_nama,
+                satuan: $row->satuan,
+                gudangNama: $row->gudang_nama ?? 'Gudang PO',
+                qtyRusak: (float) $row->qty_rusak,
+                keterangan: $row->keterangan ?: 'Selisih/rusak penerimaan PO',
+                url: route('purchasing.show', $row->doc_id),
+                sortAt: $row->sort_at
+            ));
+
+        $batchLogs = DB::table('batch_produksi as bp')
+            ->leftJoin('batch_produksi_outputs as bpo', 'bpo.batch_id', '=', 'bp.id')
+            ->join('produk as p', function ($join) {
+                $join->on('p.id', '=', DB::raw('COALESCE(bpo.produk_id, bp.produk_id)'));
+            })
+            ->leftJoin('gudang as g', function ($join) {
+                $join->on('g.id', '=', DB::raw('COALESCE(bp.gudang_operasional_id, bp.gudang_tujuan_rencana_id)'));
+            })
+            ->where('bp.status', 'selesai')
+            ->whereRaw('COALESCE(bpo.qty_rusak, bp.qty_rusak, 0) > 0')
+            ->orderByRaw('COALESCE(bp.updated_at, bp.created_at, bp.tanggal) DESC')
+            ->limit($limit)
+            ->select([
+                'bp.id as doc_id',
+                'bp.no_batch as nomor',
+                'p.nama as produk_nama',
+                'p.satuan as satuan',
+                'g.nama as gudang_nama',
+                DB::raw('COALESCE(bpo.qty_rusak, bp.qty_rusak, 0) as qty_rusak'),
+                'bpo.catatan as keterangan',
+                DB::raw('COALESCE(bp.updated_at, bp.created_at, bp.tanggal) as sort_at'),
+            ])
+            ->get()
+            ->map(fn ($row) => $this->formatDefectLogItem(
+                sourceBadge: 'Batch',
+                nomor: $row->nomor,
+                produkNama: $row->produk_nama,
+                satuan: $row->satuan,
+                gudangNama: $row->gudang_nama ?? 'Lab Produksi',
+                qtyRusak: (float) $row->qty_rusak,
+                keterangan: $row->keterangan ?: 'Reject QC hasil produksi',
+                url: route('batches.show', $row->doc_id),
+                sortAt: $row->sort_at
+            ));
+
+        return $transferLogs
+            ->concat($purchasingLogs)
+            ->concat($batchLogs)
+            ->sortByDesc('sort_ts')
+            ->take($limit)
+            ->values();
+    }
+
+    private function formatDefectLogItem(
+        string $sourceBadge,
+        string $nomor,
+        ?string $produkNama,
+        ?string $satuan,
+        ?string $gudangNama,
+        float $qtyRusak,
+        string $keterangan,
+        string $url,
+        mixed $sortAt
+    ): object {
+        $ts = $sortAt ? Carbon::parse($sortAt)->getTimestamp() : 0;
+
+        return (object) [
+            'is_defect_log' => true,
+            'source_badge' => $sourceBadge,
+            'nomor' => $nomor,
+            'produk_nama' => $produkNama ?? 'Item Rusak',
+            'satuan' => $satuan ?? 'pcs',
+            'gudang_nama' => $gudangNama ?? 'Gudang',
+            'qty_rusak' => $qtyRusak,
+            'keterangan' => $keterangan,
+            'url' => $url,
+            'sort_ts' => $ts,
+        ];
+    }
+
+    private function buildWarehouseDefectAnalytics(
+        int $year,
+        ?int $month,
+        ?int $gudangId,
+        bool $includePurchasing,
+        bool $includeBatches
+    ): array {
+        $entries = $this->fetchTransferDefectEntries($year, $gudangId);
+
+        if ($includePurchasing) {
+            $entries = $entries->concat($this->fetchPurchasingDefectEntries($year, $gudangId));
+        }
+        if ($includeBatches) {
+            $entries = $entries->concat($this->fetchBatchDefectEntries($year, $gudangId));
         }
 
-        // 1. KPI Summary (untuk bulan spesifik atau akumulasi tahunan jika bulan = null)
-        $filterQuery = clone $baseQuery;
-        if ($month !== null) {
-            $filterQuery->whereMonth('t.waktu_diterima', $month);
-        }
+        // Lampirkan bulan integer sekali saja untuk menyederhanakan agregasi KPI & matriks
+        $entries = $entries->map(function ($row) {
+            $row->month_num = $row->event_at ? (int) Carbon::parse($row->event_at)->month : 1;
+            $row->qty_total = (float) $row->qty_total;
+            $row->qty_baik = (float) $row->qty_baik;
+            $row->qty_rusak = (float) $row->qty_rusak;
+            return $row;
+        });
 
-        $totalRusak = (float) (clone $filterQuery)->sum('ti.qty_rusak');
-        $totalDikirim = (float) (clone $filterQuery)->sum('ti.qty_dikirim');
-        $totalTransfer = (int) (clone $filterQuery)->distinct('t.id')->count('t.id');
-        $transferTerdampak = (int) (clone $filterQuery)->where('ti.qty_rusak', '>', 0)->distinct('t.id')->count('t.id');
+        $filtered = $month !== null
+            ? $entries->filter(fn ($r) => $r->month_num === $month)
+            : $entries;
 
-        $defectRatePercent = $totalDikirim > 0
-            ? round(($totalRusak / $totalDikirim) * 100, 2)
-            : 0.0;
+        $totalRusak = (float) $filtered->sum('qty_rusak');
+        $totalDikirim = (float) $filtered->sum('qty_total');
+        $totalTransfer = $filtered->pluck('doc_key')->unique()->count();
+        $transferTerdampak = $filtered->filter(fn ($r) => $r->qty_rusak > 0)->pluck('doc_key')->unique()->count();
+        $defectRatePercent = $totalDikirim > 0 ? round(($totalRusak / $totalDikirim) * 100, 2) : 0.0;
 
-        // Cari gudang tujuan paling terdampak pada filter terpilih
-        $topGudang = (clone $filterQuery)
-            ->select('g.nama', DB::raw('SUM(ti.qty_rusak) as total_rusak'))
-            ->groupBy('g.nama')
-            ->orderByDesc('total_rusak')
+        $bySource = [
+            'transfer' => (float) $filtered->where('source', 'transfer')->sum('qty_rusak'),
+            'purchasing' => (float) $filtered->where('source', 'purchasing')->sum('qty_rusak'),
+            'batch' => (float) $filtered->where('source', 'batch')->sum('qty_rusak'),
+        ];
+
+        $topGudang = $filtered
+            ->filter(fn ($r) => $r->qty_rusak > 0)
+            ->groupBy('gudang_nama')
+            ->map(fn ($group, $nama) => (object) ['nama' => $nama, 'total_rusak' => (float) $group->sum('qty_rusak')])
+            ->sortByDesc('total_rusak')
             ->first();
 
-        // 2. Matriks Kerusakan per Gudang x 12 Bulan (Jan s.d. Des)
-        $monthCol = DB::getDriverName() === 'sqlite'
-            ? "CAST(strftime('%m', t.waktu_diterima) AS INTEGER)"
-            : "EXTRACT(MONTH FROM t.waktu_diterima)";
+        $warehousesQuery = Gudang::active()->orderBy('nama');
+        if ($gudangId) {
+            $warehousesQuery->where('id', $gudangId);
+        }
+        $allWarehouses = $warehousesQuery->get(['id', 'nama', 'kode']);
 
-        $allWarehouses = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'kode']);
         $monthlyByWarehouse = [];
-
-        // Ambil data agregat bulanan per gudang
-        $aggData = (clone $baseQuery)
-            ->select(
-                't.gudang_tujuan_id',
-                DB::raw("{$monthCol} as bulan"),
-                DB::raw('SUM(ti.qty_rusak) as total_rusak')
-            )
-            ->groupBy('t.gudang_tujuan_id', DB::raw($monthCol))
-            ->get();
-
-        // Ambil rincian SKU rusak per gudang
-        $skuRusakData = (clone $baseQuery)
-            ->where('ti.qty_rusak', '>', 0)
-            ->select('t.gudang_tujuan_id', 'p.sku', 'p.nama', DB::raw('SUM(ti.qty_rusak) as total_rusak'))
-            ->groupBy('t.gudang_tujuan_id', 'p.sku', 'p.nama')
-            ->orderByDesc('total_rusak')
-            ->get();
-
         foreach ($allWarehouses as $wh) {
+            $whEntries = $entries->where('gudang_id', $wh->id);
             $months = array_fill(1, 12, 0.0);
             $totalTahunan = 0.0;
 
-            $whAggs = $aggData->where('gudang_tujuan_id', $wh->id);
-            foreach ($whAggs as $row) {
-                $m = (int) $row->bulan;
-                $val = (float) $row->total_rusak;
-                $months[$m] = $val;
+            foreach ($whEntries->groupBy('month_num') as $m => $group) {
+                $val = (float) $group->sum('qty_rusak');
+                $months[(int) $m] = $val;
                 $totalTahunan += $val;
             }
 
-            $skuList = $skuRusakData->where('gudang_tujuan_id', $wh->id)->map(fn ($r) => [
-                'sku' => $r->sku,
-                'nama' => $r->nama,
-                'qty_rusak' => (float) $r->total_rusak,
-            ])->values()->toArray();
+            $skuList = $whEntries
+                ->filter(fn ($r) => $r->qty_rusak > 0)
+                ->groupBy(fn ($r) => $r->sku . '||' . $r->produk_nama)
+                ->map(function ($group) {
+                    $first = $group->first();
+                    return [
+                        'sku' => $first->sku,
+                        'nama' => $first->produk_nama,
+                        'qty_rusak' => (float) $group->sum('qty_rusak'),
+                    ];
+                })
+                ->sortByDesc('qty_rusak')
+                ->values()
+                ->toArray();
 
             $monthlyByWarehouse[] = [
                 'gudang_id' => $wh->id,
@@ -442,59 +598,36 @@ class TransferService
             ];
         }
 
-        // 3. Matriks Rekapitulasi Bulanan Global (Jan s.d. Des) untuk Dashboard Table
         $monthNames = [
             1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
             5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
             9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
         ];
 
-        $monthlyAgg = (clone $baseQuery)
-            ->select(
-                DB::raw("{$monthCol} as bulan"),
-                DB::raw('COUNT(DISTINCT t.id) as transfers_count'),
-                DB::raw('SUM(ti.qty_dikirim) as qty_dikirim'),
-                DB::raw('SUM(ti.qty_baik) as qty_baik'),
-                DB::raw('SUM(ti.qty_rusak) as qty_rusak')
-            )
-            ->groupBy(DB::raw($monthCol))
-            ->get()
-            ->keyBy(fn ($r) => (int) $r->bulan);
-
-        $monthlyWhAgg = (clone $baseQuery)
-            ->select(
-                DB::raw("{$monthCol} as bulan"),
-                't.gudang_tujuan_id',
-                'g.nama as gudang_nama',
-                DB::raw('SUM(ti.qty_dikirim) as qty_dikirim'),
-                DB::raw('SUM(ti.qty_baik) as qty_baik'),
-                DB::raw('SUM(ti.qty_rusak) as qty_rusak')
-            )
-            ->groupBy(DB::raw($monthCol), 't.gudang_tujuan_id', 'g.nama')
-            ->get()
-            ->groupBy(fn ($r) => (int) $r->bulan);
-
+        $entriesByMonth = $entries->groupBy('month_num');
         $monthlyMatrix = [];
         for ($m = 1; $m <= 12; $m++) {
-            $row = $monthlyAgg->get($m);
-            $whRows = $monthlyWhAgg->get($m, collect());
-
-            $mQtyKirim = (float) ($row?->qty_dikirim ?? 0);
-            $mQtyBaik = (float) ($row?->qty_baik ?? 0);
-            $mQtyRusak = (float) ($row?->qty_rusak ?? 0);
-            $mTrfCount = (int) ($row?->transfers_count ?? 0);
+            $mEntries = $entriesByMonth->get($m, collect());
+            $mQtyKirim = (float) $mEntries->sum('qty_total');
+            $mQtyBaik = (float) $mEntries->sum('qty_baik');
+            $mQtyRusak = (float) $mEntries->sum('qty_rusak');
+            $mTrfCount = $mEntries->pluck('doc_key')->unique()->count();
             $mRate = $mQtyKirim > 0 ? round(($mQtyRusak / $mQtyKirim) * 100, 2) : 0.0;
 
-            $warehouses = [];
-            foreach ($whRows as $wh) {
-                $warehouses[] = [
-                    'gudang_id' => $wh->gudang_tujuan_id,
-                    'gudang_nama' => $wh->gudang_nama,
-                    'qty_dikirim' => (float) $wh->qty_dikirim,
-                    'qty_baik' => (float) $wh->qty_baik,
-                    'qty_rusak' => (float) $wh->qty_rusak,
-                ];
-            }
+            $warehouses = $mEntries
+                ->groupBy(fn ($r) => ($r->gudang_id ?? 'none') . '||' . $r->gudang_nama)
+                ->map(function ($group) {
+                    $first = $group->first();
+                    return [
+                        'gudang_id' => $first->gudang_id,
+                        'gudang_nama' => $first->gudang_nama,
+                        'qty_dikirim' => (float) $group->sum('qty_total'),
+                        'qty_baik' => (float) $group->sum('qty_baik'),
+                        'qty_rusak' => (float) $group->sum('qty_rusak'),
+                    ];
+                })
+                ->values()
+                ->toArray();
 
             $monthlyMatrix[] = [
                 'month' => $m,
@@ -522,9 +655,113 @@ class TransferService
                 'transfer_terdampak_count' => $transferTerdampak,
                 'gudang_tertinggi_nama' => $topGudang?->nama ?? '—',
                 'gudang_tertinggi_qty' => (float) ($topGudang?->total_rusak ?? 0),
+                'by_source' => $bySource,
             ],
             'monthly_matrix' => $monthlyMatrix,
             'monthly_by_warehouse' => $monthlyByWarehouse,
         ];
+    }
+
+    private function fetchTransferDefectEntries(int $year, ?int $gudangId): Collection
+    {
+        $receivedAtExpr = 'COALESCE(t.waktu_diterima, t.updated_at, t.created_at)';
+
+        return DB::table('transfers as t')
+            ->join('transfer_items as ti', 'ti.transfer_id', '=', 't.id')
+            ->join('gudang as g', 'g.id', '=', 't.gudang_tujuan_id')
+            ->join('produk as p', 'p.id', '=', 'ti.produk_id')
+            ->where('t.status', 'selesai')
+            ->whereYear(DB::raw($receivedAtExpr), $year)
+            ->when($gudangId, fn ($q) => $q->where('t.gudang_tujuan_id', $gudangId))
+            ->select([
+                DB::raw("'transfer' as source"),
+                't.id as doc_id',
+                't.gudang_tujuan_id as gudang_id',
+                'g.nama as gudang_nama',
+                'p.sku',
+                'p.nama as produk_nama',
+                DB::raw("{$receivedAtExpr} as event_at"),
+                'ti.qty_dikirim as qty_total',
+                DB::raw('COALESCE(ti.qty_baik, ti.qty_diterima, 0) as qty_baik'),
+                'ti.qty_rusak as qty_rusak',
+            ])
+            ->get()
+            ->map(function ($row) {
+                $row->doc_key = 'transfer:' . $row->doc_id;
+                return $row;
+            });
+    }
+
+    private function fetchPurchasingDefectEntries(int $year, ?int $gudangId): Collection
+    {
+        $eventExpr = 'COALESCE(bd.waktu_tiba, bd.tanggal_terima, bd.created_at)';
+        $goodExpr = 'COALESCE(bdi.qty_diterima, bdi.qty_fisik, 0)';
+        $totalExpr = "CASE WHEN poi.qty >= {$goodExpr} THEN poi.qty ELSE {$goodExpr} END";
+        $rusakExpr = 'CASE WHEN bdi.selisih < 0 THEN ABS(bdi.selisih) ELSE 0 END';
+
+        return DB::table('barang_datang as bd')
+            ->join('barang_datang_items as bdi', 'bdi.bardat_id', '=', 'bd.id')
+            ->join('purchase_orders as po', 'po.id', '=', 'bd.po_id')
+            ->join('purchase_order_items as poi', 'poi.id', '=', 'bdi.po_item_id')
+            ->join('produk as p', 'p.id', '=', 'poi.produk_id')
+            ->leftJoin('gudang as g', 'g.id', '=', 'po.gudang_id')
+            ->where('po.status', '!=', 'dibatalkan')
+            ->whereYear(DB::raw($eventExpr), $year)
+            ->when($gudangId, fn ($q) => $q->where('po.gudang_id', $gudangId))
+            ->select([
+                DB::raw("'purchasing' as source"),
+                'bd.id as doc_id',
+                'po.gudang_id as gudang_id',
+                DB::raw("COALESCE(g.nama, 'Gudang PO') as gudang_nama"),
+                'p.sku',
+                'p.nama as produk_nama',
+                DB::raw("{$eventExpr} as event_at"),
+                DB::raw("{$totalExpr} as qty_total"),
+                DB::raw("{$goodExpr} as qty_baik"),
+                DB::raw("{$rusakExpr} as qty_rusak"),
+            ])
+            ->get()
+            ->map(function ($row) {
+                $row->doc_key = 'purchasing:' . $row->doc_id;
+                return $row;
+            });
+    }
+
+    private function fetchBatchDefectEntries(int $year, ?int $gudangId): Collection
+    {
+        $eventExpr = 'COALESCE(bp.tanggal, bp.updated_at, bp.created_at)';
+        $gudangExpr = 'COALESCE(bp.gudang_operasional_id, bp.gudang_tujuan_rencana_id)';
+        $baikExpr = 'COALESCE(bpo.qty_baik, bp.qty_baik, 0)';
+        $rusakExpr = 'COALESCE(bpo.qty_rusak, bp.qty_rusak, 0)';
+        $totalExpr = "CASE WHEN ({$baikExpr} + {$rusakExpr}) > 0 THEN ({$baikExpr} + {$rusakExpr}) ELSE COALESCE(bpo.qty_rencana, bp.qty_rencana, 0) END";
+
+        return DB::table('batch_produksi as bp')
+            ->leftJoin('batch_produksi_outputs as bpo', 'bpo.batch_id', '=', 'bp.id')
+            ->join('produk as p', function ($join) {
+                $join->on('p.id', '=', DB::raw('COALESCE(bpo.produk_id, bp.produk_id)'));
+            })
+            ->leftJoin('gudang as g', function ($join) use ($gudangExpr) {
+                $join->on('g.id', '=', DB::raw($gudangExpr));
+            })
+            ->where('bp.status', 'selesai')
+            ->whereYear(DB::raw($eventExpr), $year)
+            ->when($gudangId, fn ($q) => $q->whereRaw("{$gudangExpr} = ?", [$gudangId]))
+            ->select([
+                DB::raw("'batch' as source"),
+                'bp.id as doc_id',
+                DB::raw("{$gudangExpr} as gudang_id"),
+                DB::raw("COALESCE(g.nama, 'Lab Produksi') as gudang_nama"),
+                'p.sku',
+                'p.nama as produk_nama',
+                DB::raw("{$eventExpr} as event_at"),
+                DB::raw("{$totalExpr} as qty_total"),
+                DB::raw("{$baikExpr} as qty_baik"),
+                DB::raw("{$rusakExpr} as qty_rusak"),
+            ])
+            ->get()
+            ->map(function ($row) {
+                $row->doc_key = 'batch:' . $row->doc_id;
+                return $row;
+            });
     }
 }

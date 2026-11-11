@@ -178,10 +178,24 @@
                                 $rowBadge = number_format($item->qty_saat_ini, 0) . ' ' . ($item->produk?->satuan ?? '');
                                 $rowVariant = $item->qty_saat_ini <= 10 ? 'danger' : 'warning';
                             } elseif ($item instanceof \App\Models\TransferItem) {
-                                $rowUrl = route('transfers.index');
+                                $rowUrl = $item->transfer ? route('transfers.show', $item->transfer) : route('transfers.index');
                                 $rowTitle = $item->produk?->nama ?? 'Item Rusak';
-                                $rowSubtitle = ($item->transfer?->gudangTujuan?->nama ?? 'Gudang') . ' · ' . ($item->catatan ?? 'Kerusakan fisik');
-                                $rowBadge = $item->qty_rusak . ' ' . ($item->produk?->satuan ?? 'pcs') . ' Rusak';
+                                $rowSubtitle = implode(' · ', array_filter([
+                                    $item->transfer?->no_transaksi,
+                                    $item->transfer?->gudangTujuan?->nama ?? 'Gudang',
+                                    $item->keterangan_rusak ?: 'Kerusakan fisik',
+                                ]));
+                                $rowBadge = \App\Helpers\NumberHelper::formatQty($item->qty_rusak) . ' ' . ($item->produk?->satuan ?? 'pcs') . ' Rusak';
+                                $rowVariant = 'danger';
+                            } elseif (is_object($item) && !empty($item->is_defect_log)) {
+                                $rowUrl = $item->url ?? route('dashboard');
+                                $rowTitle = $item->produk_nama ?? 'Item Rusak';
+                                $rowSubtitle = implode(' · ', array_filter([
+                                    $item->nomor ?? null,
+                                    $item->gudang_nama ?? 'Gudang',
+                                    $item->keterangan ?? 'Kerusakan fisik',
+                                ]));
+                                $rowBadge = '[' . ($item->source_badge ?? 'Defect') . '] ' . \App\Helpers\NumberHelper::formatQty($item->qty_rusak ?? 0) . ' ' . ($item->satuan ?? 'pcs') . ' Rusak';
                                 $rowVariant = 'danger';
                             } elseif (is_object($item)) {
                                 $rowUrl = $item->url ?? '#';

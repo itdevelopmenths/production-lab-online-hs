@@ -11,7 +11,6 @@ use App\Models\RequestTransfer;
 use App\Models\StockRequest;
 use App\Models\Stok;
 use App\Models\Transfer;
-use App\Models\TransferItem;
 use App\Models\User;
 use App\Services\AnalisaService;
 use App\Services\Authorization\LocationScopeService;
@@ -45,7 +44,7 @@ class DashboardController extends Controller
             $gudangId = $request->filled('gudang_id') ? (int) $request->input('gudang_id') : null;
 
             $warehouses = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'kode', 'tipe']);
-            $defectAnalytics = $this->transferService->getMonthlyWarehouseDefectAnalytics($year, $month, $gudangId);
+            $defectAnalytics = $this->transferService->getCombinedMonthlyWarehouseDefectAnalytics($year, $month, $gudangId);
         } else {
             $year = (int) date('Y');
             $month = null;
@@ -68,6 +67,7 @@ class DashboardController extends Controller
             'user' => $user,
             'role' => $role,
             'defectAnalytics' => $defectAnalytics,
+            'isCombinedDefectSources' => true,
             'year' => $year,
             'month' => $month,
             'gudangId' => $gudangId,
@@ -119,18 +119,11 @@ class DashboardController extends Controller
         // 3. Batch Produksi Aktif
         $batchAktifCount = BatchProduksi::whereIn('status', ['rencana', 'release'])->count();
 
-        // 4. Defect Rate Mutasi Bulan Ini
-        $defectStats = DB::table('transfer_items')
-            ->join('transfers', 'transfer_items.transfer_id', '=', 'transfers.id')
-            ->where('transfers.status', 'selesai')
-            ->whereMonth('transfers.created_at', now()->month)
-            ->whereYear('transfers.created_at', now()->year)
-            ->selectRaw('SUM(qty_dikirim) as total_kirim, SUM(qty_rusak) as total_rusak')
-            ->first();
-
-        $totalKirim = (float) ($defectStats->total_kirim ?? 0);
-        $totalRusak = (float) ($defectStats->total_rusak ?? 0);
-        $defectRate = $totalKirim > 0 ? round(($totalRusak / $totalKirim) * 100, 2) : 0.0;
+        // 4. Defect Rate Gabungan Bulan Ini (Transfer + Purchasing + Batch)
+        $monthDefectSummary = $this->transferService
+            ->getCombinedMonthlyWarehouseDefectAnalytics((int) now()->year, (int) now()->month)['summary'];
+        $totalRusak = (float) ($monthDefectSummary['total_qty_rusak'] ?? 0);
+        $defectRate = (float) ($monthDefectSummary['defect_rate_percent'] ?? 0.0);
 
         // 5. Komitmen Pembayaran PO Belum Lunas
         $poKomitmenBayar = PurchaseOrder::with(['supplier:id,nama'])
@@ -204,7 +197,7 @@ class DashboardController extends Controller
             [
                 'title' => 'Defect Rate Bulan Ini',
                 'value' => $defectRate . '%',
-                'subtitle' => number_format($totalRusak, 1) . ' unit rusak dari mutasi',
+                'subtitle' => number_format($totalRusak, 1) . ' unit rusak (Transfer, PO & Batch)',
                 'href' => route('transfers.index', ['year' => now()->year, 'month' => now()->month]),
                 'footerText' => 'Audit Defect',
                 'icon' => '<svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>',
@@ -451,12 +444,8 @@ class DashboardController extends Controller
         }
         $stokMenipisCount = (clone $stokMenipisQuery)->count();
 
-        // Defect log terkini
-        $defectLogs = TransferItem::with(['produk:id,sku,nama,satuan', 'transfer.gudangTujuan:id,nama'])
-            ->where('qty_rusak', '>', 0)
-            ->latest('created_at')
-            ->limit(5)
-            ->get();
+        // Defect log terkini gabungan (Transfer + Purchasing + Batch Produksi)
+        $defectLogs = $this->transferService->getRecentDefectLogs(5);
 
         // Susun Action Queue
         $actionQueueItems = collect();
@@ -557,7 +546,7 @@ class DashboardController extends Controller
             ],
             'streamRight' => [
                 'title' => 'Pencatatan Defect & Barang Rusak',
-                'subtitle' => 'Riwayat kerusakan fisik yang terdata saat penerimaan barang',
+                'subtitle' => 'Riwayat kerusakan fisik terbaru dari Transfer, Purchasing (PO), dan Batch Produksi',
                 'items' => $defectLogs,
                 'viewAllUrl' => route('transfers.index'),
             ],

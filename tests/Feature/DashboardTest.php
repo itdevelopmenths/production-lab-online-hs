@@ -296,4 +296,164 @@ class DashboardTest extends TestCase
         $resPurchasing->assertOk();
         $resPurchasing->assertDontSee('Dashboard Barang Rusak & Defect Mutasi', false);
     }
+
+    public function test_gudang_dashboard_defect_log_orders_by_receipt_time_and_shows_keterangan_rusak(): void
+    {
+        $gudang = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $gudangPusat = Gudang::where('kode', 'GD-PUSAT')->firstOrFail();
+        $gudangOps = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $produks = \App\Models\Produk::active()->take(2)->get();
+
+        // 5 transfer lebih baru secara created_at, namun diterima rusak lebih dulu (bulan lalu)
+        for ($i = 1; $i <= 5; $i++) {
+            $oldReceived = Transfer::create([
+                'no_transaksi' => "TRF-OLD-DEF-{$i}",
+                'jenis' => 'pemenuhan_request_bahan',
+                'gudang_asal_id' => $gudangPusat->id,
+                'gudang_tujuan_id' => $gudangOps->id,
+                'status' => 'selesai',
+                'waktu_diterima' => now()->subDays(10 - $i),
+                'diterima_oleh' => $operasional->id,
+                'created_by' => $gudang->id,
+            ]);
+            $oldItem = $oldReceived->items()->create([
+                'produk_id' => $produks[0]->id,
+                'qty_dikirim' => 20,
+                'qty_diterima' => 18,
+                'qty_baik' => 18,
+                'qty_rusak' => 2,
+                'keterangan_rusak' => "Rusak lama #{$i}",
+            ]);
+            \Illuminate\Support\Facades\DB::table('transfer_items')
+                ->where('id', $oldItem->id)
+                ->update(['created_at' => now()->subHours(2)]);
+        }
+
+        // Transfer dengan created_at lebih lama (2 minggu lalu), namun BARU diterima hari ini dengan qty_rusak
+        $latestReceived = Transfer::create([
+            'no_transaksi' => 'TRF-NEWEST-REC',
+            'jenis' => 'kirim_produk_jadi',
+            'gudang_asal_id' => $gudangPusat->id,
+            'gudang_tujuan_id' => $gudangOps->id,
+            'status' => 'selesai',
+            'waktu_diterima' => now(),
+            'diterima_oleh' => $operasional->id,
+            'created_by' => $gudang->id,
+        ]);
+        $newestDefectItem = $latestReceived->items()->create([
+            'produk_id' => $produks[1]->id,
+            'qty_dikirim' => 15,
+            'qty_diterima' => 10,
+            'qty_baik' => 10,
+            'qty_rusak' => 5,
+            'keterangan_rusak' => 'Dus penyok parah saat tiba',
+        ]);
+        \Illuminate\Support\Facades\DB::table('transfer_items')
+            ->where('id', $newestDefectItem->id)
+            ->update(['created_at' => now()->subDays(14)]);
+
+        $response = $this->actingAs($gudang)->get(route('dashboard'));
+        $response->assertOk();
+        $response->assertSee('TRF-NEWEST-REC');
+        $response->assertSee('Dus penyok parah saat tiba');
+        $response->assertSee('[Transfer] 5 ' . ($produks[1]->satuan ?? 'pcs') . ' Rusak');
+        $response->assertSee(route('transfers.show', $latestReceived));
+    }
+
+    public function test_dashboard_defect_card_and_logs_combine_transfer_purchasing_and_batches(): void
+    {
+        $gudang = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $gudangPusat = Gudang::where('kode', 'GD-PUSAT')->firstOrFail();
+        $gudangOps = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+        $produkBahan = \App\Models\Produk::bahan()->active()->firstOrFail();
+        $produkJadi = \App\Models\Produk::produkJadi()->active()->firstOrFail();
+
+        // 1. Defect dari Transfer selesai (qty_rusak = 4)
+        $trf = Transfer::create([
+            'no_transaksi' => 'TRF-COMB-01',
+            'jenis' => 'kirim_produk_jadi',
+            'gudang_asal_id' => $gudangPusat->id,
+            'gudang_tujuan_id' => $gudangOps->id,
+            'status' => 'selesai',
+            'waktu_diterima' => now()->subMinutes(30),
+            'diterima_oleh' => $operasional->id,
+            'created_by' => $gudang->id,
+        ]);
+        $trf->items()->create([
+            'produk_id' => $produkJadi->id,
+            'qty_dikirim' => 20,
+            'qty_diterima' => 16,
+            'qty_baik' => 16,
+            'qty_rusak' => 4,
+            'keterangan_rusak' => 'Kardus basah saat mutasi',
+        ]);
+
+        // 2. Defect dari Purchasing (BarangDatang selisih negatif = 12 rusak)
+        $po = PurchaseOrder::create([
+            'no_po' => 'PO-COMB-01',
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $gudangPusat->id,
+            'tanggal' => now()->toDateString(),
+            'status' => 'selesai',
+            'created_by' => $purchasing->id,
+        ]);
+        $poItem = $po->items()->create([
+            'produk_id' => $produkBahan->id,
+            'qty' => 50,
+            'harga_total' => 500000,
+        ]);
+        $bardat = \App\Models\BarangDatang::create([
+            'po_id' => $po->id,
+            'tanggal_terima' => now()->toDateString(),
+            'waktu_tiba' => now()->subMinutes(20),
+            'kondisi' => 'rusak_sebagian',
+            'status_posting' => 'diposting',
+            'created_by' => $gudang->id,
+        ]);
+        $bardat->items()->create([
+            'po_item_id' => $poItem->id,
+            'qty_fisik' => 38,
+            'qty_diterima' => 38,
+            'selisih' => -12,
+            'keterangan_selisih' => '12 kg kemasan sobek dari vendor',
+        ]);
+
+        // 3. Defect dari Batch Produksi (qty_rusak = 7)
+        $batch = \App\Models\BatchProduksi::create([
+            'no_batch' => 'B-COMB-01',
+            'produk_id' => $produkJadi->id,
+            'qty_rencana' => 30,
+            'qty_baik' => 23,
+            'qty_rusak' => 7,
+            'gudang_operasional_id' => $gudangOps->id,
+            'status' => 'selesai',
+            'tanggal' => now()->toDateString(),
+            'created_by' => $operasional->id,
+        ]);
+        $batch->outputs()->create([
+            'produk_id' => $produkJadi->id,
+            'qty_rencana' => 30,
+            'qty_baik' => 23,
+            'qty_rusak' => 7,
+            'catatan' => '7 botol retak saat pengisian',
+        ]);
+
+        // Verifikasi Dashboard Gudang menampilkan ketiga sumber (log & total gabungan 4 + 12 + 7 = 23.00)
+        $response = $this->actingAs($gudang)->get(route('dashboard'));
+        $response->assertOk();
+        $response->assertSee('PO-COMB-01');
+        $response->assertSee('B-COMB-01');
+        $response->assertSee('TRF-COMB-01');
+        $response->assertSee('12 kg kemasan sobek dari vendor');
+        $response->assertSee('7 botol retak saat pengisian');
+        $response->assertSee('Kardus basah saat mutasi');
+        $response->assertSee('23.00');
+        $response->assertSee(route('purchasing.show', $po));
+        $response->assertSee(route('batches.show', $batch));
+        $response->assertSee(route('transfers.show', $trf));
+    }
 }
