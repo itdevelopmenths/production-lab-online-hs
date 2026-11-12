@@ -151,7 +151,8 @@ class PurchasingCostCalculator
             ];
         }
 
-        $grandTotal = max(0, round($subtotalProduk - $totalDiskon + $totalPpn + $totalOngkir + $totalAdj, 2));
+        $rawGrandTotal = round($subtotalProduk - $totalDiskon + $totalPpn + $totalOngkir + $totalAdj, 2);
+        $grandTotal = max(0, $rawGrandTotal);
 
         return [
             'subtotal_produk' => round($subtotalProduk, 2),
@@ -159,6 +160,7 @@ class PurchasingCostCalculator
             'ppn_nominal' => $totalPpn,
             'ongkos_kirim' => $totalOngkir,
             'adjustment' => $totalAdj,
+            'raw_grand_total' => $rawGrandTotal,
             'grand_total' => $grandTotal,
             'items' => $processedItems,
         ];

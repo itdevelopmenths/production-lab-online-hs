@@ -4,7 +4,11 @@
         $canSeePrice = $canSeePrice ?? $user->can('purchasing.price.view');
         $canApprove = $user->can('purchasing.approve');
         $canSeeApprovalTab = $canSeeApprovalTab ?? ($user->hasAnyRole(['manager', 'purchasing', 'admin_holding', 'super_admin']) || $canApprove);
-        $pendingApprovalCount = $pendingApprovalCount ?? ($canSeeApprovalTab ? \App\Models\PurchaseOrder::where('status', 'diajukan')->count() : 0);
+        $pendingApprovalCount = $pendingApprovalCount ?? ($canSeeApprovalTab
+            ? \App\Models\PurchaseOrder::whereNotIn('status', ['selesai', 'dibatalkan'])
+                ->where(fn ($q) => $q->where('status', 'diajukan')->orWhere('stage_aktif', \App\Models\PoStage::STAGE_2))
+                ->count()
+            : 0);
         $canInvalidateLt = $user->can('purchasing.lead-time.invalidate') || $user->hasRole('manager');
 
         // Setup default active tab

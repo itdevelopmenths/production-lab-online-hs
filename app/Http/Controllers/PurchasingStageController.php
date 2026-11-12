@@ -183,6 +183,18 @@ class PurchasingStageController extends Controller
         $data = $request->validate([
             'alasan' => ['required', 'string', 'max:255'],
             'data_usulan' => ['required', 'array'],
+            'data_usulan.diskon_total' => ['nullable', 'numeric', 'min:0'],
+            'data_usulan.ppn_nominal' => ['nullable', 'numeric', 'min:0'],
+            'data_usulan.ongkos_kirim' => ['nullable', 'numeric', 'min:0'],
+            'data_usulan.adjustment' => ['nullable', 'numeric'],
+            'data_usulan.items' => ['nullable', 'array', 'min:1'],
+            'data_usulan.items.*.po_item_id' => ['nullable', 'string'],
+            'data_usulan.items.*.produk_id' => ['required_with:data_usulan.items', 'integer', 'exists:produk,id'],
+            'data_usulan.items.*.qty' => ['nullable', 'numeric', 'gt:0'],
+            'data_usulan.items.*.qty_satuan_beli' => ['nullable', 'numeric', 'gt:0'],
+            'data_usulan.items.*.satuan_beli' => ['nullable', 'string', 'max:20'],
+            'data_usulan.items.*.faktor_konversi' => ['nullable', 'numeric', 'gt:0'],
+            'data_usulan.items.*.harga_total' => ['required_with:data_usulan.items', 'numeric', 'min:0'],
         ]);
 
         $revisi = $this->revisionService->submitCommitmentRevision(

@@ -25,52 +25,89 @@ class PurchasingPaymentService
      */
     public function recordPayment(PurchaseOrder $po, array $data): Payment
     {
-        if ($po->status === 'dibatalkan') {
-            throw ValidationException::withMessages([
-                'status' => 'Pembayaran tidak dapat dicatat karena Purchase Order telah dibatalkan.',
-            ]);
-        }
-
-        $nominal = round((float) $data['nominal'], 2);
-        $sisaTagihan = round($po->sisaTagihan(), 2);
+        $nominal = round((float) ($data['nominal'] ?? 0), 2);
         $skema = $data['skema'] ?? 'termin';
 
-        // Validasi 1: Cegah pembayaran melebihi sisa tagihan (Overpayment)
-        if ($nominal > $sisaTagihan) {
+        if ($nominal <= 0) {
             throw ValidationException::withMessages([
-                'nominal' => sprintf(
-                    'Nominal pembayaran (Rp %s) melebihi sisa tagihan PO (Rp %s). Kelebihan bayar tidak diperbolehkan.',
-                    number_format($nominal, 0, ',', '.'),
-                    number_format($sisaTagihan, 0, ',', '.')
-                ),
+                'nominal' => 'Nominal pembayaran harus lebih besar dari Rp 0.',
             ]);
         }
 
-        // Validasi 2: Cegah pembayaran kurang pada skema Pelunasan / Tunai
-        if (in_array($skema, ['pelunasan', 'cash'], true) && $nominal < $sisaTagihan) {
-            throw ValidationException::withMessages([
-                'nominal' => sprintf(
-                    "Skema '%s' harus melunasi sisa tagihan tepat sebesar Rp %s. Jika ingin mencicil sebagian, pilih skema 'Tempo' atau 'Termin'.",
-                    $skema === 'cash' ? 'Tunai (Cash / Transfer Penuh)' : 'Pelunasan Penuh',
-                    number_format($sisaTagihan, 0, ',', '.')
-                ),
-            ]);
-        }
+        return DB::transaction(function () use ($po, $data, $nominal, $skema) {
+            $lockedPo = PurchaseOrder::lockForUpdate()->findOrFail($po->id);
 
-        return DB::transaction(function () use ($po, $data, $nominal) {
-            $payment = $po->payments()->create([
-                'skema' => $data['skema'],
+            if ($lockedPo->isCancelled()) {
+                throw ValidationException::withMessages([
+                    'status' => 'Purchase Order yang sudah dibatalkan tidak dapat menerima pembayaran.',
+                ]);
+            }
+
+            if ($lockedPo->hasPendingRevision()) {
+                throw ValidationException::withMessages([
+                    'revisi' => 'Pembayaran dikunci karena masih ada usulan revisi harga atau komitmen yang menunggu keputusan Manager.',
+                ]);
+            }
+
+            if (! empty($data['termin_id'])) {
+                $ownsTermin = $lockedPo->termins()->where('id', $data['termin_id'])->exists();
+                if (! $ownsTermin) {
+                    throw ValidationException::withMessages([
+                        'termin_id' => 'Termin pembayaran tidak valid atau bukan milik Purchase Order ini.',
+                    ]);
+                }
+            }
+
+            $totalNilai = round($lockedPo->totalNilai(), 2);
+            $totalDibayar = round((float) $lockedPo->payments()->sum('nominal'), 2);
+            $sisaTagihan = round(max(0, $totalNilai - $totalDibayar), 2);
+
+            if ($sisaTagihan <= 0) {
+                throw ValidationException::withMessages([
+                    'nominal' => 'Purchase Order ini sudah lunas atau tidak memiliki sisa tagihan.',
+                ]);
+            }
+
+            // Validasi 1: Cegah pembayaran melebihi sisa tagihan (Overpayment)
+            if ($nominal > $sisaTagihan) {
+                throw ValidationException::withMessages([
+                    'nominal' => sprintf(
+                        'Nominal pembayaran (Rp %s) melebihi sisa tagihan PO (Rp %s). Kelebihan bayar tidak diperbolehkan.',
+                        number_format($nominal, 0, ',', '.'),
+                        number_format($sisaTagihan, 0, ',', '.')
+                    ),
+                ]);
+            }
+
+            // Validasi 2: Cegah pembayaran kurang pada skema Pelunasan / Tunai
+            if (in_array($skema, ['pelunasan', 'cash'], true) && $nominal < $sisaTagihan) {
+                throw ValidationException::withMessages([
+                    'nominal' => sprintf(
+                        "Skema '%s' harus melunasi sisa tagihan tepat sebesar Rp %s. Jika ingin mencicil sebagian, pilih skema 'Tempo' atau 'Termin'.",
+                        $skema === 'cash' ? 'Tunai (Cash / Transfer Penuh)' : 'Pelunasan Penuh',
+                        number_format($sisaTagihan, 0, ',', '.')
+                    ),
+                ]);
+            }
+
+            $payment = $lockedPo->payments()->create([
+                'skema' => $skema,
                 'tanggal_bayar' => $data['tanggal_bayar'],
                 'nominal' => $nominal,
                 'bukti_file' => $data['bukti_file'] ?? null,
             ]);
 
             // Alokasikan ke termin jika ada
-            $this->allocatePaymentToTermins($po, $nominal, $data['termin_id'] ?? null);
+            $this->allocatePaymentToTermins($lockedPo, $nominal, $data['termin_id'] ?? null);
 
-            // Refresh status pembayaran PO
-            $po->refreshStatusPembayaran();
-            $po->save();
+            // Refresh status pembayaran PO secara otoritatif
+            $lockedPo->refreshStatusPembayaran();
+            $lockedPo->save();
+
+            $po->forceFill($lockedPo->getAttributes());
+            $po->unsetRelation('payments');
+            $po->unsetRelation('termins');
+            $po->unsetRelation('revisis');
 
             return $payment;
         });
@@ -195,7 +232,7 @@ class PurchasingPaymentService
         // 3. Sinkronkan status pembayaran di purchase_orders
         foreach ($poIds->unique() as $poId) {
             $po = PurchaseOrder::find($poId);
-            if ($po && ! $po->isLunas()) {
+            if ($po && ! $po->isCancelled() && ! $po->isLunas()) {
                 $po->refreshStatusPembayaran();
                 $po->save();
             }

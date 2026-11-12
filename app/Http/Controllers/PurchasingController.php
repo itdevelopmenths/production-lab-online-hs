@@ -6,6 +6,7 @@ use App\Models\BarangDatang;
 use App\Models\BarangDatangItem;
 use App\Models\Gudang;
 use App\Models\PoLeadTime;
+use App\Models\PoRevisi;
 use App\Models\PoStage;
 use App\Models\Produk;
 use App\Models\PurchaseOrder;
@@ -17,6 +18,7 @@ use App\Models\SupplierProdukLtSummary;
 use App\Models\Uom;
 use App\Services\Purchasing\PurchasingCostCalculator;
 use App\Services\Purchasing\PurchasingPaymentService;
+use App\Services\Purchasing\PurchasingStageService;
 use App\Services\Purchasing\SupplierLeadTimeService;
 use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
@@ -43,13 +45,17 @@ class PurchasingController extends Controller
         $canSeePrice = $user->can('purchasing.price.view');
         $canSeeApprovalTab = $user->hasAnyRole(['manager', 'purchasing', 'admin_holding', 'super_admin']) || $user->can('purchasing.approve');
 
-        $pendingPoCount = PurchaseOrder::where('status', 'diajukan')
-            ->orWhere('stage_aktif', PoStage::STAGE_2)
+        $pendingPoCount = PurchaseOrder::whereNotIn('status', ['selesai', 'dibatalkan'])
+            ->where(function ($q) {
+                $q->where('status', 'diajukan')
+                  ->orWhere('stage_aktif', PoStage::STAGE_2);
+            })
             ->count();
 
         $pendingRevisis = $canSeeApprovalTab
-            ? \App\Models\PoRevisi::with(['purchaseOrder.supplier', 'requester:id,name'])
-                ->where('status', 'menunggu')
+            ? PoRevisi::with(['purchaseOrder.supplier', 'requester:id,name'])
+                ->where('status', PoRevisi::STATUS_MENUNGGU)
+                ->whereHas('purchaseOrder', fn ($q) => $q->whereNotIn('status', ['selesai', 'dibatalkan']))
                 ->latest()
                 ->get()
             : collect();
@@ -96,10 +102,11 @@ class PurchasingController extends Controller
         }
 
         if ($request->boolean('approval_queue')) {
-            $query->where(function ($q) {
-                $q->where('purchase_orders.status', 'diajukan')
-                  ->orWhere('purchase_orders.stage_aktif', PoStage::STAGE_2);
-            });
+            $query->whereNotIn('purchase_orders.status', ['selesai', 'dibatalkan'])
+                ->where(function ($q) {
+                    $q->where('purchase_orders.status', 'diajukan')
+                      ->orWhere('purchase_orders.stage_aktif', PoStage::STAGE_2);
+                });
         } elseif ($request->filled('status_po')) {
             $query->where('purchase_orders.status', $request->status_po);
         }
@@ -199,7 +206,7 @@ class PurchasingController extends Controller
                 return 'berjalan';
             })
             ->addColumn('has_pending_revisi', function ($po) {
-                return $po->revisis->where('status', 'menunggu')->isNotEmpty();
+                return ! $po->isFinal() && $po->revisis->where('status', PoRevisi::STATUS_MENUNGGU)->isNotEmpty();
             })
             ->addColumn('sla', fn ($po) => $this->resolvePoSlaLabel($po))
             ->addColumn('status_pembayaran', fn ($po) => $canSeePrice ? ucwords(str_replace('_', ' ', $this->resolveEffectivePaymentStatus($po))) : '—')
@@ -231,7 +238,8 @@ class PurchasingController extends Controller
         $query = PurchaseOrder::query()->select('purchase_orders.*')
             ->with(['supplier:id,nama', 'termins'])
             ->withSum('items as total_nilai', 'harga_total')
-            ->withSum('payments as total_dibayar', 'nominal');
+            ->withSum('payments as total_dibayar', 'nominal')
+            ->withExists(['revisis as has_pending_revisi' => fn ($q) => $q->where('status', PoRevisi::STATUS_MENUNGGU)]);
 
         if ($request->filled('status_bayar')) {
             $this->applyStatusBayarFilter($query, (string) $request->status_bayar);
@@ -281,7 +289,7 @@ class PurchasingController extends Controller
                 $showUrl = e(route('purchasing.show', $po));
                 $html = '<div class="flex items-center justify-center gap-2">'
                     . '<a href="' . $showUrl . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Detail</a>';
-                if (! $po->isLunas() && $po->status !== 'dibatalkan') {
+                if (! $po->isLunas() && ! $po->isCancelled() && ! $po->hasPendingRevision()) {
                     $html .= '<a href="' . $showUrl . '#form-pembayaran" class="text-emerald-600 hover:text-emerald-800 text-xs font-semibold">Bayar</a>';
                 }
 
@@ -371,6 +379,12 @@ class PurchasingController extends Controller
             (float) ($data['adjustment'] ?? 0)
         );
 
+        if (($totals['raw_grand_total'] ?? $totals['grand_total']) < 0) {
+            throw ValidationException::withMessages([
+                'items' => 'Total bersih Purchase Order tidak boleh bernilai negatif (diskon/potongan melebihi nilai barang).',
+            ]);
+        }
+
         $po = DB::transaction(function () use ($data, $totals) {
             $po = PurchaseOrder::create([
                 'no_po' => $this->nextNoPo(),
@@ -425,6 +439,11 @@ class PurchasingController extends Controller
                 ->with('error', 'PO dengan tahapan aktif tidak dapat diedit penuh. Gunakan Direct Edit atau Ajukan Revisi Komitmen.');
         }
 
+        if ($purchaseOrder->hasPendingRevision()) {
+            return redirect()->route('purchasing.show', $purchaseOrder)
+                ->with('error', 'PO sedang memiliki usulan revisi komitmen yang menunggu keputusan Manager.');
+        }
+
         $purchaseOrder->load(['items.produk', 'termins']);
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori', 'termin_default']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
@@ -449,6 +468,12 @@ class PurchasingController extends Controller
         if ($purchaseOrder->stage_aktif !== null && $purchaseOrder->stage_aktif !== PoStage::STAGE_1) {
             throw ValidationException::withMessages([
                 'stage_aktif' => 'PO dengan tahapan aktif tidak dapat diedit penuh. Gunakan Direct Edit atau Ajukan Revisi Komitmen.',
+            ]);
+        }
+
+        if ($purchaseOrder->hasPendingRevision()) {
+            throw ValidationException::withMessages([
+                'revisi' => 'PO sedang memiliki usulan revisi komitmen yang menunggu keputusan Manager.',
             ]);
         }
 
@@ -516,6 +541,12 @@ class PurchasingController extends Controller
             (float) ($data['ongkos_kirim'] ?? 0),
             (float) ($data['adjustment'] ?? 0)
         );
+
+        if (($totals['raw_grand_total'] ?? $totals['grand_total']) < 0) {
+            throw ValidationException::withMessages([
+                'items' => 'Total bersih Purchase Order tidak boleh bernilai negatif (diskon/potongan melebihi nilai barang).',
+            ]);
+        }
 
         $totalDibayar = $purchaseOrder->totalDibayar();
         if ($totalDibayar > 0 && $totals['grand_total'] < $totalDibayar) {
@@ -588,8 +619,8 @@ class PurchasingController extends Controller
             'logPerubahan.changer:id,name',
         ]);
 
-        // Auto-refresh status pembayaran jika ada perubahan status (misal lewat jatuh tempo)
-        if (! $purchaseOrder->isLunas()) {
+        // Auto-refresh status pembayaran jika ada perubahan status (misal lewat jatuh tempo atau legacy PO batal)
+        if ($purchaseOrder->isCancelled() || ! $purchaseOrder->isLunas()) {
             $prevStatus = $purchaseOrder->status_pembayaran;
             $purchaseOrder->refreshStatusPembayaran();
             if ($purchaseOrder->status_pembayaran !== $prevStatus) {
@@ -634,6 +665,7 @@ class PurchasingController extends Controller
     {
         $this->authorize('purchasing.submit');
         $this->ensureStatus($purchaseOrder, ['draft']);
+        $this->ensureNoPendingRevision($purchaseOrder);
         $purchaseOrder->update(['status' => 'diajukan']);
 
         $purchaseOrder->recordAudit(
@@ -653,6 +685,7 @@ class PurchasingController extends Controller
     {
         $this->authorize('purchasing.approve');
         $this->ensureStatus($purchaseOrder, ['diajukan']);
+        $this->ensureNoPendingRevision($purchaseOrder);
         $purchaseOrder->update(['status' => 'dikirim_ke_gudang']);
 
         $purchaseOrder->recordAudit(
@@ -672,6 +705,7 @@ class PurchasingController extends Controller
     {
         $this->authorize('purchasing.receive');
         $this->ensureStatus($purchaseOrder, ['dikirim_ke_gudang']);
+        $this->ensureNoPendingRevision($purchaseOrder);
 
         $data = $request->validate([
             'gudang_id' => ['nullable', 'exists:gudang,id'],
@@ -758,7 +792,10 @@ class PurchasingController extends Controller
             'skema' => ['required', Rule::in(['cash', 'tempo', 'termin', 'pelunasan'])],
             'tanggal_bayar' => ['required', 'date'],
             'nominal' => ['required', 'numeric', 'gt:0'],
-            'termin_id' => ['nullable', 'exists:purchase_order_termins,id'],
+            'termin_id' => [
+                'nullable',
+                Rule::exists('purchase_order_termins', 'id')->where(fn ($q) => $q->where('po_id', $purchaseOrder->id)),
+            ],
             'tanggal_tempo_baru' => ['nullable', 'date'],
         ]);
 
@@ -795,20 +832,13 @@ class PurchasingController extends Controller
         $this->authorize('purchasing.cancel');
         $this->ensureStatus($purchaseOrder, ['draft', 'berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang']);
 
-        // Tolak jika Stage 8 sudah selesai (BR-07)
-        if ($purchaseOrder->stages()->where('stage', PoStage::STAGE_8)->where('status', 'selesai')->exists()) {
-            throw ValidationException::withMessages([
-                'status' => 'PO tidak dapat dibatalkan karena Stage 8 (Unloading) sudah selesai.',
-            ]);
-        }
-
         $data = $request->validate([
             'alasan' => ['nullable', 'string', 'max:500'],
         ], [
             'alasan.max' => 'Alasan pembatalan maksimal 500 karakter.',
         ]);
 
-        $alasan = !empty($data['alasan']) ? trim($data['alasan']) : 'Dibatalkan oleh pengguna';
+        $alasan = ! empty($data['alasan']) ? trim($data['alasan']) : 'Dibatalkan oleh pengguna';
 
         $oldStatus = $purchaseOrder->status;
         $oldStatusPembayaran = $purchaseOrder->status_pembayaran;
@@ -816,21 +846,12 @@ class PurchasingController extends Controller
         $alasanEntry = "[Alasan Pembatalan: {$alasan}]";
         $newCatatan = $oldCatatan ? ($oldCatatan . "\n" . $alasanEntry) : $alasanEntry;
 
-        $purchaseOrder->update([
-            'status' => 'dibatalkan',
-            'status_pembayaran' => 'batal',
-            'alasan_batal' => $alasan,
-            'dibatalkan_oleh' => auth()->id(),
-            'catatan' => $newCatatan,
-        ]);
-
-        $purchaseOrder->stages()->where('status', 'berjalan')->update([
-            'status' => 'dibatalkan',
-            'catatan' => 'Dibatalkan: ' . $alasan,
-            'waktu_selesai' => now(),
-            'dicatat_oleh' => auth()->id(),
-            'dicatat_pada' => now(),
-        ]);
+        app(PurchasingStageService::class)->cancelPo(
+            $purchaseOrder,
+            auth()->user(),
+            $alasan,
+            ['catatan' => $newCatatan]
+        );
 
         $purchaseOrder->recordAudit(
             event: 'cancelled',
@@ -1078,6 +1099,15 @@ class PurchasingController extends Controller
     private function ensureStatus(PurchaseOrder $po, array $allowed): void
     {
         abort_unless(in_array($po->status, $allowed, true), 422, 'Transisi status PO tidak valid.');
+    }
+
+    private function ensureNoPendingRevision(PurchaseOrder $po): void
+    {
+        if ($po->hasPendingRevision()) {
+            throw ValidationException::withMessages([
+                'revisi' => 'Aksi dikunci karena PO masih memiliki usulan revisi komitmen yang menunggu keputusan Manager.',
+            ]);
+        }
     }
 
     private function nextNoPo(): string

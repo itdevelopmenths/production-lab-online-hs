@@ -181,9 +181,41 @@ class PurchaseOrder extends Model
             && $this->totalNilai() > 0;
     }
 
+    /**
+     * Cek apakah PO memiliki usulan revisi komitmen yang masih menunggu keputusan.
+     */
+    public function hasPendingRevision(): bool
+    {
+        if (array_key_exists('has_pending_revisi', $this->attributes)) {
+            return (bool) $this->attributes['has_pending_revisi'];
+        }
+
+        if ($this->relationLoaded('revisis')) {
+            return $this->revisis->where('status', PoRevisi::STATUS_MENUNGGU)->isNotEmpty();
+        }
+
+        return $this->revisis()->where('status', PoRevisi::STATUS_MENUNGGU)->exists();
+    }
+
+    /**
+     * Cek apakah PO berstatus dibatalkan.
+     */
+    public function isCancelled(): bool
+    {
+        return $this->status === 'dibatalkan';
+    }
+
+    /**
+     * Cek apakah PO sudah memasuki status final (selesai atau dibatalkan).
+     */
+    public function isFinal(): bool
+    {
+        return in_array($this->status, ['selesai', 'dibatalkan'], true);
+    }
+
     public function refreshStatusPembayaran(): void
     {
-        if ($this->status === 'dibatalkan') {
+        if ($this->isCancelled()) {
             $this->status_pembayaran = 'batal';
 
             return;

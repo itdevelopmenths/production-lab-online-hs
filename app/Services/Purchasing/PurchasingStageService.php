@@ -133,13 +133,10 @@ class PurchasingStageService
      */
     public function validatePendingRevision(PurchaseOrder $po): void
     {
-        if (in_array($po->stage_aktif, [PoStage::STAGE_3, PoStage::STAGE_4, PoStage::STAGE_5], true)) {
-            $hasPending = $po->revisis()->where('status', PoRevisi::STATUS_MENUNGGU)->exists();
-            if ($hasPending) {
-                throw ValidationException::withMessages([
-                    'revisi' => 'Stage ini tidak dapat diselesaikan karena masih ada revisi komitmen yang menunggu keputusan Manager.',
-                ]);
-            }
+        if ($po->revisis()->where('status', PoRevisi::STATUS_MENUNGGU)->exists()) {
+            throw ValidationException::withMessages([
+                'revisi' => 'Stage ini tidak dapat diselesaikan karena masih ada revisi komitmen yang menunggu keputusan Manager.',
+            ]);
         }
     }
 
@@ -159,6 +156,7 @@ class PurchasingStageService
     public function completeStage1(PurchaseOrder $po, User $actor, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
     {
         return DB::transaction(function () use ($po, $actor, $waktuSelesai, $catatan) {
+            $this->validatePendingRevision($po);
             $current = $this->validateExpectedStage($po, PoStage::STAGE_1);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
@@ -197,6 +195,7 @@ class PurchasingStageService
     public function approveStage2(PurchaseOrder $po, User $manager, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
     {
         return DB::transaction(function () use ($po, $manager, $waktuSelesai, $catatan) {
+            $this->validatePendingRevision($po);
             $current = $this->validateExpectedStage($po, PoStage::STAGE_2);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
@@ -481,6 +480,7 @@ class PurchasingStageService
     public function completeStage6(PurchaseOrder $po, User $actor, array $packingData = [], ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
     {
         return DB::transaction(function () use ($po, $actor, $packingData, $waktuSelesai, $catatan) {
+            $this->validatePendingRevision($po);
             $current = $this->validateExpectedStage($po, PoStage::STAGE_6);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
@@ -532,6 +532,7 @@ class PurchasingStageService
     public function completeStage7(PurchaseOrder $po, User $actor, array $shippingData = [], ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
     {
         return DB::transaction(function () use ($po, $actor, $shippingData, $waktuSelesai, $catatan) {
+            $this->validatePendingRevision($po);
             $current = $this->validateExpectedStage($po, PoStage::STAGE_7);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
@@ -597,9 +598,38 @@ class PurchasingStageService
     public function completeStage8(PurchaseOrder $po, User $gudangUser, array $physicalCheckData, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): BarangDatang
     {
         return DB::transaction(function () use ($po, $gudangUser, $physicalCheckData, $waktuSelesai, $catatan) {
+            $this->validatePendingRevision($po);
             $current = $this->validateExpectedStage($po, PoStage::STAGE_8);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
+
+            $itemsData = $physicalCheckData['items'] ?? [];
+            $preparedItems = [];
+
+            foreach ($po->items as $poItem) {
+                $inputItem = $itemsData[$poItem->id]
+                    ?? collect($itemsData)->firstWhere('po_item_id', $poItem->id)
+                    ?? ($physicalCheckData[$poItem->id] ?? []);
+
+                if (isset($inputItem['qty_fisik']) && $inputItem['qty_fisik'] !== '') {
+                    if (! is_numeric($inputItem['qty_fisik']) || (float) $inputItem['qty_fisik'] < 0) {
+                        throw ValidationException::withMessages([
+                            "physical_check.items.{$poItem->id}.qty_fisik" => 'Kuantitas fisik diterima tidak boleh bernilai negatif.',
+                        ]);
+                    }
+                    $qtyFisik = (float) $inputItem['qty_fisik'];
+                } else {
+                    $qtyFisik = (float) $poItem->qty;
+                }
+
+                $preparedItems[] = [
+                    'po_item_id' => $poItem->id,
+                    'qty_fisik' => $qtyFisik,
+                    'qty_diterima' => null, // Belum final
+                    'selisih' => round($qtyFisik - (float) $poItem->qty, 2),
+                    'keterangan_selisih' => !empty($inputItem['keterangan_selisih']) ? trim((string) $inputItem['keterangan_selisih']) : null,
+                ];
+            }
 
             // Simpan BarangDatang dengan status belum posting
             $bardat = BarangDatang::create([
@@ -611,26 +641,8 @@ class PurchasingStageService
                 'created_by' => $gudangUser->id,
             ]);
 
-            $itemsData = $physicalCheckData['items'] ?? [];
-            foreach ($po->items as $poItem) {
-                $inputItem = $itemsData[$poItem->id]
-                    ?? collect($itemsData)->firstWhere('po_item_id', $poItem->id)
-                    ?? [];
-
-                $qtyFisik = isset($inputItem['qty_fisik']) && $inputItem['qty_fisik'] !== ''
-                    ? (float) $inputItem['qty_fisik']
-                    : (float) $poItem->qty;
-
-                $selisih = round($qtyFisik - (float) $poItem->qty, 2);
-                $keteranganSelisih = !empty($inputItem['keterangan_selisih']) ? trim((string) $inputItem['keterangan_selisih']) : null;
-
-                $bardat->items()->create([
-                    'po_item_id' => $poItem->id,
-                    'qty_fisik' => $qtyFisik,
-                    'qty_diterima' => null, // Belum final
-                    'selisih' => $selisih,
-                    'keterangan_selisih' => $keteranganSelisih,
-                ]);
+            foreach ($preparedItems as $prepItem) {
+                $bardat->items()->create($prepItem);
             }
 
             $current->update([
@@ -673,6 +685,7 @@ class PurchasingStageService
     public function completeStage9(PurchaseOrder $po, User $gudangUser, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): void
     {
         DB::transaction(function () use ($po, $gudangUser, $waktuSelesai, $catatan) {
+            $this->validatePendingRevision($po);
             $current = $this->validateExpectedStage($po, PoStage::STAGE_9);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
@@ -747,41 +760,61 @@ class PurchasingStageService
      * Batalkan PO oleh Manager (BR-07, TC-15).
      * Hanya boleh sebelum Stage 8 selesai. Alasan pembatalan wajib diisi.
      */
-    public function cancelPo(PurchaseOrder $po, User $manager, string $alasan): void
+    public function cancelPo(PurchaseOrder $po, User $manager, string $alasan, array $extraPoUpdates = []): void
     {
-        if (trim($alasan) === '') {
+        $alasan = trim($alasan);
+        if ($alasan === '') {
             throw ValidationException::withMessages([
                 'alasan' => 'Alasan pembatalan PO wajib diisi.',
             ]);
         }
 
-        // Cek apakah stage 8 sudah selesai
-        $stage8Selesai = $po->stages()
-            ->where('stage', PoStage::STAGE_8)
-            ->where('status', 'selesai')
-            ->exists();
+        DB::transaction(function () use ($po, $manager, $alasan, $extraPoUpdates) {
+            $lockedPo = PurchaseOrder::lockForUpdate()->findOrFail($po->id);
 
-        if ($stage8Selesai || in_array($po->status, ['selesai', 'dibatalkan'], true)) {
-            throw ValidationException::withMessages([
-                'status' => 'PO tidak dapat dibatalkan karena tahap Unloading fisik di gudang sudah selesai.',
-            ]);
-        }
+            // Cek apakah stage 8 sudah selesai
+            $stage8Selesai = $lockedPo->stages()
+                ->where('stage', PoStage::STAGE_8)
+                ->where('status', 'selesai')
+                ->exists();
 
-        DB::transaction(function () use ($po, $manager, $alasan) {
-            $po->status = 'dibatalkan';
-            $po->status_pembayaran = 'batal';
-            $po->alasan_batal = $alasan;
-            $po->dibatalkan_oleh = $manager->id;
-            $po->save();
+            if ($stage8Selesai || $lockedPo->isFinal()) {
+                throw ValidationException::withMessages([
+                    'status' => 'PO tidak dapat dibatalkan karena tahap Unloading fisik di gudang sudah selesai atau dokumen sudah final.',
+                ]);
+            }
+
+            $lockedPo->status = 'dibatalkan';
+            $lockedPo->status_pembayaran = 'batal';
+            $lockedPo->alasan_batal = mb_substr($alasan, 0, 255);
+            $lockedPo->dibatalkan_oleh = $manager->id;
+            if (array_key_exists('catatan', $extraPoUpdates)) {
+                $lockedPo->catatan = $extraPoUpdates['catatan'];
+            }
+            $lockedPo->save();
 
             // Tandai stage aktif sebagai dibatalkan
-            $po->stages()->where('status', 'berjalan')->update([
+            $lockedPo->stages()->where('status', 'berjalan')->update([
                 'status' => 'dibatalkan',
                 'catatan' => 'Dibatalkan: ' . $alasan,
                 'waktu_selesai' => now(),
                 'dicatat_oleh' => $manager->id,
                 'dicatat_pada' => now(),
             ]);
+
+            // Auto-batalkan seluruh revisi komitmen yang masih menunggu keputusan Manager
+            $lockedPo->revisis()
+                ->where('status', PoRevisi::STATUS_MENUNGGU)
+                ->update([
+                    'status' => PoRevisi::STATUS_DIBATALKAN,
+                    'diputuskan_oleh' => $manager->id,
+                    'diputuskan_pada' => now(),
+                    'catatan_keputusan' => 'Otomatis dibatalkan karena PO dibatalkan: ' . mb_substr($alasan, 0, 180),
+                ]);
+
+            $po->forceFill($lockedPo->getAttributes());
+            $po->unsetRelation('stages');
+            $po->unsetRelation('revisis');
         });
     }
 }

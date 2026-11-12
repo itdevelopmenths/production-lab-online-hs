@@ -285,6 +285,7 @@ class DashboardController extends Controller
 
         // Monitoring pengiriman vendor
         $poInTransit = PurchaseOrder::with(['supplier:id,nama'])
+            ->whereNotIn('status', ['selesai', 'dibatalkan'])
             ->whereIn('stage_aktif', ['pengemasan', 'pengiriman'])
             ->latest('tanggal')
             ->limit(5)

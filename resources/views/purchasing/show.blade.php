@@ -114,23 +114,151 @@
             <x-purchasing-progress-stepper :po="$po" :stageBenchmarks="$stageBenchmarks ?? null" />
         </div>
 
-        {{-- Panel Approval Usulan Revisi Komitmen (PRD v2.4) --}}
+        {{-- Panel Approval Usulan Revisi Komitmen & Helper Histori Revisi (PRD v2.4) --}}
         @php
-            $pendingRevisis = $po->relationLoaded('revisis')
-                ? $po->revisis->where('status', 'menunggu')->values()
+            $hasRevisis = $po->relationLoaded('revisis') && $po->revisis->isNotEmpty();
+            $pendingRevisis = (! $po->isFinal() && $hasRevisis)
+                ? $po->revisis->where('status', \App\Models\PoRevisi::STATUS_MENUNGGU)->values()
                 : collect();
+            $hasPendingRevisi = $pendingRevisis->isNotEmpty();
+
+            if ($hasRevisis) {
+                $fmtQty = static fn (float $n): string => rtrim(rtrim(number_format($n, 2, ',', '.'), '0'), ',') ?: '0';
+                $fmtRp = static fn (float $n): string => 'Rp ' . number_format($n, 0, ',', '.');
+                $fmtSignedRp = static function (float $delta): string {
+                    if (abs($delta) < 0.5) {
+                        return 'Rp 0';
+                    }
+                    return ($delta > 0 ? '+Rp ' : '-Rp ') . number_format(abs($delta), 0, ',', '.');
+                };
+
+                $poItemsById = $po->items->keyBy('id');
+                $poItemsByProdukId = $po->items->keyBy('produk_id');
+
+                $buildRevisionComparison = static function (\App\Models\PoRevisi $rev, bool $fallbackToCurrentPo = false) use ($po, $poItemsById, $poItemsByProdukId, $canSeePrice): array {
+                    $dLama = is_array($rev->data_lama ?? null) ? $rev->data_lama : [];
+                    $dUsul = is_array($rev->data_usulan ?? null) ? $rev->data_usulan : [];
+
+                    $oldItemsRaw = collect($dLama['items'] ?? [])->filter(fn ($it) => is_array($it));
+                    $oldByPoItemId = $oldItemsRaw->filter(fn ($it) => !empty($it['po_item_id']))->keyBy('po_item_id');
+                    $oldByProdukId = $oldItemsRaw->filter(fn ($it) => !empty($it['produk_id']))->keyBy('produk_id');
+                    $fallbackPo = $fallbackToCurrentPo ? $po : null;
+
+                    $itemComparisons = collect($dUsul['items'] ?? [])
+                        ->filter(fn ($it) => is_array($it))
+                        ->values()
+                        ->map(function ($itUsul, $idx) use ($oldByPoItemId, $oldByProdukId, $poItemsById, $poItemsByProdukId, $canSeePrice, $fallbackPo) {
+                            $poItemId = $itUsul['po_item_id'] ?? null;
+                            $produkId = $itUsul['produk_id'] ?? null;
+
+                            $poItemMatch = ($poItemId ? $poItemsById->get($poItemId) : null)
+                                ?? ($produkId ? $poItemsByProdukId->get($produkId) : null);
+
+                            $oldIt = ($poItemId ? $oldByPoItemId->get($poItemId) : null)
+                                ?? ($produkId ? $oldByProdukId->get($produkId) : null);
+
+                            $satDasar = $poItemMatch?->produk?->satuan ?? 'unit';
+                            $oldQtyDasar = (float) ($oldIt['qty'] ?? ($fallbackPo ? $poItemMatch?->qty : null) ?? 0);
+                            $newQtyDasar = (float) ($itUsul['qty'] ?? $oldQtyDasar);
+
+                            $oldSatBeli = ($oldIt['satuan_beli'] ?? ($fallbackPo ? $poItemMatch?->satuan_beli : null)) ?: $satDasar;
+                            $newSatBeli = ($itUsul['satuan_beli'] ?? null) ?: $oldSatBeli;
+
+                            $oldQtyBeliRaw = $oldIt['qty_satuan_beli'] ?? ($fallbackPo ? $poItemMatch?->qty_satuan_beli : null);
+                            $oldQtyBeli = (float) ($oldQtyBeliRaw !== null && $oldQtyBeliRaw > 0 ? $oldQtyBeliRaw : $oldQtyDasar);
+
+                            $newQtyBeliRaw = $itUsul['qty_satuan_beli'] ?? null;
+                            $newQtyBeli = (float) ($newQtyBeliRaw !== null && $newQtyBeliRaw > 0 ? $newQtyBeliRaw : $newQtyDasar);
+
+                            $oldHarga = (float) ($oldIt['harga_total'] ?? ($fallbackPo ? $poItemMatch?->harga_total : null) ?? 0);
+                            $newHarga = (float) ($itUsul['harga_total'] ?? $oldHarga);
+
+                            $sameUnitBeli = strcasecmp((string) $oldSatBeli, (string) $newSatBeli) === 0;
+                            $deltaQtyBeli = $sameUnitBeli ? ($newQtyBeli - $oldQtyBeli) : null;
+                            $deltaQtyDasar = $newQtyDasar - $oldQtyDasar;
+                            $deltaHarga = $newHarga - $oldHarga;
+
+                            $qtyChanged = !$sameUnitBeli
+                                || abs($newQtyBeli - $oldQtyBeli) > 0.0001
+                                || abs($deltaQtyDasar) > 0.0001;
+                            $hargaChanged = $canSeePrice && abs($deltaHarga) > 0.5;
+
+                            return [
+                                'nama' => $poItemMatch?->produk?->nama ?? ('Item #' . ($idx + 1)),
+                                'sku' => $poItemMatch?->produk?->sku ?? '—',
+                                'sat_dasar' => $satDasar,
+                                'old_sat_beli' => $oldSatBeli,
+                                'new_sat_beli' => $newSatBeli,
+                                'old_qty_beli' => $oldQtyBeli,
+                                'new_qty_beli' => $newQtyBeli,
+                                'old_qty_dasar' => $oldQtyDasar,
+                                'new_qty_dasar' => $newQtyDasar,
+                                'old_harga' => $oldHarga,
+                                'new_harga' => $newHarga,
+                                'delta_qty_beli' => $deltaQtyBeli,
+                                'delta_qty_dasar' => $deltaQtyDasar,
+                                'delta_harga' => $deltaHarga,
+                                'same_unit_beli' => $sameUnitBeli,
+                                'qty_changed' => $qtyChanged,
+                                'harga_changed' => $hargaChanged,
+                                'changed' => $qtyChanged || $hargaChanged,
+                            ];
+                        });
+
+                    $changedItemCount = $itemComparisons->where('changed', true)->count();
+                    $totalItemCount = $itemComparisons->count();
+
+                    $usulItemsSubtotal = (float) $itemComparisons->sum('new_harga');
+                    $oldSubtotal = (float) ($dLama['subtotal_produk'] ?? ($fallbackPo?->subtotal_produk ?? 0));
+                    $newSubtotal = $itemComparisons->isNotEmpty()
+                        ? $usulItemsSubtotal
+                        : (float) ($dUsul['subtotal_produk'] ?? $oldSubtotal);
+
+                    $oldDiskon = (float) ($dLama['diskon_total'] ?? ($fallbackPo?->diskon_total ?? 0));
+                    $newDiskon = (float) ($dUsul['diskon_total'] ?? $oldDiskon);
+
+                    $oldPpn = (float) ($dLama['ppn_nominal'] ?? ($fallbackPo?->ppn_nominal ?? 0));
+                    $newPpn = (float) ($dUsul['ppn_nominal'] ?? $oldPpn);
+
+                    $oldOngkir = (float) ($dLama['ongkos_kirim'] ?? ($fallbackPo?->ongkos_kirim ?? 0));
+                    $newOngkir = (float) ($dUsul['ongkos_kirim'] ?? $oldOngkir);
+
+                    $oldAdj = (float) ($dLama['adjustment'] ?? ($fallbackPo?->adjustment ?? 0));
+                    $newAdj = (float) ($dUsul['adjustment'] ?? $oldAdj);
+
+                    $oldGrandTotal = (float) ($dLama['grand_total'] ?? ($fallbackPo?->grand_total ?? 0));
+                    $newGrandTotal = max(0, round($newSubtotal - $newDiskon + $newPpn + $newOngkir + $newAdj));
+                    $deltaGrandTotal = $newGrandTotal - $oldGrandTotal;
+
+                    $financeRows = [
+                        ['label' => 'Subtotal Bahan (Kotor)', 'old' => $oldSubtotal, 'new' => $newSubtotal, 'is_discount' => false, 'is_signed' => false],
+                        ['label' => 'Diskon Global PO', 'old' => $oldDiskon, 'new' => $newDiskon, 'is_discount' => true, 'is_signed' => false],
+                        ['label' => 'PPN Global PO', 'old' => $oldPpn, 'new' => $newPpn, 'is_discount' => false, 'is_signed' => false],
+                        ['label' => 'Ongkos Kirim Global', 'old' => $oldOngkir, 'new' => $newOngkir, 'is_discount' => false, 'is_signed' => false],
+                        ['label' => 'Adjustment / Pembulatan', 'old' => $oldAdj, 'new' => $newAdj, 'is_discount' => false, 'is_signed' => true],
+                    ];
+
+                    $submittedAt = ($rev->diajukan_pada ?? $rev->created_at)?->format('d/m/Y H:i') ?? '—';
+                    $decidedAt = $rev->diputuskan_pada?->format('d/m/Y H:i') ?? '—';
+                    $stageLabel = \App\Models\PoStage::STAGE_LABELS[$rev->stage_saat_ajukan]
+                        ?? ($rev->stage_saat_ajukan ? ucwords(str_replace('_', ' ', $rev->stage_saat_ajukan)) : '—');
+
+                    return [
+                        'itemComparisons' => $itemComparisons,
+                        'changedItemCount' => $changedItemCount,
+                        'totalItemCount' => $totalItemCount,
+                        'oldGrandTotal' => $oldGrandTotal,
+                        'newGrandTotal' => $newGrandTotal,
+                        'deltaGrandTotal' => $deltaGrandTotal,
+                        'financeRows' => $financeRows,
+                        'submittedAt' => $submittedAt,
+                        'decidedAt' => $decidedAt,
+                        'stageLabel' => $stageLabel,
+                    ];
+                };
+            }
         @endphp
-        @if($pendingRevisis->isNotEmpty())
-        @php
-            $fmtQty = static fn (float $n): string => rtrim(rtrim(number_format($n, 2, ',', '.'), '0'), ',') ?: '0';
-            $fmtRp = static fn (float $n): string => 'Rp ' . number_format($n, 0, ',', '.');
-            $fmtSignedRp = static function (float $delta): string {
-                if (abs($delta) < 0.5) {
-                    return 'Rp 0';
-                }
-                return ($delta > 0 ? '+Rp ' : '-Rp ') . number_format(abs($delta), 0, ',', '.');
-            };
-        @endphp
+        @if($hasPendingRevisi)
         <section aria-labelledby="pending-revisi-heading" class="mb-5 bg-card border border-amber-300/80 rounded-xl shadow-xs overflow-hidden">
             <div class="px-4 sm:px-5 py-3.5 bg-amber-50/70 border-b border-amber-200/80 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3 min-w-0">
@@ -160,111 +288,16 @@
             <div class="divide-y divide-border">
                 @foreach($pendingRevisis as $rev)
                     @php
-                        $dLama = is_array($rev->data_lama ?? null) ? $rev->data_lama : [];
-                        $dUsul = is_array($rev->data_usulan ?? null) ? $rev->data_usulan : [];
-
-                        $oldItemsRaw = collect($dLama['items'] ?? [])->filter(fn ($it) => is_array($it));
-                        $oldByPoItemId = $oldItemsRaw->filter(fn ($it) => !empty($it['po_item_id']))->keyBy('po_item_id');
-                        $oldByProdukId = $oldItemsRaw->filter(fn ($it) => !empty($it['produk_id']))->keyBy('produk_id');
-
-                        $poItemsById = $po->items->keyBy('id');
-                        $poItemsByProdukId = $po->items->keyBy('produk_id');
-
-                        $itemComparisons = collect($dUsul['items'] ?? [])
-                            ->filter(fn ($it) => is_array($it))
-                            ->values()
-                            ->map(function ($itUsul, $idx) use ($oldByPoItemId, $oldByProdukId, $poItemsById, $poItemsByProdukId, $canSeePrice) {
-                                $poItemId = $itUsul['po_item_id'] ?? null;
-                                $produkId = $itUsul['produk_id'] ?? null;
-
-                                $poItemMatch = ($poItemId ? $poItemsById->get($poItemId) : null)
-                                    ?? ($produkId ? $poItemsByProdukId->get($produkId) : null);
-
-                                $oldIt = ($poItemId ? $oldByPoItemId->get($poItemId) : null)
-                                    ?? ($produkId ? $oldByProdukId->get($produkId) : null);
-
-                                $satDasar = $poItemMatch?->produk?->satuan ?? 'unit';
-                                $oldQtyDasar = (float) ($oldIt['qty'] ?? $poItemMatch?->qty ?? 0);
-                                $newQtyDasar = (float) ($itUsul['qty'] ?? $oldQtyDasar);
-
-                                $oldSatBeli = ($oldIt['satuan_beli'] ?? $poItemMatch?->satuan_beli) ?: $satDasar;
-                                $newSatBeli = ($itUsul['satuan_beli'] ?? null) ?: $oldSatBeli;
-
-                                $oldQtyBeliRaw = $oldIt['qty_satuan_beli'] ?? $poItemMatch?->qty_satuan_beli;
-                                $oldQtyBeli = (float) ($oldQtyBeliRaw !== null && $oldQtyBeliRaw > 0 ? $oldQtyBeliRaw : $oldQtyDasar);
-
-                                $newQtyBeliRaw = $itUsul['qty_satuan_beli'] ?? null;
-                                $newQtyBeli = (float) ($newQtyBeliRaw !== null ? $newQtyBeliRaw : $newQtyDasar);
-
-                                $oldHarga = (float) ($oldIt['harga_total'] ?? $poItemMatch?->harga_total ?? 0);
-                                $newHarga = (float) ($itUsul['harga_total'] ?? $oldHarga);
-
-                                $sameUnitBeli = strcasecmp((string) $oldSatBeli, (string) $newSatBeli) === 0;
-                                $deltaQtyBeli = $sameUnitBeli ? ($newQtyBeli - $oldQtyBeli) : null;
-                                $deltaQtyDasar = $newQtyDasar - $oldQtyDasar;
-                                $deltaHarga = $newHarga - $oldHarga;
-
-                                $qtyChanged = !$sameUnitBeli
-                                    || abs($newQtyBeli - $oldQtyBeli) > 0.0001
-                                    || abs($deltaQtyDasar) > 0.0001;
-                                $hargaChanged = $canSeePrice && abs($deltaHarga) > 0.5;
-
-                                return [
-                                    'nama' => $poItemMatch?->produk?->nama ?? ('Item #' . ($idx + 1)),
-                                    'sku' => $poItemMatch?->produk?->sku ?? '—',
-                                    'sat_dasar' => $satDasar,
-                                    'old_sat_beli' => $oldSatBeli,
-                                    'new_sat_beli' => $newSatBeli,
-                                    'old_qty_beli' => $oldQtyBeli,
-                                    'new_qty_beli' => $newQtyBeli,
-                                    'old_qty_dasar' => $oldQtyDasar,
-                                    'new_qty_dasar' => $newQtyDasar,
-                                    'old_harga' => $oldHarga,
-                                    'new_harga' => $newHarga,
-                                    'delta_qty_beli' => $deltaQtyBeli,
-                                    'delta_qty_dasar' => $deltaQtyDasar,
-                                    'delta_harga' => $deltaHarga,
-                                    'same_unit_beli' => $sameUnitBeli,
-                                    'qty_changed' => $qtyChanged,
-                                    'changed' => $qtyChanged || $hargaChanged,
-                                ];
-                            });
-
-                        $changedItemCount = $itemComparisons->where('changed', true)->count();
-                        $totalItemCount = $itemComparisons->count();
-
-                        $usulItemsSubtotal = (float) $itemComparisons->sum('new_harga');
-                        $oldSubtotal = (float) ($dLama['subtotal_produk'] ?? $po->subtotal_produk ?? 0);
-                        $newSubtotal = (float) ($dUsul['subtotal_produk'] ?? ($itemComparisons->isNotEmpty() ? $usulItemsSubtotal : $oldSubtotal));
-
-                        $oldDiskon = (float) ($dLama['diskon_total'] ?? $po->diskon_total ?? 0);
-                        $newDiskon = (float) ($dUsul['diskon_total'] ?? $oldDiskon);
-
-                        $oldPpn = (float) ($dLama['ppn_nominal'] ?? $po->ppn_nominal ?? 0);
-                        $newPpn = (float) ($dUsul['ppn_nominal'] ?? $oldPpn);
-
-                        $oldOngkir = (float) ($dLama['ongkos_kirim'] ?? $po->ongkos_kirim ?? 0);
-                        $newOngkir = (float) ($dUsul['ongkos_kirim'] ?? $oldOngkir);
-
-                        $oldAdj = (float) ($dLama['adjustment'] ?? $po->adjustment ?? 0);
-                        $newAdj = (float) ($dUsul['adjustment'] ?? $oldAdj);
-
-                        $oldGrandTotal = (float) ($dLama['grand_total'] ?? $po->grand_total ?? 0);
-                        $computedNewGt = max(0, round($newSubtotal - $newDiskon + $newPpn + $newOngkir + $newAdj));
-                        $newGrandTotal = (float) ($dUsul['grand_total'] ?? $computedNewGt);
-                        $deltaGrandTotal = $newGrandTotal - $oldGrandTotal;
-
-                        $financeRows = [
-                            ['label' => 'Subtotal Bahan (Kotor)', 'old' => $oldSubtotal, 'new' => $newSubtotal, 'is_discount' => false, 'is_signed' => false],
-                            ['label' => 'Diskon Global PO', 'old' => $oldDiskon, 'new' => $newDiskon, 'is_discount' => true, 'is_signed' => false],
-                            ['label' => 'PPN Global PO', 'old' => $oldPpn, 'new' => $newPpn, 'is_discount' => false, 'is_signed' => false],
-                            ['label' => 'Ongkos Kirim Global', 'old' => $oldOngkir, 'new' => $newOngkir, 'is_discount' => false, 'is_signed' => false],
-                            ['label' => 'Adjustment / Pembulatan', 'old' => $oldAdj, 'new' => $newAdj, 'is_discount' => false, 'is_signed' => true],
-                        ];
-
-                        $submittedAt = ($rev->diajukan_pada ?? $rev->created_at)?->format('d/m/Y H:i') ?? '—';
-                        $stageLabel = \App\Models\PoStage::STAGE_LABELS[$rev->stage_saat_ajukan]
-                            ?? ($rev->stage_saat_ajukan ? ucwords(str_replace('_', ' ', $rev->stage_saat_ajukan)) : '—');
+                        $revDiff = $buildRevisionComparison($rev, true);
+                        $itemComparisons = $revDiff['itemComparisons'];
+                        $changedItemCount = $revDiff['changedItemCount'];
+                        $totalItemCount = $revDiff['totalItemCount'];
+                        $oldGrandTotal = $revDiff['oldGrandTotal'];
+                        $newGrandTotal = $revDiff['newGrandTotal'];
+                        $deltaGrandTotal = $revDiff['deltaGrandTotal'];
+                        $financeRows = $revDiff['financeRows'];
+                        $submittedAt = $revDiff['submittedAt'];
+                        $stageLabel = $revDiff['stageLabel'];
                     @endphp
 
                     <div class="p-4 sm:p-5 space-y-4 text-xs">
@@ -1252,6 +1285,14 @@
 
                         {{-- STAGE 4: Pembayaran / DP --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_4)
+                            @if($hasPendingRevisi)
+                            <div role="status" class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs flex items-start gap-2 leading-relaxed">
+                                <svg class="size-4 shrink-0 mt-0.5 text-amber-600" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                <span><strong>Stage Pembayaran dikunci.</strong> Selesaikan persetujuan revisi komitmen di atas sebelum mengonfirmasi pembayaran atau lanjut tempo.</span>
+                            </div>
+                            @else
                             @can('purchasing.pay')
                             <div class="space-y-3 text-xs">
                                 @if($po->payments->isNotEmpty())
@@ -1279,6 +1320,7 @@
                             @else
                             <p class="text-xs text-muted-foreground italic">Menunggu konfirmasi pelunasan / DP atau pelepasan skema tempo dari Finance.</p>
                             @endcan
+                            @endif
 
                         {{-- STAGE 5: Penerbitan PO Resmi --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_5)
@@ -1519,7 +1561,7 @@
 
                 <!-- Panel Pembayaran & AP (Hanya untuk yang memiliki wewenang purchasing.price.view) -->
                 @if($canSeePrice)
-                <x-card title="Status Pembayaran (AP)" id="form-pembayaran">
+                <x-card title="Status Pembayaran (AP)" id="status-pembayaran-card">
                     <div class="space-y-2.5 text-xs pb-3 border-b border-border">
                         <div class="flex justify-between items-center">
                             <span class="text-muted-foreground">Status Pembayaran (AP)</span>
@@ -1601,17 +1643,30 @@
                     @endif
 
                     @can('purchasing.pay')
-                    @if(!$po->isLunas() && !in_array($po->status, ['dibatalkan']))
+                    @if(!$po->isLunas() && !$po->isCancelled() && $hasPendingRevisi)
+                        <div role="status" class="mt-3 p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-800 text-xs space-y-1.5">
+                            <div class="font-semibold flex items-center gap-1.5">
+                                <svg class="size-4 shrink-0 text-amber-600" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                                <span>Pembayaran dikunci sementara</span>
+                            </div>
+                            <p class="text-[11px] leading-relaxed">
+                                Pengajuan revisi harga/komitmen masih menunggu persetujuan Manager. Pencatatan pembayaran baru dapat dilakukan setelah usulan revisi disetujui atau ditolak agar nominal mengikuti harga komitmen final.
+                            </p>
+                        </div>
+                    @elseif(!$po->isLunas() && !$po->isCancelled())
+                        <div id="form-pembayaran" class="pt-3 border-t border-border">
                         @if($po->skema_bayar === 'cash')
                         <!-- Form Pembayaran Tunai (Cash / Transfer Penuh) -->
-                        <form method="POST" action="{{ route('purchasing.pay', $po) }}" class="space-y-4 pt-3 border-t border-border">
+                        <form method="POST" action="{{ route('purchasing.pay', $po) }}" aria-label="Formulir Pembayaran Tunai" class="space-y-4">
                             @csrf
                             <input type="hidden" name="skema" value="cash">
                             <input type="hidden" name="nominal" value="{{ (float)$po->sisaTagihan() }}">
 
                             <div>
-                                <label class="block text-xs font-semibold text-foreground mb-1.5">Tanggal Bayar</label>
-                                <input type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition" required>
+                                <label for="pay_tanggal_cash" class="block text-xs font-semibold text-foreground mb-1.5">Tanggal Bayar</label>
+                                <input id="pay_tanggal_cash" type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition" required>
                             </div>
 
                             <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 space-y-1.5">
@@ -1629,7 +1684,7 @@
 
                             <x-button type="submit" variant="success" size="sm" class="w-full">
                                 <x-slot:icon>
-                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                    <svg class="size-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                                 </x-slot:icon>
                                 Catat Pembayaran Tunai Penuh (Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }})
                             </x-button>
@@ -1647,11 +1702,11 @@
                                 ? (float) $nextUnpaidTermin->sisaNominal()
                                 : (float) $po->sisaTagihan();
                         @endphp
-                        <form method="POST" action="{{ route('purchasing.pay', $po) }}" class="space-y-4 pt-3 border-t border-border" x-data="payForm({{ $po->sisaTagihan() }}, '{{ $defaultPaySkema }}', {{ $initialPayNominal }}, '{{ $po->skema_bayar }}')">
+                        <form method="POST" action="{{ route('purchasing.pay', $po) }}" aria-label="Formulir Pembayaran Termin atau Tempo" class="space-y-4" x-data="payForm({{ $po->sisaTagihan() }}, '{{ $defaultPaySkema }}', {{ $initialPayNominal }}, '{{ $po->skema_bayar }}')">
                             @csrf
                             <div>
-                                <label class="block text-xs font-semibold text-foreground mb-1.5">Skema Pembayaran</label>
-                                <select name="skema" x-model="skema" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition">
+                                <label for="pay_skema" class="block text-xs font-semibold text-foreground mb-1.5">Skema Pembayaran</label>
+                                <select id="pay_skema" name="skema" x-model="skema" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition">
                                     @if($po->skema_bayar === 'tempo')
                                         <option value="tempo">Tempo (Pembayaran Cicilan / Parsial)</option>
                                         <option value="pelunasan">Pelunasan Penuh (Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }})</option>
@@ -1664,8 +1719,8 @@
 
                             @if($po->skema_bayar === 'termin' && $po->termins->where('status', '!=', 'lunas')->count())
                             <div x-show="skema === 'termin'">
-                                <label class="block text-xs font-semibold text-foreground mb-1.5">Target Termin (Opsional)</label>
-                                <select name="termin_id" @change="onTerminChange($event)" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition">
+                                <label for="pay_termin_id" class="block text-xs font-semibold text-foreground mb-1.5">Target Termin (Opsional)</label>
+                                <select id="pay_termin_id" name="termin_id" @change="onTerminChange($event)" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition">
                                     <option value="">— Alokasikan Otomatis (FIFO) —</option>
                                     @foreach($po->termins->where('status', '!=', 'lunas') as $tOpt)
                                         <option value="{{ $tOpt->id }}" data-sisa="{{ $tOpt->sisaNominal() }}">
@@ -1677,15 +1732,15 @@
                             @endif
 
                             <div>
-                                <label class="block text-xs font-semibold text-foreground mb-1.5">Tanggal Bayar</label>
-                                <input type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition" required>
+                                <label for="pay_tanggal_tempo" class="block text-xs font-semibold text-foreground mb-1.5">Tanggal Bayar</label>
+                                <input id="pay_tanggal_tempo" type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition" required>
                             </div>
 
                             <!-- Kolom Nominal Bayar Custom (Termin / Tempo) -->
                             <div class="rounded-xl border border-border bg-muted/20 p-3.5 space-y-2.5">
                                 <div class="flex items-center justify-between">
-                                    <label class="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                        <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    <label for="pay_nominal_display" class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                        <svg class="size-3.5 text-muted-foreground" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                         <span>Nominal Bayar (Custom / Diedit)</span>
                                     </label>
                                     <span class="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono font-medium border border-border">
@@ -1698,7 +1753,7 @@
                                         Rp
                                     </span>
                                     <input type="hidden" name="nominal" :value="nominal">
-                                    <input type="text"
+                                    <input id="pay_nominal_display" type="text"
                                         inputmode="numeric"
                                         x-model="displayNominal"
                                         @focus="onFocusNominal($event)"
@@ -1709,9 +1764,10 @@
                                     <button type="button"
                                         x-show="nominal > 0"
                                         @click="clearNominal()"
+                                        aria-label="Kosongkan nominal"
                                         class="mr-2 text-muted-foreground hover:text-foreground p-1 rounded transition cursor-pointer"
                                         title="Kosongkan nominal">
-                                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                     </button>
                                 </div>
 
@@ -1762,9 +1818,9 @@
                                     </div>
                                 </div>
 
-                                <div x-show="nominal > sisa" class="p-2.5 bg-destructive/10 border border-destructive/20 rounded-lg text-[11px] text-destructive space-y-1">
+                                <div x-show="nominal > sisa" role="alert" class="p-2.5 bg-destructive/10 border border-destructive/20 rounded-lg text-[11px] text-destructive space-y-1">
                                     <div class="font-semibold flex items-center gap-1">
-                                        <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        <svg class="size-3.5 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                         <span>Nominal melebihi sisa tagihan!</span>
                                     </div>
                                     <p class="text-destructive/90">Maksimal pembayaran yang dapat dicatat adalah Rp <span x-text="formatThousand(sisa)"></span>.</p>
@@ -1787,10 +1843,10 @@
                                     </span>
                                 </div>
                                 <div x-show="adjustTempo" x-cloak class="pt-2 border-t border-border space-y-1.5">
-                                    <label class="block text-[11px] font-semibold text-foreground">
+                                    <label for="pay_tanggal_tempo_baru" class="block text-[11px] font-semibold text-foreground">
                                         Tanggal Jatuh Tempo Baru untuk Sisa Tagihan:
                                     </label>
-                                    <input type="date"
+                                    <input id="pay_tanggal_tempo_baru" type="date"
                                         name="tanggal_tempo_baru"
                                         value="{{ $po->tanggal_tempo ? $po->tanggal_tempo->format('Y-m-d') : date('Y-m-d', strtotime('+30 days')) }}"
                                         min="{{ date('Y-m-d') }}"
@@ -1804,12 +1860,13 @@
 
                             <x-button type="submit" variant="primary" size="sm" class="w-full" x-bind:disabled="isPayDisabled()">
                                 <x-slot:icon>
-                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                    <svg class="size-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                                 </x-slot:icon>
                                 Catat Pembayaran {{ ucfirst($po->skema_bayar) }}
                             </x-button>
                         </form>
                         @endif
+                        </div>
                     @endif
                     @endcan
 
@@ -1833,6 +1890,139 @@
                 @endif
             </div>
         </div>
+
+        {{-- Tabel Histori Revisi Komitmen (tampil hanya jika PO memiliki histori revisi) --}}
+        @if($hasRevisis)
+        @php
+            $revisionStatusMap = [
+                \App\Models\PoRevisi::STATUS_DISETUJUI => ['label' => 'Disetujui', 'variant' => 'success', 'dot' => true],
+                \App\Models\PoRevisi::STATUS_DITOLAK => ['label' => 'Ditolak', 'variant' => 'danger', 'dot' => true],
+                \App\Models\PoRevisi::STATUS_DIBATALKAN => ['label' => 'Dibatalkan', 'variant' => 'neutral', 'dot' => false],
+                \App\Models\PoRevisi::STATUS_MENUNGGU => ['label' => 'Menunggu Approval', 'variant' => 'warning', 'dot' => true],
+            ];
+            $sortedRevisis = $po->revisis->sortByDesc('revisi_ke')->values();
+        @endphp
+        <div class="mt-6">
+            <x-card
+                title="Histori Revisi Komitmen"
+                :subtitle="'Jejak seluruh usulan perubahan komitmen PO (' . $sortedRevisis->count() . ' revisi tercatat)'"
+                :noPadding="true"
+            >
+                <div tabindex="0" role="region" aria-labelledby="histori-revisi-caption" class="overflow-x-auto max-h-[32rem]">
+                    <table class="w-full text-xs text-left border-separate border-spacing-0">
+                        <caption id="histori-revisi-caption" class="sr-only">Histori Revisi Komitmen Purchase Order {{ $po->no_po }}</caption>
+                        <thead class="sticky top-0 z-10 bg-muted/95 backdrop-blur-xs text-muted-foreground font-semibold uppercase text-[10px] border-b border-border">
+                            <tr>
+                                <th scope="col" class="px-4 py-2.5 whitespace-nowrap border-b border-border">Revisi &amp; Status</th>
+                                <th scope="col" class="px-4 py-2.5 min-w-[220px] border-b border-border">Alasan &amp; Catatan Keputusan</th>
+                                <th scope="col" class="px-4 py-2.5 min-w-[220px] border-b border-border">Perubahan Item</th>
+                                @if($canSeePrice)
+                                    <th scope="col" class="px-4 py-2.5 text-right whitespace-nowrap border-b border-border">Dampak Finansial</th>
+                                @endif
+                                <th scope="col" class="px-4 py-2.5 whitespace-nowrap border-b border-border">Diajukan</th>
+                                <th scope="col" class="px-4 py-2.5 whitespace-nowrap border-b border-border">Diputuskan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border bg-card">
+                            @foreach($sortedRevisis as $rev)
+                                @php
+                                    $diff = $buildRevisionComparison($rev, $rev->status === \App\Models\PoRevisi::STATUS_MENUNGGU);
+                                    $statusMeta = $revisionStatusMap[$rev->status]
+                                        ?? ['label' => ucfirst((string) $rev->status), 'variant' => 'neutral', 'dot' => false];
+                                    $deltaGtClass = $diff['deltaGrandTotal'] > 0.5
+                                        ? 'text-amber-700'
+                                        : ($diff['deltaGrandTotal'] < -0.5 ? 'text-emerald-700' : 'text-muted-foreground');
+                                @endphp
+                                <tr class="hover:bg-muted/30 transition-colors">
+                                    <th scope="row" class="px-4 py-3 align-top text-left font-normal whitespace-nowrap">
+                                        <div class="font-mono tabular-nums font-semibold text-foreground">
+                                            Revisi ke-{{ $rev->revisi_ke }}
+                                        </div>
+                                        <div class="mt-1">
+                                            <x-badge :variant="$statusMeta['variant']" :dot="$statusMeta['dot']" size="sm">
+                                                {{ $statusMeta['label'] }}
+                                            </x-badge>
+                                        </div>
+                                        <div class="text-[11px] text-muted-foreground mt-1">
+                                            Stage: {{ $diff['stageLabel'] }}
+                                        </div>
+                                    </th>
+
+                                    <td class="px-4 py-3 align-top max-w-xs">
+                                        <p class="font-medium text-foreground break-words leading-snug">
+                                            {{ $rev->alasan ?: '—' }}
+                                        </p>
+                                        @if(filled($rev->catatan_keputusan))
+                                            <p class="mt-1.5 text-[11px] leading-snug break-words {{ $rev->status === \App\Models\PoRevisi::STATUS_DITOLAK ? 'text-red-700 bg-red-50/70 border border-red-200/70 rounded-md px-2 py-1' : 'text-muted-foreground bg-muted/40 rounded-md px-2 py-1' }}">
+                                                <span class="font-semibold">Catatan:</span> {{ $rev->catatan_keputusan }}
+                                            </p>
+                                        @endif
+                                    </td>
+
+                                    <td class="px-4 py-3 align-top">
+                                        @if($diff['itemComparisons']->isNotEmpty())
+                                            <ul class="space-y-1.5">
+                                                @foreach($diff['itemComparisons'] as $itRow)
+                                                    <li class="text-[11px] leading-snug">
+                                                        <span class="font-semibold text-foreground">{{ $itRow['nama'] }}</span>
+                                                        <div class="font-mono tabular-nums text-muted-foreground mt-0.5">
+                                                            <span>{{ $fmtQty($itRow['old_qty_beli']) }} {{ $itRow['old_sat_beli'] }}</span>
+                                                            <span aria-hidden="true"> &rarr; </span>
+                                                            <span class="text-foreground font-medium">{{ $fmtQty($itRow['new_qty_beli']) }} {{ $itRow['new_sat_beli'] }}</span>
+                                                            @if($canSeePrice && $itRow['harga_changed'])
+                                                                <span class="block text-[10px] text-muted-foreground">
+                                                                    {{ $fmtRp($itRow['old_harga']) }} &rarr; {{ $fmtRp($itRow['new_harga']) }}
+                                                                </span>
+                                                            @endif
+                                                        </div>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <span class="text-muted-foreground italic">Penyesuaian komponen biaya PO</span>
+                                        @endif
+                                    </td>
+
+                                    @if($canSeePrice)
+                                        <td class="px-4 py-3 align-top text-right font-mono tabular-nums whitespace-nowrap">
+                                            <div class="text-[11px] text-muted-foreground">
+                                                {{ $fmtRp($diff['oldGrandTotal']) }} &rarr; <span class="text-foreground font-semibold">{{ $fmtRp($diff['newGrandTotal']) }}</span>
+                                            </div>
+                                            <div class="text-[11px] font-semibold mt-0.5 {{ $deltaGtClass }}">
+                                                {{ $fmtSignedRp($diff['deltaGrandTotal']) }}
+                                            </div>
+                                        </td>
+                                    @endif
+
+                                    <td class="px-4 py-3 align-top whitespace-nowrap">
+                                        <div class="font-medium text-foreground">
+                                            {{ $rev->requester?->name ?? ($rev->diajukan_oleh ? 'User #' . $rev->diajukan_oleh : '—') }}
+                                        </div>
+                                        <div class="text-muted-foreground font-mono tabular-nums text-[11px] mt-0.5">
+                                            {{ $diff['submittedAt'] }}
+                                        </div>
+                                    </td>
+
+                                    <td class="px-4 py-3 align-top whitespace-nowrap">
+                                        @if($rev->status === \App\Models\PoRevisi::STATUS_MENUNGGU)
+                                            <span class="text-muted-foreground italic">Belum diputuskan</span>
+                                        @else
+                                            <div class="font-medium text-foreground">
+                                                {{ $rev->decider?->name ?? ($rev->diputuskan_oleh ? 'User #' . $rev->diputuskan_oleh : 'Sistem') }}
+                                            </div>
+                                            <div class="text-muted-foreground font-mono tabular-nums text-[11px] mt-0.5">
+                                                {{ $diff['decidedAt'] }}
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
+        </div>
+        @endif
 
         {{-- Tabel Riwayat Log Perubahan Operasional (PO_LOG_PERUBAHAN) --}}
         @if($po->relationLoaded('logPerubahan') && $po->logPerubahan->isNotEmpty())

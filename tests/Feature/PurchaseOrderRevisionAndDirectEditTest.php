@@ -544,5 +544,120 @@ class PurchaseOrderRevisionAndDirectEditTest extends TestCase
         $poLegacy->refresh();
         $this->assertSame('SO-LEGACY-99', $poLegacy->no_referensi_supplier);
     }
+
+    public function test_revision_history_card_is_hidden_when_po_has_no_revisions(): void
+    {
+        $po = $this->createSamplePo(PoStage::STAGE_4);
+
+        $this->actingAs($this->purchasing)
+            ->get(route('purchasing.show', $po))
+            ->assertOk()
+            ->assertDontSee('Histori Revisi Komitmen');
+
+        $this->actingAs($this->manager)
+            ->get(route('purchasing.show', $po))
+            ->assertOk()
+            ->assertDontSee('Histori Revisi Komitmen');
+    }
+
+    public function test_revision_history_card_displays_all_statuses_and_hides_prices_from_gudang(): void
+    {
+        $po = $this->createSamplePo(PoStage::STAGE_4);
+        $originalItem = $po->items->first();
+        $gudang = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+
+        // Revisi 1: Disetujui (qty 100 -> 120, total 1.000.000 -> 1.200.000)
+        $rev1 = $this->revisionService->submitCommitmentRevision($po, [
+            'items' => [
+                [
+                    'po_item_id' => $originalItem->id,
+                    'produk_id' => $this->produk1->id,
+                    'qty' => 120,
+                    'harga_total' => 1200000,
+                ],
+            ],
+        ], 'Penambahan qty batch awal', $this->purchasing);
+        $this->revisionService->approveRevision($rev1, $this->manager);
+
+        // Revisi 2: Ditolak (qty 120 -> 150, total 1.200.000 -> 1.500.000)
+        $po->refresh();
+        $rev2 = $this->revisionService->submitCommitmentRevision($po, [
+            'items' => [
+                [
+                    'po_item_id' => $originalItem->id,
+                    'produk_id' => $this->produk1->id,
+                    'qty' => 150,
+                    'harga_total' => 1500000,
+                ],
+            ],
+        ], 'Usulan tambahan melebihi kapasitas gudang', $this->purchasing);
+        $this->revisionService->rejectRevision($rev2, $this->manager, 'Plafon anggaran bulan ini penuh');
+
+        // PO tanpa revisi pending aktif, hanya memiliki histori revisi disetujui & ditolak
+        $managerRes = $this->actingAs($this->manager)->get(route('purchasing.show', $po));
+        $managerRes->assertOk();
+        $managerRes->assertDontSee('Antrean Persetujuan Revisi Komitmen');
+        $managerRes->assertSee('Histori Revisi Komitmen');
+        $managerRes->assertSee('<caption id="histori-revisi-caption"', false);
+        $managerRes->assertSee('aria-labelledby="histori-revisi-caption"', false);
+        $managerRes->assertSee('<th scope="col"', false);
+        $managerRes->assertSee('<th scope="row"', false);
+        $managerRes->assertSee('Revisi ke-1');
+        $managerRes->assertSee('Disetujui');
+        $managerRes->assertSee('Penambahan qty batch awal');
+        $managerRes->assertSee('Revisi ke-2');
+        $managerRes->assertSee('Ditolak');
+        $managerRes->assertSee('Usulan tambahan melebihi kapasitas gudang');
+        $managerRes->assertSee('Plafon anggaran bulan ini penuh');
+        $managerRes->assertSee($this->purchasing->name);
+        $managerRes->assertSee($this->manager->name);
+        $managerRes->assertSee('Rp 1.000.000');
+        $managerRes->assertSee('Rp 1.200.000');
+        $managerRes->assertSee('+Rp 200.000');
+        $managerRes->assertSee('Rp 1.500.000');
+        $managerRes->assertSee('+Rp 300.000');
+
+        // Gudang dapat melihat kartu histori non-finansial (status, alasan, catatan, perubahan qty)
+        // tetapi TIDAK boleh melihat nominal rupiah apa pun
+        $gudangRes = $this->actingAs($gudang)->get(route('purchasing.show', $po));
+        $gudangRes->assertOk();
+        $gudangRes->assertSee('Histori Revisi Komitmen');
+        $gudangRes->assertSee('Penambahan qty batch awal');
+        $gudangRes->assertSee('Plafon anggaran bulan ini penuh');
+        $gudangRes->assertDontSee('1.000.000');
+        $gudangRes->assertDontSee('1.200.000');
+        $gudangRes->assertDontSee('1.500.000');
+        $gudangRes->assertDontSee('200.000');
+        $gudangRes->assertDontSee('300.000');
+
+        // Kasus PO dibatalkan saat ada revisi menunggu -> status revisi Dibatalkan tetap tercatat di histori
+        $cancelledPo = $this->createSamplePo(PoStage::STAGE_4);
+        $cancelledItem = $cancelledPo->items->first();
+        $revPending = $this->revisionService->submitCommitmentRevision($cancelledPo, [
+            'items' => [
+                [
+                    'po_item_id' => $cancelledItem->id,
+                    'produk_id' => $this->produk1->id,
+                    'qty' => 200,
+                    'harga_total' => 2400000,
+                ],
+            ],
+        ], 'Revisi sebelum pembatalan PO', $this->purchasing);
+        $revPending->update([
+            'status' => PoRevisi::STATUS_DIBATALKAN,
+            'catatan_keputusan' => 'Dibatalkan otomatis karena PO dibatalkan.',
+            'diputuskan_oleh' => $this->manager->id,
+            'diputuskan_pada' => now(),
+        ]);
+        $cancelledPo->update(['status' => 'dibatalkan']);
+
+        $cancelledRes = $this->actingAs($this->manager)->get(route('purchasing.show', $cancelledPo));
+        $cancelledRes->assertOk();
+        $cancelledRes->assertSee('Histori Revisi Komitmen');
+        $cancelledRes->assertSee('Dibatalkan');
+        $cancelledRes->assertSee('Revisi sebelum pembatalan PO');
+        $cancelledRes->assertSee('Dibatalkan otomatis karena PO dibatalkan.');
+        $cancelledRes->assertDontSee('Setujui Revisi Komitmen');
+    }
 }
 
