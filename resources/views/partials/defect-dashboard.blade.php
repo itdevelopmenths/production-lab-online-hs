@@ -15,16 +15,16 @@
     <x-card class="border-border shadow-2xs" :noPadding="true">
         <x-slot:header>
             <div class="flex flex-col lg:flex-row lg:items-center justify-between w-full gap-3 py-1">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
                     <div class="size-8 rounded-lg bg-muted text-foreground flex items-center justify-center border border-border shrink-0">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     </div>
-                    <div>
-                        <div class="flex items-center gap-2">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
                             <h2 class="text-sm font-semibold text-foreground tracking-tight">Dashboard Barang Rusak & Defect Mutasi</h2>
                             <x-badge variant="neutral" size="sm">{{ !empty($isCombinedDefectSources) ? 'PO, Batch & Mutasi' : 'Audit Logistik' }}</x-badge>
                         </div>
-                        <p class="text-xs text-muted-foreground mt-0.5">
+                        <p class="text-xs text-muted-foreground mt-0.5 leading-normal">
                             @if(!empty($isCombinedDefectSources))
                                 Akumulasi barang rusak dari Transfer, Purchasing (PO), dan Batch Produksi per bulan per fasilitas gudang
                             @else
@@ -37,7 +37,7 @@
                 {{-- Filter Toolbar --}}
                 <form method="GET" action="{{ $formAction ?? request()->url() }}#defect-dashboard"
                       onsubmit="try { sessionStorage.setItem('hs_defect_scroll', window.scrollY); sessionStorage.setItem('hs_defect_focused', document.activeElement?.name || ''); } catch(e) {}"
-                      class="flex flex-wrap items-center gap-2">
+                      class="flex flex-wrap items-center lg:justify-end gap-2 shrink-0 max-w-full">
                     <div class="inline-flex items-center rounded-md border border-border bg-card px-2 py-1 text-xs">
                         <span class="text-muted-foreground mr-1.5 font-medium">Tahun:</span>
                         <select name="year" class="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer">
@@ -61,7 +61,7 @@
 
                     <div class="inline-flex items-center rounded-md border border-border bg-card px-2 py-1 text-xs">
                         <span class="text-muted-foreground mr-1.5 font-medium">Gudang:</span>
-                        <select name="gudang_id" class="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer">
+                        <select name="gudang_id" class="bg-transparent text-xs font-semibold text-foreground outline-none cursor-pointer max-w-40 truncate">
                             <option value="">Semua Fasilitas</option>
                             @foreach($warehouses ?? [] as $wh)
                                 <option value="{{ $wh->id }}" {{ ($gudangId ?? null) == $wh->id ? 'selected' : '' }}>{{ $wh->nama }}</option>
@@ -69,7 +69,7 @@
                         </select>
                     </div>
 
-                    <button type="submit" class="h-7 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition shadow-2xs cursor-pointer inline-flex items-center gap-1.5">
+                    <button type="submit" class="h-7 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition shadow-2xs cursor-pointer inline-flex shrink-0 whitespace-nowrap items-center gap-1.5">
                         <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
                         Filter
                     </button>

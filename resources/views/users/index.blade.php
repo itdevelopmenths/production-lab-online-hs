@@ -61,16 +61,16 @@
 
         <x-card title="Daftar Pengguna Sistem" subtitle="Kelola identitas akun, akses gudang fisik, dan wewenang pengguna" :noPadding="true">
             <div class="overflow-x-auto">
-                <table id="usersTable" class="w-full text-xs">
+                <table id="usersTable" class="w-full text-xs [&_thead_th]:!px-2.5 [&_tbody_td]:!px-2.5">
                     <thead>
                         <tr>
-                            <th class="px-4 py-3 text-left">Nama Lengkap</th>
-                            <th class="px-4 py-3 text-left">Email Akun</th>
-                            <th class="px-4 py-3 text-left">Divisi / Dept</th>
-                            <th class="px-4 py-3 text-left">Peran (Role)</th>
-                            <th class="px-4 py-3 text-left">Akses Gudang (LBAC)</th>
-                            <th class="px-4 py-3 text-left">Terdaftar</th>
-                            <th class="px-4 py-3 text-right">Aksi</th>
+                            <th class="px-2.5 py-2.5 text-left">Nama Lengkap</th>
+                            <th class="px-2.5 py-2.5 text-left">Email Akun</th>
+                            <th class="px-2.5 py-2.5 text-left">Divisi / Dept</th>
+                            <th class="px-2.5 py-2.5 text-left">Peran (Role)</th>
+                            <th class="px-2.5 py-2.5 text-left">Akses Gudang (LBAC)</th>
+                            <th class="px-2.5 py-2.5 text-left">Terdaftar</th>
+                            <th class="px-2.5 py-2.5 text-right">Aksi</th>
                         </tr>
                     </thead>
                 </table>

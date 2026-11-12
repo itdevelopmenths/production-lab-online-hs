@@ -640,5 +640,31 @@ class ViewRenderingSafetyTest extends TestCase
             ->assertDontSee('min-w-[320px]', false)
             ->assertDontSee('min-width: 320px', false);
     }
+
+    public function test_defect_dashboard_bom_import_headers_and_users_table_prevent_laptop_cramping(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('flex items-center gap-3 min-w-0 flex-1', false)
+            ->assertSee('flex flex-wrap items-center lg:justify-end gap-2 shrink-0 max-w-full', false);
+
+        $this->get(route('bom.import-page'))
+            ->assertOk()
+            ->assertSee('<div class="min-w-0 flex-1">', false)
+            ->assertSee('flex flex-wrap items-center lg:justify-end gap-2 shrink-0 max-w-full', false)
+            ->assertSee('inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap', false);
+
+        $this->get(route('users.index'))
+            ->assertOk()
+            ->assertSee('usersTable" class="w-full text-xs [&_thead_th]:!px-2.5 [&_tbody_td]:!px-2.5"', false);
+
+        $usersData = $this->getJson(route('users.data'))->assertOk()->json('data');
+        $this->assertNotEmpty($usersData);
+        $this->assertStringContainsString('<div class="flex flex-wrap items-center gap-1">', $usersData[0]['roles_label']);
+        $this->assertStringContainsString('inline-flex items-center whitespace-nowrap', $usersData[0]['roles_label']);
+    }
 }
 
