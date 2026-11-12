@@ -32,10 +32,10 @@ class BladeUiPrd24AlignmentTest extends TestCase
     }
 
     /**
-     * TC-01: Kolom Rencana di GET /stok/data menghitung output 2..N dari batch_produksi_outputs
-     * dan tetap mendukung fallback untuk batch legacy tunggal.
+     * TC-01: Stok Berjalan di GET /stok/data menghitung output 2..N dari batch_produksi_outputs
+     * dan fallback legacy batch tunggal tanpa mencampur saldo fisik di Stok Aktual.
      */
-    public function test_kolom_rencana_in_stok_data_counts_multi_product_outputs_and_legacy_fallback(): void
+    public function test_stok_berjalan_in_stok_data_counts_multi_product_outputs_and_legacy_fallback(): void
     {
         $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
         $this->actingAs($manager);
@@ -102,15 +102,19 @@ class BladeUiPrd24AlignmentTest extends TestCase
 
         $rows = collect($response->json('data'));
 
-        // Cek Produk A: fisik 10 + multi output 150 + legacy 50 = 210
+        // Cek Produk A: Stok Aktual = 10 Pcs; Stok Berjalan = multi output 150 + legacy 50 = 200 Pcs
         $rowA = $rows->firstWhere('sku', 'PRD-MULTI-01');
         $this->assertNotNull($rowA, 'Baris Produk A harus ditemukan di stok.data');
-        $this->assertStringContainsString('210', $rowA['kolom_rencana']);
+        $this->assertSame('10 Pcs', $rowA['stok_aktual']);
+        $this->assertStringContainsString('200 Pcs', $rowA['stok_berjalan']);
+        $this->assertStringNotContainsString('210', $rowA['stok_berjalan']);
 
-        // Cek Produk B: fisik 10 + multi output 250 = 260
+        // Cek Produk B: Stok Aktual = 10 Pcs; Stok Berjalan = multi output 250 Pcs
         $rowB = $rows->firstWhere('sku', 'PRD-MULTI-02');
         $this->assertNotNull($rowB, 'Baris Produk B harus ditemukan di stok.data');
-        $this->assertStringContainsString('260', $rowB['kolom_rencana']);
+        $this->assertSame('10 Pcs', $rowB['stok_aktual']);
+        $this->assertStringContainsString('250 Pcs', $rowB['stok_berjalan']);
+        $this->assertStringNotContainsString('260', $rowB['stok_berjalan']);
     }
 
     /**

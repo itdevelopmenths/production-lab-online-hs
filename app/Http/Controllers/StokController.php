@@ -60,9 +60,10 @@ class StokController extends Controller
         $batasMinMap = $this->analisa->getBatasMinimumMap();
 
         // 2. Inbound PO untuk Bahan/Kemas ke Gudang Pusat
-        $gudangPusatId = Gudang::bahanBakuPusat()->value('id')
+        $gudangPusatRawId = Gudang::bahanBakuPusat()->value('id')
             ?? Gudang::where('tipe', 'bahan_baku')->value('id')
             ?? Gudang::where('kode', 'GD-PUSAT')->value('id');
+        $gudangPusatId = $gudangPusatRawId !== null ? (int) $gudangPusatRawId : null;
 
         $inboundPo = DB::table('purchase_order_items as poi')
             ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
@@ -156,13 +157,12 @@ class StokController extends Controller
         // 5. Pre-fetch HPP Map dari StokService (identik dengan modal & dropdown purchasing)
         $hppMap = $this->stok->resolveHppMap();
 
-        // Query stok dengan alokasi bahan aktif dan scoping gudang/kategori
+        // Query stok dengan scoping gudang/kategori
         $query = Stok::query()
             ->select('stok.*')
             ->join('produk', 'produk.id', '=', 'stok.produk_id')
             ->leftJoin('gudang', 'gudang.id', '=', 'stok.gudang_id')
             ->with(['produk:id,sku,nama,satuan,tipe,harga_hpp', 'gudang:id,nama'])
-            ->selectRaw('(SELECT COALESCE(SUM(ab.qty_dialokasikan),0) FROM alokasi_bahan ab JOIN batch_produksi bp ON bp.id = ab.batch_id WHERE ab.bahan_id = stok.produk_id AND ab.status = \'aktif\' AND (bp.gudang_operasional_id = stok.gudang_id OR bp.gudang_operasional_id IS NULL)) as alokasi_aktif')
             ->when($request->filled('gudang_id'), function ($q) use ($request, $allowedGudangIds) {
                 if ($allowedGudangIds === null || in_array((int) $request->gudang_id, $allowedGudangIds, true)) {
                     $q->where('stok.gudang_id', $request->gudang_id);
@@ -218,62 +218,28 @@ class StokController extends Controller
                     ? $this->formatQty((float) $batasMin) . ' ' . $s->produk?->satuan
                     : '-';
             })
-            ->addColumn('kolom_stok', function ($s) use ($gudangPusatId, $inboundPo, $inboundRtMap, $batasMinMap) {
+            ->addColumn('stok_aktual', function ($s) {
                 $fisik = (float) $s->qty_saat_ini;
-                $inbound = 0.0;
-                if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true) && $gudangPusatId && (int) $s->gudang_id === (int) $gudangPusatId) {
-                    $inbound += (float) ($inboundPo[$s->produk_id] ?? 0);
-                }
-                $rtKey = "{$s->produk_id}_{$s->gudang_id}";
-                if (isset($inboundRtMap[$rtKey])) {
-                    $inbound += (float) $inboundRtMap[$rtKey];
-                }
 
-                $kolomStok = $fisik + $inbound;
-                $batasMin = $this->analisa->getBatasMinimumForStok($s->produk_id, $s->gudang_id, $batasMinMap);
-                $isOrder = $batasMin > 0 && $kolomStok <= $batasMin;
-
-                $badge = $isOrder
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700 ml-2">ORDER</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 ml-2">AMAN</span>';
-
-                $val = $this->formatQty($kolomStok) . ' ' . $s->produk?->satuan;
-
-                return '<div class="flex items-center justify-end"><span>' . $val . '</span>' . $badge . '</div>';
+                return $this->formatQty($fisik) . ' ' . $s->produk?->satuan;
             })
-            ->addColumn('kolom_rencana', function ($s) use ($gudangPusatId, $inboundPo, $inboundRtMap, $rencanaBatchMap, $batasMinMap) {
-                $fisik = (float) $s->qty_saat_ini;
-                $inbound = 0.0;
-                if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true) && $gudangPusatId && (int) $s->gudang_id === (int) $gudangPusatId) {
-                    $inbound += (float) ($inboundPo[$s->produk_id] ?? 0);
-                }
-                $rtKey = "{$s->produk_id}_{$s->gudang_id}";
-                if (isset($inboundRtMap[$rtKey])) {
-                    $inbound += (float) $inboundRtMap[$rtKey];
-                }
+            ->addColumn('stok_berjalan', function ($s) use ($gudangPusatId, $inboundPo, $inboundRtMap, $rencanaBatchMap) {
+                $berjalan = $this->resolveStokBerjalan($s, $gudangPusatId, $inboundPo, $inboundRtMap, $rencanaBatchMap);
+                $val = $this->formatQty($berjalan) . ' ' . $s->produk?->satuan;
+                $toneClass = $berjalan > 0 ? 'text-foreground font-medium' : 'text-muted-foreground';
 
-                $kolomStok = $fisik + $inbound;
+                return '<span class="' . $toneClass . '">' . e($val) . '</span>';
+            })
+            ->addColumn('status_stok', function ($s) use ($gudangPusatId, $inboundPo, $inboundRtMap, $rencanaBatchMap, $batasMinMap) {
+                $aktual = (float) $s->qty_saat_ini;
+                $berjalan = $this->resolveStokBerjalan($s, $gudangPusatId, $inboundPo, $inboundRtMap, $rencanaBatchMap);
+                $batasMin = (float) $this->analisa->getBatasMinimumForStok($s->produk_id, $s->gudang_id, $batasMinMap);
+                $selisih = ($aktual + $berjalan) - $batasMin;
+                $isOrder = $batasMin > 0 && round($selisih, 4) <= 0;
 
-                // Logika Rencana: Bahan berkurang komitmen alokasi; Produk jadi bertambah rencana batch
-                if (in_array($s->produk?->tipe, ['bahan', 'kemas'], true)) {
-                    $kolomRencana = $kolomStok - (float) $s->alokasi_aktif;
-                } elseif ($s->produk?->tipe === 'produk_jadi') {
-                    $rencanaBatch = (float) ($rencanaBatchMap[$rtKey] ?? 0);
-                    $kolomRencana = $kolomStok + $rencanaBatch;
-                } else {
-                    $kolomRencana = $kolomStok;
-                }
-
-                $batasMin = $this->analisa->getBatasMinimumForStok($s->produk_id, $s->gudang_id, $batasMinMap);
-                $isOrder = $batasMin > 0 && $kolomRencana <= $batasMin;
-
-                $badge = $isOrder
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700 ml-2">ORDER</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 ml-2">AMAN</span>';
-
-                $val = $this->formatQty($kolomRencana) . ' ' . $s->produk?->satuan;
-
-                return '<div class="flex items-center justify-end"><span>' . $val . '</span>' . $badge . '</div>';
+                return $isOrder
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700">ORDER</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">AMAN</span>';
             })
             ->addColumn('hpp', function ($s) use ($hppMap, $canSeePrice) {
                 if (! $canSeePrice) {
@@ -295,8 +261,37 @@ class StokController extends Controller
             ->addColumn('action', function ($s) {
                 return '<a href="' . route('stok.ledger', ['produk' => $s->produk_id, 'gudang_id' => $s->gudang_id]) . '" class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition">Kartu Stok</a>';
             })
-            ->rawColumns(['kolom_stok', 'kolom_rencana', 'action'])
+            ->rawColumns(['stok_berjalan', 'status_stok', 'action'])
             ->toJson();
+    }
+
+    /**
+     * Hitung kuantitas stok yang sedang berjalan (PO aktif, transfer in-transit, dan batch produksi berjalan untuk produk jadi).
+     */
+    private function resolveStokBerjalan(
+        Stok $s,
+        ?int $gudangPusatId,
+        \Illuminate\Support\Collection $inboundPo,
+        array $inboundRtMap,
+        array $rencanaBatchMap
+    ): float {
+        $berjalan = 0.0;
+        $tipe = $s->produk?->tipe;
+
+        if (in_array($tipe, ['bahan', 'kemas'], true) && $gudangPusatId && (int) $s->gudang_id === $gudangPusatId) {
+            $berjalan += (float) ($inboundPo[$s->produk_id] ?? 0);
+        }
+
+        $rtKey = "{$s->produk_id}_{$s->gudang_id}";
+        if (isset($inboundRtMap[$rtKey])) {
+            $berjalan += (float) $inboundRtMap[$rtKey];
+        }
+
+        if ($tipe === 'produk_jadi' && isset($rencanaBatchMap[$rtKey])) {
+            $berjalan += (float) $rencanaBatchMap[$rtKey];
+        }
+
+        return $berjalan;
     }
 
     private function formatHpp(float $val): string

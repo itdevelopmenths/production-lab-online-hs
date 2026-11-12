@@ -48,22 +48,23 @@
             </div>
         </div>
 
-        <x-card title="Buku Saldo & Alert Ketersediaan Stok" :noPadding="true">
-            <div class="overflow-x-auto">
+        <x-card title="Buku Saldo & Alert Ketersediaan Stok" subtitle="Status dihitung dari (Stok Aktual + Stok Berjalan) − Batas Min (Analisa)" :noPadding="true">
+            <div tabindex="0" role="region" aria-label="Tabel Buku Saldo & Status Ketersediaan Stok" class="overflow-x-auto">
                 <table id="tbl" class="w-full text-sm">
                     <thead>
                         <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[13px] font-medium">
-                            <th class="px-4 py-3 text-left">SKU</th>
-                            <th class="px-4 py-3 text-left">Produk</th>
-                            <th class="px-4 py-3 text-left">Gudang</th>
-                            <th class="px-4 py-3 text-right">Batas Min (Analisa)</th>
-                            <th class="px-4 py-3 text-right">Kolom Stok</th>
-                            <th class="px-4 py-3 text-right">Kolom Rencana</th>
+                            <th scope="col" class="px-4 py-3 text-left">SKU</th>
+                            <th scope="col" class="px-4 py-3 text-left">Produk</th>
+                            <th scope="col" class="px-4 py-3 text-left">Gudang</th>
+                            <th scope="col" class="px-4 py-3 text-right">Batas Min (Analisa)</th>
+                            <th scope="col" class="px-4 py-3 text-right">Stok Aktual</th>
+                            <th scope="col" class="px-4 py-3 text-right">Stok Berjalan</th>
+                            <th scope="col" class="px-4 py-3 text-center">Status</th>
                             @if($canSeePrice)
-                                <th class="px-4 py-3 text-right">HPP</th>
-                                <th class="px-4 py-3 text-right">Nilai Stok</th>
+                                <th scope="col" class="px-4 py-3 text-right">HPP</th>
+                                <th scope="col" class="px-4 py-3 text-right">Nilai Stok</th>
                             @endif
-                            <th class="px-4 py-3 text-center">Aksi</th>
+                            <th scope="col" class="px-4 py-3 text-center">Aksi</th>
                         </tr>
                     </thead>
                 </table>
@@ -227,8 +228,9 @@
             { data: 'nama', orderable: false, searchable: true },
             { data: 'gudang_nama', orderable: false, searchable: true },
             { data: 'batas_minimum', className: 'text-right font-mono', orderable: false, searchable: false },
-            { data: 'kolom_stok', className: 'text-right font-mono', orderable: false, searchable: false },
-            { data: 'kolom_rencana', className: 'text-right font-mono', orderable: false, searchable: false }
+            { data: 'stok_aktual', className: 'text-right font-mono font-semibold text-foreground', orderable: false, searchable: false },
+            { data: 'stok_berjalan', className: 'text-right font-mono', orderable: false, searchable: false },
+            { data: 'status_stok', className: 'text-center', orderable: false, searchable: false }
         ];
 
         if (canSeePrice) {

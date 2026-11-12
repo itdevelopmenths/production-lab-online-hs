@@ -7,6 +7,8 @@ use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\PurchaseOrder;
 use App\Models\Stok;
+use App\Models\Transfer;
+use App\Models\TransferItem;
 use App\Models\User;
 use App\Services\StokService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,7 +25,7 @@ class StokRencanaAndFormattingTest extends TestCase
         $this->seed();
     }
 
-    public function test_stok_data_formatting_and_rencana_calculation_for_materials_and_finished_goods(): void
+    public function test_stok_data_formatting_and_aktual_berjalan_for_materials_and_finished_goods(): void
     {
         $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
         $this->actingAs($manager);
@@ -39,7 +41,8 @@ class StokRencanaAndFormattingTest extends TestCase
         $stokService->setAbsolut($bahan->id, $gOps->id, 1000, 'Init stock');
         $stokService->setAbsolut($produkJadi->id, $gOps->id, 50, 'Init stock');
 
-        // Create active batch production with allocation on ALK-01 (100 ml allocated) and 10 pcs GOH-P50 planned
+        // Buat batch aktif (alokasi 100 ml ALK-01 + rencana output 10 pcs GOH-P50)
+        // dan transfer In-Transit 250 ml ALK-01 ke GD-OPS
         $batch = BatchProduksi::create([
             'no_batch' => 'BATCH-TEST-STOK',
             'produk_id' => $produkJadi->id,
@@ -56,23 +59,39 @@ class StokRencanaAndFormattingTest extends TestCase
             'status' => 'aktif',
         ]);
 
+        $transfer = Transfer::create([
+            'no_transaksi' => 'TRF-TEST-OPS-01',
+            'jenis' => 'pemenuhan_request_bahan',
+            'gudang_asal_id' => $gBahan->id,
+            'gudang_tujuan_id' => $gOps->id,
+            'waktu_dikirim' => now(),
+            'status' => 'dikirim',
+            'created_by' => $manager->id,
+        ]);
+        TransferItem::create([
+            'transfer_id' => $transfer->id,
+            'produk_id' => $bahan->id,
+            'qty_dikirim' => 250,
+        ]);
+
         // Request DataTables Stok
         $res = $this->getJson(route('stok.data', ['gudang_id' => $gOps->id]));
         $res->assertOk();
         $data = collect($res->json('data'));
 
-        // 1. Check Bahan Baku (ALK-01): Fisik = 1.000, Alokasi = 100 -> Kolom Rencana = 900
+        // 1. Bahan Baku (ALK-01): Aktual = 1.000 ml (tidak terpotong alokasi & tidak ditambah inbound), Berjalan = 250 ml
         $rowBahan = $data->firstWhere('sku', 'ALK-01');
         $this->assertNotNull($rowBahan);
-        $this->assertStringContainsString('1.000 ml', $rowBahan['kolom_stok']);
-        $this->assertStringContainsString('900 ml', $rowBahan['kolom_rencana']);
-        $this->assertStringNotContainsString('1000.00', $rowBahan['kolom_stok']);
+        $this->assertSame('1.000 ml', $rowBahan['stok_aktual']);
+        $this->assertStringContainsString('250 ml', $rowBahan['stok_berjalan']);
+        $this->assertStringNotContainsString('1000.00', $rowBahan['stok_aktual']);
 
-        // 2. Check Produk Jadi (GOH-P50): Fisik = 50, Rencana Batch = 10 -> Kolom Rencana = 60
+        // 2. Produk Jadi (GOH-P50): Aktual = 50 pcs (fisik murni), Berjalan = 10 pcs (hanya rencana batch berjalan)
         $rowJadi = $data->firstWhere('sku', 'GOH-P50');
         $this->assertNotNull($rowJadi);
-        $this->assertStringContainsString('50 pcs', $rowJadi['kolom_stok']);
-        $this->assertStringContainsString('60 pcs', $rowJadi['kolom_rencana']);
+        $this->assertSame('50 pcs', $rowJadi['stok_aktual']);
+        $this->assertStringContainsString('10 pcs', $rowJadi['stok_berjalan']);
+        $this->assertStringNotContainsString('60 pcs', $rowJadi['stok_berjalan']);
     }
 
     public function test_stok_price_masking_for_roles_without_price_permission(): void
