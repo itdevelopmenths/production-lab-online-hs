@@ -8,14 +8,14 @@
 ])
 
 <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
-    <div class="min-w-0">
+    <div class="min-w-0 flex-1">
         <h1 class="text-lg font-bold text-foreground tracking-tight leading-tight">{!! $title !!}</h1>
         @if ($subtitle)
             <p class="text-xs text-muted-foreground mt-0.5 leading-normal">{!! $subtitle !!}</p>
         @endif
     </div>
 
-    <div class="flex flex-wrap items-center gap-2.5">
+    <div class="flex flex-wrap items-center sm:justify-end gap-x-3 gap-y-2">
         @if (!empty($breadcrumbs))
             <nav class="flex items-center text-xs text-muted-foreground" aria-label="Breadcrumb">
                 <ol class="inline-flex flex-wrap items-center space-x-1 sm:space-x-1.5">

@@ -12,7 +12,7 @@
         <div class="flex flex-wrap items-center gap-3">
             <div>
                 <label for="filter-gudang" class="block text-xs font-medium text-muted-foreground mb-1">Lokasi Gudang</label>
-                <select id="filter-gudang" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
+                <select id="filter-gudang" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Gudang —</option>
                     @foreach($gudang as $g)
                         <option value="{{ $g->id }}">{{ $g->nama }}</option>
@@ -22,7 +22,7 @@
 
             <div>
                 <label for="filter-tipe" class="block text-xs font-medium text-muted-foreground mb-1">Tipe Mutasi</label>
-                <select id="filter-tipe" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[150px] outline-none cursor-pointer">
+                <select id="filter-tipe" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Tipe —</option>
                     <option value="in">🟢 Masuk (IN)</option>
                     <option value="out">🔴 Keluar (OUT)</option>

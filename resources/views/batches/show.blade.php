@@ -107,9 +107,9 @@
     </div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- Kolom Kiri: Tabel Alokasi Bahan & Modul Produksi -->
-        <div class="lg:col-span-2 space-y-5">
+        <div class="lg:col-span-2 space-y-5 min-w-0">
             <!-- Tabel Produk Jadi Luaran (Multi-Output Batch) -->
             @if($batch->outputs->isNotEmpty())
             <x-card title="Produk Jadi Luaran Batch" subtitle="Daftar varian dan kuantitas produk jadi yang dihasilkan oleh batch ini" :noPadding="true">
@@ -665,7 +665,7 @@
         </div>
 
         <!-- Kolom Kanan: Detail QC & Aksi Manajemen -->
-        <div class="space-y-5">
+        <div class="space-y-5 min-w-0">
             <!-- Hasil QC & Produksi (Jika selesai atau release) -->
             @if(in_array($batch->status, ['release', 'selesai']))
             <x-card title="Hasil QC & Produksi" variant="primary">

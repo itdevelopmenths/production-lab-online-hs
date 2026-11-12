@@ -16,6 +16,7 @@
 
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --text-xs: max(0.75rem, 10.5px);
 
     --color-background: oklch(0.985 0 0);
     --color-foreground: oklch(0.145 0 0);
@@ -68,6 +69,18 @@
         border-color: var(--color-border);
     }
 
+    @media screen and (min-width: 64rem) {
+        html.hs-app-shell {
+            font-size: clamp(0.8125rem, calc(0.5rem + 0.4167vw), 1rem);
+        }
+    }
+
+    @media print {
+        html.hs-app-shell {
+            font-size: 100%;
+        }
+    }
+
     body {
         background-color: var(--color-background);
         color: var(--color-foreground);
@@ -84,7 +97,7 @@
 
 /* Header toolbar: Search and Page Length */
 .dt-layout-header {
-    @apply flex flex-col sm:flex-row justify-between items-center px-4 py-2.5 border-b border-border gap-2.5 bg-muted/20;
+    @apply flex flex-col sm:flex-row sm:flex-wrap justify-between items-center px-4 py-2.5 border-b border-border gap-2.5 bg-muted/20;
 }
 
 .dataTables_wrapper .dataTables_length {
@@ -110,7 +123,7 @@
 }
 
 .dataTables_wrapper .dataTables_filter input {
-    @apply rounded-md border border-input shadow-2xs focus:ring-1 focus:ring-primary/20 text-xs px-2.5 py-1 bg-background outline-none transition min-w-[200px] sm:min-w-[240px] text-foreground placeholder:text-muted-foreground h-8;
+    @apply rounded-md border border-input shadow-2xs focus:ring-1 focus:ring-primary/20 text-xs px-2.5 py-1 bg-background outline-none transition w-full sm:w-52 min-w-0 text-foreground placeholder:text-muted-foreground h-8;
 }
 
 /* Fallback when dt-layout-header is not used */
@@ -169,7 +182,7 @@ table.dataTable tbody td.dataTables_empty {
 
 /* Footer toolbar: Info and Pagination */
 .dt-layout-footer {
-    @apply flex flex-col sm:flex-row justify-between items-center px-4 py-2 bg-muted/10 border-t border-border gap-2 text-xs text-muted-foreground rounded-b-lg;
+    @apply flex flex-col sm:flex-row sm:flex-wrap justify-between items-center px-4 py-2 bg-muted/10 border-t border-border gap-2 text-xs text-muted-foreground rounded-b-lg;
 }
 
 .dataTables_wrapper .dataTables_info {

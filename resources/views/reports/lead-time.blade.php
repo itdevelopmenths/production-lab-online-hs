@@ -11,7 +11,7 @@
         <div class="flex flex-wrap items-center gap-3">
             <div>
                 <label for="filter-supplier" class="block text-xs font-medium text-muted-foreground mb-1">Mitra Supplier</label>
-                <select name="supplier_id" id="filter-supplier" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[200px] outline-none cursor-pointer">
+                <select name="supplier_id" id="filter-supplier" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Supplier —</option>
                     @foreach($suppliers as $sup)
                         <option value="{{ $sup->id }}" @selected($supplierId == $sup->id)>
@@ -23,7 +23,7 @@
 
             <div>
                 <label for="filter-kategori" class="block text-xs font-medium text-muted-foreground mb-1">Kategori Supplier</label>
-                <select name="kategori" id="filter-kategori" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[150px] outline-none cursor-pointer">
+                <select name="kategori" id="filter-kategori" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Kategori —</option>
                     <option value="lokal" @selected($kategori === 'lokal')>🇮🇩 Supplier Lokal</option>
                     <option value="impor" @selected($kategori === 'impor')>🌐 Supplier Impor</option>
@@ -108,7 +108,7 @@
                             <th class="px-4 py-3 text-right">Rata-Rata (Hari)</th>
                             <th class="px-4 py-3 text-right">Rata-Rata (Jam)</th>
                             <th class="px-4 py-3 text-right">Maks (Hari)</th>
-                            <th class="px-4 py-3 text-left min-w-[320px]">Breakdown 9 Stage (Avg Hari)</th>
+                            <th class="px-4 py-3 text-left min-w-72">Breakdown 9 Stage (Avg Hari)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border">

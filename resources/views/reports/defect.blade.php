@@ -11,7 +11,7 @@
         <div class="flex flex-wrap items-center gap-3">
             <div>
                 <label for="filter-tahun" class="block text-xs font-medium text-muted-foreground mb-1">Tahun Evaluasi</label>
-                <select name="tahun" id="filter-tahun" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[120px] outline-none cursor-pointer">
+                <select name="tahun" id="filter-tahun" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-28 max-w-full outline-none cursor-pointer">
                     @for($y = now()->year + 1; $y >= now()->year - 2; $y--)
                         <option value="{{ $y }}" @selected($year == $y)>{{ $y }}</option>
                     @endfor
@@ -20,7 +20,7 @@
 
             <div>
                 <label for="filter-bulan" class="block text-xs font-medium text-muted-foreground mb-1">Bulan</label>
-                <select name="bulan" id="filter-bulan" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[150px] outline-none cursor-pointer">
+                <select name="bulan" id="filter-bulan" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Bulan —</option>
                     @php
                         $namaBulan = [
@@ -37,7 +37,7 @@
 
             <div>
                 <label for="filter-gudang" class="block text-xs font-medium text-muted-foreground mb-1">Gudang / Lokasi</label>
-                <select name="gudang_id" id="filter-gudang" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
+                <select name="gudang_id" id="filter-gudang" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Gudang —</option>
                     @foreach($gudangs as $g)
                         <option value="{{ $g->id }}" @selected($gudangId == $g->id)>{{ $g->nama }}</option>
@@ -76,30 +76,30 @@
 
     {{-- KPI Summary Cards: Produksi vs Transfer --}}
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 mb-6">
-        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs min-w-0">
             <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Batch Produksi Defect</p>
             <p class="text-lg font-bold font-mono text-foreground mt-1">{{ number_format($totalBatches) }} <span class="text-xs font-normal text-muted-foreground">Batch</span></p>
         </div>
-        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs min-w-0">
             <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rusak Produksi</p>
             <p class="text-lg font-bold font-mono text-destructive mt-1">{{ number_format($totalRusak, 0, ',', '.') }} <span class="text-xs font-normal text-muted-foreground">Pcs</span></p>
         </div>
-        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs min-w-0">
             <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Defect Rate Produksi</p>
             <p class="text-lg font-bold font-mono text-destructive mt-1">
                 {{ $avgDefect !== null ? number_format($avgDefect, 1) . '%' : '0.0%' }}
             </p>
         </div>
-        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs min-w-0">
             <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rusak Pengiriman (Transfer)</p>
             <p class="text-lg font-bold font-mono text-destructive mt-1">{{ number_format($trfTotalRusak, 0, ',', '.') }} <span class="text-xs font-normal text-muted-foreground">Pcs</span></p>
         </div>
-        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs min-w-0">
             <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Gudang Paling Terdampak</p>
             <p class="text-sm font-bold text-foreground truncate mt-1" title="{{ $trfTopGudang }}">{{ $trfTopGudang }}</p>
             <p class="text-[10px] text-muted-foreground font-mono mt-0.5">{{ number_format($trfTopQty, 0, ',', '.') }} Pcs rusak</p>
         </div>
-        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs">
+        <div class="rounded-xl border border-border bg-card p-3.5 shadow-xs min-w-0">
             <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Defect Rate Transfer</p>
             <p class="text-lg font-bold font-mono text-amber-600 mt-1">{{ number_format($trfRate, 2) }}%</p>
             <p class="text-[10px] text-muted-foreground font-mono mt-0.5">{{ $trfTerdampakCount }} transfer terdampak</p>

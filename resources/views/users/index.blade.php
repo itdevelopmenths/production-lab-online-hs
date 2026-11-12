@@ -27,7 +27,7 @@
 
                 <div class="flex flex-wrap items-center gap-2.5">
                     {{-- Filter Divisi --}}
-                    <div class="min-w-[190px]">
+                    <div class="w-full sm:w-auto min-w-40 max-w-full">
                         <select id="filterDivisi" class="w-full text-xs rounded-lg border border-border bg-background text-foreground px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20">
                             <option value="">-- Semua Divisi --</option>
                             @if(isset($divisis) && $divisis->isNotEmpty())
@@ -43,7 +43,7 @@
                     </div>
 
                     {{-- Filter Role --}}
-                    <div class="min-w-[180px]">
+                    <div class="w-full sm:w-auto min-w-40 max-w-full">
                         <select id="filterRole" class="w-full text-xs rounded-lg border border-border bg-background text-foreground px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20">
                             <option value="">-- Semua Peran / Role --</option>
                             @foreach($roles as $r)

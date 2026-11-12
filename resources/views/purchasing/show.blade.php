@@ -399,7 +399,7 @@
                                         <caption class="sr-only">Perbandingan item Purchase Order {{ $po->no_po }} pada Revisi ke-{{ $rev->revisi_ke }}</caption>
                                         <thead class="bg-muted/60 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider border-b border-border">
                                             <tr>
-                                                <th scope="col" class="py-2.5 px-3.5 min-w-[200px]">Bahan Baku / SKU</th>
+                                                <th scope="col" class="py-2.5 px-3.5 min-w-44">Bahan Baku / SKU</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Sebelum</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap bg-muted/80 text-foreground">Usulan Baru</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Selisih</th>
@@ -500,7 +500,7 @@
                                         <caption class="sr-only">Perbandingan komponen biaya global dan Grand Total PO {{ $po->no_po }}</caption>
                                         <thead class="bg-muted/60 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider border-b border-border">
                                             <tr>
-                                                <th scope="col" class="py-2.5 px-3.5 min-w-[200px]">Komponen Biaya</th>
+                                                <th scope="col" class="py-2.5 px-3.5 min-w-44">Komponen Biaya</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Sebelum</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap bg-muted/80 text-foreground">Usulan Baru</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Selisih</th>
@@ -694,7 +694,7 @@
         </div>
         @endif
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <!-- Kolom Kiri: Tabel Rincian Item PO & Penerimaan Barang -->
             <div class="lg:col-span-2 space-y-5 min-w-0">
                 <!-- Tabel Item PO -->
@@ -708,7 +708,7 @@
                             <caption class="sr-only">Rincian Item Purchase Order {{ $po->no_po }}</caption>
                             <thead class="bg-muted/60 border-b border-border text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">
                                 <tr>
-                                    <th scope="col" class="py-3 px-4 min-w-[180px]">Bahan Baku</th>
+                                    <th scope="col" class="py-3 px-4 min-w-36">Bahan Baku</th>
                                     <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Qty PO</th>
                                     @if($canSeePrice)
                                         <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Total Kotor</th>
@@ -1914,8 +1914,8 @@
                         <thead class="sticky top-0 z-10 bg-muted/95 backdrop-blur-xs text-muted-foreground font-semibold uppercase text-[10px] border-b border-border">
                             <tr>
                                 <th scope="col" class="px-4 py-2.5 whitespace-nowrap border-b border-border">Revisi &amp; Status</th>
-                                <th scope="col" class="px-4 py-2.5 min-w-[220px] border-b border-border">Alasan &amp; Catatan Keputusan</th>
-                                <th scope="col" class="px-4 py-2.5 min-w-[220px] border-b border-border">Perubahan Item</th>
+                                <th scope="col" class="px-4 py-2.5 min-w-44 border-b border-border">Alasan &amp; Catatan Keputusan</th>
+                                <th scope="col" class="px-4 py-2.5 min-w-44 border-b border-border">Perubahan Item</th>
                                 @if($canSeePrice)
                                     <th scope="col" class="px-4 py-2.5 text-right whitespace-nowrap border-b border-border">Dampak Finansial</th>
                                 @endif

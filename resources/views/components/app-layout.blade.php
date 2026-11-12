@@ -6,7 +6,7 @@
     'actions' => null,
 ])
 <!DOCTYPE html>
-<html lang="id" class="h-full bg-[oklch(0.985_0_0)]">
+<html lang="id" class="h-full hs-app-shell bg-[oklch(0.985_0_0)]">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -88,7 +88,7 @@
 <body class="min-h-screen font-sans antialiased text-foreground bg-background flex flex-col"
       x-data="appSidebarState()">
     
-    <div class="flex min-h-screen">
+    <div class="flex min-h-screen w-full min-w-0">
         {{-- Mobile Overlay --}}
         <div x-show="mobileOpen" x-cloak
              x-transition:enter="transition-opacity ease-linear duration-200"
@@ -102,7 +102,7 @@
         <div class="fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-40"
              :class="[
                  mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0',
-                 collapsed ? 'lg:w-16' : 'lg:w-64'
+                 collapsed ? 'lg:w-16' : 'lg:w-56'
              ]">
             <aside class="bg-card flex h-full w-full flex-col border-r border-border overflow-hidden transition-all duration-300">
                 
@@ -483,7 +483,7 @@
                          x-cloak
                          @click.away="userMenuOpen = false"
                          :class="collapsed ? 'left-full ml-2 bottom-0' : 'right-2 bottom-full left-2 mb-2'"
-                         class="bg-card absolute rounded-xl border border-border p-1 shadow-lg z-50 min-w-[220px] text-sm">
+                         class="bg-card absolute rounded-xl border border-border p-1 shadow-lg z-50 min-w-52 text-sm">
                         <div class="border-b border-border px-3 py-2.5">
                             <p class="font-semibold text-foreground text-xs leading-snug break-words whitespace-normal">{{ auth()->user()->name }}</p>
                             <p class="text-muted-foreground truncate text-[11px] mt-0.5">{{ auth()->user()->email }}</p>
@@ -592,7 +592,7 @@
             </header>
 
             {{-- Main Page Content --}}
-            <main class="flex-1 px-4 py-4 sm:px-6 lg:py-5">
+            <main class="flex-1 min-w-0 px-4 py-4 sm:px-5 lg:px-6 lg:py-4">
                 <div class="w-full max-w-none">
                     {{-- Flash Alert Messages --}}
                     @if(session('success'))

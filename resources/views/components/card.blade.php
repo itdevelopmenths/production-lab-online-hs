@@ -22,11 +22,11 @@
             @if (isset($header))
                 {{ $header }}
             @else
-                <div class="flex items-center gap-2.5 min-w-0">
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
                     @if ($icon)
                         <span class="text-muted-foreground shrink-0">{!! $icon !!}</span>
                     @endif
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <h3 class="text-sm font-semibold leading-tight text-foreground tracking-tight">{!! $title !!}</h3>
                         @if ($subtitle)
                             <p class="text-xs text-muted-foreground mt-0.5 leading-normal">{!! $subtitle !!}</p>
@@ -36,7 +36,7 @@
             @endif
 
             @if (isset($tools))
-                <div class="flex items-center gap-2 shrink-0">
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
                     {{ $tools }}
                 </div>
             @endif

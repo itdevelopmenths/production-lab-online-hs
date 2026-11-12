@@ -108,7 +108,7 @@
                 <div class="flex flex-wrap items-center gap-2.5">
                     <div>
                         <label for="filter-status-po" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Status PO</label>
-                        <select id="filter-status-po" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[170px] outline-none cursor-pointer">
+                        <select id="filter-status-po" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                             <option value="">— Semua Status PO —</option>
                             <option value="draft">Draft</option>
                             <option value="diajukan">Diajukan (Menunggu Approval)</option>
@@ -120,7 +120,7 @@
                     </div>
                     <div>
                         <label for="filter-stage-po" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Stage Aktif</label>
-                        <select id="filter-stage-po" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[170px] outline-none cursor-pointer">
+                        <select id="filter-stage-po" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                             <option value="">— Semua Stage —</option>
                             <option value="perencanaan">1. Perencanaan</option>
                             <option value="approval">2. Approval</option>
@@ -135,7 +135,7 @@
                     </div>
                     <div>
                         <label for="filter-kategori-supplier" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Kategori Supplier</label>
-                        <select id="filter-kategori-supplier" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[150px] outline-none cursor-pointer">
+                        <select id="filter-kategori-supplier" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
                             <option value="">— Semua Kategori —</option>
                             <option value="lokal">Lokal</option>
                             <option value="impor">Impor</option>
@@ -181,7 +181,7 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <div>
                         <label for="filter-status-bayar-ap" class="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Filter Status Bayar / AP</label>
-                        <select id="filter-status-bayar-ap" class="rounded-lg border-border bg-card text-xs py-1.5 px-2.5 focus:border-primary focus:ring-1 focus:ring-primary min-w-[200px] outline-none">
+                        <select id="filter-status-bayar-ap" class="rounded-lg border-border bg-card text-xs py-1.5 px-2.5 focus:border-primary focus:ring-1 focus:ring-primary w-full sm:w-auto min-w-40 max-w-full outline-none">
                             <option value="">— Semua Status Bayar —</option>
                             <option value="overdue">🔴 Overdue (Jatuh Tempo - Prioritas)</option>
                             <option value="belum_lunas">🟡 Belum Lunas</option>
@@ -192,7 +192,7 @@
                     </div>
                     <div>
                         <label for="filter-skema-bayar-ap" class="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Filter Skema Transaksi</label>
-                        <select id="filter-skema-bayar-ap" class="rounded-lg border-border bg-card text-xs py-1.5 px-2.5 focus:border-primary focus:ring-1 focus:ring-primary min-w-[160px] outline-none">
+                        <select id="filter-skema-bayar-ap" class="rounded-lg border-border bg-card text-xs py-1.5 px-2.5 focus:border-primary focus:ring-1 focus:ring-primary w-full sm:w-auto min-w-36 max-w-full outline-none">
                             <option value="">— Semua Skema —</option>
                             <option value="cash">Tunai (Cash)</option>
                             <option value="tempo">Tempo</option>

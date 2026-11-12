@@ -1,7 +1,7 @@
 <x-app-layout title="Beranda">
     <x-page-header title="Dashboard Operasional">
         <x-slot:actions>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center justify-end gap-2">
                 <span class="text-xs text-muted-foreground hidden sm:inline">User: <strong class="text-foreground font-semibold">{{ auth()->user()->name }}</strong></span>
                 <x-badge variant="neutral" size="sm">{{ auth()->user()->roles->first()?->name ?? 'Staff' }}</x-badge>
                 @can('analisa.view')

@@ -212,7 +212,7 @@ class BatchMultiProductAndRequestLinkTest extends TestCase
         // Sel & panel dropdown produk jadi memakai z-[9999] dan cell level z-index 200
         $this->assertStringContainsString("activeRow === i ? 'position: relative; z-index: 200;' : ''", $html);
         $this->assertStringContainsString(":class=\"open ? 'z-[9999]' : 'z-10'\"", $html);
-        $this->assertStringContainsString('class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-[320px]', $html);
+        $this->assertStringContainsString('class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-64 sm:min-w-80 max-w-[calc(100vw-2rem)]', $html);
     }
 }
 

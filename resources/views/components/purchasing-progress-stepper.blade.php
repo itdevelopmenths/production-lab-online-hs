@@ -141,8 +141,8 @@
         @endif
 
         {{-- Progress Timeline 9-Stage --}}
-        <div class="overflow-x-auto pt-3 pb-2 px-3 scrollbar-none">
-            <nav aria-label="Tahapan Purchase Order" class="min-w-[760px] sm:min-w-0">
+        <div class="overflow-x-auto pt-3 pb-2 px-3 scrollbar-none" tabindex="0" role="region" aria-label="Scroll Tahapan Purchase Order">
+            <nav aria-label="Tahapan Purchase Order" class="min-w-[44rem] lg:min-w-0">
                 <ol class="flex items-start justify-between relative list-none m-0 p-0 pt-2">
                     {{-- Continuous Connecting Line behind nodes --}}
                     <div class="absolute top-6 left-6 right-6 h-0.5 bg-border -z-0"></div>
@@ -198,7 +198,7 @@
                             };
                         @endphp
 
-                        <li class="flex flex-col items-center text-center group flex-1 px-1 relative z-10"
+                        <li class="flex flex-col items-center text-center group flex-1 min-w-0 px-1 relative z-10"
                             @if($isCurrent) aria-current="step" @endif>
                             
                             {{-- Step Node Circle --}}
@@ -217,10 +217,10 @@
 
                             {{-- Step Title & Subtitle --}}
                             <div class="mt-2 space-y-0.5">
-                                <span class="block text-[11px] leading-tight {{ $textClass }} truncate max-w-[85px] sm:max-w-none">
+                                <span class="block text-[11px] leading-tight {{ $textClass }} text-balance">
                                     {{ $def['short'] }}
                                 </span>
-                                <span class="hidden sm:block text-[10px] text-muted-foreground truncate max-w-[85px] sm:max-w-none">
+                                <span class="hidden sm:block text-[10px] leading-tight text-muted-foreground">
                                     @if($state === 'selesai')
                                         ✓ Selesai
                                     @elseif($state === 'berjalan')

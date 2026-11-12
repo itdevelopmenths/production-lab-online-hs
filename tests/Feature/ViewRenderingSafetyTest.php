@@ -479,5 +479,166 @@ class ViewRenderingSafetyTest extends TestCase
 
         $this->assertEmpty($violations, "Pelanggaran sintaks Blade terdeteksi:\n" . implode("\n", $violations));
     }
+
+    public function test_proportional_fluid_scaling_shell_and_css_rules(): void
+    {
+        // Guest login harus tetap pada skala 100% tanpa class hs-app-shell
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertDontSee('hs-app-shell');
+
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $dashboardRes = $this->get(route('dashboard'));
+        $dashboardRes->assertOk();
+        $dashboardRes->assertSee('hs-app-shell');
+        $dashboardRes->assertSee('lg:w-56');
+        $dashboardRes->assertDontSee('lg:w-64');
+
+        // Dokumen cetak surat jalan tetap terisolasi tanpa hs-app-shell
+        $gudangAsal = Gudang::where('kode', 'GD-PUSAT')->firstOrFail();
+        $gudangTujuan = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $bahan = Produk::bahan()->firstOrFail();
+
+        $transfer = Transfer::create([
+            'no_transaksi' => 'TRF-SCALE-01',
+            'jenis' => 'pemenuhan_request_bahan',
+            'gudang_asal_id' => $gudangAsal->id,
+            'gudang_tujuan_id' => $gudangTujuan->id,
+            'status' => 'dikirim',
+            'created_by' => $manager->id,
+        ]);
+        $transfer->items()->create([
+            'produk_id' => $bahan->id,
+            'qty_dikirim' => 10,
+            'qty_rusak' => 0,
+        ]);
+
+        $this->get(route('transfers.surat-jalan', $transfer))
+            ->assertOk()
+            ->assertDontSee('hs-app-shell');
+
+        $css = file_get_contents(resource_path('css/app.css'));
+        $this->assertIsString($css);
+        $this->assertStringContainsString('html.hs-app-shell', $css);
+        $this->assertStringContainsString('clamp(0.8125rem, calc(0.5rem + 0.4167vw), 1rem)', $css);
+        $this->assertStringContainsString('@media print', $css);
+        $this->assertStringNotContainsString('sm:min-w-[240px]', $css);
+    }
+
+    public function test_shared_layout_components_prevent_cramping_on_laptop_viewports(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $dashboard = $this->get(route('dashboard'));
+        $dashboard->assertOk();
+        $dashboard->assertSee('min-w-0 flex-1', false);
+        $dashboard->assertSee('sm:justify-end gap-x-3 gap-y-2', false);
+        $dashboard->assertSee('flex items-center gap-2.5 min-w-0 flex-1', false);
+        $dashboard->assertSee('flex-1 min-w-0', false);
+        $dashboard->assertSee('break-words', false);
+
+        $supplier = Supplier::firstOrFail();
+        $po = PurchaseOrder::create([
+            'no_po' => 'PO-CMP-SCALE-01',
+            'supplier_id' => $supplier->id,
+            'tanggal' => now()->toDateString(),
+            'status' => 'berjalan',
+            'stage_aktif' => \App\Models\PoStage::STAGE_1,
+            'created_by' => $manager->id,
+        ]);
+        $po->stages()->create([
+            'stage' => \App\Models\PoStage::STAGE_1,
+            'urutan' => 1,
+            'putaran' => 1,
+            'status' => 'berjalan',
+            'waktu_mulai' => now()->subHour(),
+            'pic_user_id' => $manager->id,
+        ]);
+
+        $poShow = $this->get(route('purchasing.show', $po));
+        $poShow->assertOk();
+        $poShow->assertSee('tabindex="0" role="region" aria-label="Scroll Tahapan Purchase Order"', false);
+        $poShow->assertSee('min-w-[44rem] lg:min-w-0', false);
+        $poShow->assertDontSee('sm:min-w-0', false);
+        $poShow->assertDontSee('max-w-[85px]', false);
+        $poShow->assertSee('flex-1 min-w-0 px-1 relative z-10', false);
+        $poShow->assertSee('aria-label="Tahapan Purchase Order"', false);
+        $poShow->assertSee('flex flex-wrap items-center gap-2 shrink-0', false);
+    }
+
+    public function test_operational_views_use_fluid_filters_and_wrapping_toolbars(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $dashboard = $this->get(route('dashboard'));
+        $dashboard->assertOk()
+            ->assertSee('lg:grid-cols-5', false)
+            ->assertSee('flex flex-wrap items-center justify-end gap-2', false);
+
+        $rigidFilterClasses = [
+            'min-w-[120px]',
+            'min-w-[150px]',
+            'min-w-[160px]',
+            'min-w-[170px]',
+            'min-w-[180px]',
+            'min-w-[190px]',
+            'min-w-[200px]',
+            'min-w-[220px]',
+            'min-w-[280px]',
+        ];
+
+        $viewRoutes = [
+            'purchasing.index',
+            'stok.index',
+            'stok.log-pergerakan',
+            'analisa.index',
+            'users.index',
+            'reports.defect',
+            'reports.lead-time',
+        ];
+
+        foreach ($viewRoutes as $routeName) {
+            $res = $this->get(route($routeName));
+            $res->assertOk();
+            foreach ($rigidFilterClasses as $rigidClass) {
+                $res->assertDontSee($rigidClass, false);
+            }
+            if ($routeName === 'reports.defect') {
+                $res->assertSee('lg:grid-cols-6', false);
+            }
+            if ($routeName === 'analisa.index') {
+                $res->assertSee('sm:grid-cols-4', false);
+            }
+        }
+
+        $produk = Produk::produkJadi()->firstOrFail();
+        $gudangOp = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $gudangFf = Gudang::where('kode', 'FF-PUSAT')->firstOrFail();
+        $batch = BatchProduksi::create([
+            'no_batch' => 'B-SCALE-001',
+            'produk_id' => $produk->id,
+            'qty_rencana' => 50,
+            'gudang_operasional_id' => $gudangOp->id,
+            'gudang_tujuan_rencana_id' => $gudangFf->id,
+            'status' => 'release',
+            'tanggal' => now()->toDateString(),
+            'created_by' => $manager->id,
+        ]);
+
+        $this->get(route('batches.show', $batch))
+            ->assertOk()
+            ->assertSee('lg:grid-cols-3 gap-4', false)
+            ->assertSee('lg:col-span-2 space-y-5 min-w-0', false);
+
+        $this->get(route('purchasing.create'))
+            ->assertOk()
+            ->assertSee('min-w-64 sm:min-w-80', false)
+            ->assertDontSee('min-w-[320px]', false)
+            ->assertDontSee('min-width: 320px', false);
+    }
 }
 

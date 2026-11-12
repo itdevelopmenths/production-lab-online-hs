@@ -13,9 +13,9 @@
 
 <div {{ $attributes->merge(['class' => 'bg-card text-card-foreground rounded-lg border border-border shadow-2xs p-3.5 flex flex-col justify-between transition-colors hover:border-foreground/20 relative']) }}>
     <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
+        <div class="flex-1 min-w-0">
             <p class="text-muted-foreground text-[11px] font-semibold uppercase tracking-wider truncate">{!! $title !!}</p>
-            <p class="mt-1 text-2xl font-bold font-mono tabular-nums text-foreground tracking-tight leading-none">{{ $value }}</p>
+            <p class="mt-1 text-2xl font-bold font-mono tabular-nums text-foreground tracking-tight leading-tight break-words">{{ $value }}</p>
             @if ($subtitle)
                 <p class="text-muted-foreground mt-1 text-xs leading-normal">{!! $subtitle !!}</p>
             @endif

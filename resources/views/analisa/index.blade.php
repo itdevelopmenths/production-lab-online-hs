@@ -132,8 +132,8 @@
         <!-- Toolbar Pencarian, Filter & Kontrol Pagination -->
         <div class="bg-card p-4 rounded-xl border border-border shadow-xs flex flex-wrap items-center justify-between gap-4">
             <!-- Kiri: Input Cari & Filter Status -->
-            <div class="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-                <div class="relative flex-1 min-w-[220px] max-w-sm">
+            <div class="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+                <div class="relative flex-1 min-w-44 max-w-sm">
                     <input 
                         type="text" 
                         x-model.debounce.250ms="searchQuery" 

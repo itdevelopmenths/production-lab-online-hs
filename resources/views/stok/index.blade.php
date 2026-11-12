@@ -25,7 +25,7 @@
             <div class="flex flex-wrap items-center gap-3">
                 <div>
                     <label for="filter-gudang" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Lokasi Gudang</label>
-                    <select id="filter-gudang" autocomplete="off" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[180px] outline-none cursor-pointer">
+                    <select id="filter-gudang" autocomplete="off" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                         @if($isGlobal)
                             <option value="">— Semua Gudang —</option>
                         @endif
@@ -36,7 +36,7 @@
                 </div>
                 <div>
                     <label for="filter-kategori" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Kategori Barang</label>
-                    <select id="filter-kategori" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground min-w-[160px] outline-none cursor-pointer">
+                    <select id="filter-kategori" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
                         <option value="">— Semua Kategori —</option>
                         <option value="bahan">Bahan Baku & Kemas</option>
                         <option value="produk_jadi">Produk Jadi</option>

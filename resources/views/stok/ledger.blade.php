@@ -11,7 +11,7 @@
         <div class="flex flex-wrap items-center gap-3">
             <div>
                 <label class="block text-xs font-medium text-muted-foreground mb-1">Lokasi Gudang</label>
-                <select id="filter-gudang" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground min-w-[200px] outline-none cursor-pointer">
+                <select id="filter-gudang" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Gudang —</option>
                     @foreach($gudangs as $g)
                         <option value="{{ $g->id }}" @selected($selectedGudangId == $g->id)>{{ $g->nama }}</option>
