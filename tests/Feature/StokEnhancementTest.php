@@ -206,9 +206,9 @@ class StokEnhancementTest extends TestCase
 
         $html = $res->getContent();
 
-        // Filter Lokasi Gudang tetap memuat opsi "Semua Gudang", namun default terpilih adalah GD-PUSAT
+        // Filter Lokasi Gudang tetap memuat opsi "All Gudang" dan sub-jenis, namun default terpilih adalah GD-PUSAT
         $this->assertMatchesRegularExpression(
-            '/<select[^>]*id="filter-gudang"[^>]*>(?:(?!<\/select>).)*?<option value="">— Semua Gudang —<\/option>(?:(?!<\/select>).)*?<option value="' . $gBahanPusat->id . '"\s+selected>/s',
+            '/<select[^>]*id="filter-gudang"[^>]*>(?:(?!<\/select>).)*?<option value="">All Gudang<\/option>(?:(?!<\/select>).)*?<option value="type:bahan_baku">All Gudang Bahan Baku<\/option>(?:(?!<\/select>).)*?<option value="type:operasional">All Gudang Operasional<\/option>(?:(?!<\/select>).)*?<option value="type:fulfillment">All Gudang Fulfillment<\/option>(?:(?!<\/select>).)*?<option value="' . $gBahanPusat->id . '"\s+selected>/s',
             $html
         );
 
@@ -243,7 +243,10 @@ class StokEnhancementTest extends TestCase
 
         $resFf = $this->actingAs($ffUser)->get(route('stok.index'));
         $resFf->assertOk();
-        $resFf->assertDontSee('— Semua Gudang —');
+        $resFf->assertDontSee('<option value="">All Gudang</option>', false);
+        $resFf->assertSee('All Gudang Fulfillment');
+        $resFf->assertDontSee('All Gudang Bahan Baku');
+        $resFf->assertDontSee('All Gudang Operasional');
 
         $htmlFf = $resFf->getContent();
         $this->assertMatchesRegularExpression(
@@ -261,10 +264,124 @@ class StokEnhancementTest extends TestCase
 
         $resOps = $this->actingAs($opsUser)->get(route('stok.index'));
         $resOps->assertOk();
+        $resOps->assertSee('All Gudang Operasional');
+        $resOps->assertDontSee('All Gudang Fulfillment');
+        $resOps->assertDontSee('All Gudang Bahan Baku');
         $this->assertMatchesRegularExpression(
             '/<select[^>]*id="filter-gudang"[^>]*>(?:(?!<\/select>).)*?<option value="' . $gOps->id . '"\s+selected>/s',
             $resOps->getContent()
         );
         $this->assertStringContainsString("stokMutasiForm('{$gOps->id}'", $resOps->getContent());
+    }
+
+    public function test_stok_index_dropdown_sub_jenis_adapts_per_seeded_role_and_multi_type_restricted_user(): void
+    {
+        $gudangRoleUser = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+        $resGudang = $this->actingAs($gudangRoleUser)->get(route('stok.index'));
+        $resGudang->assertOk();
+        $resGudang->assertSee('All Gudang Bahan Baku');
+        $resGudang->assertDontSee('All Gudang Operasional');
+        $resGudang->assertDontSee('All Gudang Fulfillment');
+        $resGudang->assertDontSee('<option value="">All Gudang</option>', false);
+
+        $opsRoleUser = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $resOps = $this->actingAs($opsRoleUser)->get(route('stok.index'));
+        $resOps->assertOk();
+        $resOps->assertSee('All Gudang Operasional');
+        $resOps->assertDontSee('All Gudang Bahan Baku');
+        $resOps->assertDontSee('All Gudang Fulfillment');
+
+        $ffRoleUser = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
+        $resFf = $this->actingAs($ffRoleUser)->get(route('stok.index'));
+        $resFf->assertOk();
+        $resFf->assertSee('All Gudang Fulfillment');
+        $resFf->assertDontSee('All Gudang Bahan Baku');
+        $resFf->assertDontSee('All Gudang Operasional');
+
+        // Restricted user dengan akses multi-jenis (Operasional + Fulfillment) melihat All Gudang (Sesuai Akses) + hanya 2 sub jenis miliknya
+        $gOps = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $ffPusat = Gudang::where('kode', 'FF-PUSAT')->firstOrFail();
+        $hybridUser = User::factory()->create(['warehouse_access_type' => 'restricted']);
+        $hybridUser->givePermissionTo(['stok.view']);
+        $hybridUser->gudangs()->sync([$gOps->id, $ffPusat->id]);
+
+        $resHybrid = $this->actingAs($hybridUser)->get(route('stok.index'));
+        $resHybrid->assertOk();
+        $resHybrid->assertSee('All Gudang (Sesuai Akses)');
+        $resHybrid->assertSee('All Gudang Operasional');
+        $resHybrid->assertSee('All Gudang Fulfillment');
+        $resHybrid->assertDontSee('All Gudang Bahan Baku');
+    }
+
+    public function test_stok_data_filters_by_all_sub_jenis_and_enforces_lbac_role_scope(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $ffUser = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
+
+        $gBahan = Gudang::where('kode', 'GD-PUSAT')->firstOrFail();
+        $gOps = Gudang::where('kode', 'GD-OPS')->firstOrFail();
+        $ffPusat = Gudang::where('kode', 'FF-PUSAT')->firstOrFail();
+        $ffCabang = Gudang::create([
+            'kode' => 'FF-BDG',
+            'nama' => 'Fulfillment Bandung',
+            'tipe' => 'fulfillment_cabang',
+            'is_pusat' => false,
+            'status' => 'aktif',
+        ]);
+
+        $produk = Produk::where('sku', 'ALK-01')->firstOrFail();
+
+        Stok::updateOrCreate(['produk_id' => $produk->id, 'gudang_id' => $gBahan->id], ['qty_saat_ini' => 111]);
+        Stok::updateOrCreate(['produk_id' => $produk->id, 'gudang_id' => $gOps->id], ['qty_saat_ini' => 222]);
+        Stok::updateOrCreate(['produk_id' => $produk->id, 'gudang_id' => $ffPusat->id], ['qty_saat_ini' => 333]);
+        Stok::updateOrCreate(['produk_id' => $produk->id, 'gudang_id' => $ffCabang->id], ['qty_saat_ini' => 444]);
+
+        // Manager filtering by type:fulfillment harus mengembalikan kedua gudang fulfillment (termasuk legacy fulfillment_cabang)
+        $resFfFilter = $this->actingAs($manager)->getJson(route('stok.data', [
+            'draw' => 1,
+            'start' => 0,
+            'length' => 100,
+            'gudang_id' => 'type:fulfillment',
+            'search' => ['value' => 'ALK-01'],
+        ]));
+        $resFfFilter->assertOk();
+        $ffGudangs = collect($resFfFilter->json('data'))->pluck('gudang_nama')->all();
+        $this->assertContains($ffPusat->nama, $ffGudangs);
+        $this->assertContains($ffCabang->nama, $ffGudangs);
+        $this->assertNotContains($gBahan->nama, $ffGudangs);
+        $this->assertNotContains($gOps->nama, $ffGudangs);
+
+        // Manager filtering by type:operasional hanya mengembalikan gudang operasional
+        $resOpsFilter = $this->actingAs($manager)->getJson(route('stok.data', [
+            'draw' => 1,
+            'start' => 0,
+            'length' => 100,
+            'gudang_id' => 'type:operasional',
+            'search' => ['value' => 'ALK-01'],
+        ]));
+        $resOpsFilter->assertOk();
+        $opsGudangs = collect($resOpsFilter->json('data'))->pluck('gudang_nama')->all();
+        $this->assertSame([$gOps->nama], $opsGudangs);
+
+        // Restricted fulfillment user mencoba filter type:bahan_baku atau gudang_id bahan baku -> 0 rows (LBAC terlindungi)
+        $resTamperedType = $this->actingAs($ffUser)->getJson(route('stok.data', [
+            'draw' => 1,
+            'start' => 0,
+            'length' => 100,
+            'gudang_id' => 'type:bahan_baku',
+            'search' => ['value' => 'ALK-01'],
+        ]));
+        $resTamperedType->assertOk();
+        $this->assertCount(0, $resTamperedType->json('data'));
+
+        $resTamperedId = $this->actingAs($ffUser)->getJson(route('stok.data', [
+            'draw' => 1,
+            'start' => 0,
+            'length' => 100,
+            'gudang_id' => (string) $gBahan->id,
+            'search' => ['value' => 'ALK-01'],
+        ]));
+        $resTamperedId->assertOk();
+        $this->assertCount(0, $resTamperedId->json('data'));
     }
 }

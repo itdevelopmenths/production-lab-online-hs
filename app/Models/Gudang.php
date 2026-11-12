@@ -37,6 +37,26 @@ class Gudang extends Model
      */
     public const TIPE_ALL = ['bahan_baku', 'operasional', 'fulfillment', 'fulfillment_pusat', 'fulfillment_cabang'];
 
+    /**
+     * Kelompok tipe gudang fulfillment (unified & legacy).
+     */
+    public const TIPE_FULFILLMENT = ['fulfillment', 'fulfillment_pusat', 'fulfillment_cabang'];
+
+    /**
+     * Memetakan grup filter sub-jenis gudang ke daftar nilai kolom `tipe`.
+     *
+     * @return array<int, string>
+     */
+    public static function resolveTipesForFilterGroup(string $group): array
+    {
+        return match ($group) {
+            'bahan_baku' => ['bahan_baku'],
+            'operasional' => ['operasional'],
+            'fulfillment' => self::TIPE_FULFILLMENT,
+            default => [],
+        };
+    }
+
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Gudang::class, 'parent_gudang_id');
@@ -62,7 +82,7 @@ class Gudang extends Model
      */
     public function scopeFulfillment($query)
     {
-        return $query->whereIn('tipe', ['fulfillment', 'fulfillment_pusat', 'fulfillment_cabang']);
+        return $query->whereIn('tipe', self::TIPE_FULFILLMENT);
     }
 
     /**
@@ -105,7 +125,7 @@ class Gudang extends Model
      */
     public function isFulfillment(): bool
     {
-        return in_array($this->tipe, ['fulfillment', 'fulfillment_pusat', 'fulfillment_cabang'], true);
+        return in_array($this->tipe, self::TIPE_FULFILLMENT, true);
     }
 
     /**

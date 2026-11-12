@@ -25,13 +25,24 @@
             <div class="flex flex-wrap items-center gap-3">
                 <div>
                     <label for="filter-gudang" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Lokasi Gudang</label>
-                    <select id="filter-gudang" autocomplete="off" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                    <select id="filter-gudang" autocomplete="off" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-44 max-w-full outline-none cursor-pointer">
                         @if($isGlobal)
-                            <option value="">— Semua Gudang —</option>
+                            <option value="">All Gudang</option>
+                        @elseif(($gudangTypeOptions ?? collect())->count() > 1)
+                            <option value="">All Gudang (Sesuai Akses)</option>
                         @endif
-                        @foreach($gudang as $g)
-                            <option value="{{ $g->id }}" @selected((string) ($defaultFilterGudangId ?? '') === (string) $g->id)>{{ $g->nama }}</option>
-                        @endforeach
+                        @if(($gudangTypeOptions ?? collect())->isNotEmpty())
+                            <optgroup label="Sub Jenis Gudang">
+                                @foreach($gudangTypeOptions as $typeOption)
+                                    <option value="{{ $typeOption['value'] }}">{{ $typeOption['label'] }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endif
+                        <optgroup label="Gudang Spesifik">
+                            @foreach($gudang as $g)
+                                <option value="{{ $g->id }}" @selected((string) ($defaultFilterGudangId ?? '') === (string) $g->id)>{{ $g->nama }}</option>
+                            @endforeach
+                        </optgroup>
                     </select>
                 </div>
                 <div>

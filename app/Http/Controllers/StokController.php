@@ -40,8 +40,29 @@ class StokController extends Controller
         $defaultFilterGudangId = $defaultPusat?->id ?? ($isGlobal ? null : $gudang->first()?->id);
         $defaultMutasiGudangId = $defaultPusat?->id ?? $gudang->first()?->id;
 
+        $gudangTypeOptions = collect([
+            [
+                'value' => 'type:bahan_baku',
+                'label' => 'All Gudang Bahan Baku',
+                'available' => $gudang->contains(fn (Gudang $g) => $g->isBahanBaku()),
+            ],
+            [
+                'value' => 'type:operasional',
+                'label' => 'All Gudang Operasional',
+                'available' => $gudang->contains(fn (Gudang $g) => $g->isOperasional()),
+            ],
+            [
+                'value' => 'type:fulfillment',
+                'label' => 'All Gudang Fulfillment',
+                'available' => $gudang->contains(fn (Gudang $g) => $g->isFulfillment()),
+            ],
+        ])->filter(fn (array $opt) => $opt['available'])
+            ->map(fn (array $opt) => ['value' => $opt['value'], 'label' => $opt['label']])
+            ->values();
+
         return view('stok.index', compact(
             'gudang',
+            'gudangTypeOptions',
             'isGlobal',
             'canSeePrice',
             'defaultFilterGudangId',
@@ -163,13 +184,28 @@ class StokController extends Controller
             ->join('produk', 'produk.id', '=', 'stok.produk_id')
             ->leftJoin('gudang', 'gudang.id', '=', 'stok.gudang_id')
             ->with(['produk:id,sku,nama,satuan,tipe,harga_hpp', 'gudang:id,nama'])
+            ->when($allowedGudangIds !== null, function ($q) use ($allowedGudangIds) {
+                $q->whereIn('stok.gudang_id', $allowedGudangIds);
+            })
             ->when($request->filled('gudang_id'), function ($q) use ($request, $allowedGudangIds) {
-                if ($allowedGudangIds === null || in_array((int) $request->gudang_id, $allowedGudangIds, true)) {
-                    $q->where('stok.gudang_id', $request->gudang_id);
+                $gudangFilter = (string) $request->input('gudang_id');
+
+                if (str_starts_with($gudangFilter, 'type:')) {
+                    $tipes = Gudang::resolveTipesForFilterGroup(substr($gudangFilter, 5));
+                    if (empty($tipes)) {
+                        $q->whereRaw('1 = 0');
+                    } else {
+                        $q->whereIn('gudang.tipe', $tipes);
+                    }
+
+                    return;
                 }
-            }, function ($q) use ($allowedGudangIds) {
-                if ($allowedGudangIds !== null) {
-                    $q->whereIn('stok.gudang_id', $allowedGudangIds);
+
+                $gudangId = ctype_digit($gudangFilter) ? (int) $gudangFilter : null;
+                if ($gudangId !== null && ($allowedGudangIds === null || in_array($gudangId, $allowedGudangIds, true))) {
+                    $q->where('stok.gudang_id', $gudangId);
+                } else {
+                    $q->whereRaw('1 = 0');
                 }
             })
             ->when($request->filled('kategori'), function ($q) use ($request) {
