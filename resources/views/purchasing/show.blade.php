@@ -1171,18 +1171,26 @@
                             </table>
                         </div>
 
-                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="space-y-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
                             @csrf
-                            <p class="text-[11px] text-muted-foreground">
-                                Memposting stok fisik aktual di atas ke <strong class="text-foreground">{{ $po->gudang?->nama ?? 'Gudang' }}</strong>, mengunci durasi Lead Time, dan menutup status PO menjadi <strong class="text-foreground">Selesai</strong>.
-                            </p>
-                            <x-button type="submit" variant="success" size="md" x-bind:disabled="submitting">
-                                <span x-show="!submitting">Posting Stok ke Gudang &amp; Selesaikan PO</span>
-                                <span x-show="submitting" class="flex items-center gap-2" style="display: none;">
-                                    <svg class="animate-spin size-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                                    Memproses...
-                                </span>
-                            </x-button>
+                            <div class="p-3 bg-muted/30 rounded-lg border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="max-w-md w-full sm:w-auto">
+                                    <label class="block font-semibold text-foreground text-xs mb-1">
+                                        No. Resi / AWB <span class="text-muted-foreground font-normal">(Opsional)</span>
+                                    </label>
+                                    <input type="text" name="no_resi" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="Masukkan atau perbarui no resi..." class="w-full sm:w-72 rounded-lg border border-input bg-card text-xs py-1.5 px-2.5 font-mono text-foreground focus:border-ring focus:ring-1 focus:ring-ring outline-none">
+                                    <p class="text-[10px] text-muted-foreground mt-1">Dapat diisi atau diperbarui jika resi baru diterima saat barang tiba di gudang.</p>
+                                </div>
+                                <div class="shrink-0 flex items-center">
+                                    <x-button type="submit" variant="success" size="md" x-bind:disabled="submitting">
+                                        <span x-show="!submitting">Posting Stok ke Gudang &amp; Selesaikan PO</span>
+                                        <span x-show="submitting" class="flex items-center gap-2" style="display: none;">
+                                            <svg class="animate-spin size-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                                            Memproses...
+                                        </span>
+                                    </x-button>
+                                </div>
+                            </div>
                         </form>
                     </div>
                 </x-card>
@@ -1326,32 +1334,7 @@
                             <p class="text-xs text-muted-foreground italic">Menunggu Purchasing menerbitkan PO resmi.</p>
                             @endcan
 
-                        {{-- STAGE 6: Pengemasan & Kesiapan Kirim --}}
-                        @elseif($stgAktif === \App\Models\PoStage::STAGE_6)
-                            @can('purchasing.edit')
-                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_6]) }}" class="space-y-3 text-xs">
-                                @csrf
-                                <div>
-                                    <label class="block font-semibold mb-1 text-foreground">Jumlah Koli / Kemasan</label>
-                                    <input type="number" min="1" step="1" name="packing[jumlah_koli]" value="{{ $po->pengiriman?->jumlah_koli ?? 1 }}" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
-                                </div>
-                                <div>
-                                    <label class="block font-semibold mb-1 text-foreground">Estimasi Berat Total (Kg)</label>
-                                    <input type="number" min="0" step="0.1" name="packing[estimasi_berat_kg]" value="{{ $po->pengiriman?->berat_kg ?? '' }}" placeholder="0.0" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
-                                </div>
-                                <div>
-                                    <label class="block font-semibold mb-1 text-foreground">Catatan Kondisi Kemasan</label>
-                                    <textarea name="packing[catatan_kemasan]" rows="2" placeholder="Cth: Dikemas dalam 4 kardus bersegel..." class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">{{ $po->pengiriman?->catatan_pengemasan ?? '' }}</textarea>
-                                </div>
-                                <x-button type="submit" variant="primary" size="sm" class="w-full">
-                                    Konfirmasi Kesiapan Pengemasan (Lanjut Kirim)
-                                </x-button>
-                            </form>
-                            @else
-                            <p class="text-xs text-muted-foreground italic">Menunggu supplier menyelesaikan proses pengepakan.</p>
-                            @endcan
-
-                        {{-- STAGE 7: Pengiriman & Logistik --}}
+                        {{-- STAGE 7: Pengiriman & Logistik (Konsolidasi Alur: Pengemasan Dilebur) --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_7)
                             @if(auth()->user()->can('purchasing.edit') || auth()->user()->can('purchasing.receive'))
                             <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_7]) }}" class="space-y-3 text-xs">
@@ -1362,8 +1345,8 @@
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="block font-semibold mb-1 text-foreground">No. Resi / AWB</label>
-                                        <input type="text" name="shipping[no_resi]" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="No Resi..." class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
+                                        <label class="block font-semibold mb-1 text-foreground">No. Resi / AWB <span class="text-muted-foreground font-normal">(Opsional)</span></label>
+                                        <input type="text" name="shipping[no_resi]" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="Dapat diisi saat input sistem..." class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
                                     </div>
                                     <div>
                                         <label class="block font-semibold mb-1 text-foreground">Tanggal Kirim</label>
@@ -1375,7 +1358,7 @@
                                 </x-button>
                             </form>
                             @else
-                            <p class="text-xs text-muted-foreground italic">Menunggu update pengiriman dan resi dari logistik / supplier.</p>
+                            <p class="text-xs text-muted-foreground italic">Menunggu update pengiriman dari logistik / supplier.</p>
                             @endif
 
                         {{-- STAGE 8: Unloading di Gudang --}}
@@ -2108,7 +2091,7 @@
                             </p>
                         </div>
 
-                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 5-6: PO, Pengemasan">
+                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 5: Penerbitan PO Resmi">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="size-2 rounded-full bg-amber-500 shrink-0"></span>
                                 <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider truncate">Supplier Processing</span>
