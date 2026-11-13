@@ -80,7 +80,8 @@ class PurchasingStageController extends Controller
 
             case PoStage::STAGE_9:
                 $this->authorize('purchasing.receive');
-                $this->stageService->completeStage9($purchaseOrder, auth()->user(), $waktuSelesai, $catatan);
+                $noResi = $request->input('no_resi');
+                $this->stageService->completeStage9($purchaseOrder, auth()->user(), $waktuSelesai, $catatan, $noResi);
                 break;
 
             default:

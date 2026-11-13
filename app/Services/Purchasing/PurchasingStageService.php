@@ -455,9 +455,9 @@ class PurchasingStageService
                 'catatan' => $catatan ?: 'PO resmi diterbitkan ke supplier',
             ]);
 
-            // Buka Stage 6
+            // Buka Stage 7 (Pengiriman & Logistik) langsung - konsolidasi alur 8-tahap
             $nextStage = $po->stages()->create([
-                'stage' => PoStage::STAGE_6,
+                'stage' => PoStage::STAGE_7,
                 'urutan' => 6,
                 'putaran' => $current->putaran,
                 'status' => 'berjalan',
@@ -466,7 +466,7 @@ class PurchasingStageService
                 'dicatat_pada' => now(),
             ]);
 
-            $po->stage_aktif = PoStage::STAGE_6;
+            $po->stage_aktif = PoStage::STAGE_7;
             $po->save();
 
             return $nextStage;
@@ -682,13 +682,20 @@ class PurchasingStageService
      * 4. Set PO status = 'selesai'
      * 5. Panggil SupplierLeadTimeService::recordCompletedPo()
      */
-    public function completeStage9(PurchaseOrder $po, User $gudangUser, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): void
+    public function completeStage9(PurchaseOrder $po, User $gudangUser, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null, ?string $noResi = null): void
     {
-        DB::transaction(function () use ($po, $gudangUser, $waktuSelesai, $catatan) {
+        DB::transaction(function () use ($po, $gudangUser, $waktuSelesai, $catatan, $noResi) {
             $this->validatePendingRevision($po);
             $current = $this->validateExpectedStage($po, PoStage::STAGE_9);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
+
+            // Simpan / update No. Resi jika diisi pada Stage 9
+            if ($noResi !== null && trim($noResi) !== '') {
+                $pengiriman = PoPengiriman::firstOrCreate(['po_id' => $po->id]);
+                $pengiriman->no_resi = trim($noResi);
+                $pengiriman->save();
+            }
 
             $bardat = $po->barangDatang()->where('status_posting', 'belum')->latest()->first();
             if (! $bardat) {
