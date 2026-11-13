@@ -61,27 +61,27 @@ class PurchasingStageController extends Controller
                 break;
 
             case PoStage::STAGE_6:
-                $this->authorize('purchasing.edit');
-                $packingData = $request->input('packing', []);
-                $this->stageService->completeStage6($purchaseOrder, auth()->user(), $packingData, $waktuSelesai, $catatan);
+                abort_unless(auth()->user()->can('purchasing.edit') || auth()->user()->can('purchasing.receive'), 403);
+                $shippingData = $request->input('shipping', []);
+                $this->stageService->completeStage6($purchaseOrder, auth()->user(), $shippingData, $waktuSelesai, $catatan);
                 break;
 
             case PoStage::STAGE_7:
-                abort_unless(auth()->user()->can('purchasing.edit') || auth()->user()->can('purchasing.receive'), 403);
-                $shippingData = $request->input('shipping', []);
-                $this->stageService->completeStage7($purchaseOrder, auth()->user(), $shippingData, $waktuSelesai, $catatan);
+                $this->authorize('purchasing.receive');
+                $physicalCheckData = $request->input('physical_check', []);
+                $this->stageService->completeStage7($purchaseOrder, auth()->user(), $physicalCheckData, $waktuSelesai, $catatan);
                 break;
 
             case PoStage::STAGE_8:
                 $this->authorize('purchasing.receive');
-                $physicalCheckData = $request->input('physical_check', []);
-                $this->stageService->completeStage8($purchaseOrder, auth()->user(), $physicalCheckData, $waktuSelesai, $catatan);
+                $noResi = $request->input('no_resi');
+                $this->stageService->completeStage8($purchaseOrder, auth()->user(), $waktuSelesai, $catatan, $noResi);
                 break;
 
-            case PoStage::STAGE_9:
-                $this->authorize('purchasing.receive');
-                $noResi = $request->input('no_resi');
-                $this->stageService->completeStage9($purchaseOrder, auth()->user(), $waktuSelesai, $catatan, $noResi);
+            case PoStage::LEGACY_STAGE_PENGEMASAN:
+                $this->authorize('purchasing.edit');
+                $packingData = $request->input('packing', []);
+                $this->stageService->completeLegacyPengemasan($purchaseOrder, auth()->user(), $packingData, $waktuSelesai, $catatan);
                 break;
 
             default:

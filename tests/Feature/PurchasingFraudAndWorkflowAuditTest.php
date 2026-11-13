@@ -474,7 +474,7 @@ class PurchasingFraudAndWorkflowAuditTest extends TestCase
         }
 
         // 2. Legacy receive / approve / update diblokir saat ada revisi menunggu
-        $poLegacy = $this->createPo(['status' => 'dikirim_ke_gudang', 'stage_aktif' => PoStage::STAGE_7], 1000000, 100);
+        $poLegacy = $this->createPo(['status' => 'dikirim_ke_gudang', 'stage_aktif' => PoStage::STAGE_6], 1000000, 100);
         $this->revisionService->submitCommitmentRevision($poLegacy, [
             'items' => [
                 ['produk_id' => $this->produk1->id, 'qty' => 100, 'harga_total' => 1200000],
@@ -491,7 +491,7 @@ class PurchasingFraudAndWorkflowAuditTest extends TestCase
         ])->assertSessionHasErrors('revisi');
 
         // 3. Direct edit ditolak untuk PO selesai / dibatalkan
-        $poCancelled = $this->createPo(['status' => 'dibatalkan', 'stage_aktif' => PoStage::STAGE_7]);
+        $poCancelled = $this->createPo(['status' => 'dibatalkan', 'stage_aktif' => PoStage::STAGE_6]);
         try {
             $this->revisionService->updateOperationalFields($poCancelled, ['catatan' => 'Manipulasi PO batal'], $this->purchasing);
             $this->fail('directEdit harus menolak PO dibatalkan.');
@@ -499,14 +499,16 @@ class PurchasingFraudAndWorkflowAuditTest extends TestCase
             $this->assertArrayHasKey('status', $e->errors());
         }
 
-        // 4. Stage 8 menolak qty_fisik negatif
-        $poStage8 = $this->createPo(['stage_aktif' => PoStage::STAGE_8]);
-        $item8 = $poStage8->items()->firstOrFail();
+        // 4. Stage 7 (Unloading) menolak qty_fisik negatif
+        $poStage7 = $this->createPo(['stage_aktif' => PoStage::STAGE_7]);
+        $item7 = $poStage7->items()->firstOrFail();
         try {
-            $this->stageService->completeStage8($poStage8, $this->gudangUser, [
-                $item8->id => ['qty_fisik' => -10],
+            $this->stageService->completeStage7($poStage7, $this->gudangUser, [
+                'items' => [
+                    $item7->id => ['qty_fisik' => -10],
+                ],
             ]);
-            $this->fail('Stage 8 harus menolak qty_fisik negatif.');
+            $this->fail('Stage 7 harus menolak qty_fisik negatif.');
         } catch (ValidationException $e) {
             $this->assertNotEmpty($e->errors());
         }

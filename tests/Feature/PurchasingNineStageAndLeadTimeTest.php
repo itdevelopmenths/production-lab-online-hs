@@ -118,33 +118,33 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->stageService->completeStage4Tempo($po, $this->purchasing, $t4);
         $this->assertEquals(PoStage::STAGE_5, $po->stage_aktif);
 
-        // Stage 5 -> 7 (Terbit PO langsung ke Pengiriman - Alur 8 Tahap Konsolidasi)
+        // Stage 5 -> 6 (Terbit PO langsung ke Pengiriman - Alur 8 Tahap Konsolidasi)
         $t5 = $t4->copy()->addHours(2);
         $this->stageService->completeStage5($po, $this->purchasing, $t5);
+        $this->assertEquals(PoStage::STAGE_6, $po->stage_aktif);
+
+        // Stage 6 -> 7 (Pengiriman ke Unloading)
+        $t6 = $t5->copy()->addHours(24);
+        $this->stageService->completeStage6($po, $this->purchasing, ['ekspedisi' => 'JNE Cargo', 'no_resi' => 'JNE123456'], $t6);
         $this->assertEquals(PoStage::STAGE_7, $po->stage_aktif);
 
-        // Stage 7 -> 8 (Pengiriman ke Unloading)
-        $t7 = $t5->copy()->addHours(24);
-        $this->stageService->completeStage7($po, $this->purchasing, ['ekspedisi' => 'JNE Cargo', 'no_resi' => 'JNE123456'], $t7);
-        $this->assertEquals(PoStage::STAGE_8, $po->stage_aktif);
-
-        // Stage 8 -> 9 (Unloading di Gudang, belum posting stok)
-        $t8 = $t7->copy()->addHours(5);
+        // Stage 7 -> 8 (Unloading di Gudang, belum posting stok)
+        $t7 = $t6->copy()->addHours(5);
         $stokAwal1 = app(StokService::class)->saldo($this->produk1->id, $this->gudang->id);
-        $this->stageService->completeStage8($po, $this->gudangUser, [
+        $this->stageService->completeStage7($po, $this->gudangUser, [
             'kondisi' => 'baik',
             'items' => [
                 ['po_item_id' => $po->items[0]->id, 'qty_fisik' => 100],
                 ['po_item_id' => $po->items[1]->id, 'qty_fisik' => 50],
             ],
-        ], $t8);
-        $this->assertEquals(PoStage::STAGE_9, $po->stage_aktif);
+        ], $t7);
+        $this->assertEquals(PoStage::STAGE_8, $po->stage_aktif);
         // Stok belum bertambah
         $this->assertEquals($stokAwal1, app(StokService::class)->saldo($this->produk1->id, $this->gudang->id));
 
-        // Stage 9 (Input Sistem & Posting Stok)
-        $t9 = $t8->copy()->addHours(2);
-        $this->stageService->completeStage9($po, $this->gudangUser, $t9);
+        // Stage 8 (Input Sistem & Posting Stok)
+        $t8 = $t7->copy()->addHours(2);
+        $this->stageService->completeStage8($po, $this->gudangUser, $t8);
         $po->refresh();
 
         $this->assertEquals('selesai', $po->status);
@@ -232,9 +232,9 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
     }
 
     /**
-     * Test alur 8-tahap: Stage 5 (PO) langsung membuka Stage 7 (Pengiriman), dan Stage 9 dapat menyimpan No. Resi.
+     * Test alur 8-tahap: Stage 5 (PO) langsung membuka Stage 6 (Pengiriman), dan Stage 8 dapat menyimpan No. Resi.
      */
-    public function test_stage_5_transitions_directly_to_stage_7_and_stage_9_saves_resi(): void
+    public function test_stage_5_transitions_directly_to_stage_6_and_stage_8_saves_resi(): void
     {
         $po = $this->createSamplePo('tempo');
         $po->stage_aktif = PoStage::STAGE_5;
@@ -248,36 +248,67 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         ]);
 
         $this->stageService->completeStage5($po, $this->purchasing);
+        $this->assertEquals(PoStage::STAGE_6, $po->fresh()->stage_aktif);
+
+        $stage6 = $po->stages()->where('stage', PoStage::STAGE_6)->first();
+        $this->assertNotNull($stage6);
+        $this->assertEquals('berjalan', $stage6->status);
+
+        // Advance to Stage 7
+        $this->stageService->completeStage6($po, $this->purchasing, ['ekspedisi' => 'SiCepat Cargo']);
         $this->assertEquals(PoStage::STAGE_7, $po->fresh()->stage_aktif);
 
-        $stage7 = $po->stages()->where('stage', PoStage::STAGE_7)->first();
-        $this->assertNotNull($stage7);
-        $this->assertEquals('berjalan', $stage7->status);
-
-        // Advance to Stage 9
-        $this->stageService->completeStage7($po, $this->purchasing, ['ekspedisi' => 'SiCepat Cargo']);
-        $this->stageService->completeStage8($po, $this->gudangUser, [
+        // Advance to Stage 8
+        $this->stageService->completeStage7($po, $this->gudangUser, [
             'gudang_id' => $this->gudang->id,
             'kondisi' => 'baik',
             'items' => [
                 $po->items->first()->id => ['po_item_id' => $po->items->first()->id, 'qty_fisik' => 100],
             ],
         ]);
-        $this->assertEquals(PoStage::STAGE_9, $po->fresh()->stage_aktif);
+        $this->assertEquals(PoStage::STAGE_8, $po->fresh()->stage_aktif);
 
-        // Complete Stage 9 with new no_resi via HTTP controller
+        // Complete Stage 8 with new no_resi via HTTP controller
         $this->actingAs($this->gudangUser);
-        $res9 = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_9]), [
+        $res8 = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_8]), [
             'no_resi' => 'RESI-TEST-999',
         ]);
-        $res9->assertSessionHasNoErrors();
+        $res8->assertSessionHasNoErrors();
         $this->assertEquals('RESI-TEST-999', $po->fresh()->pengiriman?->no_resi);
     }
 
     /**
-     * TC-07: Stage Pengemasan (6) dan Pengiriman (7) adalah entitas terpisah.
+     * TC-07: PO legacy pada stage pengemasan dapat diselesaikan via completeLegacyPengemasan dan lanjut ke stage 6 (pengiriman).
      */
-    public function test_tc07_pengemasan_and_pengiriman_are_separate_stages(): void
+    public function test_tc07_legacy_pengemasan_can_be_completed_and_advances_to_shipping(): void
+    {
+        $po = $this->createSamplePo('tempo');
+        $po->stage_aktif = PoStage::LEGACY_STAGE_PENGEMASAN;
+        $po->save();
+        $po->stages()->create([
+            'stage' => PoStage::LEGACY_STAGE_PENGEMASAN,
+            'urutan' => 6,
+            'putaran' => 1,
+            'status' => 'berjalan',
+            'waktu_mulai' => now()->subHours(2),
+        ]);
+
+        $this->stageService->completeLegacyPengemasan($po, $this->purchasing, ['jumlah_koli' => 3]);
+        $this->assertEquals(PoStage::STAGE_6, $po->stage_aktif);
+
+        $stageLegacy = $po->stages()->where('stage', PoStage::LEGACY_STAGE_PENGEMASAN)->first();
+        $stage6 = $po->stages()->where('stage', PoStage::STAGE_6)->first();
+
+        $this->assertNotNull($stageLegacy);
+        $this->assertNotNull($stage6);
+        $this->assertEquals('selesai', $stageLegacy->status);
+        $this->assertEquals('berjalan', $stage6->status);
+    }
+
+    /**
+     * TC-08: Pengiriman tidak dapat diselesaikan tanpa informasi ekspedisi.
+     */
+    public function test_tc08_shipping_stage_requires_expedition_info(): void
     {
         $po = $this->createSamplePo('tempo');
         $po->stage_aktif = PoStage::STAGE_6;
@@ -290,22 +321,14 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
             'waktu_mulai' => now()->subHours(2),
         ]);
 
-        $this->stageService->completeStage6($po, $this->purchasing, ['jumlah_koli' => 3]);
-        $this->assertEquals(PoStage::STAGE_7, $po->stage_aktif);
-
-        $stage6 = $po->stages()->where('stage', PoStage::STAGE_6)->first();
-        $stage7 = $po->stages()->where('stage', PoStage::STAGE_7)->first();
-
-        $this->assertNotNull($stage6);
-        $this->assertNotNull($stage7);
-        $this->assertEquals('selesai', $stage6->status);
-        $this->assertEquals('berjalan', $stage7->status);
+        $this->expectException(ValidationException::class);
+        $this->stageService->completeStage6($po, $this->purchasing, ['ekspedisi' => '']);
     }
 
     /**
-     * TC-08: Pengiriman tidak dapat diselesaikan tanpa informasi ekspedisi.
+     * TC-10 & TC-11: Stage 7 (Unloading) mencatat fisik tanpa stok, Stage 8 posting stok.
      */
-    public function test_tc08_shipping_stage_requires_expedition_info(): void
+    public function test_tc10_and_tc11_unloading_and_input_sistem_stock_posting(): void
     {
         $po = $this->createSamplePo('tempo');
         $po->stage_aktif = PoStage::STAGE_7;
@@ -315,32 +338,12 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
             'urutan' => 7,
             'putaran' => 1,
             'status' => 'berjalan',
-            'waktu_mulai' => now()->subHours(2),
-        ]);
-
-        $this->expectException(ValidationException::class);
-        $this->stageService->completeStage7($po, $this->purchasing, ['ekspedisi' => '']);
-    }
-
-    /**
-     * TC-10 & TC-11: Stage 8 (Unloading) mencatat fisik tanpa stok, Stage 9 posting stok.
-     */
-    public function test_tc10_and_tc11_unloading_and_input_sistem_stock_posting(): void
-    {
-        $po = $this->createSamplePo('tempo');
-        $po->stage_aktif = PoStage::STAGE_8;
-        $po->save();
-        $po->stages()->create([
-            'stage' => PoStage::STAGE_8,
-            'urutan' => 8,
-            'putaran' => 1,
-            'status' => 'berjalan',
             'waktu_mulai' => now()->subHours(3),
         ]);
 
         $stokAwal = app(StokService::class)->saldo($this->produk1->id, $this->gudang->id);
 
-        $bardat = $this->stageService->completeStage8($po, $this->gudangUser, [
+        $bardat = $this->stageService->completeStage7($po, $this->gudangUser, [
             'kondisi' => 'baik',
             'items' => [
                 ['po_item_id' => $po->items[0]->id, 'qty_fisik' => 100],
@@ -350,8 +353,8 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->assertEquals('belum', $bardat->status_posting);
         $this->assertEquals($stokAwal, app(StokService::class)->saldo($this->produk1->id, $this->gudang->id));
 
-        // Now run Stage 9
-        $this->stageService->completeStage9($po, $this->gudangUser, now());
+        // Now run Stage 8
+        $this->stageService->completeStage8($po, $this->gudangUser, now());
         $bardat->refresh();
 
         $this->assertEquals('diposting', $bardat->status_posting);
@@ -360,16 +363,16 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
 
     /**
      * Uji unloading dengan kondisi rusak sebagian & associative items key dari form Blade.
-     * Memastikan qty_fisik aktual yang rusak sebagian tidak ter-reset ke kuantitas PO saat Stage 9 selesai.
+     * Memastikan qty_fisik aktual yang rusak sebagian tidak ter-reset ke kuantitas PO saat Stage 8 selesai.
      */
-    public function test_stage_8_unloading_partial_damage_with_associative_items_persists_qty_fisik_and_posts_correct_stock_in_stage_9(): void
+    public function test_stage_7_unloading_partial_damage_with_associative_items_persists_qty_fisik_and_posts_correct_stock_in_stage_8(): void
     {
         $po = $this->createSamplePo('tempo');
-        $po->stage_aktif = PoStage::STAGE_8;
+        $po->stage_aktif = PoStage::STAGE_7;
         $po->save();
         $po->stages()->create([
-            'stage' => PoStage::STAGE_8,
-            'urutan' => 8,
+            'stage' => PoStage::STAGE_7,
+            'urutan' => 7,
             'putaran' => 1,
             'status' => 'berjalan',
             'waktu_mulai' => now()->subHours(2),
@@ -383,7 +386,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
 
         // Kirim payload dengan struktur associative array persis seperti yang dikirim oleh form HTML Blade
         $this->actingAs($this->gudangUser);
-        $response = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_8]), [
+        $response = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_7]), [
             'physical_check' => [
                 'kondisi' => 'rusak_sebagian',
                 'items' => [
@@ -416,22 +419,22 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->assertEquals(50, (float) $bItem2->qty_fisik);
         $this->assertEquals(0, (float) $bItem2->selisih);
 
-        // Stage 9: Posting Stok
-        $this->assertEquals(PoStage::STAGE_9, $po->fresh()->stage_aktif);
+        // Stage 8: Posting Stok
+        $this->assertEquals(PoStage::STAGE_8, $po->fresh()->stage_aktif);
 
-        // Verifikasi angka pada tabel Riwayat Penerimaan & Verifikasi Tahap 9 tampil akurat (tidak 0 saat belum posting) dan tanpa ,00
-        $preStage9View = $this->get(route('purchasing.show', $po));
-        $preStage9View->assertOk();
-        $preStage9View->assertSee('Riwayat Penerimaan Barang di Gudang');
-        $preStage9View->assertSee('Verifikasi dan Input Sistem Penerimaan (Tahap 9)');
-        $preStage9View->assertSee('-20 (Kurang)');
-        $preStage9View->assertSee('-20 (Kurang/Rusak)');
-        $preStage9View->assertDontSee('100,00');
-        $preStage9View->assertDontSee('80,00');
-        $preStage9View->assertDontSee('50,00');
-        $preStage9View->assertDontSee('-20,00');
+        // Verifikasi angka pada tabel Riwayat Penerimaan & Verifikasi Tahap 8 tampil akurat (tidak 0 saat belum posting) dan tanpa ,00
+        $preStage8View = $this->get(route('purchasing.show', $po));
+        $preStage8View->assertOk();
+        $preStage8View->assertSee('Riwayat Penerimaan Barang di Gudang');
+        $preStage8View->assertSee('Verifikasi dan Input Sistem Penerimaan (Tahap 8)');
+        $preStage8View->assertSee('-20 (Kurang)');
+        $preStage8View->assertSee('-20 (Kurang/Rusak)');
+        $preStage8View->assertDontSee('100,00');
+        $preStage8View->assertDontSee('80,00');
+        $preStage8View->assertDontSee('50,00');
+        $preStage8View->assertDontSee('-20,00');
 
-        $preHtml = $preStage9View->getContent();
+        $preHtml = $preStage8View->getContent();
         $this->assertSame(
             1,
             preg_match('/aria-label="Detail Barang Datang".*?<tbody\b[^>]*>(.*?)<\/tbody>/s', $preHtml, $riwayatBody)
@@ -440,11 +443,11 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->assertMatchesRegularExpression('/<td[^>]*>\s*50\b/', $riwayatBody[1]);
         $this->assertDoesNotMatchRegularExpression('/<td[^>]*>\s*0\s*(?:<span[^>]*>[^<]*<\/span>)?\s*<\/td>/', $riwayatBody[1]);
 
-        $response9 = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_9]), [
+        $response8 = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_8]), [
             'waktu_selesai' => now()->toDateTimeString(),
             'catatan' => 'Posting stok hasil unloading',
         ]);
-        $response9->assertSessionHasNoErrors();
+        $response8->assertSessionHasNoErrors();
 
         $bardat->refresh();
         $this->assertEquals('diposting', $bardat->status_posting);
@@ -463,7 +466,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->assertEquals(80, $item1->fresh()->qtyDiterima());
 
         // Verifikasi Idempotensi & UI Safety:
-        // 1. Tampilan view setelah Stage 9 selesai menyembunyikan panel Tahap 9 (karena data sudah ada di Riwayat Penerimaan) dan tanpa form submit posting ulang
+        // 1. Tampilan view setelah Stage 8 selesai menyembunyikan panel Tahap 8 (karena data sudah ada di Riwayat Penerimaan) dan tanpa form submit posting ulang
         $viewResponse = $this->get(route('purchasing.show', $po));
         $viewResponse->assertOk();
         $viewResponse->assertSee('Riwayat Penerimaan Barang di Gudang');
@@ -472,12 +475,12 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $viewResponse->assertDontSee('100,00');
         $viewResponse->assertDontSee('80,00');
         $viewResponse->assertDontSee('-20,00');
-        $viewResponse->assertDontSee('Verifikasi dan Input Sistem Penerimaan (Tahap 9)');
-        $viewResponse->assertDontSee('Audit Penerimaan dan Posting Stok (Tahap 9 - Selesai)');
+        $viewResponse->assertDontSee('Verifikasi dan Input Sistem Penerimaan (Tahap 8)');
+        $viewResponse->assertDontSee('Audit Penerimaan dan Posting Stok (Tahap 8 - Selesai)');
         $viewResponse->assertDontSee('Posting Stok ke Gudang & Selesaikan PO');
 
-        // 2. Jika route completeStage9 dipanggil ulang (double-submission), sistem menolak secara elegan
-        $repeatResponse = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_9]), [
+        // 2. Jika route completeStage8 dipanggil ulang (double-submission), sistem menolak secara elegan
+        $repeatResponse = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_8]), [
             'waktu_selesai' => now()->toDateTimeString(),
         ]);
         $repeatResponse->assertSessionHasErrors('stage');
@@ -528,11 +531,11 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
     public function test_tc14_manager_can_invalidate_lead_time_transaction(): void
     {
         $po = $this->createSamplePo('tempo');
-        $po->stage_aktif = PoStage::STAGE_9;
+        $po->stage_aktif = PoStage::STAGE_8;
         $po->save();
         $po->stages()->create([
-            'stage' => PoStage::STAGE_9,
-            'urutan' => 9,
+            'stage' => PoStage::STAGE_8,
+            'urutan' => 8,
             'putaran' => 1,
             'status' => 'berjalan',
             'waktu_mulai' => now()->subHours(1),
@@ -549,7 +552,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
             'qty_fisik' => 100,
         ]);
 
-        $this->stageService->completeStage9($po, $this->gudangUser, now());
+        $this->stageService->completeStage8($po, $this->gudangUser, now());
 
         $poLt = PoLeadTime::where('po_id', $po->id)->firstOrFail();
         $this->assertTrue($poLt->is_valid);
@@ -657,11 +660,11 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
     public function test_tc30_dual_level_lead_time_updates_both_levels(): void
     {
         $po = $this->createSamplePo('tempo');
-        $po->stage_aktif = PoStage::STAGE_9;
+        $po->stage_aktif = PoStage::STAGE_8;
         $po->save();
         $po->stages()->create([
-            'stage' => PoStage::STAGE_9,
-            'urutan' => 9,
+            'stage' => PoStage::STAGE_8,
+            'urutan' => 8,
             'putaran' => 1,
             'status' => 'berjalan',
             'waktu_mulai' => now()->subHours(1),
@@ -676,7 +679,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $bardat->items()->create(['po_item_id' => $po->items[0]->id, 'qty_fisik' => 100]);
         $bardat->items()->create(['po_item_id' => $po->items[1]->id, 'qty_fisik' => 50]);
 
-        $this->stageService->completeStage9($po, $this->gudangUser, now());
+        $this->stageService->completeStage8($po, $this->gudangUser, now());
 
         // Level 1: Supplier level
         $sSum = SupplierLtSummary::where('supplier_id', $this->supplier->id)->first();
@@ -699,13 +702,13 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
 
     public function test_completed_po_keeps_hr_duration_instead_of_selesai_in_sla_column(): void
     {
-        // 1. PO selesai via 9-stage (2.5 hari = 3600 menit)
+        // 1. PO selesai via 8-stage (2.5 hari = 3600 menit)
         $poStaged = $this->createSamplePo('tempo');
-        $poStaged->stage_aktif = PoStage::STAGE_9;
+        $poStaged->stage_aktif = PoStage::STAGE_8;
         $poStaged->save();
         $poStaged->stages()->create([
-            'stage' => PoStage::STAGE_9,
-            'urutan' => 9,
+            'stage' => PoStage::STAGE_8,
+            'urutan' => 8,
             'putaran' => 1,
             'status' => 'berjalan',
             'waktu_mulai' => now()->subMinutes(3600),
@@ -720,15 +723,15 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $bardat1->items()->create(['po_item_id' => $poStaged->items[0]->id, 'qty_fisik' => 100]);
         $bardat1->items()->create(['po_item_id' => $poStaged->items[1]->id, 'qty_fisik' => 50]);
 
-        $this->stageService->completeStage9($poStaged, $this->gudangUser, now());
+        $this->stageService->completeStage8($poStaged, $this->gudangUser, now());
 
         // 2. PO selesai lebih lama (5 hari = 7200 menit) pada supplier yang sama -> melewati Avg supplier
         $poLate = $this->createSamplePo('tempo');
-        $poLate->stage_aktif = PoStage::STAGE_9;
+        $poLate->stage_aktif = PoStage::STAGE_8;
         $poLate->save();
         $poLate->stages()->create([
-            'stage' => PoStage::STAGE_9,
-            'urutan' => 9,
+            'stage' => PoStage::STAGE_8,
+            'urutan' => 8,
             'putaran' => 1,
             'status' => 'berjalan',
             'waktu_mulai' => now()->subMinutes(7200),
@@ -743,7 +746,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $bardat2->items()->create(['po_item_id' => $poLate->items[0]->id, 'qty_fisik' => 100]);
         $bardat2->items()->create(['po_item_id' => $poLate->items[1]->id, 'qty_fisik' => 50]);
 
-        $this->stageService->completeStage9($poLate, $this->gudangUser, now());
+        $this->stageService->completeStage8($poLate, $this->gudangUser, now());
 
         // 3. PO legacy / langsung selesai tanpa PoLeadTime maupun stage durasi (selisih tanggal PO ke tanggal tiba = 3 hari)
         $poLegacy = PurchaseOrder::create([

@@ -83,9 +83,9 @@
             3 => ['key' => \App\Models\PoStage::STAGE_3, 'short' => 'Supplier Confirm', 'sub' => 'Konfirmasi Vendor', 'cat' => 'internal'],
             4 => ['key' => \App\Models\PoStage::STAGE_4, 'short' => 'Payment', 'sub' => 'Keuangan / DP', 'cat' => 'internal'],
             5 => ['key' => \App\Models\PoStage::STAGE_5, 'short' => 'PO', 'sub' => 'Penerbitan Resmi', 'cat' => 'supplier'],
-            6 => ['key' => \App\Models\PoStage::STAGE_7, 'short' => 'Pengiriman', 'sub' => 'Ekspedisi / Transit', 'cat' => 'transportation'],
-            7 => ['key' => \App\Models\PoStage::STAGE_8, 'short' => 'Unloading', 'sub' => 'Fisik Gudang', 'cat' => 'receiving'],
-            8 => ['key' => \App\Models\PoStage::STAGE_9, 'short' => 'Input', 'sub' => 'Posting Stok', 'cat' => 'receiving'],
+            6 => ['key' => \App\Models\PoStage::STAGE_6, 'short' => 'Pengiriman', 'sub' => 'Ekspedisi / Transit', 'cat' => 'transportation'],
+            7 => ['key' => \App\Models\PoStage::STAGE_7, 'short' => 'Unloading', 'sub' => 'Fisik Gudang', 'cat' => 'receiving'],
+            8 => ['key' => \App\Models\PoStage::STAGE_8, 'short' => 'Input', 'sub' => 'Posting Stok', 'cat' => 'receiving'],
         ];
 
         // Durasi Subtotal per Kategori (Klasifikasi Sesuai Lampiran 1)
@@ -94,7 +94,7 @@
         $transportationMenit = 0;
         $receivingMenit = 0;
 
-        $legacyPengemasanMenit = (int) $po->stages->where('stage', \App\Models\PoStage::STAGE_6)->sum('durasi_menit');
+        $legacyPengemasanMenit = (int) $po->stages->where('stage', \App\Models\PoStage::LEGACY_STAGE_PENGEMASAN)->sum('durasi_menit');
 
         foreach ($stageDefs as $num => $def) {
             $sumMenit = (int) $po->stages->where('stage', $def['key'])->sum('durasi_menit');

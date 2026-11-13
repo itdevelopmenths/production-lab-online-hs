@@ -129,7 +129,7 @@ class PurchasingController extends Controller
                       PoStage::STAGE_6,
                       PoStage::STAGE_7,
                       PoStage::STAGE_8,
-                      PoStage::STAGE_9,
+                      PoStage::LEGACY_STAGE_PENGEMASAN,
                   ]);
             });
         }

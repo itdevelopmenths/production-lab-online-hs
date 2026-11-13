@@ -243,10 +243,10 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
             \App\Models\PoStage::STAGE_3 => [2.0, 3.0],
             \App\Models\PoStage::STAGE_4 => [1.0, 1.5],
             \App\Models\PoStage::STAGE_5 => [0.5, 1.0],
-            \App\Models\PoStage::STAGE_6 => [3.0, 4.0],
-            \App\Models\PoStage::STAGE_7 => [2.0, 3.0],
+            \App\Models\PoStage::LEGACY_STAGE_PENGEMASAN => [3.0, 4.0],
+            \App\Models\PoStage::STAGE_6 => [2.0, 3.0],
+            \App\Models\PoStage::STAGE_7 => [0.5, 1.0],
             \App\Models\PoStage::STAGE_8 => [0.5, 1.0],
-            \App\Models\PoStage::STAGE_9 => [0.5, 1.0],
         ];
         foreach ($stageValues as $stageKey => [$avgDays, $maxDays]) {
             \App\Models\SupplierProdukLtStageSummary::create([
@@ -356,22 +356,20 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
         $stageService->completeStage4Tempo($po, $this->purchasing, $t4);
         $t5 = $t4->copy()->addHours(12); // stage 5 = 0.5 hari
         $stageService->completeStage5($po, $this->purchasing, $t5);
-        $t6 = $t5->copy()->addHours(48); // stage 6 = 2.0 hari
-        $stageService->completeStage6($po, $this->purchasing, ['jumlah_koli' => 1, 'berat_kg' => 10], $t6);
-        $t7 = $t6->copy()->addHours(72); // stage 7 = 3.0 hari
-        $stageService->completeStage7($po, $this->purchasing, ['ekspedisi' => 'JNE', 'no_resi' => 'RESI-01'], $t7);
-        $t8 = $t7->copy()->addHours(12); // stage 8 = 0.5 hari
-        $stageService->completeStage8($po, $gudangUser, [
+        $t6 = $t5->copy()->addHours(72); // stage 6 (pengiriman) = 3.0 hari
+        $stageService->completeStage6($po, $this->purchasing, ['ekspedisi' => 'JNE', 'no_resi' => 'RESI-01', 'jumlah_koli' => 1, 'berat_kg' => 10], $t6);
+        $t7 = $t6->copy()->addHours(12); // stage 7 (unloading) = 0.5 hari
+        $stageService->completeStage7($po, $gudangUser, [
             'kondisi' => 'baik',
             'items' => [['po_item_id' => $poItem->id, 'qty_fisik' => 10]],
-        ], $t8);
-        $t9 = $t8->copy()->addHours(12); // stage 9 = 0.5 hari
-        $stageService->completeStage9($po, $gudangUser, $t9);
+        ], $t7);
+        $t8 = $t7->copy()->addHours(12); // stage 8 (input sistem) = 0.5 hari
+        $stageService->completeStage8($po, $gudangUser, $t8);
 
         // Tanpa memanggil generateLokal secara manual lagi, data analisa & Tab 4 otomatis menjadi 'otomatis'
         $analisaRow = AnalisaLokal::where('produk_id', $this->produkLokal->id)->firstOrFail();
         $this->assertSame('otomatis', $analisaRow->sumber_lt);
-        $this->assertEquals(9.5, (float) $analisaRow->total_average_lead_time);
+        $this->assertEquals(7.5, (float) $analisaRow->total_average_lead_time);
 
         $afterRes = $this->actingAs($this->purchasing)->getJson(route('analisa.lokal.data'));
         $afterRes->assertOk();
@@ -383,11 +381,11 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
         $this->assertEquals(1.0, $afterRow['average']['supplier_confirm']);
         $this->assertEquals(0.5, $afterRow['average']['payment']);
         $this->assertEquals(0.5, $afterRow['average']['po']);
-        $this->assertEquals(2.0, $afterRow['average']['pengemasan']);
+        $this->assertEquals(0.0, $afterRow['average']['pengemasan']);
         $this->assertEquals(3.0, $afterRow['average']['pengiriman']);
         $this->assertEquals(0.5, $afterRow['average']['unloading']);
         $this->assertEquals(0.5, $afterRow['average']['input']);
-        $this->assertEquals(9.5, $afterRow['average']['total']);
+        $this->assertEquals(7.5, $afterRow['average']['total']);
 
         // Saat Manager menginvalidasi PoLeadTime (jumlah_transaksi turun menjadi 0), Tab 4 harus kembali ke 'manual'
         $poLt = \App\Models\PoLeadTime::where('po_id', $po->id)->firstOrFail();

@@ -20,17 +20,17 @@ class SupplierLeadTimeService
         PoStage::STAGE_2,
         PoStage::STAGE_4,
         PoStage::STAGE_5,
+        PoStage::STAGE_7,
         PoStage::STAGE_8,
-        PoStage::STAGE_9,
     ];
 
     public const SUPPLIER_STAGES = [
         PoStage::STAGE_3,
-        PoStage::STAGE_6,
+        PoStage::LEGACY_STAGE_PENGEMASAN,
     ];
 
     public const LOGISTIK_STAGES = [
-        PoStage::STAGE_7,
+        PoStage::STAGE_6,
     ];
 
     /**
@@ -91,7 +91,9 @@ class SupplierLeadTimeService
 
             $totalLtHari = self::minutesToDays($totalLtMenit);
             $waktuMulai = $po->stages->sortBy('waktu_mulai')->first()?->waktu_mulai ?? $po->created_at ?? now();
-            $waktuSelesai = $po->stages->where('stage', PoStage::STAGE_9)->first()?->waktu_selesai ?? now();
+            $waktuSelesai = $po->stages->where('stage', PoStage::STAGE_8)->first()?->waktu_selesai
+                ?? $po->stages->sortByDesc('waktu_selesai')->first()?->waktu_selesai
+                ?? now();
 
             // 2. Simpan / perbarui PoLeadTime
             $poLt = PoLeadTime::updateOrCreate(

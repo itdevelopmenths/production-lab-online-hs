@@ -455,9 +455,9 @@ class PurchasingStageService
                 'catatan' => $catatan ?: 'PO resmi diterbitkan ke supplier',
             ]);
 
-            // Buka Stage 7 (Pengiriman & Logistik) langsung - konsolidasi alur 8-tahap
+            // Buka Stage 6 (Pengiriman & Logistik) langsung - konsolidasi alur 8-tahap
             $nextStage = $po->stages()->create([
-                'stage' => PoStage::STAGE_7,
+                'stage' => PoStage::STAGE_6,
                 'urutan' => 6,
                 'putaran' => $current->putaran,
                 'status' => 'berjalan',
@@ -466,7 +466,7 @@ class PurchasingStageService
                 'dicatat_pada' => now(),
             ]);
 
-            $po->stage_aktif = PoStage::STAGE_7;
+            $po->stage_aktif = PoStage::STAGE_6;
             $po->save();
 
             return $nextStage;
@@ -474,66 +474,14 @@ class PurchasingStageService
     }
 
     /**
-     * Selesaikan Stage 6 (Pengemasan & Kesiapan Pengiriman) -> Buka Stage 7 (Pengiriman).
-     * Terpisah ketat dari Pengiriman (BR-11, TC-07).
-     */
-    public function completeStage6(PurchaseOrder $po, User $actor, array $packingData = [], ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
-    {
-        return DB::transaction(function () use ($po, $actor, $packingData, $waktuSelesai, $catatan) {
-            $this->validatePendingRevision($po);
-            $current = $this->validateExpectedStage($po, PoStage::STAGE_6);
-            $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
-            $this->validateTimeWindow($current->waktu_mulai, $selesai);
-
-            $pengiriman = PoPengiriman::firstOrCreate(['po_id' => $po->id]);
-            if (isset($packingData['jumlah_koli'])) {
-                $pengiriman->jumlah_koli = $packingData['jumlah_koli'];
-            }
-            if (isset($packingData['berat_kg'])) {
-                $pengiriman->berat_kg = $packingData['berat_kg'];
-            }
-            if (isset($packingData['catatan_pengemasan'])) {
-                $pengiriman->catatan_pengemasan = $packingData['catatan_pengemasan'];
-            }
-            $pengiriman->save();
-
-            $current->update([
-                'status' => 'selesai',
-                'waktu_selesai' => $selesai,
-                'durasi_menit' => self::calculateDurationMinutes($current->waktu_mulai, $selesai),
-                'pic_user_id' => $actor->id,
-                'dicatat_oleh' => $actor->id,
-                'dicatat_pada' => now(),
-                'catatan' => $catatan ?: 'Pengemasan selesai',
-            ]);
-
-            // Buka Stage 7
-            $nextStage = $po->stages()->create([
-                'stage' => PoStage::STAGE_7,
-                'urutan' => 7,
-                'putaran' => $current->putaran,
-                'status' => 'berjalan',
-                'waktu_mulai' => $selesai,
-                'dicatat_oleh' => $actor->id,
-                'dicatat_pada' => now(),
-            ]);
-
-            $po->stage_aktif = PoStage::STAGE_7;
-            $po->save();
-
-            return $nextStage;
-        });
-    }
-
-    /**
-     * Selesaikan Stage 7 (Pengiriman & Logistik) -> Buka Stage 8 (Unloading).
+     * Selesaikan Stage 6 (Pengiriman & Logistik) -> Buka Stage 7 (Unloading di Gudang).
      * Wajib mengisi ekspedisi (BR-11, TC-08).
      */
-    public function completeStage7(PurchaseOrder $po, User $actor, array $shippingData = [], ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
+    public function completeStage6(PurchaseOrder $po, User $actor, array $shippingData = [], ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
     {
         return DB::transaction(function () use ($po, $actor, $shippingData, $waktuSelesai, $catatan) {
             $this->validatePendingRevision($po);
-            $current = $this->validateExpectedStage($po, PoStage::STAGE_7);
+            $current = $this->validateExpectedStage($po, PoStage::STAGE_6);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
 
@@ -572,10 +520,10 @@ class PurchasingStageService
                 'catatan' => $catatan ?: 'Barang telah dikirim oleh ekspedisi',
             ]);
 
-            // Buka Stage 8
+            // Buka Stage 7 (Unloading di Gudang)
             $nextStage = $po->stages()->create([
-                'stage' => PoStage::STAGE_8,
-                'urutan' => 8,
+                'stage' => PoStage::STAGE_7,
+                'urutan' => 7,
                 'putaran' => $current->putaran,
                 'status' => 'berjalan',
                 'waktu_mulai' => $selesai,
@@ -583,7 +531,7 @@ class PurchasingStageService
                 'dicatat_pada' => now(),
             ]);
 
-            $po->stage_aktif = PoStage::STAGE_8;
+            $po->stage_aktif = PoStage::STAGE_7;
             $po->save();
 
             return $nextStage;
@@ -591,15 +539,15 @@ class PurchasingStageService
     }
 
     /**
-     * Selesaikan Stage 8 (Unloading di Gudang) (BR-08, TC-10).
+     * Selesaikan Stage 7 (Unloading di Gudang) (BR-08, TC-10).
      * Mencatat barang_datang dan qty_fisik dengan status_posting = 'belum'.
      * TIDAK menambah stok atau menulis kartu_stok pada stage ini.
      */
-    public function completeStage8(PurchaseOrder $po, User $gudangUser, array $physicalCheckData, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): BarangDatang
+    public function completeStage7(PurchaseOrder $po, User $gudangUser, array $physicalCheckData, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): BarangDatang
     {
         return DB::transaction(function () use ($po, $gudangUser, $physicalCheckData, $waktuSelesai, $catatan) {
             $this->validatePendingRevision($po);
-            $current = $this->validateExpectedStage($po, PoStage::STAGE_8);
+            $current = $this->validateExpectedStage($po, PoStage::STAGE_7);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
 
@@ -655,10 +603,10 @@ class PurchasingStageService
                 'catatan' => $catatan ?: 'Unloading dan verifikasi fisik selesai',
             ]);
 
-            // Buka Stage 9
+            // Buka Stage 8 (Input Sistem & Posting Stok)
             $po->stages()->create([
-                'stage' => PoStage::STAGE_9,
-                'urutan' => 9,
+                'stage' => PoStage::STAGE_8,
+                'urutan' => 8,
                 'putaran' => $current->putaran,
                 'status' => 'berjalan',
                 'waktu_mulai' => $selesai,
@@ -666,7 +614,7 @@ class PurchasingStageService
                 'dicatat_pada' => now(),
             ]);
 
-            $po->stage_aktif = PoStage::STAGE_9;
+            $po->stage_aktif = PoStage::STAGE_8;
             $po->save();
 
             return $bardat;
@@ -674,7 +622,7 @@ class PurchasingStageService
     }
 
     /**
-     * Selesaikan Stage 9 (Input Sistem & Posting Stok) (BR-10, TC-01, TC-11).
+     * Selesaikan Stage 8 (Input Sistem & Posting Stok) (BR-10, TC-01, TC-11).
      * Dalam transaksi atomik:
      * 1. Tambah stok via StokService::masuk
      * 2. Tulis kartu_stok referensi_tipe = 'purchase_order'
@@ -682,15 +630,15 @@ class PurchasingStageService
      * 4. Set PO status = 'selesai'
      * 5. Panggil SupplierLeadTimeService::recordCompletedPo()
      */
-    public function completeStage9(PurchaseOrder $po, User $gudangUser, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null, ?string $noResi = null): void
+    public function completeStage8(PurchaseOrder $po, User $gudangUser, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null, ?string $noResi = null): void
     {
         DB::transaction(function () use ($po, $gudangUser, $waktuSelesai, $catatan, $noResi) {
             $this->validatePendingRevision($po);
-            $current = $this->validateExpectedStage($po, PoStage::STAGE_9);
+            $current = $this->validateExpectedStage($po, PoStage::STAGE_8);
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
 
-            // Simpan / update No. Resi jika diisi pada Stage 9
+            // Simpan / update No. Resi jika diisi pada Stage 8
             if ($noResi !== null && trim($noResi) !== '') {
                 $pengiriman = PoPengiriman::firstOrCreate(['po_id' => $po->id]);
                 $pengiriman->no_resi = trim($noResi);
@@ -743,7 +691,7 @@ class PurchasingStageService
             $bardat->diposting_pada = now();
             $bardat->save();
 
-            // 3. Selesaikan Stage 9
+            // 3. Selesaikan Stage 8
             $current->update([
                 'status' => 'selesai',
                 'waktu_selesai' => $selesai,
@@ -758,8 +706,61 @@ class PurchasingStageService
             $po->status = 'selesai';
             $po->save();
 
-            // 5. Rekam Lead Time komparatif 2 level (BR-10, TC-01, TC-30)
+            // 5. Rekam Lead Time komparatif 2 level
             $this->leadTimeService->recordCompletedPo($po, $gudangUser->id);
+        });
+    }
+
+    /**
+     * Backward-compatibility wrapper for legacy stage calls
+     */
+    public function completeStage9(PurchaseOrder $po, User $gudangUser, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null, ?string $noResi = null): void
+    {
+        $this->completeStage8($po, $gudangUser, $waktuSelesai, $catatan, $noResi);
+    }
+
+    /**
+     * Selesaikan pengemasan untuk PO arsip lama jika ada yang masih berjalan di tahap pengemasan.
+     */
+    public function completeLegacyPengemasan(PurchaseOrder $po, User $actor, array $packingData = [], ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
+    {
+        return DB::transaction(function () use ($po, $actor, $packingData, $waktuSelesai, $catatan) {
+            $this->validatePendingRevision($po);
+            $current = $this->validateExpectedStage($po, PoStage::LEGACY_STAGE_PENGEMASAN);
+            $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
+            $this->validateTimeWindow($current->waktu_mulai, $selesai);
+
+            $pengiriman = PoPengiriman::firstOrCreate(['po_id' => $po->id]);
+            if (isset($packingData['jumlah_koli'])) $pengiriman->jumlah_koli = $packingData['jumlah_koli'];
+            if (isset($packingData['berat_kg'])) $pengiriman->berat_kg = $packingData['berat_kg'];
+            if (isset($packingData['catatan_pengemasan'])) $pengiriman->catatan_pengemasan = $packingData['catatan_pengemasan'];
+            $pengiriman->save();
+
+            $current->update([
+                'status' => 'selesai',
+                'waktu_selesai' => $selesai,
+                'durasi_menit' => self::calculateDurationMinutes($current->waktu_mulai, $selesai),
+                'pic_user_id' => $actor->id,
+                'dicatat_oleh' => $actor->id,
+                'dicatat_pada' => now(),
+                'catatan' => $catatan ?: 'Pengemasan selesai',
+            ]);
+
+            // Buka Stage 6 (Pengiriman)
+            $nextStage = $po->stages()->create([
+                'stage' => PoStage::STAGE_6,
+                'urutan' => 6,
+                'putaran' => $current->putaran,
+                'status' => 'berjalan',
+                'waktu_mulai' => $selesai,
+                'dicatat_oleh' => $actor->id,
+                'dicatat_pada' => now(),
+            ]);
+
+            $po->stage_aktif = PoStage::STAGE_6;
+            $po->save();
+
+            return $nextStage;
         });
     }
 
@@ -779,13 +780,13 @@ class PurchasingStageService
         DB::transaction(function () use ($po, $manager, $alasan, $extraPoUpdates) {
             $lockedPo = PurchaseOrder::lockForUpdate()->findOrFail($po->id);
 
-            // Cek apakah stage 8 sudah selesai
-            $stage8Selesai = $lockedPo->stages()
-                ->where('stage', PoStage::STAGE_8)
+            // Cek apakah stage 7 (unloading fisik) sudah selesai
+            $unloadingSelesai = $lockedPo->stages()
+                ->where('stage', PoStage::STAGE_7)
                 ->where('status', 'selesai')
                 ->exists();
 
-            if ($stage8Selesai || $lockedPo->isFinal()) {
+            if ($unloadingSelesai || $lockedPo->isFinal()) {
                 throw ValidationException::withMessages([
                     'status' => 'PO tidak dapat dibatalkan karena tahap Unloading fisik di gudang sudah selesai atau dokumen sudah final.',
                 ]);

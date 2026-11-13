@@ -45,10 +45,10 @@ class AnalisaService
         PoStage::STAGE_3 => 'supplier_confirm',
         PoStage::STAGE_4 => 'payment',
         PoStage::STAGE_5 => 'po',
-        PoStage::STAGE_6 => 'pengemasan',
-        PoStage::STAGE_7 => 'pengiriman',
-        PoStage::STAGE_8 => 'unloading',
-        PoStage::STAGE_9 => 'input',
+        PoStage::STAGE_6 => 'pengiriman',
+        PoStage::STAGE_7 => 'unloading',
+        PoStage::STAGE_8 => 'input',
+        PoStage::LEGACY_STAGE_PENGEMASAN => 'pengemasan',
     ];
 
     /** @var array<int, string> */

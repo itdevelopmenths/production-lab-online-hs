@@ -99,7 +99,7 @@
                         <x-button type="button" @click="openDirectEditModal = true" variant="outline" size="xs">
                             Direct Edit
                         </x-button>
-                        @if(!in_array($po->stage_aktif, [\App\Models\PoStage::STAGE_8, \App\Models\PoStage::STAGE_9]))
+                        @if(!in_array($po->stage_aktif, [\App\Models\PoStage::STAGE_7, \App\Models\PoStage::STAGE_8]))
                             <x-button type="button" @click="openRevisiModal = true" variant="outline" size="xs" class="border-amber-500/40 text-amber-800 hover:bg-amber-500/10">
                                 Ajukan Revisi
                             </x-button>
@@ -1022,10 +1022,10 @@
                 </x-card>
                 @endif
 
-                {{-- Formulir Pemeriksaan Fisik & Unloading (Stage 8 PRD v2.4) --}}
-                @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_8 && !in_array($po->status, ['selesai', 'dibatalkan']))
-                <x-card title="Pemeriksaan Fisik & Unloading di Gudang (Tahap 8)" subtitle="Hitung kuantitas fisik aktual yang diturunkan di gudang. Jika ada bahan rusak/kurang, input kuantitas riil yang diterima dan catat keterangan selisih.">
-                    <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_8]) }}" class="space-y-4" x-data="bardatForm()">
+                {{-- Formulir Pemeriksaan Fisik & Unloading (Stage 7 PRD v2.4 8-Stage) --}}
+                @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_7 && !in_array($po->status, ['selesai', 'dibatalkan']))
+                <x-card title="Pemeriksaan Fisik & Unloading di Gudang (Tahap 7)" subtitle="Hitung kuantitas fisik aktual yang diturunkan di gudang. Jika ada bahan rusak/kurang, input kuantitas riil yang diterima dan catat keterangan selisih.">
+                    <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_7]) }}" class="space-y-4" x-data="bardatForm()">
                         @csrf
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
@@ -1107,13 +1107,13 @@
                 </x-card>
                 @endif
 
-                {{-- Panel Konfirmasi & Posting Stok (Stage 9 PRD v2.4 - Hanya muncul saat menunggu Posting Stok) --}}
-                @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_9 && !in_array($po->status, ['selesai', 'dibatalkan']))
+                {{-- Panel Konfirmasi & Posting Stok (Stage 8 PRD v2.4 8-Stage - Hanya muncul saat menunggu Posting Stok) --}}
+                @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_8 && !in_array($po->status, ['selesai', 'dibatalkan']))
                 @php
                     $latestBardat = $po->barangDatang->where('status_posting', 'belum')->sortByDesc('created_at')->first();
                 @endphp
                 @if($latestBardat)
-                <x-card title="Verifikasi dan Input Sistem Penerimaan (Tahap 9)"
+                <x-card title="Verifikasi dan Input Sistem Penerimaan (Tahap 8)"
                         subtitle="Hasil unloading fisik telah tersimpan. Verifikasi data sebelum memposting stok ke inventori gudang.">
                     <div class="space-y-4 text-xs">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/40 border border-border">
@@ -1131,7 +1131,7 @@
                             </div>
                         </div>
 
-                        <div tabindex="0" role="region" aria-label="Verifikasi Penerimaan Tahap 9" class="overflow-x-auto rounded-lg border border-border">
+                        <div tabindex="0" role="region" aria-label="Verifikasi Penerimaan Tahap 8" class="overflow-x-auto rounded-lg border border-border">
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-muted/60 text-muted-foreground font-semibold text-[10px] uppercase border-b border-border">
                                     <tr>
@@ -1171,7 +1171,7 @@
                             </table>
                         </div>
 
-                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="space-y-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_8]) }}" class="space-y-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
                             @csrf
                             <div class="p-3 bg-muted/30 rounded-lg border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="max-w-md w-full sm:w-auto">
@@ -1334,10 +1334,10 @@
                             <p class="text-xs text-muted-foreground italic">Menunggu Purchasing menerbitkan PO resmi.</p>
                             @endcan
 
-                        {{-- STAGE 7: Pengiriman & Logistik (Konsolidasi Alur: Pengemasan Dilebur) --}}
-                        @elseif($stgAktif === \App\Models\PoStage::STAGE_7)
+                        {{-- STAGE 6: Pengiriman & Logistik (Konsolidasi Alur: Pengemasan Dilebur) --}}
+                        @elseif($stgAktif === \App\Models\PoStage::STAGE_6)
                             @if(auth()->user()->can('purchasing.edit') || auth()->user()->can('purchasing.receive'))
-                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_7]) }}" class="space-y-3 text-xs">
+                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_6]) }}" class="space-y-3 text-xs">
                                 @csrf
                                 <div>
                                     <label class="block font-semibold mb-1 text-foreground">Nama Ekspedisi / Kurir <span class="text-destructive">*</span></label>
@@ -1361,14 +1361,14 @@
                             <p class="text-xs text-muted-foreground italic">Menunggu update pengiriman dari logistik / supplier.</p>
                             @endif
 
-                        {{-- STAGE 8: Unloading di Gudang --}}
-                        @elseif($stgAktif === \App\Models\PoStage::STAGE_8)
+                        {{-- STAGE 7: Unloading di Gudang --}}
+                        @elseif($stgAktif === \App\Models\PoStage::STAGE_7)
                             <div class="p-2.5 rounded-lg bg-muted/60 border border-border text-foreground text-xs">
                                 Silakan input kuantitas fisik pada formulir pemeriksaan barang di sebelah kiri untuk menyelesaikan Unloading.
                             </div>
 
-                        {{-- STAGE 9: Input Sistem & Posting Stok --}}
-                        @elseif($stgAktif === \App\Models\PoStage::STAGE_9)
+                        {{-- STAGE 8: Input Sistem & Posting Stok --}}
+                        @elseif($stgAktif === \App\Models\PoStage::STAGE_8)
                             @can('purchasing.receive')
                             <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-2">
                                 <div class="flex items-center gap-2 font-semibold text-emerald-800">
@@ -1436,9 +1436,9 @@
 
                             @can('purchasing.cancel')
                             @php
-                                $stage8Selesai = $hasStages && $po->stages->where('stage', \App\Models\PoStage::STAGE_8)->where('status', 'selesai')->isNotEmpty();
+                                $stageUnloadingSelesai = $hasStages && $po->stages->where('stage', \App\Models\PoStage::STAGE_7)->where('status', 'selesai')->isNotEmpty();
                             @endphp
-                            @if(!in_array($po->status, ['selesai', 'dibatalkan']) && !$stage8Selesai)
+                            @if(!in_array($po->status, ['selesai', 'dibatalkan']) && !$stageUnloadingSelesai)
                             <div class="pt-2 border-t border-border">
                                 <x-button type="button" @click="openCancelModal = true; alasan = ''" variant="link" size="xs" class="w-full text-destructive hover:text-destructive/80 font-medium cursor-pointer">
                                     <x-slot:icon>
@@ -2066,13 +2066,13 @@
                             ? (int) $po->stages->whereIn('stage', [\App\Models\PoStage::STAGE_1, \App\Models\PoStage::STAGE_2, \App\Models\PoStage::STAGE_3, \App\Models\PoStage::STAGE_4])->sum('durasi_menit')
                             : (int) ($po->leadTime->lt_internal_menit ?? 0);
                         $cardSupplierMenit = $hasPoStages
-                            ? (int) $po->stages->whereIn('stage', [\App\Models\PoStage::STAGE_5, \App\Models\PoStage::STAGE_6])->sum('durasi_menit')
+                            ? (int) $po->stages->whereIn('stage', [\App\Models\PoStage::STAGE_5, \App\Models\PoStage::LEGACY_STAGE_PENGEMASAN])->sum('durasi_menit')
                             : (int) ($po->leadTime->lt_supplier_menit ?? 0);
                         $cardTransportMenit = $hasPoStages
-                            ? (int) $po->stages->where('stage', \App\Models\PoStage::STAGE_7)->sum('durasi_menit')
+                            ? (int) $po->stages->where('stage', \App\Models\PoStage::STAGE_6)->sum('durasi_menit')
                             : (int) ($po->leadTime->lt_logistik_menit ?? 0);
                         $cardReceivingMenit = $hasPoStages
-                            ? (int) $po->stages->whereIn('stage', [\App\Models\PoStage::STAGE_8, \App\Models\PoStage::STAGE_9])->sum('durasi_menit')
+                            ? (int) $po->stages->whereIn('stage', [\App\Models\PoStage::STAGE_7, \App\Models\PoStage::STAGE_8])->sum('durasi_menit')
                             : 0;
                         $cardTotalMenit = $hasPoStages
                             ? ($cardInternalMenit + $cardSupplierMenit + $cardTransportMenit + $cardReceivingMenit)

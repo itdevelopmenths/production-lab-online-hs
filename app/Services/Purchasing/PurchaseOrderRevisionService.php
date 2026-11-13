@@ -142,9 +142,9 @@ class PurchaseOrderRevisionService
         return DB::transaction(function () use ($po, $proposedData, $alasan, $actor) {
             $lockedPo = PurchaseOrder::lockForUpdate()->findOrFail($po->id);
 
-            // TC-37: Data terkunci di Stage 8, Stage 9, selesai, atau dibatalkan
+            // TC-37: Data terkunci di Stage 7 (Unloading), Stage 8 (Input Sistem), selesai, atau dibatalkan
             if ($lockedPo->isFinal() ||
-                in_array($lockedPo->stage_aktif, [PoStage::STAGE_8, PoStage::STAGE_9], true)) {
+                in_array($lockedPo->stage_aktif, [PoStage::STAGE_7, PoStage::STAGE_8], true)) {
                 throw ValidationException::withMessages([
                     'status' => 'Revisi komitmen tidak diizinkan pada stage Unloading, Input Sistem, atau dokumen yang sudah final.',
                 ]);
@@ -209,7 +209,7 @@ class PurchaseOrderRevisionService
 
             $po = PurchaseOrder::lockForUpdate()->findOrFail($lockedRevisi->po_id);
 
-            if ($po->isFinal() || in_array($po->stage_aktif, [PoStage::STAGE_8, PoStage::STAGE_9], true)) {
+            if ($po->isFinal() || in_array($po->stage_aktif, [PoStage::STAGE_7, PoStage::STAGE_8], true)) {
                 throw ValidationException::withMessages([
                     'status' => 'Revisi tidak dapat disetujui karena PO sudah dibatalkan, selesai, atau memasuki tahap Unloading/Input Sistem.',
                 ]);
