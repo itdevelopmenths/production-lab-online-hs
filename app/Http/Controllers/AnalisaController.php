@@ -17,6 +17,7 @@ use App\Models\Produk;
 use App\Models\PurchaseOrder;
 use App\Models\RekomendasiOrderLokal;
 use App\Models\RiwayatAnalisa;
+use App\Models\Stok;
 use App\Models\Supplier;
 use App\Models\SupplierProdukLtStageSummary;
 use App\Models\Uom;
@@ -24,6 +25,7 @@ use App\Services\AnalisaService;
 use App\Services\Purchasing\PurchasingCostCalculator;
 use App\Services\Purchasing\PurchasingPaymentService;
 use App\Services\Purchasing\PurchasingStageService;
+use App\Services\StokService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +39,8 @@ class AnalisaController extends Controller
         private readonly AnalisaService $analisa,
         private readonly PurchasingCostCalculator $calculator,
         private readonly PurchasingPaymentService $paymentService,
-        private readonly PurchasingStageService $stageService
+        private readonly PurchasingStageService $stageService,
+        private readonly StokService $stok
     ) {
     }
 
@@ -94,7 +97,13 @@ class AnalisaController extends Controller
             ->groupBy(fn ($row) => $row->supplier_id . ':' . $row->produk_id);
         $lastGenerated = AnalisaLokal::latest('generated_at')->with('generator:id,name')->first();
 
-        $rows = $rekomendasi->map(function ($rek) use ($analisa, $leadTime) {
+        $actualStockMap = empty($lokalIds) ? collect() : Stok::whereIn('produk_id', $lokalIds)
+            ->groupBy('produk_id')
+            ->select('produk_id', DB::raw('SUM(qty_saat_ini) as total_qty'))
+            ->pluck('total_qty', 'produk_id');
+        $hppMap = empty($lokalIds) ? [] : $this->stok->resolveHppMap(is_array($lokalIds) ? $lokalIds : $lokalIds->all());
+
+        $rows = $rekomendasi->map(function ($rek) use ($analisa, $leadTime, $actualStockMap, $hppMap) {
             $al = $analisa->get($rek->produk_id);
             $lt = $leadTime->get($rek->produk_id);
 
@@ -120,6 +129,9 @@ class AnalisaController extends Controller
                 'batas_minimum' => (float) round($rek->batas_minimum),
                 'target_stock' => (float) round($rek->target_stock),
                 'stok_saat_ini' => (float) round($rek->stok_saat_ini),
+                'current_hpp' => (float) ($hppMap[$rek->produk_id] ?? $rek->produk?->harga_hpp ?? 0),
+                'current_stok_aktual' => (float) ($actualStockMap[$rek->produk_id] ?? 0),
+                'current_terjual_sistem' => (float) round($al?->terjual_rata_rata_4bulan ?? 0),
                 'akan_datang' => (float) round($rek->akan_datang),
                 'tersedia' => (float) round($rek->stok_saat_ini + $rek->akan_datang),
                 'selisih' => (float) round($rek->selisih),
@@ -364,25 +376,34 @@ class AnalisaController extends Controller
         $lokalMap = AnalisaLokal::pluck('produk_id')->flip();
         $imporMap = AnalisaImpor::pluck('produk_id')->flip();
 
-        $items = $query->orderBy('nama')
+        $itemsQuery = $query->orderBy('nama')
             ->limit(60)
-            ->get(['id', 'sku', 'nama', 'satuan', 'tipe', 'profil_analisa', 'klasifikasi_abc_id', 'harga_hpp'])
-            ->map(fn ($p) => [
-                'id' => $p->id,
-                'sku' => $p->sku,
-                'nama' => $p->nama,
-                'satuan' => $p->satuan,
-                'tipe' => $p->tipe,
-                'profil_analisa' => $p->profil_analisa,
-                'is_impor' => AnalisaService::isImporProfile($p->profil_analisa),
-                'klasifikasi_abc_id' => $p->klasifikasi_abc_id,
-                'klasifikasi_abc_kode' => $p->klasifikasiAbc?->kode,
-                'klasifikasi_abc_nama' => $p->klasifikasiAbc?->nama,
-                'di_analisa_lokal' => $lokalMap->has($p->id),
-                'di_analisa_impor' => $imporMap->has($p->id),
-                'harga_hpp' => (float) ($p->harga_hpp ?? 0),
-            ])
-            ->values();
+            ->get(['id', 'sku', 'nama', 'satuan', 'tipe', 'profil_analisa', 'klasifikasi_abc_id', 'harga_hpp']);
+
+        $pIds = $itemsQuery->pluck('id')->all();
+        $actualStockMap = empty($pIds) ? collect() : Stok::whereIn('produk_id', $pIds)
+            ->groupBy('produk_id')
+            ->select('produk_id', DB::raw('SUM(qty_saat_ini) as total_qty'))
+            ->pluck('total_qty', 'produk_id');
+        $hppMap = empty($pIds) ? [] : $this->stok->resolveHppMap($pIds);
+
+        $items = $itemsQuery->map(fn ($p) => [
+            'id' => $p->id,
+            'sku' => $p->sku,
+            'nama' => $p->nama,
+            'satuan' => $p->satuan,
+            'tipe' => $p->tipe,
+            'profil_analisa' => $p->profil_analisa,
+            'is_impor' => AnalisaService::isImporProfile($p->profil_analisa),
+            'klasifikasi_abc_id' => $p->klasifikasi_abc_id,
+            'klasifikasi_abc_kode' => $p->klasifikasiAbc?->kode,
+            'klasifikasi_abc_nama' => $p->klasifikasiAbc?->nama,
+            'di_analisa_lokal' => $lokalMap->has($p->id),
+            'di_analisa_impor' => $imporMap->has($p->id),
+            'harga_hpp' => (float) ($p->harga_hpp ?? 0),
+            'current_hpp' => (float) ($hppMap[$p->id] ?? $p->harga_hpp ?? 0),
+            'current_stok_aktual' => (float) ($actualStockMap[$p->id] ?? 0),
+        ])->values();
 
         return response()->json([
             'success' => true,
@@ -616,7 +637,7 @@ class AnalisaController extends Controller
 
         $imporList = empty($imporIds) ? collect() : AnalisaImpor::with([
             'produk' => function ($q) {
-                $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'supplier_id')
+                $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'supplier_id', 'harga_hpp')
                     ->with('supplier:id,nama,kategori');
             },
             'supplierTerpilih:id,nama,kategori',
@@ -625,6 +646,22 @@ class AnalisaController extends Controller
         ])->whereIn('produk_id', $imporIds)->get();
         $ltMap = LeadTimeImpor::all()->keyBy('produk_id');
         $lastGenerated = $imporList->sortByDesc('generated_at')->first();
+
+        $actualStockMap = empty($imporIds) ? collect() : Stok::whereIn('produk_id', $imporIds)
+            ->groupBy('produk_id')
+            ->select('produk_id', DB::raw('SUM(qty_saat_ini) as total_qty'))
+            ->pluck('total_qty', 'produk_id');
+
+        $hppMap = empty($imporIds) ? [] : $this->stok->resolveHppMap($imporIds);
+
+        $inboundPoMap = empty($imporIds) ? collect() : DB::table('purchase_order_items as poi')
+            ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
+            ->whereIn('po.status', ['berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
+            ->whereNotIn('po.status', ['selesai', 'dibatalkan'])
+            ->whereIn('poi.produk_id', $imporIds)
+            ->groupBy('poi.produk_id')
+            ->select('poi.produk_id', DB::raw('SUM(poi.qty) as total_inbound'))
+            ->pluck('total_inbound', 'poi.produk_id');
 
         $rows = [];
         foreach ($imporList as $ai) {
@@ -663,6 +700,11 @@ class AnalisaController extends Controller
                 'target_stock' => (float) round($ai->target_stock),
                 'stok_saat_ini' => (float) round($ai->stok_saat_ini),
                 'inbound_before_eta' => (float) round($ai->inbound_before_eta),
+                'current_hpp' => (float) ($hppMap[$ai->produk_id] ?? $ai->produk?->harga_hpp ?? 0),
+                'current_stok_aktual' => (float) ($actualStockMap[$ai->produk_id] ?? 0),
+                'current_inbound' => (float) ($inboundPoMap[$ai->produk_id] ?? 0),
+                'empirical_avg_lt' => (float) ($lt?->lead_time_average ?? $ai->lead_time ?? 0),
+                'empirical_max_lt' => (float) ($lt?->lead_time_max ?? 0),
                 'proyeksi' => (float) round($ai->proyeksi),
                 'qty_order' => (float) round($ai->qty_order),
                 'po' => (float) round($ai->po),
