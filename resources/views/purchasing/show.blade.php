@@ -864,9 +864,16 @@
                                     </x-badge>
                                     @if($hasStages && $bardat->status_posting === 'belum')
                                         <x-badge variant="info" size="sm">Menunggu Posting Stok</x-badge>
+                                    @elseif($hasStages && $bardat->status_posting === 'diposting')
+                                        <x-badge variant="success" :dot="true" size="sm">Stok Diposting</x-badge>
                                     @endif
                                 </div>
-                                <span class="text-muted-foreground text-[11px]">Dicatat oleh: {{ $bardat->creator->name ?? 'Gudang' }}</span>
+                                <div class="flex flex-wrap items-center gap-2 text-muted-foreground text-[11px]">
+                                    <span>Dicatat oleh: {{ $bardat->creator->name ?? 'Gudang' }}</span>
+                                    @if($bardat->diposting_pada)
+                                        <span>· Posting: {{ $bardat->diposting_pada->format('d/m/Y H:i') }}</span>
+                                    @endif
+                                </div>
                             </div>
                             <div tabindex="0" role="region" aria-label="Detail Barang Datang" class="overflow-x-auto bg-muted/20 rounded-lg border border-border">
                                 <table class="w-full text-xs text-left">
@@ -1100,15 +1107,14 @@
                 </x-card>
                 @endif
 
-                {{-- Panel Konfirmasi & Posting Stok (Stage 9 PRD v2.4) --}}
-                @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_9)
+                {{-- Panel Konfirmasi & Posting Stok (Stage 9 PRD v2.4 - Hanya muncul saat menunggu Posting Stok) --}}
+                @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_9 && !in_array($po->status, ['selesai', 'dibatalkan']))
                 @php
-                    $latestBardat = $po->barangDatang->where('status_posting', 'belum')->sortByDesc('created_at')->first() ?? $po->barangDatang->sortByDesc('created_at')->first();
-                    $isPostingCompleted = $po->status === 'selesai' || ($latestBardat && $latestBardat->status_posting === 'diposting');
+                    $latestBardat = $po->barangDatang->where('status_posting', 'belum')->sortByDesc('created_at')->first();
                 @endphp
                 @if($latestBardat)
-                <x-card :title="$isPostingCompleted ? 'Audit Penerimaan dan Posting Stok (Tahap 9 - Selesai)' : 'Verifikasi dan Input Sistem Penerimaan (Tahap 9)'"
-                        :subtitle="$isPostingCompleted ? 'Kuantitas fisik aktual telah selesai diverifikasi dan pergerakan stok telah dibukukan ke gudang.' : 'Hasil unloading fisik telah tersimpan. Verifikasi data sebelum memposting stok ke inventori gudang.'">
+                <x-card title="Verifikasi dan Input Sistem Penerimaan (Tahap 9)"
+                        subtitle="Hasil unloading fisik telah tersimpan. Verifikasi data sebelum memposting stok ke inventori gudang.">
                     <div class="space-y-4 text-xs">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/40 border border-border">
                             <div class="flex items-center gap-2.5 flex-wrap">
@@ -1121,11 +1127,7 @@
                                 </span>
                             </div>
                             <div class="flex items-center gap-2 text-muted-foreground text-[11px]">
-                                @if($isPostingCompleted)
-                                    <x-badge variant="success" :dot="true" size="sm">Stok Diposting</x-badge>
-                                @else
-                                    <span>Dicatat oleh: <strong class="text-foreground">{{ $latestBardat->creator?->name ?? 'Gudang' }}</strong></span>
-                                @endif
+                                <span>Dicatat oleh: <strong class="text-foreground">{{ $latestBardat->creator?->name ?? 'Gudang' }}</strong></span>
                             </div>
                         </div>
 
@@ -1169,31 +1171,19 @@
                             </table>
                         </div>
 
-                        @if($isPostingCompleted)
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/40 border border-border text-[11px] text-muted-foreground">
-                                <div class="flex items-center gap-2">
-                                    <svg class="size-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    <span>Pergerakan stok telah berhasil dibukukan ke gudang <strong class="text-foreground">{{ $po->gudang?->nama ?? 'Gudang' }}</strong>. Status dokumen PO telah Selesai.</span>
-                                </div>
-                                @if($latestBardat->diposting_pada)
-                                    <span class="font-mono text-[10px]">Waktu Posting: {{ $latestBardat->diposting_pada->format('d/m/Y H:i') }}</span>
-                                @endif
-                            </div>
-                        @else
-                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
-                                @csrf
-                                <p class="text-[11px] text-muted-foreground">
-                                    Memposting stok fisik aktual di atas ke <strong class="text-foreground">{{ $po->gudang?->nama ?? 'Gudang' }}</strong>, mengunci durasi Lead Time, dan menutup status PO menjadi <strong class="text-foreground">Selesai</strong>.
-                                </p>
-                                <x-button type="submit" variant="success" size="md" x-bind:disabled="submitting">
-                                    <span x-show="!submitting">Posting Stok ke Gudang &amp; Selesaikan PO</span>
-                                    <span x-show="submitting" class="flex items-center gap-2" style="display: none;">
-                                        <svg class="animate-spin size-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                                        Memproses...
-                                    </span>
-                                </x-button>
-                            </form>
-                        @endif
+                        <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_9]) }}" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
+                            @csrf
+                            <p class="text-[11px] text-muted-foreground">
+                                Memposting stok fisik aktual di atas ke <strong class="text-foreground">{{ $po->gudang?->nama ?? 'Gudang' }}</strong>, mengunci durasi Lead Time, dan menutup status PO menjadi <strong class="text-foreground">Selesai</strong>.
+                            </p>
+                            <x-button type="submit" variant="success" size="md" x-bind:disabled="submitting">
+                                <span x-show="!submitting">Posting Stok ke Gudang &amp; Selesaikan PO</span>
+                                <span x-show="submitting" class="flex items-center gap-2" style="display: none;">
+                                    <svg class="animate-spin size-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                                    Memproses...
+                                </span>
+                            </x-button>
+                        </form>
                     </div>
                 </x-card>
                 @endif
@@ -2087,36 +2077,78 @@
                         @endcan
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                        <div class="p-3 bg-muted/40 rounded-lg border border-border">
-                            <span class="text-[10px] uppercase font-semibold text-muted-foreground block">LT Internal</span>
+                    @php
+                        $hasPoStages = $po->relationLoaded('stages') && $po->stages->isNotEmpty();
+                        $cardInternalMenit = $hasPoStages
+                            ? (int) $po->stages->whereIn('stage', [\App\Models\PoStage::STAGE_1, \App\Models\PoStage::STAGE_2, \App\Models\PoStage::STAGE_3, \App\Models\PoStage::STAGE_4])->sum('durasi_menit')
+                            : (int) ($po->leadTime->lt_internal_menit ?? 0);
+                        $cardSupplierMenit = $hasPoStages
+                            ? (int) $po->stages->whereIn('stage', [\App\Models\PoStage::STAGE_5, \App\Models\PoStage::STAGE_6])->sum('durasi_menit')
+                            : (int) ($po->leadTime->lt_supplier_menit ?? 0);
+                        $cardTransportMenit = $hasPoStages
+                            ? (int) $po->stages->where('stage', \App\Models\PoStage::STAGE_7)->sum('durasi_menit')
+                            : (int) ($po->leadTime->lt_logistik_menit ?? 0);
+                        $cardReceivingMenit = $hasPoStages
+                            ? (int) $po->stages->whereIn('stage', [\App\Models\PoStage::STAGE_8, \App\Models\PoStage::STAGE_9])->sum('durasi_menit')
+                            : 0;
+                        $cardTotalMenit = $hasPoStages
+                            ? ($cardInternalMenit + $cardSupplierMenit + $cardTransportMenit + $cardReceivingMenit)
+                            : (int) ($po->leadTime->total_lt_menit ?? 0);
+                    @endphp
+
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 1-4: Perencanaan, Approval, Supplier Confirm, Payment">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="size-2 rounded-full bg-blue-600 shrink-0"></span>
+                                <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider truncate">Internal Processing</span>
+                            </div>
                             <p class="font-mono font-bold text-sm text-foreground mt-0.5">
-                                {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($po->leadTime->lt_internal_menit) }} hari
-                                <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($po->leadTime->lt_internal_menit) }} j)</span>
+                                {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardInternalMenit) }} hari
+                                <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardInternalMenit) }} j)</span>
                             </p>
                         </div>
 
-                        <div class="p-3 bg-muted/40 rounded-lg border border-border">
-                            <span class="text-[10px] uppercase font-semibold text-muted-foreground block">LT Supplier</span>
+                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 5-6: PO, Pengemasan">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="size-2 rounded-full bg-amber-500 shrink-0"></span>
+                                <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider truncate">Supplier Processing</span>
+                            </div>
                             <p class="font-mono font-bold text-sm text-foreground mt-0.5">
-                                {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($po->leadTime->lt_supplier_menit) }} hari
-                                <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($po->leadTime->lt_supplier_menit) }} j)</span>
+                                {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardSupplierMenit) }} hari
+                                <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardSupplierMenit) }} j)</span>
                             </p>
                         </div>
 
-                        <div class="p-3 bg-muted/40 rounded-lg border border-border">
-                            <span class="text-[10px] uppercase font-semibold text-muted-foreground block">LT Logistik</span>
+                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 7: Pengiriman">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="size-2 rounded-full bg-purple-600 shrink-0"></span>
+                                <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider truncate">Transportation Time</span>
+                            </div>
                             <p class="font-mono font-bold text-sm text-foreground mt-0.5">
-                                {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($po->leadTime->lt_logistik_menit) }} hari
-                                <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($po->leadTime->lt_logistik_menit) }} j)</span>
+                                {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardTransportMenit) }} hari
+                                <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardTransportMenit) }} j)</span>
                             </p>
                         </div>
 
-                        <div class="p-3 bg-primary/5 rounded-lg border border-foreground/20">
-                            <span class="text-[10px] uppercase font-semibold text-foreground block">Total Realisasi LT</span>
+                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 8-9: Unloading, Input">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="size-2 rounded-full bg-emerald-600 shrink-0"></span>
+                                <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider truncate">Receiving</span>
+                            </div>
                             <p class="font-mono font-bold text-sm text-foreground mt-0.5">
-                                {{ (float) $po->leadTime->total_lt_hari }} hari
-                                <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($po->leadTime->total_lt_menit) }} j)</span>
+                                {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardReceivingMenit) }} hari
+                                <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardReceivingMenit) }} j)</span>
+                            </p>
+                        </div>
+
+                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <span class="size-2 rounded-full bg-primary shrink-0"></span>
+                                <span class="text-[10px] uppercase font-bold text-foreground tracking-wider truncate">Total Realisasi LT</span>
+                            </div>
+                            <p class="font-mono font-bold text-sm text-foreground mt-0.5">
+                                {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardTotalMenit) }} hari
+                                <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardTotalMenit) }} j)</span>
                             </p>
                         </div>
                     </div>

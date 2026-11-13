@@ -425,15 +425,17 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->assertEquals(80, $item1->fresh()->qtyDiterima());
 
         // Verifikasi Idempotensi & UI Safety:
-        // 1. Tampilan view setelah Stage 9 selesai harus menampilkan kartu audit read-only tanpa form submit posting ulang
+        // 1. Tampilan view setelah Stage 9 selesai menyembunyikan panel Tahap 9 (karena data sudah ada di Riwayat Penerimaan) dan tanpa form submit posting ulang
         $viewResponse = $this->get(route('purchasing.show', $po));
         $viewResponse->assertOk();
-        $viewResponse->assertSee('Audit Penerimaan dan Posting Stok (Tahap 9 - Selesai)');
+        $viewResponse->assertSee('Riwayat Penerimaan Barang di Gudang');
         $viewResponse->assertSee('Stok Diposting');
-        $viewResponse->assertSee('-20 (Kurang/Rusak)');
+        $viewResponse->assertSee('-20 (Kurang)');
         $viewResponse->assertDontSee('100,00');
         $viewResponse->assertDontSee('80,00');
         $viewResponse->assertDontSee('-20,00');
+        $viewResponse->assertDontSee('Verifikasi dan Input Sistem Penerimaan (Tahap 9)');
+        $viewResponse->assertDontSee('Audit Penerimaan dan Posting Stok (Tahap 9 - Selesai)');
         $viewResponse->assertDontSee('Posting Stok ke Gudang & Selesaikan PO');
 
         // 2. Jika route completeStage9 dipanggil ulang (double-submission), sistem menolak secara elegan

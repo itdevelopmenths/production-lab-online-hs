@@ -80,19 +80,20 @@
         $stageDefs = [
             1 => ['key' => \App\Models\PoStage::STAGE_1, 'short' => 'Perencanaan', 'sub' => 'Draft PO', 'cat' => 'internal'],
             2 => ['key' => \App\Models\PoStage::STAGE_2, 'short' => 'Approval', 'sub' => 'Manager', 'cat' => 'internal'],
-            3 => ['key' => \App\Models\PoStage::STAGE_3, 'short' => 'Konfirmasi', 'sub' => 'Supplier', 'cat' => 'supplier'],
-            4 => ['key' => \App\Models\PoStage::STAGE_4, 'short' => 'Pembayaran', 'sub' => 'Keuangan / DP', 'cat' => 'internal'],
-            5 => ['key' => \App\Models\PoStage::STAGE_5, 'short' => 'PO Terbit', 'sub' => 'Rilis Resmi', 'cat' => 'internal'],
+            3 => ['key' => \App\Models\PoStage::STAGE_3, 'short' => 'Supplier Confirm', 'sub' => 'Konfirmasi Vendor', 'cat' => 'internal'],
+            4 => ['key' => \App\Models\PoStage::STAGE_4, 'short' => 'Payment', 'sub' => 'Keuangan / DP', 'cat' => 'internal'],
+            5 => ['key' => \App\Models\PoStage::STAGE_5, 'short' => 'PO', 'sub' => 'Penerbitan Resmi', 'cat' => 'supplier'],
             6 => ['key' => \App\Models\PoStage::STAGE_6, 'short' => 'Pengemasan', 'sub' => 'Packing Vendor', 'cat' => 'supplier'],
-            7 => ['key' => \App\Models\PoStage::STAGE_7, 'short' => 'Pengiriman', 'sub' => 'Ekspedisi Tiba', 'cat' => 'logistik'],
-            8 => ['key' => \App\Models\PoStage::STAGE_8, 'short' => 'Unloading', 'sub' => 'Fisik Gudang', 'cat' => 'internal'],
-            9 => ['key' => \App\Models\PoStage::STAGE_9, 'short' => 'Input Sistem', 'sub' => 'Posting Stok', 'cat' => 'internal'],
+            7 => ['key' => \App\Models\PoStage::STAGE_7, 'short' => 'Pengiriman', 'sub' => 'Ekspedisi / Transit', 'cat' => 'transportation'],
+            8 => ['key' => \App\Models\PoStage::STAGE_8, 'short' => 'Unloading', 'sub' => 'Fisik Gudang', 'cat' => 'receiving'],
+            9 => ['key' => \App\Models\PoStage::STAGE_9, 'short' => 'Input', 'sub' => 'Posting Stok', 'cat' => 'receiving'],
         ];
 
-        // Durasi Subtotal
+        // Durasi Subtotal per Kategori (Klasifikasi Sesuai Lampiran 1)
         $internalMenit = 0;
         $supplierMenit = 0;
-        $logistikMenit = 0;
+        $transportationMenit = 0;
+        $receivingMenit = 0;
 
         foreach ($stageDefs as $num => $def) {
             $sumMenit = (int) $po->stages->where('stage', $def['key'])->sum('durasi_menit');
@@ -100,11 +101,13 @@
                 $internalMenit += $sumMenit;
             } elseif ($def['cat'] === 'supplier') {
                 $supplierMenit += $sumMenit;
-            } elseif ($def['cat'] === 'logistik') {
-                $logistikMenit += $sumMenit;
+            } elseif ($def['cat'] === 'transportation') {
+                $transportationMenit += $sumMenit;
+            } elseif ($def['cat'] === 'receiving') {
+                $receivingMenit += $sumMenit;
             }
         }
-        $totalLtMenit = $internalMenit + $supplierMenit + $logistikMenit;
+        $totalLtMenit = $internalMenit + $supplierMenit + $transportationMenit + $receivingMenit;
         $benchmarks = $stageBenchmarks ?? ($po->supplier?->stageSummaries?->keyBy('stage') ?? collect());
 
         $activeStageNum = null;
@@ -143,6 +146,37 @@
         {{-- Progress Timeline 9-Stage --}}
         <div class="overflow-x-auto pt-3 pb-2 px-3 scrollbar-none" tabindex="0" role="region" aria-label="Scroll Tahapan Purchase Order">
             <nav aria-label="Tahapan Purchase Order" class="min-w-[44rem] lg:min-w-0">
+                {{-- Group Header Klasifikasi Lead Time (Sesuai Lampiran 1) --}}
+                <div class="grid grid-cols-9 gap-2 mb-3.5 select-none" role="group" aria-label="Klasifikasi Fase Purchase Order">
+                    {{-- 1. Internal Processing (Stage 1-4) --}}
+                    <div class="col-span-4 rounded-xl bg-card border border-border px-3 py-1.5 flex items-center justify-center gap-2 shadow-2xs min-w-0"
+                         title="Internal Processing: Tahap 1–4 (Perencanaan, Approval, Supplier Confirm, Payment)">
+                        <span class="size-2 rounded-full bg-blue-600 shrink-0"></span>
+                        <span class="text-xs font-bold text-foreground tracking-tight truncate">Internal Processing</span>
+                    </div>
+
+                    {{-- 2. Supplier Processing (Stage 5-6) --}}
+                    <div class="col-span-2 rounded-xl bg-card border border-border px-2.5 py-1.5 flex items-center justify-center gap-2 shadow-2xs min-w-0"
+                         title="Supplier Processing: Tahap 5–6 (PO, Pengemasan)">
+                        <span class="size-2 rounded-full bg-amber-500 shrink-0"></span>
+                        <span class="text-xs font-bold text-foreground tracking-tight truncate">Supplier Processing</span>
+                    </div>
+
+                    {{-- 3. Transportation Time (Stage 7) --}}
+                    <div class="col-span-1 rounded-xl bg-card border border-border px-1 py-1.5 flex items-center justify-center gap-1.5 shadow-2xs min-w-0"
+                         title="Transportation Time: Tahap 7 (Pengiriman)">
+                        <span class="size-2 rounded-full bg-purple-600 shrink-0"></span>
+                        <span class="text-xs font-bold text-foreground truncate" title="Transportation Time">Transport</span>
+                    </div>
+
+                    {{-- 4. Receiving (Stage 8-9) --}}
+                    <div class="col-span-2 rounded-xl bg-card border border-border px-2.5 py-1.5 flex items-center justify-center gap-2 shadow-2xs min-w-0"
+                         title="Receiving: Tahap 8–9 (Unloading, Input)">
+                        <span class="size-2 rounded-full bg-emerald-600 shrink-0"></span>
+                        <span class="text-xs font-bold text-foreground tracking-tight truncate">Receiving</span>
+                    </div>
+                </div>
+
                 <ol class="flex items-start justify-between relative list-none m-0 p-0 pt-2">
                     {{-- Continuous Connecting Line behind nodes --}}
                     <div class="absolute top-6 left-6 right-6 h-0.5 bg-border -z-0"></div>
@@ -180,6 +214,16 @@
                             if ($isCurrent) {
                                 $activeStageState = $state;
                             }
+
+                            // Realisasi Lead Time Stage (termasuk stage berjalan)
+                            if ($latestRecord && in_array($latestRecord->status, ['berjalan', 'terlambat']) && $latestRecord->waktu_mulai) {
+                                $elapsedRunning = (int) $latestRecord->waktu_mulai->diffInMinutes(now());
+                                $stageLtMenit = $durasiMenit + $elapsedRunning;
+                            } else {
+                                $stageLtMenit = $durasiMenit;
+                            }
+                            $stageLtHari = \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($stageLtMenit);
+                            $stageLtJam = \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($stageLtMenit);
 
                             $nodeClass = match($state) {
                                 'selesai' => 'bg-emerald-600 text-white ring-4 ring-emerald-50 dark:ring-emerald-950/40 shadow-xs',
@@ -234,6 +278,33 @@
                                     @endif
                                 </span>
                             </div>
+
+                            {{-- Hasil Lead Time per Stage --}}
+                            <div class="mt-1.5">
+                                @if($state === 'selesai')
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-mono text-[10px] font-semibold bg-muted/60 text-foreground border border-border/80"
+                                          title="Lead Time Selesai: {{ $stageLtHari }} hari / {{ $stageLtJam }} jam ({{ $stageLtMenit }} menit)">
+                                        <span>{{ $stageLtHari }} hr</span>
+                                        @if($stageLtMenit > 0 && $stageLtMenit < 1440)
+                                            <span class="text-[9px] text-muted-foreground font-normal">({{ $stageLtJam }}j)</span>
+                                        @endif
+                                    </span>
+                                @elseif($state === 'berjalan' || $state === 'terlambat')
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-mono text-[10px] font-bold bg-card text-foreground border {{ $state === 'terlambat' ? 'border-rose-500 ring-1 ring-rose-500/30' : 'border-primary ring-1 ring-primary/30' }} shadow-2xs"
+                                          title="Lead Time Berjalan: {{ $stageLtHari }} hari / {{ $stageLtJam }} jam ({{ $stageLtMenit }} menit)">
+                                        <span class="size-1.5 rounded-full {{ $state === 'terlambat' ? 'bg-rose-600 animate-ping' : 'bg-primary animate-pulse' }}"></span>
+                                        <span>{{ $stageLtHari }} hr</span>
+                                        @if($stageLtMenit > 0 && $stageLtMenit < 1440)
+                                            <span class="text-[9px] text-muted-foreground font-normal">({{ $stageLtJam }}j)</span>
+                                        @endif
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-md font-mono text-[10px] text-muted-foreground/50 bg-muted/20 border border-border/40"
+                                          title="Lead Time: Belum Dimulai (0 menit)">
+                                        0 hr
+                                    </span>
+                                @endif
+                            </div>
                         </li>
                     @endforeach
                 </ol>
@@ -274,16 +345,27 @@
                 @endif
             </div>
 
-            {{-- Kanan: Metrik Lead Time Bersih (Internal, Supplier, Logistik, Total) --}}
+            {{-- Kanan: Metrik Lead Time Bersih (Internal, Supplier, Transportation, Receiving, Total LT) Sesuai Lampiran 1 & 2 --}}
             <div class="flex flex-wrap items-center gap-2 text-[11px]">
-                <div class="px-2 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Stage 1, 2, 4, 5, 8, 9">
-                    Internal: <strong class="text-foreground">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($internalMenit) }} hr</strong>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Internal Processing (Stage 1-4: Perencanaan, Approval, Supplier Confirm, Payment)">
+                    <span class="size-1.5 rounded-full bg-sky-500 shrink-0"></span>
+                    <span>Internal<span class="hidden xl:inline"> Processing</span>:</span>
+                    <strong class="text-foreground font-bold">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($internalMenit) }} hr</strong>
                 </div>
-                <div class="px-2 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Stage 3, 6">
-                    Supplier: <strong class="text-foreground">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($supplierMenit) }} hr</strong>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Supplier Processing (Stage 5-6: PO, Pengemasan)">
+                    <span class="size-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                    <span>Supplier<span class="hidden xl:inline"> Processing</span>:</span>
+                    <strong class="text-foreground font-bold">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($supplierMenit) }} hr</strong>
                 </div>
-                <div class="px-2 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Stage 7">
-                    Logistik: <strong class="text-foreground">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($logistikMenit) }} hr</strong>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Transportation Time (Stage 7: Pengiriman)">
+                    <span class="size-1.5 rounded-full bg-violet-500 shrink-0"></span>
+                    <span>Transportation<span class="hidden xl:inline"> Time</span>:</span>
+                    <strong class="text-foreground font-bold">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($transportationMenit) }} hr</strong>
+                </div>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/80 font-mono text-muted-foreground" title="Receiving (Stage 8-9: Unloading, Input)">
+                    <span class="size-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                    <span>Receiving:</span>
+                    <strong class="text-foreground font-bold">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($receivingMenit) }} hr</strong>
                 </div>
                 <div class="px-2.5 py-1 rounded-md bg-primary-50/70 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800/40 font-mono font-bold text-primary-700 dark:text-primary-300">
                     Total LT: {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($totalLtMenit) }} Hari
