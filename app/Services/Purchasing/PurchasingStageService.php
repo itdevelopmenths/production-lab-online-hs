@@ -638,10 +638,19 @@ class PurchasingStageService
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
 
+            $existingResi = trim($po->pengiriman?->no_resi ?? '');
+            $incomingResi = $noResi !== null ? trim($noResi) : '';
+
+            if ($existingResi === '' && $incomingResi === '') {
+                throw ValidationException::withMessages([
+                    'no_resi' => 'Nomor resi wajib diisi karena belum diinput pada tahap pengiriman.',
+                ]);
+            }
+
             // Simpan / update No. Resi jika diisi pada Stage 8
-            if ($noResi !== null && trim($noResi) !== '') {
+            if ($incomingResi !== '') {
                 $pengiriman = PoPengiriman::firstOrCreate(['po_id' => $po->id]);
-                $pengiriman->no_resi = trim($noResi);
+                $pengiriman->no_resi = $incomingResi;
                 $pengiriman->save();
             }
 

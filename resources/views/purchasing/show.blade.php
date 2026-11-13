@@ -1171,15 +1171,46 @@
                             </table>
                         </div>
 
+                        @php
+                            $existingResi = trim($po->pengiriman?->no_resi ?? '');
+                        @endphp
                         <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_8]) }}" class="space-y-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
                             @csrf
                             <div class="p-3 bg-muted/30 rounded-lg border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="max-w-md w-full sm:w-auto">
-                                    <label class="block font-semibold text-foreground text-xs mb-1">
-                                        No. Resi / AWB <span class="text-muted-foreground font-normal">(Opsional)</span>
-                                    </label>
-                                    <input type="text" name="no_resi" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="Masukkan atau perbarui no resi..." class="w-full sm:w-72 rounded-lg border border-input bg-card text-xs py-1.5 px-2.5 font-mono text-foreground focus:border-ring focus:ring-1 focus:ring-ring outline-none">
-                                    <p class="text-[10px] text-muted-foreground mt-1">Dapat diisi atau diperbarui jika resi baru diterima saat barang tiba di gudang.</p>
+                                    @if($existingResi !== '')
+                                        <div class="space-y-1.5">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="font-semibold text-foreground text-xs">No. Resi / AWB:</span>
+                                                <span class="font-mono text-xs font-bold text-foreground px-2 py-0.5 rounded bg-muted/80 border border-border">
+                                                    {{ $existingResi }}
+                                                </span>
+                                                <span class="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                    Sudah Tercatat di Pengiriman
+                                                </span>
+                                            </div>
+                                            <div class="pt-1">
+                                                <label class="block text-[11px] text-muted-foreground mb-1">
+                                                    Perbarui No. Resi <span class="font-normal">(Opsional)</span>:
+                                                </label>
+                                                <input type="text" name="no_resi" value="{{ old('no_resi', $existingResi) }}" placeholder="Ketik nomor resi baru jika ada revisi..." class="w-full sm:w-72 rounded-lg border border-input bg-card text-xs py-1.5 px-2.5 font-mono text-foreground focus:border-ring focus:ring-1 focus:ring-ring outline-none">
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="space-y-1">
+                                            <label class="block font-semibold text-foreground text-xs mb-1">
+                                                No. Resi / AWB <span class="text-rose-500 font-bold">* (Wajib diisi)</span>
+                                            </label>
+                                            <input type="text" name="no_resi" required value="{{ old('no_resi') }}" placeholder="Masukkan nomor resi pengiriman..." class="w-full sm:w-72 rounded-lg border border-rose-300 dark:border-rose-800 bg-card text-xs py-1.5 px-2.5 font-mono text-foreground focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none">
+                                            <p class="text-[10px] text-amber-600 dark:text-amber-400 font-medium mt-1">
+                                                Nomor resi belum dicatat pada tahap pengiriman, wajib diisi sebelum posting stok.
+                                            </p>
+                                        </div>
+                                    @endif
+                                    @error('no_resi')
+                                        <p class="text-[11px] text-rose-500 font-medium mt-1">{{ $message }}</p>
+                                    @enderror
                                 </div>
                                 <div class="shrink-0 flex items-center">
                                     <x-button type="submit" variant="success" size="md" x-bind:disabled="submitting">
@@ -1375,9 +1406,18 @@
                                     <span class="size-2 rounded-full bg-emerald-600 animate-pulse"></span>
                                     Siap Posting Stok
                                 </div>
-                                <p class="text-[11px] text-muted-foreground leading-relaxed">
-                                    Unloading fisik telah dicatat. Silakan verifikasi kuantitas fisik pada panel verifikasi di sebelah kiri, lalu klik <strong>Posting Stok ke Gudang</strong> untuk menyelesaikan transaksi.
-                                </p>
+                                @php
+                                    $hasPengirimanResi = !empty(trim($po->pengiriman?->no_resi ?? ''));
+                                @endphp
+                                @if($hasPengirimanResi)
+                                    <p class="text-[11px] text-muted-foreground leading-relaxed">
+                                        No. Resi tercatat: <strong class="text-foreground font-mono">{{ $po->pengiriman->no_resi }}</strong>. Verifikasi kuantitas fisik pada panel verifikasi di sebelah kiri, lalu klik <strong>Posting Stok ke Gudang</strong> untuk menyelesaikan transaksi.
+                                    </p>
+                                @else
+                                    <p class="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
+                                        ⚠️ Nomor resi belum dicatat pada pengiriman. Harap isi nomor resi pada formulir di sebelah kiri sebelum posting stok.
+                                    </p>
+                                @endif
                             </div>
                             @else
                             <p class="text-xs text-muted-foreground italic">Menunggu staf Gudang memposting transaksi ke sistem persediaan.</p>

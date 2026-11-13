@@ -268,13 +268,76 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         ]);
         $this->assertEquals(PoStage::STAGE_8, $po->fresh()->stage_aktif);
 
-        // Complete Stage 8 with new no_resi via HTTP controller
+        // View Stage 8 requires no_resi when shipping didn't provide one
         $this->actingAs($this->gudangUser);
+        $viewWithoutResi = $this->get(route('purchasing.show', $po));
+        $viewWithoutResi->assertOk();
+        $viewWithoutResi->assertSee('No. Resi / AWB');
+        $viewWithoutResi->assertSee('* (Wajib diisi)');
+        $viewWithoutResi->assertSee('name="no_resi" required', false);
+
+        // Attempting to complete Stage 8 without no_resi fails validation
+        $failRes = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_8]), [
+            'no_resi' => '',
+        ]);
+        $failRes->assertSessionHasErrors('no_resi');
+        $this->assertEquals(PoStage::STAGE_8, $po->fresh()->stage_aktif);
+
+        // Complete Stage 8 with new no_resi via HTTP controller
         $res8 = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_8]), [
             'no_resi' => 'RESI-TEST-999',
         ]);
         $res8->assertSessionHasNoErrors();
         $this->assertEquals('RESI-TEST-999', $po->fresh()->pengiriman?->no_resi);
+        $this->assertEquals('selesai', $po->fresh()->status);
+    }
+
+    /**
+     * Stage 8 menampilkan no_resi jika sudah diinput di stage pengiriman dan tidak mewajibkan input ulang.
+     */
+    public function test_stage_8_displays_existing_resi_from_shipping_and_allows_optional_update(): void
+    {
+        $po = $this->createSamplePo('tempo');
+        $po->stage_aktif = PoStage::STAGE_6;
+        $po->save();
+        $po->stages()->create([
+            'stage' => PoStage::STAGE_6,
+            'urutan' => 6,
+            'putaran' => 1,
+            'status' => 'berjalan',
+            'waktu_mulai' => now()->subHours(2),
+        ]);
+
+        // Complete Stage 6 WITH resi
+        $this->stageService->completeStage6($po, $this->purchasing, [
+            'ekspedisi' => 'JNE Express',
+            'no_resi' => 'JNE-EXISTING-12345',
+        ]);
+
+        // Advance Stage 7 to Stage 8
+        $this->stageService->completeStage7($po, $this->gudangUser, [
+            'gudang_id' => $this->gudang->id,
+            'kondisi' => 'baik',
+            'items' => [
+                $po->items->first()->id => ['po_item_id' => $po->items->first()->id, 'qty_fisik' => 100],
+            ],
+        ]);
+        $this->assertEquals(PoStage::STAGE_8, $po->fresh()->stage_aktif);
+
+        // View Stage 8 displays existing resi
+        $this->actingAs($this->gudangUser);
+        $viewRes = $this->get(route('purchasing.show', $po));
+        $viewRes->assertOk();
+        $viewRes->assertSee('JNE-EXISTING-12345');
+        $viewRes->assertSee('Sudah Tercatat di Pengiriman');
+        $viewRes->assertSee('Perbarui No. Resi');
+        $viewRes->assertDontSee('* (Wajib diisi)');
+
+        // Complete Stage 8 without submitting a new resi -> retains existing resi
+        $completeRes = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_8]), []);
+        $completeRes->assertSessionHasNoErrors();
+        $this->assertEquals('JNE-EXISTING-12345', $po->fresh()->pengiriman?->no_resi);
+        $this->assertEquals('selesai', $po->fresh()->status);
     }
 
     /**
@@ -354,7 +417,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->assertEquals($stokAwal, app(StokService::class)->saldo($this->produk1->id, $this->gudang->id));
 
         // Now run Stage 8
-        $this->stageService->completeStage8($po, $this->gudangUser, now());
+        $this->stageService->completeStage8($po, $this->gudangUser, now(), null, 'RESI-TC10');
         $bardat->refresh();
 
         $this->assertEquals('diposting', $bardat->status_posting);
@@ -444,6 +507,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/<td[^>]*>\s*0\s*(?:<span[^>]*>[^<]*<\/span>)?\s*<\/td>/', $riwayatBody[1]);
 
         $response8 = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_8]), [
+            'no_resi' => 'RESI-UNLOAD-888',
             'waktu_selesai' => now()->toDateTimeString(),
             'catatan' => 'Posting stok hasil unloading',
         ]);
@@ -552,7 +616,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
             'qty_fisik' => 100,
         ]);
 
-        $this->stageService->completeStage8($po, $this->gudangUser, now());
+        $this->stageService->completeStage8($po, $this->gudangUser, now(), null, 'RESI-TC14');
 
         $poLt = PoLeadTime::where('po_id', $po->id)->firstOrFail();
         $this->assertTrue($poLt->is_valid);
@@ -679,7 +743,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $bardat->items()->create(['po_item_id' => $po->items[0]->id, 'qty_fisik' => 100]);
         $bardat->items()->create(['po_item_id' => $po->items[1]->id, 'qty_fisik' => 50]);
 
-        $this->stageService->completeStage8($po, $this->gudangUser, now());
+        $this->stageService->completeStage8($po, $this->gudangUser, now(), null, 'RESI-TC14');
 
         // Level 1: Supplier level
         $sSum = SupplierLtSummary::where('supplier_id', $this->supplier->id)->first();
@@ -723,7 +787,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $bardat1->items()->create(['po_item_id' => $poStaged->items[0]->id, 'qty_fisik' => 100]);
         $bardat1->items()->create(['po_item_id' => $poStaged->items[1]->id, 'qty_fisik' => 50]);
 
-        $this->stageService->completeStage8($poStaged, $this->gudangUser, now());
+        $this->stageService->completeStage8($poStaged, $this->gudangUser, now(), null, 'RESI-SLA-1');
 
         // 2. PO selesai lebih lama (5 hari = 7200 menit) pada supplier yang sama -> melewati Avg supplier
         $poLate = $this->createSamplePo('tempo');
@@ -746,7 +810,7 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $bardat2->items()->create(['po_item_id' => $poLate->items[0]->id, 'qty_fisik' => 100]);
         $bardat2->items()->create(['po_item_id' => $poLate->items[1]->id, 'qty_fisik' => 50]);
 
-        $this->stageService->completeStage8($poLate, $this->gudangUser, now());
+        $this->stageService->completeStage8($poLate, $this->gudangUser, now(), null, 'RESI-SLA-2');
 
         // 3. PO legacy / langsung selesai tanpa PoLeadTime maupun stage durasi (selisih tanggal PO ke tanggal tiba = 3 hari)
         $poLegacy = PurchaseOrder::create([

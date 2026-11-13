@@ -74,6 +74,19 @@ class PurchasingStageController extends Controller
 
             case PoStage::STAGE_8:
                 $this->authorize('purchasing.receive');
+                $existingResi = trim($purchaseOrder->pengiriman?->no_resi ?? '');
+                if ($existingResi === '') {
+                    $request->validate([
+                        'no_resi' => ['required', 'string', 'max:100'],
+                    ], [
+                        'no_resi.required' => 'Nomor resi wajib diisi karena belum diinput pada tahap pengiriman.',
+                    ]);
+                } else {
+                    $request->validate([
+                        'no_resi' => ['nullable', 'string', 'max:100'],
+                    ]);
+                }
+
                 $noResi = $request->input('no_resi');
                 $this->stageService->completeStage8($purchaseOrder, auth()->user(), $waktuSelesai, $catatan, $noResi);
                 break;
