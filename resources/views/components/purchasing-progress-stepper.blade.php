@@ -74,7 +74,7 @@
     </div>
 @else
     {{-- =========================================================================
-         PRD v2.4 9-Stage Progress Stepper (Redesigned: Clean, Simpel & Elegan)
+         PRD v2.4 8-Stage Progress Stepper (Konsolidasi Pengemasan ke Pengiriman)
          ========================================================================= --}}
     @php
         $stageDefs = [
@@ -83,10 +83,9 @@
             3 => ['key' => \App\Models\PoStage::STAGE_3, 'short' => 'Supplier Confirm', 'sub' => 'Konfirmasi Vendor', 'cat' => 'internal'],
             4 => ['key' => \App\Models\PoStage::STAGE_4, 'short' => 'Payment', 'sub' => 'Keuangan / DP', 'cat' => 'internal'],
             5 => ['key' => \App\Models\PoStage::STAGE_5, 'short' => 'PO', 'sub' => 'Penerbitan Resmi', 'cat' => 'supplier'],
-            6 => ['key' => \App\Models\PoStage::STAGE_6, 'short' => 'Pengemasan', 'sub' => 'Packing Vendor', 'cat' => 'supplier'],
-            7 => ['key' => \App\Models\PoStage::STAGE_7, 'short' => 'Pengiriman', 'sub' => 'Ekspedisi / Transit', 'cat' => 'transportation'],
-            8 => ['key' => \App\Models\PoStage::STAGE_8, 'short' => 'Unloading', 'sub' => 'Fisik Gudang', 'cat' => 'receiving'],
-            9 => ['key' => \App\Models\PoStage::STAGE_9, 'short' => 'Input', 'sub' => 'Posting Stok', 'cat' => 'receiving'],
+            6 => ['key' => \App\Models\PoStage::STAGE_7, 'short' => 'Pengiriman', 'sub' => 'Ekspedisi / Transit', 'cat' => 'transportation'],
+            7 => ['key' => \App\Models\PoStage::STAGE_8, 'short' => 'Unloading', 'sub' => 'Fisik Gudang', 'cat' => 'receiving'],
+            8 => ['key' => \App\Models\PoStage::STAGE_9, 'short' => 'Input', 'sub' => 'Posting Stok', 'cat' => 'receiving'],
         ];
 
         // Durasi Subtotal per Kategori (Klasifikasi Sesuai Lampiran 1)
@@ -95,12 +94,14 @@
         $transportationMenit = 0;
         $receivingMenit = 0;
 
+        $legacyPengemasanMenit = (int) $po->stages->where('stage', \App\Models\PoStage::STAGE_6)->sum('durasi_menit');
+
         foreach ($stageDefs as $num => $def) {
             $sumMenit = (int) $po->stages->where('stage', $def['key'])->sum('durasi_menit');
             if ($def['cat'] === 'internal') {
                 $internalMenit += $sumMenit;
             } elseif ($def['cat'] === 'supplier') {
-                $supplierMenit += $sumMenit;
+                $supplierMenit += ($sumMenit + $legacyPengemasanMenit);
             } elseif ($def['cat'] === 'transportation') {
                 $transportationMenit += $sumMenit;
             } elseif ($def['cat'] === 'receiving') {
@@ -143,11 +144,11 @@
             </div>
         @endif
 
-        {{-- Progress Timeline 9-Stage --}}
+        {{-- Progress Timeline 8-Stage --}}
         <div class="overflow-x-auto pt-3 pb-2 px-3 scrollbar-none" tabindex="0" role="region" aria-label="Scroll Tahapan Purchase Order">
             <nav aria-label="Tahapan Purchase Order" class="min-w-[44rem] lg:min-w-0">
                 {{-- Group Header Klasifikasi Lead Time (Sesuai Lampiran 1) --}}
-                <div class="grid grid-cols-9 gap-2 mb-3.5 select-none" role="group" aria-label="Klasifikasi Fase Purchase Order">
+                <div class="grid grid-cols-8 gap-2 mb-3.5 select-none" role="group" aria-label="Klasifikasi Fase Purchase Order">
                     {{-- 1. Internal Processing (Stage 1-4) --}}
                     <div class="col-span-4 rounded-xl bg-card border border-border px-3 py-1.5 flex items-center justify-center gap-2 shadow-2xs min-w-0"
                          title="Internal Processing: Tahap 1–4 (Perencanaan, Approval, Supplier Confirm, Payment)">
@@ -155,23 +156,23 @@
                         <span class="text-xs font-bold text-foreground tracking-tight truncate">Internal Processing</span>
                     </div>
 
-                    {{-- 2. Supplier Processing (Stage 5-6) --}}
-                    <div class="col-span-2 rounded-xl bg-card border border-border px-2.5 py-1.5 flex items-center justify-center gap-2 shadow-2xs min-w-0"
-                         title="Supplier Processing: Tahap 5–6 (PO, Pengemasan)">
+                    {{-- 2. Supplier Processing (Stage 5) --}}
+                    <div class="col-span-1 rounded-xl bg-card border border-border px-1.5 py-1.5 flex items-center justify-center gap-1.5 shadow-2xs min-w-0"
+                         title="Supplier Processing: Tahap 5 (Penerbitan PO)">
                         <span class="size-2 rounded-full bg-amber-500 shrink-0"></span>
-                        <span class="text-xs font-bold text-foreground tracking-tight truncate">Supplier Processing</span>
+                        <span class="text-xs font-bold text-foreground tracking-tight truncate">Supplier</span>
                     </div>
 
-                    {{-- 3. Transportation Time (Stage 7) --}}
-                    <div class="col-span-1 rounded-xl bg-card border border-border px-1 py-1.5 flex items-center justify-center gap-1.5 shadow-2xs min-w-0"
-                         title="Transportation Time: Tahap 7 (Pengiriman)">
+                    {{-- 3. Transportation Time (Stage 6) --}}
+                    <div class="col-span-1 rounded-xl bg-card border border-border px-1.5 py-1.5 flex items-center justify-center gap-1.5 shadow-2xs min-w-0"
+                         title="Transportation Time: Tahap 6 (Pengiriman)">
                         <span class="size-2 rounded-full bg-purple-600 shrink-0"></span>
                         <span class="text-xs font-bold text-foreground truncate" title="Transportation Time">Transport</span>
                     </div>
 
-                    {{-- 4. Receiving (Stage 8-9) --}}
+                    {{-- 4. Receiving (Stage 7-8) --}}
                     <div class="col-span-2 rounded-xl bg-card border border-border px-2.5 py-1.5 flex items-center justify-center gap-2 shadow-2xs min-w-0"
-                         title="Receiving: Tahap 8–9 (Unloading, Input)">
+                         title="Receiving: Tahap 7–8 (Unloading, Input)">
                         <span class="size-2 rounded-full bg-emerald-600 shrink-0"></span>
                         <span class="text-xs font-bold text-foreground tracking-tight truncate">Receiving</span>
                     </div>
