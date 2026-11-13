@@ -60,11 +60,19 @@
                 </template>
             </div>
             <template x-if="addSkuForm.produk_id">
-                <div class="px-3 py-2 rounded-lg bg-muted/40 border border-border flex items-center justify-between">
+                <div class="p-3 rounded-lg bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                         <span class="text-muted-foreground">SKU Terpilih:</span>
                         <strong class="text-foreground ml-1" x-text="addSkuForm.selectedNama"></strong>
                         <span class="font-mono text-muted-foreground ml-1" x-text="'(' + addSkuForm.selectedSku + ')'"></span>
+                    </div>
+                    <div class="flex items-center gap-3 text-[11px] font-mono text-muted-foreground">
+                        <span x-show="addSkuForm.current_stok_aktual !== null && addSkuForm.current_stok_aktual !== undefined">
+                            Stok: <strong class="text-foreground" x-text="formatNumber(addSkuForm.current_stok_aktual) + ' ' + (addSkuForm.selectedSatuan || '')"></strong>
+                        </span>
+                        <span x-show="addSkuForm.current_hpp !== null && addSkuForm.current_hpp !== undefined">
+                            HPP: <strong class="text-foreground" x-text="formatRupiah(addSkuForm.current_hpp)"></strong>
+                        </span>
                     </div>
                 </div>
             </template>
@@ -134,6 +142,17 @@
                 <div class="sm:col-span-2">
                     <label class="font-semibold text-foreground block mb-1">Harga per Satuan (Rp, Opsional)</label>
                     <input type="number" step="0.01" min="0" x-model.number="addSkuForm.harga_per_satuan" placeholder="Ikut harga HPP produk" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background font-mono text-foreground">
+                    <div class="mt-1.5 flex items-center justify-between text-xs text-muted-foreground" x-show="addSkuForm.current_hpp !== null && addSkuForm.current_hpp !== undefined">
+                        <span class="inline-flex items-center gap-1 font-mono text-[11px]">
+                            <span class="text-muted-foreground/80">HPP Sistem:</span>
+                            <span class="font-medium text-foreground" x-text="formatRupiah(addSkuForm.current_hpp)"></span>
+                        </span>
+                        <button type="button"
+                                @click="addSkuForm.harga_per_satuan = addSkuForm.current_hpp"
+                                class="text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
+                            Gunakan Nilai Sistem
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -156,6 +175,17 @@
                 <div>
                     <label class="font-semibold text-foreground block mb-1">Harga Satuan (Rp, Opsional)</label>
                     <input type="number" step="0.01" min="0" x-model.number="addSkuForm.harga_per_satuan" placeholder="Ikut harga HPP produk" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background font-mono text-foreground">
+                    <div class="mt-1.5 flex items-center justify-between text-xs text-muted-foreground" x-show="addSkuForm.current_hpp !== null && addSkuForm.current_hpp !== undefined">
+                        <span class="inline-flex items-center gap-1 font-mono text-[11px]">
+                            <span class="text-muted-foreground/80">HPP Sistem:</span>
+                            <span class="font-medium text-foreground" x-text="formatRupiah(addSkuForm.current_hpp)"></span>
+                        </span>
+                        <button type="button"
+                                @click="addSkuForm.harga_per_satuan = addSkuForm.current_hpp"
+                                class="text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
+                            Gunakan Nilai Sistem
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

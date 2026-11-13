@@ -319,6 +319,7 @@
           produk_id: null,
           selectedSku: '',
           selectedNama: '',
+          selectedSatuan: '',
           currentProfil: '',
           target_profil: 'impor',
           klasifikasi_abc_id: '',
@@ -330,6 +331,9 @@
           review_period_impor: 30,
           review_period_lokal: 15,
           harga_per_satuan: '',
+          current_hpp: null,
+          current_stok_aktual: null,
+          current_inbound: null,
           currentIsOpposite() {
             if (!this.produk_id) return false;
             const curImpor = this.currentProfil === 'impor' || this.currentProfil === 'bahan_impor';
@@ -1090,6 +1094,7 @@
           this.addSkuForm.produk_id = null;
           this.addSkuForm.selectedSku = '';
           this.addSkuForm.selectedNama = '';
+          this.addSkuForm.selectedSatuan = '';
           this.addSkuForm.currentProfil = '';
           this.addSkuForm.target_profil = defaultProfil === 'lokal' ? 'lokal' : 'impor';
           this.addSkuForm.klasifikasi_abc_id = '';
@@ -1101,6 +1106,9 @@
           this.addSkuForm.review_period_impor = 30;
           this.addSkuForm.review_period_lokal = 15;
           this.addSkuForm.harga_per_satuan = '';
+          this.addSkuForm.current_hpp = null;
+          this.addSkuForm.current_stok_aktual = null;
+          this.addSkuForm.current_inbound = null;
           this.showAddSkuModal = true;
           await this.fetchAvailableAnalisaSkus();
         },
@@ -1124,12 +1132,16 @@
           this.addSkuForm.produk_id = item.id;
           this.addSkuForm.selectedSku = item.sku;
           this.addSkuForm.selectedNama = item.nama;
+          this.addSkuForm.selectedSatuan = item.satuan || '';
           this.addSkuForm.currentProfil = item.profil_analisa || '';
+          this.addSkuForm.current_hpp = item.current_hpp !== undefined ? Number(item.current_hpp) : (item.harga_hpp || 0);
+          this.addSkuForm.current_stok_aktual = item.current_stok_aktual !== undefined ? Number(item.current_stok_aktual) : 0;
+          this.addSkuForm.current_inbound = item.current_inbound !== undefined ? Number(item.current_inbound) : 0;
           if (item.klasifikasi_abc_id) {
             this.addSkuForm.klasifikasi_abc_id = String(item.klasifikasi_abc_id);
           }
-          if (item.harga_hpp > 0 && !this.addSkuForm.harga_per_satuan) {
-            this.addSkuForm.harga_per_satuan = item.harga_hpp;
+          if (this.addSkuForm.current_hpp > 0 && !this.addSkuForm.harga_per_satuan) {
+            this.addSkuForm.harga_per_satuan = this.addSkuForm.current_hpp;
           }
         },
         async submitAddSku(){

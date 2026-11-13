@@ -89,4 +89,16 @@ class AnalisaModalCurrentReferenceTest extends TestCase
         $response->assertSee('manualImporForm.current_inbound', false);
         $response->assertSee('manualImporForm.empirical_avg_lt', false);
     }
+
+    public function test_modal_add_sku_and_stage_lead_time_render_reference_indicators(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $response = $this->actingAs($manager)->get(route('analisa.index'));
+        $response->assertOk();
+
+        $response->assertSee('addSkuForm.current_hpp', false);
+        $response->assertSee('addSkuForm.current_stok_aktual', false);
+        $response->assertSee('addSkuForm.harga_per_satuan = addSkuForm.current_hpp', false);
+    }
 }
