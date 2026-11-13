@@ -76,4 +76,17 @@ class AnalisaModalCurrentReferenceTest extends TestCase
         $response->assertSee('manualLokalForm.current_stok_aktual', false);
         $response->assertSee('Gunakan Nilai Sistem', false);
     }
+
+    public function test_modal_manual_impor_renders_system_reference_pills_and_sync_actions(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $response = $this->actingAs($manager)->get(route('analisa.index'));
+        $response->assertOk();
+
+        $response->assertSee('manualImporForm.current_hpp', false);
+        $response->assertSee('manualImporForm.current_stok_aktual', false);
+        $response->assertSee('manualImporForm.current_inbound', false);
+        $response->assertSee('manualImporForm.empirical_avg_lt', false);
+    }
 }

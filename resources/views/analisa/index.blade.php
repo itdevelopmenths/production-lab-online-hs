@@ -355,7 +355,12 @@
           stok_saat_ini: 0,
           inbound_before_eta: 0,
           harga_per_satuan: 0,
-          satuan_order_moq: 1
+          satuan_order_moq: 1,
+          current_hpp: null,
+          current_stok_aktual: null,
+          current_inbound: null,
+          empirical_avg_lt: null,
+          empirical_max_lt: null
         },
         loading: true,
         generating: false,
@@ -1056,7 +1061,11 @@
             inbound_before_eta: item.parent_inbound !== undefined ? item.parent_inbound : (item.inbound_before_eta || 0),
             harga_per_satuan: item.harga_per_satuan || 0,
             satuan_order_moq: Number(item.satuan_order_moq) || 1,
-
+            current_hpp: item.current_hpp !== undefined ? Number(item.current_hpp) : (item.harga_per_satuan || 0),
+            current_stok_aktual: item.current_stok_aktual !== undefined ? Number(item.current_stok_aktual) : (item.parent_stok !== undefined ? item.parent_stok : (item.stok_saat_ini || 0)),
+            current_inbound: item.current_inbound !== undefined ? Number(item.current_inbound) : (item.parent_inbound !== undefined ? item.parent_inbound : (item.inbound_before_eta || 0)),
+            empirical_avg_lt: item.empirical_avg_lt !== undefined && item.empirical_avg_lt !== null ? Number(item.empirical_avg_lt) : null,
+            empirical_max_lt: item.empirical_max_lt !== undefined && item.empirical_max_lt !== null ? Number(item.empirical_max_lt) : null,
           };
 
           if (!this.manualImporForm.klasifikasi_abc_id && item.klasifikasi_abc_id === null) {
