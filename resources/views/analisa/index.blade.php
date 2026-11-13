@@ -302,7 +302,10 @@
           total_avg_lead_time: 0,
           total_max_lead_time: 0,
           safety_stock: 0,
-          akan_datang: 0
+          akan_datang: 0,
+          current_hpp: null,
+          current_stok_aktual: null,
+          current_terjual_sistem: null
         },
         showManualImporModal: false,
         savingManualImpor: false,
@@ -491,6 +494,10 @@
         formatNumber(v){
           if (v === null || v === undefined || isNaN(v)) return '0';
           return Math.round(Number(v)).toLocaleString('id-ID');
+        },
+        formatRupiah(v){
+          if (v === null || v === undefined || isNaN(v)) return 'Rp 0';
+          return 'Rp ' + Number(v).toLocaleString('id-ID', { maximumFractionDigits: 2 });
         },
         fmt(v, colName){
           if (typeof v === 'number') {
@@ -926,6 +933,9 @@
             total_max_lead_time: item.total_max_lead_time || 0,
             safety_stock: item.safety_stock || 0,
             akan_datang: item.akan_datang || 0,
+            current_hpp: item.current_hpp !== undefined ? Number(item.current_hpp) : (item.harga_per_satuan || 0),
+            current_stok_aktual: item.current_stok_aktual !== undefined ? Number(item.current_stok_aktual) : (item.stok_saat_ini || 0),
+            current_terjual_sistem: item.current_terjual_sistem !== undefined ? Number(item.current_terjual_sistem) : (item.terjual_rata_rata_4bulan || 0),
           };
           this.showManualLokalModal = true;
         },

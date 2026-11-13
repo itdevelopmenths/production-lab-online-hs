@@ -64,4 +64,16 @@ class AnalisaModalCurrentReferenceTest extends TestCase
         $this->assertEquals(45000, $availItem['current_hpp']);
         $this->assertEquals(125.5, $availItem['current_stok_aktual']);
     }
+
+    public function test_modal_manual_lokal_renders_system_reference_pills_and_sync_actions(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $response = $this->actingAs($manager)->get(route('analisa.index'));
+        $response->assertOk();
+
+        $response->assertSee('manualLokalForm.current_hpp', false);
+        $response->assertSee('manualLokalForm.current_stok_aktual', false);
+        $response->assertSee('Gunakan Nilai Sistem', false);
+    }
 }
