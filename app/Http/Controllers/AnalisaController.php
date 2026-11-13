@@ -634,6 +634,7 @@ class AnalisaController extends Controller
         }
 
         $imporIds = $this->analisa->imporEligibleProdukIds();
+        $imporIds = is_array($imporIds) ? $imporIds : (is_object($imporIds) ? $imporIds->all() : []);
 
         $imporList = empty($imporIds) ? collect() : AnalisaImpor::with([
             'produk' => function ($q) {
@@ -703,8 +704,8 @@ class AnalisaController extends Controller
                 'current_hpp' => (float) ($hppMap[$ai->produk_id] ?? $ai->produk?->harga_hpp ?? 0),
                 'current_stok_aktual' => (float) ($actualStockMap[$ai->produk_id] ?? 0),
                 'current_inbound' => (float) ($inboundPoMap[$ai->produk_id] ?? 0),
-                'empirical_avg_lt' => (float) ($lt?->lead_time_average ?? $ai->lead_time ?? 0),
-                'empirical_max_lt' => (float) ($lt?->lead_time_max ?? 0),
+                'empirical_avg_lt' => ($lt && $lt->lead_time_average !== null) ? (float) $lt->lead_time_average : null,
+                'empirical_max_lt' => ($lt && $lt->lead_time_max !== null) ? (float) $lt->lead_time_max : null,
                 'proyeksi' => (float) round($ai->proyeksi),
                 'qty_order' => (float) round($ai->qty_order),
                 'po' => (float) round($ai->po),

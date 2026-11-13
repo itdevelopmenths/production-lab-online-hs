@@ -39,14 +39,14 @@
                         <input type="number" step="0.1" min="0" x-model.number="manualImporForm.lead_time_average" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground pr-12 shadow-xs">
                         <span class="absolute right-3 text-[11px] text-muted-foreground font-medium pointer-events-none">Hari</span>
                     </div>
-                    <div class="mt-2 flex items-center justify-between text-xs text-muted-foreground" x-show="manualImporForm.empirical_avg_lt !== null && manualImporForm.empirical_avg_lt !== undefined">
-                        <span class="inline-flex items-center gap-1 font-mono text-[11px]">
+                    <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground" x-show="manualImporForm.empirical_avg_lt !== null && manualImporForm.empirical_avg_lt !== undefined && Number(manualImporForm.empirical_avg_lt) > 0">
+                        <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
                             <span class="text-muted-foreground/80">Empiris PO:</span>
                             <span class="font-medium text-foreground" x-text="formatLt(manualImporForm.empirical_avg_lt) + ' Hari'"></span>
                         </span>
                         <button type="button"
                                 @click="manualImporForm.lead_time_average = manualImporForm.empirical_avg_lt"
-                                class="text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
+                                class="shrink-0 text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
                             Gunakan Nilai Sistem
                         </button>
                     </div>
@@ -60,14 +60,14 @@
                         <input type="number" step="0.1" min="0" x-model.number="manualImporForm.lead_time_max" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground pr-12 shadow-xs">
                         <span class="absolute right-3 text-[11px] text-muted-foreground font-medium pointer-events-none">Hari</span>
                     </div>
-                    <div class="mt-2 flex items-center justify-between text-xs text-muted-foreground" x-show="manualImporForm.empirical_max_lt !== null && manualImporForm.empirical_max_lt !== undefined">
-                        <span class="inline-flex items-center gap-1 font-mono text-[11px]">
+                    <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground" x-show="manualImporForm.empirical_max_lt !== null && manualImporForm.empirical_max_lt !== undefined && Number(manualImporForm.empirical_max_lt) > 0">
+                        <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
                             <span class="text-muted-foreground/80">Empiris PO:</span>
                             <span class="font-medium text-foreground" x-text="formatLt(manualImporForm.empirical_max_lt) + ' Hari'"></span>
                         </span>
                         <button type="button"
                                 @click="manualImporForm.lead_time_max = manualImporForm.empirical_max_lt"
-                                class="text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
+                                class="shrink-0 text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
                             Gunakan Nilai Sistem
                         </button>
                     </div>
@@ -156,14 +156,14 @@
                         <input type="number" step="0.01" min="0" x-model.number="manualImporForm.stok_saat_ini" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground pr-12 shadow-xs">
                         <span class="absolute right-3 text-[11px] text-muted-foreground font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
                     </div>
-                    <div class="mt-2 flex items-center justify-between text-xs text-muted-foreground" x-show="manualImporForm.current_stok_aktual !== null && manualImporForm.current_stok_aktual !== undefined">
-                        <span class="inline-flex items-center gap-1 font-mono text-[11px]">
+                    <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground" x-show="manualImporForm.current_stok_aktual !== null && manualImporForm.current_stok_aktual !== undefined">
+                        <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
                             <span class="text-muted-foreground/80">Stok Gudang:</span>
                             <span class="font-medium text-foreground" x-text="formatNumber(manualImporForm.current_stok_aktual) + ' ' + (manualImporForm.satuan || '')"></span>
                         </span>
                         <button type="button"
                                 @click="manualImporForm.stok_saat_ini = manualImporForm.current_stok_aktual"
-                                class="text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
+                                class="shrink-0 text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
                             Gunakan Nilai Sistem
                         </button>
                     </div>
@@ -177,14 +177,14 @@
                         <input type="number" step="0.01" min="0" x-model.number="manualImporForm.inbound_before_eta" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground pr-12 shadow-xs">
                         <span class="absolute right-3 text-[11px] text-muted-foreground font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
                     </div>
-                    <div class="mt-2 flex items-center justify-between text-xs text-muted-foreground" x-show="manualImporForm.current_inbound !== null && manualImporForm.current_inbound !== undefined">
-                        <span class="inline-flex items-center gap-1 font-mono text-[11px]">
+                    <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground" x-show="manualImporForm.current_inbound !== null && manualImporForm.current_inbound !== undefined">
+                        <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
                             <span class="text-muted-foreground/80">PO Terbuka:</span>
                             <span class="font-medium text-foreground" x-text="formatNumber(manualImporForm.current_inbound) + ' ' + (manualImporForm.satuan || '')"></span>
                         </span>
                         <button type="button"
                                 @click="manualImporForm.inbound_before_eta = manualImporForm.current_inbound"
-                                class="text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
+                                class="shrink-0 text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
                             Gunakan Nilai Sistem
                         </button>
                     </div>
@@ -198,14 +198,14 @@
                         <span class="absolute left-3 text-[11px] text-muted-foreground font-medium pointer-events-none">Rp</span>
                         <input type="number" step="0.01" min="0" x-model.number="manualImporForm.harga_per_satuan" class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground shadow-xs">
                     </div>
-                    <div class="mt-2 flex items-center justify-between text-xs text-muted-foreground" x-show="manualImporForm.current_hpp !== null && manualImporForm.current_hpp !== undefined">
-                        <span class="inline-flex items-center gap-1 font-mono text-[11px]">
+                    <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-muted-foreground" x-show="manualImporForm.current_hpp !== null && manualImporForm.current_hpp !== undefined">
+                        <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
                             <span class="text-muted-foreground/80">HPP Sistem:</span>
                             <span class="font-medium text-foreground" x-text="formatRupiah(manualImporForm.current_hpp)"></span>
                         </span>
                         <button type="button"
                                 @click="manualImporForm.harga_per_satuan = manualImporForm.current_hpp"
-                                class="text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
+                                class="shrink-0 text-primary hover:text-primary/80 hover:underline font-medium text-[11px] transition-colors focus:outline-none">
                             Gunakan Nilai Sistem
                         </button>
                     </div>

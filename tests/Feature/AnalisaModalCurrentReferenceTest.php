@@ -43,15 +43,42 @@ class AnalisaModalCurrentReferenceTest extends TestCase
         $this->assertEquals(45000, $lokalItem['current_hpp']);
         $this->assertEquals(125.5, $lokalItem['current_stok_aktual']);
 
-        // 2. Cek endpoint impor.data jika ada
+        // 2. Cek endpoint impor.data
+        $btl = Produk::where('sku', 'BTL-P50')->first();
+        if ($btl) {
+            $btl->update(['harga_hpp' => 1750]);
+            AnalisaImpor::updateOrCreate(
+                ['produk_id' => $btl->id],
+                [
+                    'lead_time' => 80,
+                    'buffer_days' => 20,
+                    'safety_stock' => 500,
+                    'minimum_stock' => 1000,
+                    'target_stock' => 2000,
+                    'stok_saat_ini' => 300,
+                    'inbound_before_eta' => 150,
+                    'proyeksi' => 400,
+                    'qty_order' => 1600,
+                    'po' => 1600,
+                    'status' => 'po',
+                    'harga_per_satuan' => 1750,
+                    'total_nominal_order' => 2800000,
+                ]
+            );
+        }
+
         $resImpor = $this->actingAs($manager)->getJson(route('analisa.impor.data'));
         $resImpor->assertOk();
         $imporData = $resImpor->json('data');
-        if (! empty($imporData)) {
-            $firstImpor = $imporData[0];
-            $this->assertArrayHasKey('current_hpp', $firstImpor);
-            $this->assertArrayHasKey('current_stok_aktual', $firstImpor);
-            $this->assertArrayHasKey('current_inbound', $firstImpor);
+        $this->assertNotEmpty($imporData, 'Impor data tidak boleh kosong');
+        $firstImpor = collect($imporData)->firstWhere('produk_id', $btl?->id) ?? $imporData[0];
+        $this->assertArrayHasKey('current_hpp', $firstImpor);
+        $this->assertArrayHasKey('current_stok_aktual', $firstImpor);
+        $this->assertArrayHasKey('current_inbound', $firstImpor);
+        $this->assertArrayHasKey('empirical_avg_lt', $firstImpor);
+        $this->assertArrayHasKey('empirical_max_lt', $firstImpor);
+        if ($btl) {
+            $this->assertEquals(1750, $firstImpor['current_hpp']);
         }
 
         // 3. Cek endpoint available-skus
@@ -100,5 +127,8 @@ class AnalisaModalCurrentReferenceTest extends TestCase
         $response->assertSee('addSkuForm.current_hpp', false);
         $response->assertSee('addSkuForm.current_stok_aktual', false);
         $response->assertSee('addSkuForm.harga_per_satuan = addSkuForm.current_hpp', false);
+        $response->assertSee('stageForm.auto_average', false);
+        $response->assertSee('copyAutoStages()', false);
+        $response->assertSee('Gunakan Nilai Sistem (PO Otomatis)', false);
     }
 }

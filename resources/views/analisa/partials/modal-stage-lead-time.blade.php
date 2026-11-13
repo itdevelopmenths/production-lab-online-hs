@@ -25,9 +25,16 @@
 
     <form @submit.prevent="saveStages()" class="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
         <template x-if="stageForm.sumber_lt === 'otomatis'">
-            <div class="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed">
-                <strong class="font-semibold">Sumber Lead Time Otomatis (<span x-text="stageForm.jumlah_transaksi"></span> PO):</strong>
-                Rincian 9 tahap aktif saat ini dihitung otomatis dari histori PO Purchasing. Nilai 9 tahap di bawah digunakan sebagai <em>fallback manual</em> jika supplier berganti ke vendor tanpa histori PO, sedangkan <strong>Tambahan Buffer Lead Time</strong> tetap langsung dihitung ke Safety Stock.
+            <div class="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <strong class="font-semibold">Sumber Lead Time Otomatis (<span x-text="stageForm.jumlah_transaksi"></span> PO):</strong>
+                    Rincian 9 tahap aktif saat ini dihitung otomatis dari histori PO Purchasing. Nilai 9 tahap di bawah digunakan sebagai <em>fallback manual</em> jika supplier berganti ke vendor tanpa histori PO.
+                </div>
+                <template x-if="stageForm.auto_average">
+                    <button type="button" @click="copyAutoStages()" class="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs shadow-xs transition cursor-pointer">
+                        Gunakan Nilai Sistem (PO Otomatis)
+                    </button>
+                </template>
             </div>
         </template>
 

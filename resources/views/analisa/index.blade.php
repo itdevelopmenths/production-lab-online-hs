@@ -284,7 +284,9 @@
             pengiriman: 0,
             unloading: 0,
             input: 0
-          }
+          },
+          auto_average: null,
+          auto_max: null
         },
         showManualLokalModal: false,
         savingManualLokal: false,
@@ -807,6 +809,8 @@
             sumber_lt: stg?.sumber_lt || item.sumber_lt || 'manual',
             jumlah_transaksi: stg?.jumlah_transaksi ?? item.jumlah_transaksi ?? 0,
             tambahan_buffer_hari: item.tambahan_buffer_hari ?? (stg ? stg.tambahan_buffer_hari : 0),
+            auto_average: isAuto && stg && stg.average ? stg.average : null,
+            auto_max: isAuto && stg && stg.max ? stg.max : null,
             average: {
               id: avg.id || null,
               perencanaan: avg.perencanaan ?? 0,
@@ -851,6 +855,18 @@
           const avg = this.stageSum('average');
           const diff = Math.max(0, max - avg);
           return diff + (Number(this.stageForm.tambahan_buffer_hari) || 0);
+        },
+        copyAutoStages(){
+          if (!this.stageForm.auto_average) return;
+          const stages = ['perencanaan', 'approval', 'supplier_confirm', 'payment', 'po', 'pengemasan', 'pengiriman', 'unloading', 'input'];
+          stages.forEach(st => {
+            if (this.stageForm.auto_average[st] !== undefined) {
+              this.stageForm.average[st] = Number(this.stageForm.auto_average[st]) || 0;
+            }
+            if (this.stageForm.auto_max && this.stageForm.auto_max[st] !== undefined) {
+              this.stageForm.max[st] = Number(this.stageForm.auto_max[st]) || 0;
+            }
+          });
         },
         async saveStages(){
           this.savingStage = true;
