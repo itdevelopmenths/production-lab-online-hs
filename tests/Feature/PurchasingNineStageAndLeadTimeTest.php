@@ -118,18 +118,13 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         $this->stageService->completeStage4Tempo($po, $this->purchasing, $t4);
         $this->assertEquals(PoStage::STAGE_5, $po->stage_aktif);
 
-        // Stage 5 -> 6 (Terbit PO)
+        // Stage 5 -> 7 (Terbit PO langsung ke Pengiriman - Alur 8 Tahap Konsolidasi)
         $t5 = $t4->copy()->addHours(2);
         $this->stageService->completeStage5($po, $this->purchasing, $t5);
-        $this->assertEquals(PoStage::STAGE_6, $po->stage_aktif);
-
-        // Stage 6 -> 7 (Pengemasan)
-        $t6 = $t5->copy()->addHours(10);
-        $this->stageService->completeStage6($po, $this->purchasing, ['jumlah_koli' => 5, 'berat_kg' => 25.5], $t6);
         $this->assertEquals(PoStage::STAGE_7, $po->stage_aktif);
 
-        // Stage 7 -> 8 (Pengiriman)
-        $t7 = $t6->copy()->addHours(24);
+        // Stage 7 -> 8 (Pengiriman ke Unloading)
+        $t7 = $t5->copy()->addHours(24);
         $this->stageService->completeStage7($po, $this->purchasing, ['ekspedisi' => 'JNE Cargo', 'no_resi' => 'JNE123456'], $t7);
         $this->assertEquals(PoStage::STAGE_8, $po->stage_aktif);
 
@@ -234,6 +229,49 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
 
         $stage2 = $po->stages()->where('stage', PoStage::STAGE_2)->first();
         $this->assertEquals($t1->toDateTimeString(), $stage2->waktu_mulai->toDateTimeString());
+    }
+
+    /**
+     * Test alur 8-tahap: Stage 5 (PO) langsung membuka Stage 7 (Pengiriman), dan Stage 9 dapat menyimpan No. Resi.
+     */
+    public function test_stage_5_transitions_directly_to_stage_7_and_stage_9_saves_resi(): void
+    {
+        $po = $this->createSamplePo('tempo');
+        $po->stage_aktif = PoStage::STAGE_5;
+        $po->save();
+        $po->stages()->create([
+            'stage' => PoStage::STAGE_5,
+            'urutan' => 5,
+            'putaran' => 1,
+            'status' => 'berjalan',
+            'waktu_mulai' => now()->subHours(2),
+        ]);
+
+        $this->stageService->completeStage5($po, $this->purchasing);
+        $this->assertEquals(PoStage::STAGE_7, $po->fresh()->stage_aktif);
+
+        $stage7 = $po->stages()->where('stage', PoStage::STAGE_7)->first();
+        $this->assertNotNull($stage7);
+        $this->assertEquals('berjalan', $stage7->status);
+
+        // Advance to Stage 9
+        $this->stageService->completeStage7($po, $this->purchasing, ['ekspedisi' => 'SiCepat Cargo']);
+        $this->stageService->completeStage8($po, $this->gudangUser, [
+            'gudang_id' => $this->gudang->id,
+            'kondisi' => 'baik',
+            'items' => [
+                $po->items->first()->id => ['po_item_id' => $po->items->first()->id, 'qty_fisik' => 100],
+            ],
+        ]);
+        $this->assertEquals(PoStage::STAGE_9, $po->fresh()->stage_aktif);
+
+        // Complete Stage 9 with new no_resi via HTTP controller
+        $this->actingAs($this->gudangUser);
+        $res9 = $this->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_9]), [
+            'no_resi' => 'RESI-TEST-999',
+        ]);
+        $res9->assertSessionHasNoErrors();
+        $this->assertEquals('RESI-TEST-999', $po->fresh()->pengiriman?->no_resi);
     }
 
     /**
