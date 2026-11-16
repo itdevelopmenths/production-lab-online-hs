@@ -122,15 +122,9 @@
                         <label for="filter-stage-po" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Stage Aktif</label>
                         <select id="filter-stage-po" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                             <option value="">— Semua Stage —</option>
-                            <option value="perencanaan">1. Perencanaan</option>
-                            <option value="approval">2. Approval</option>
-                            <option value="konfirmasi_supplier">3. Konfirmasi Supplier</option>
-                            <option value="pembayaran">4. Pembayaran / DP</option>
-                            <option value="po_terbit">5. PO Terbit</option>
-                            <option value="pengemasan">6. Pengemasan</option>
-                            <option value="pengiriman">7. Pengiriman</option>
-                            <option value="unloading">8. Unloading Fisik</option>
-                            <option value="input_sistem">9. Input Sistem</option>
+                            @foreach (\App\Models\PoStage::STAGES as $urutan => $stageKey)
+                                <option value="{{ $stageKey }}">{{ $urutan }}. {{ \App\Models\PoStage::STAGE_LABELS[$stageKey] }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div>
