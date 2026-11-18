@@ -193,11 +193,20 @@ class AnalisaController extends Controller
             ];
         }
 
+        $supplierAduRows = $this->analisa->buildLokalSupplierAduRows(
+            $rekomendasi,
+            $analisa,
+            $leadTime,
+            $stages,
+            $actualStockMap,
+            $hppMap
+        );
+
         return response()->json([
             'data' => $rows,
             'tables' => [
                 'rekomendasi' => $rows,
-                'analisa' => $analisa->values(),
+                'analisa' => $supplierAduRows,
                 'lead_time' => $leadTime->values(),
                 'stages' => $formattedStages,
             ],
@@ -719,8 +728,20 @@ class AnalisaController extends Controller
             ];
         }
 
+        $supplierAduRows = $this->analisa->buildImporSupplierAduRows(
+            $imporList,
+            $ltMap,
+            $actualStockMap,
+            $hppMap,
+            $inboundPoMap
+        );
+
         return response()->json([
             'data' => $rows,
+            'tables' => [
+                'rekomendasi' => $rows,
+                'analisa' => $supplierAduRows,
+            ],
             'meta' => [
                 'last_generated_at' => $lastGenerated?->generated_at?->format('d/m/Y H:i'),
                 'last_generated_by' => $lastGenerated?->generator?->name ?? 'Sistem',

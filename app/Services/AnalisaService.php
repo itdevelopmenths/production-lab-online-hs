@@ -300,7 +300,418 @@ class AnalisaService
     }
 
     /**
+     * Kumpulkan seluruh kombinasi supplier per produk secara bulk (tanpa N+1):
+     * gabungan relasi aktif `produk_supplier`, supplier terpilih/utama, serta seluruh
+     * supplier yang pernah menyuplai produk di `supplier_produk_lt_summary` atau PO selesai.
+     *
+     * @param  array<int, int>  $produkIds
+     * @param  array<int, int|null>  $selectedSupplierByProduk
+     * @param  array<int, int|null>  $primarySupplierByProduk
+     * @return array{
+     *     by_produk: array<int, array<int, array{supplier_id: int|null, supplier_nama: string, supplier_kategori: string, relasi_status: string, is_active_supplier: bool}>>,
+     *     lt_summaries: Collection<string, SupplierProdukLtSummary>
+     * }
+     */
+    public function getProductSuppliersWithSummaries(
+        array $produkIds,
+        array $selectedSupplierByProduk = [],
+        array $primarySupplierByProduk = []
+    ): array {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $produkIds), fn ($id) => $id > 0)));
+        if (empty($ids)) {
+            return ['by_produk' => [], 'lt_summaries' => collect()];
+        }
+
+        // 1. Relasi master produk_supplier
+        $pivotRows = DB::table('produk_supplier')
+            ->whereIn('produk_id', $ids)
+            ->get(['produk_id', 'supplier_id', 'status']);
+
+        $pivotStatusMap = [];
+        $activePivotByProduk = [];
+        foreach ($pivotRows as $pr) {
+            $pid = (int) $pr->produk_id;
+            $sid = (int) $pr->supplier_id;
+            $st = (string) ($pr->status ?: 'aktif');
+            $pivotStatusMap[$pid . ':' . $sid] = $st;
+            if ($st !== 'nonaktif') {
+                $activePivotByProduk[$pid][$sid] = $st;
+            }
+        }
+
+        // 2. Ringkasan empiris LT per supplier-produk (semua supplier yang punya transaksi)
+        $ltSummaries = SupplierProdukLtSummary::whereIn('produk_id', $ids)->get();
+        $ltSummaryMap = $ltSummaries->keyBy(fn ($row) => ((int) $row->supplier_id) . ':' . ((int) $row->produk_id));
+
+        $historySuppliersByProduk = [];
+        foreach ($ltSummaries as $row) {
+            if ((int) ($row->jumlah_transaksi ?? 0) >= 1) {
+                $historySuppliersByProduk[(int) $row->produk_id][(int) $row->supplier_id] = true;
+            }
+        }
+
+        // 3. Riwayat PO selesai (jaga-jaga bila ada PO selesai tanpa baris summary)
+        $completedPoPairs = DB::table('purchase_order_items as poi')
+            ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
+            ->whereIn('poi.produk_id', $ids)
+            ->where('po.status', 'selesai')
+            ->whereNotNull('po.supplier_id')
+            ->select('poi.produk_id', 'po.supplier_id')
+            ->distinct()
+            ->get();
+
+        foreach ($completedPoPairs as $pair) {
+            $historySuppliersByProduk[(int) $pair->produk_id][(int) $pair->supplier_id] = true;
+        }
+
+        // 4. Gabungkan seluruh supplier ID unik per produk
+        $supplierIdsByProduk = [];
+        $allSupplierIds = [];
+        foreach ($ids as $pid) {
+            $selectedSid = ! empty($selectedSupplierByProduk[$pid]) ? (int) $selectedSupplierByProduk[$pid] : null;
+            $primarySid = ! empty($primarySupplierByProduk[$pid]) ? (int) $primarySupplierByProduk[$pid] : null;
+
+            $collected = [];
+
+            if ($selectedSid) {
+                $collected[$selectedSid] = $pivotStatusMap[$pid . ':' . $selectedSid] ?? 'aktif';
+            }
+
+            foreach (($activePivotByProduk[$pid] ?? []) as $sid => $st) {
+                if (! isset($collected[$sid])) {
+                    $collected[$sid] = $st;
+                }
+            }
+
+            if ($primarySid && ! isset($collected[$primarySid])) {
+                $primaryPivotStatus = $pivotStatusMap[$pid . ':' . $primarySid] ?? null;
+                if ($primaryPivotStatus !== 'nonaktif') {
+                    $collected[$primarySid] = $primaryPivotStatus ?? 'aktif';
+                }
+            }
+
+            foreach (($historySuppliersByProduk[$pid] ?? []) as $sid => $_) {
+                if (! isset($collected[$sid])) {
+                    $collected[$sid] = $pivotStatusMap[$pid . ':' . $sid] ?? 'riwayat_po';
+                }
+            }
+
+            $supplierIdsByProduk[$pid] = $collected;
+            foreach (array_keys($collected) as $sid) {
+                $allSupplierIds[$sid] = true;
+            }
+        }
+
+        $suppliersMap = empty($allSupplierIds)
+            ? collect()
+            : Supplier::whereIn('id', array_keys($allSupplierIds))
+                ->get(['id', 'nama', 'kategori', 'is_active'])
+                ->keyBy('id');
+
+        $byProduk = [];
+        foreach ($ids as $pid) {
+            $selectedSid = ! empty($selectedSupplierByProduk[$pid]) ? (int) $selectedSupplierByProduk[$pid] : null;
+            $entries = [];
+
+            foreach ($supplierIdsByProduk[$pid] as $sid => $relStatus) {
+                $sup = $suppliersMap->get($sid);
+                if (! $sup) {
+                    continue;
+                }
+                $entries[] = [
+                    'supplier_id' => (int) $sup->id,
+                    'supplier_nama' => (string) $sup->nama,
+                    'supplier_kategori' => (string) ($sup->kategori ?? '-'),
+                    'relasi_status' => (string) $relStatus,
+                    'is_active_supplier' => $selectedSid !== null && (int) $sup->id === $selectedSid,
+                ];
+            }
+
+            // Urutkan: supplier aktif/terpilih di atas, lalu alfabet nama supplier
+            usort($entries, function (array $a, array $b) {
+                if ($a['is_active_supplier'] !== $b['is_active_supplier']) {
+                    return $a['is_active_supplier'] ? -1 : 1;
+                }
+
+                return strcmp($a['supplier_nama'], $b['supplier_nama']);
+            });
+
+            // Jika belum ada supplier sama sekali, tetap tampilkan 1 baris produk
+            if (empty($entries)) {
+                $entries[] = [
+                    'supplier_id' => null,
+                    'supplier_nama' => '-',
+                    'supplier_kategori' => '-',
+                    'relasi_status' => 'belum_ada',
+                    'is_active_supplier' => true,
+                ];
+            }
+
+            $byProduk[$pid] = $entries;
+        }
+
+        return [
+            'by_produk' => $byProduk,
+            'lt_summaries' => $ltSummaryMap,
+        ];
+    }
+
+    /**
+     * Susun baris Working Data Analisa (ADU) Lokal untuk SELURUH kombinasi supplier-produk.
+     * ADU dihitung murni per produk (terjual_rata_rata_4bulan / 30), tidak bergantung pada supplier;
+     * setiap baris supplier memakai Lead Time & Safety Stock masing-masing.
+     *
+     * @param  Collection<int, RekomendasiOrderLokal>  $rekomendasi
+     * @param  Collection<int, AnalisaLokal>  $analisaMap
+     * @param  Collection<int, LeadTimeLokal>  $leadTimeMap
+     * @param  Collection<int, Collection<int, LeadTimeLokalStage>>  $stagesMap
+     * @param  array<int, float>|Collection<int, float>  $actualStockMap
+     * @param  array<int, float>  $hppMap
+     * @return array<int, array<string, mixed>>
+     */
+    public function buildLokalSupplierAduRows(
+        Collection $rekomendasi,
+        Collection $analisaMap,
+        Collection $leadTimeMap,
+        Collection $stagesMap,
+        $actualStockMap,
+        array $hppMap
+    ): array {
+        $produkIds = $rekomendasi->pluck('produk_id')->map(fn ($id) => (int) $id)->all();
+        if (empty($produkIds)) {
+            return [];
+        }
+
+        $selectedByProduk = [];
+        $primaryByProduk = [];
+        foreach ($rekomendasi as $rek) {
+            $pid = (int) $rek->produk_id;
+            $al = $analisaMap->get($pid);
+            $primarySid = $rek->produk?->supplier_id ? (int) $rek->produk->supplier_id : null;
+            $selectedByProduk[$pid] = $al?->supplier_terpilih_id ? (int) $al->supplier_terpilih_id : $primarySid;
+            $primaryByProduk[$pid] = $primarySid;
+        }
+
+        $supplierData = $this->getProductSuppliersWithSummaries($produkIds, $selectedByProduk, $primaryByProduk);
+        $byProduk = $supplierData['by_produk'];
+        $ltSummaries = $supplierData['lt_summaries'];
+
+        $rows = [];
+        foreach ($rekomendasi as $rek) {
+            $pid = (int) $rek->produk_id;
+            $al = $analisaMap->get($pid);
+            $lt = $leadTimeMap->get($pid);
+
+            // ADU murni per produk (tidak bergantung supplier)
+            $terjual = (float) ($al?->terjual_rata_rata_4bulan ?? 0);
+            $aduRaw = $terjual / 30;
+            $reviewPeriod = (int) ($al?->review_period ?? 15);
+            if ($reviewPeriod <= 0) {
+                $reviewPeriod = 15;
+            }
+            $buffer = self::roundLeadTimeDays((float) ($lt?->tambahan_buffer_hari ?? 0));
+
+            // Fallback manual LT per produk dari stage manual atau lead_time_lokal
+            $prodStages = $stagesMap->get($pid) ?? collect();
+            $avgStage = $prodStages->firstWhere('skenario', 'average');
+            $maxStage = $prodStages->firstWhere('skenario', 'max');
+            $manualAvgLt = $avgStage ? (float) $avgStage->totalHari() : (float) ($lt?->total_average_lead_time ?? $al?->total_average_lead_time ?? 0);
+            $manualMaxLt = $maxStage ? (float) $maxStage->totalHari() : (float) ($lt?->total_max_lead_time ?? 0);
+
+            $supplierEntries = $byProduk[$pid] ?? [];
+            foreach ($supplierEntries as $entry) {
+                $sid = $entry['supplier_id'];
+                $summary = $sid ? $ltSummaries->get($sid . ':' . $pid) : null;
+                $trxCount = $summary ? (int) ($summary->jumlah_transaksi ?? 0) : 0;
+
+                if ($summary && $trxCount >= 1) {
+                    $avgLt = self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? 0));
+                    $maxLt = self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? 0));
+                    $sumberLt = 'otomatis';
+                } else {
+                    $avgLt = self::roundLeadTimeDays($manualAvgLt);
+                    $maxLt = self::roundLeadTimeDays($manualMaxLt);
+                    $sumberLt = 'manual';
+                }
+
+                $safetyStock = max(0.0, self::roundLeadTimeDays(($maxLt - $avgLt) + $buffer));
+                $batasMinimum = round($aduRaw * ($avgLt + $safetyStock));
+                $targetStock = round($aduRaw * ($avgLt + $safetyStock + $reviewPeriod));
+
+                $rows[] = [
+                    'row_key' => $pid . '_' . ($sid ?? 'none'),
+                    'id' => $rek->id,
+                    'produk_id' => $pid,
+                    'sku' => $rek->produk?->sku,
+                    'nama' => $rek->produk?->nama,
+                    'satuan' => $rek->produk?->satuan,
+                    'satuan_order_moq' => (float) ($rek->produk?->satuan_order_moq ?: 1),
+                    'faktor_konversi' => (float) ($rek->produk?->faktor_konversi ?: 1),
+                    'supplier_id' => $sid,
+                    'supplier_nama' => $entry['supplier_nama'],
+                    'supplier_kategori' => $entry['supplier_kategori'],
+                    'relasi_status' => $entry['relasi_status'],
+                    'is_active_supplier' => $entry['is_active_supplier'],
+                    'sumber_lt' => $sumberLt,
+                    'total_po_selesai' => $trxCount,
+                    'total_avg_lead_time' => $avgLt,
+                    'total_max_lead_time' => $maxLt,
+                    'tambahan_buffer_hari' => $buffer,
+                    'safety_stock' => $safetyStock,
+                    'terjual_rata_rata_4bulan' => (float) round($terjual),
+                    'adu' => (float) round($aduRaw),
+                    'adu_exact' => round($aduRaw, 4),
+                    'review_period' => $reviewPeriod,
+                    'batas_minimum' => (float) $batasMinimum,
+                    'target_stock' => (float) $targetStock,
+                    'stok_saat_ini' => (float) round($rek->stok_saat_ini),
+                    'akan_datang' => (float) round($rek->akan_datang),
+                    'harga_per_satuan' => (float) round($rek->harga_ml_pcs),
+                    'current_hpp' => (float) ($hppMap[$pid] ?? $rek->produk?->harga_hpp ?? 0),
+                    'current_stok_aktual' => (float) ($actualStockMap[$pid] ?? 0),
+                    'current_terjual_sistem' => (float) round($terjual),
+                    'generated_at' => $rek->generated_at?->format('d/m/Y H:i'),
+                ];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Susun baris Working Data Analisa (ADU) Impor untuk SELURUH kombinasi supplier-produk.
+     * ADU dihitung murni per produk (out / jumlah_hari_periode), tidak bergantung pada supplier;
+     * setiap baris supplier memakai Lead Time, Buffer Days, Safety Stock, Min Stock, & Target Stock masing-masing.
+     *
+     * @param  Collection<int, AnalisaImpor>  $imporList
+     * @param  Collection<int, LeadTimeImpor>  $ltMap
+     * @param  array<int, float>|Collection<int, float>  $actualStockMap
+     * @param  array<int, float>  $hppMap
+     * @param  array<int, float>|Collection<int, float>  $inboundPoMap
+     * @return array<int, array<string, mixed>>
+     */
+    public function buildImporSupplierAduRows(
+        Collection $imporList,
+        Collection $ltMap,
+        $actualStockMap,
+        array $hppMap,
+        $inboundPoMap
+    ): array {
+        $produkIds = $imporList->pluck('produk_id')->map(fn ($id) => (int) $id)->all();
+        if (empty($produkIds)) {
+            return [];
+        }
+
+        $selectedByProduk = [];
+        $primaryByProduk = [];
+        foreach ($imporList as $ai) {
+            $pid = (int) $ai->produk_id;
+            $primarySid = $ai->produk?->supplier_id ? (int) $ai->produk->supplier_id : null;
+            $selectedByProduk[$pid] = $ai->supplier_terpilih_id ? (int) $ai->supplier_terpilih_id : $primarySid;
+            $primaryByProduk[$pid] = $primarySid;
+        }
+
+        $supplierData = $this->getProductSuppliersWithSummaries($produkIds, $selectedByProduk, $primaryByProduk);
+        $byProduk = $supplierData['by_produk'];
+        $ltSummaries = $supplierData['lt_summaries'];
+
+        $rows = [];
+        foreach ($imporList as $ai) {
+            $pid = (int) $ai->produk_id;
+            $lt = $ltMap->get($pid);
+
+            $out = (float) ($ai->out ?? 0);
+            $jumlahHari = (int) ($ai->jumlah_hari_periode ?: 122);
+            if ($jumlahHari <= 0) {
+                $jumlahHari = 122;
+            }
+            // ADU murni per produk (tidak bergantung supplier)
+            $aduRaw = $jumlahHari > 0 ? ($out / $jumlahHari) : 0.0;
+
+            $reviewPeriod = (int) ($ai->review_period ?: 30);
+            if ($reviewPeriod <= 0) {
+                $reviewPeriod = 30;
+            }
+            $tambahanHari = (float) ($ai->tambahan_buffer_hari ?? 0);
+
+            $fallbackAvgLt = self::roundLeadTimeDays((float) ($lt?->lead_time_average ?? $ai->lead_time ?? 45));
+            $fallbackMaxLt = self::roundLeadTimeDays((float) ($lt?->lead_time_max ?? 60));
+
+            $supplierEntries = $byProduk[$pid] ?? [];
+            foreach ($supplierEntries as $entry) {
+                $sid = $entry['supplier_id'];
+                $summary = $sid ? $ltSummaries->get($sid . ':' . $pid) : null;
+                $trxCount = $summary ? (int) ($summary->jumlah_transaksi ?? 0) : 0;
+
+                if ($summary && $trxCount >= 1) {
+                    $avgLt = self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? 0));
+                    $maxLt = self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? 0));
+                    $sumberLt = 'otomatis';
+                } else {
+                    $avgLt = $fallbackAvgLt;
+                    $maxLt = $fallbackMaxLt;
+                    $sumberLt = 'manual';
+                }
+
+                $bufferDays = self::roundLeadTimeDays(max(0.0, $maxLt - $avgLt) + $tambahanHari);
+                $safetyStock = round($aduRaw * $bufferDays);
+                $minimumStock = round($aduRaw * $avgLt);
+                $targetStock = (int) floor($aduRaw * ($avgLt + $bufferDays + $reviewPeriod) + 0.0001);
+
+                $rows[] = [
+                    'row_key' => $pid . '_' . ($sid ?? 'none'),
+                    'id' => (string) $ai->id,
+                    'analisa_impor_id' => $ai->id,
+                    'produk_id' => $pid,
+                    'sku' => $ai->produk?->sku,
+                    'nama' => $ai->produk?->nama,
+                    'satuan' => $ai->produk?->satuan,
+                    'satuan_order_moq' => $ai->produk?->satuan_order_moq,
+                    'faktor_konversi' => (float) ($ai->produk?->faktor_konversi ?: 1),
+                    'supplier_id' => $sid,
+                    'supplier_nama' => $entry['supplier_nama'],
+                    'supplier_kategori' => $entry['supplier_kategori'],
+                    'relasi_status' => $entry['relasi_status'],
+                    'is_active_supplier' => $entry['is_active_supplier'],
+                    'sumber_lt' => $sumberLt,
+                    'total_po_selesai' => $trxCount,
+                    'periode_mulai' => $ai->periode_mulai?->format('Y-m-d'),
+                    'periode_akhir' => $ai->periode_akhir?->format('Y-m-d'),
+                    'jumlah_hari_periode' => $jumlahHari,
+                    'out' => (float) round($out),
+                    'adu' => (float) round($aduRaw, 2),
+                    'adu_base' => round($aduRaw, 4),
+                    'adu_eta' => round($aduRaw, 4),
+                    'review_period' => $reviewPeriod,
+                    'klasifikasi_abc' => $ai->klasifikasi_abc,
+                    'klasifikasi_abc_id' => $ai->klasifikasi_abc_id,
+                    'klasifikasi_abc_nama' => $ai->klasifikasiAbc?->nama ?? ($ai->klasifikasi_abc_id ? strtoupper($ai->klasifikasi_abc) : 'Default (Belum Diset)'),
+                    'tambahan_buffer_hari' => (int) round($tambahanHari),
+                    'lead_time_average' => $avgLt,
+                    'lead_time_max' => $maxLt,
+                    'buffer_days' => $bufferDays,
+                    'safety_stock' => (float) $safetyStock,
+                    'minimum_stock' => (float) $minimumStock,
+                    'target_stock' => (float) $targetStock,
+                    'stok_saat_ini' => (float) round($ai->stok_saat_ini),
+                    'inbound_before_eta' => (float) round($ai->inbound_before_eta),
+                    'harga_per_satuan' => (float) round($ai->harga_per_satuan),
+                    'current_hpp' => (float) ($hppMap[$pid] ?? $ai->produk?->harga_hpp ?? 0),
+                    'current_stok_aktual' => (float) ($actualStockMap[$pid] ?? 0),
+                    'current_inbound' => (float) ($inboundPoMap[$pid] ?? 0),
+                    'empirical_avg_lt' => $trxCount >= 1 ? $avgLt : ($lt?->lead_time_average !== null ? (float) $lt->lead_time_average : null),
+                    'empirical_max_lt' => $trxCount >= 1 ? $maxLt : ($lt?->lead_time_max !== null ? (float) $lt->lead_time_max : null),
+                    'generated_at' => $ai->generated_at?->format('d/m/Y H:i'),
+                ];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
      * Perbandingan multi-supplier untuk satu produk (Bab 5, perbandingan vendor).
+     * ADU murni per produk (tidak bergantung supplier), sedangkan Lead Time & Buffer per supplier.
      */
     public function compareSuppliersForProduct(Produk $produk): array
     {
@@ -308,77 +719,70 @@ class AnalisaService
         $currentImpor = AnalisaImpor::where('produk_id', $produk->id)->first();
         $currentSupplierId = $currentLokal?->supplier_terpilih_id ?? $currentImpor?->supplier_terpilih_id ?? $produk->supplier_id;
 
-        // Saring hanya relasi produk_supplier berstatus 'aktif'
-        $suppliers = $produk->activeSuppliers()->withPivot(['status'])->get();
+        $supplierData = $this->getProductSuppliersWithSummaries(
+            [$produk->id],
+            [$produk->id => $currentSupplierId ? (int) $currentSupplierId : null],
+            [$produk->id => $produk->supplier_id ? (int) $produk->supplier_id : null]
+        );
+        $entries = array_values(array_filter(
+            $supplierData['by_produk'][$produk->id] ?? [],
+            fn (array $e) => ! empty($e['supplier_id'])
+        ));
+        $ltSummaries = $supplierData['lt_summaries'];
 
-        if ($suppliers->isEmpty() && $produk->supplier) {
-            $pivotStatus = DB::table('produk_supplier')
-                ->where('produk_id', $produk->id)
-                ->where('supplier_id', $produk->supplier_id)
-                ->value('status');
-            if ($pivotStatus !== 'nonaktif') {
-                $suppliers = collect([$produk->supplier]);
-            }
-        }
-
-        $isImpor = self::isImporProfile($produk->profil_analisa) || AnalisaImpor::where('produk_id', $produk->id)->exists();
+        $isImpor = self::isImporProfile($produk->profil_analisa) || $currentImpor !== null;
 
         $adu = 0.0;
         $reviewPeriod = 15;
-        $bufferDays = 0.0;
+        $tambahanAbc = 0.0;
 
         if ($isImpor) {
             $meta = AnalisaImporMeta::where('produk_id', $produk->id)->first();
-            $adu = (float) ($currentImpor?->adu_eta ?? $currentImpor?->adu_base ?? 0);
-            if ($adu <= 0 && $meta) {
-                $out = (float) $meta->out_total_4bulan;
-                $pMulai = $meta->periode_mulai?->toDateString() ?? now()->subMonths(4)->toDateString();
-                $pAkhir = $meta->periode_akhir?->toDateString() ?? now()->toDateString();
+            // ADU murni per produk (out / jumlah_hari), tidak bergantung pada supplier
+            $out = (float) ($currentImpor?->out ?? $meta?->out_total_4bulan ?? 0);
+            $jHari = (int) ($currentImpor?->jumlah_hari_periode ?? 0);
+            if ($jHari <= 0) {
+                $pMulai = $currentImpor?->periode_mulai?->toDateString() ?? $meta?->periode_mulai?->toDateString() ?? now()->subMonths(4)->toDateString();
+                $pAkhir = $currentImpor?->periode_akhir?->toDateString() ?? $meta?->periode_akhir?->toDateString() ?? now()->toDateString();
                 $jHari = \Carbon\Carbon::parse($pMulai)->diffInDays(\Carbon\Carbon::parse($pAkhir)) + 1;
-                $adu = $jHari > 0 ? ($out / $jHari) : 0;
             }
+            $adu = $jHari > 0 ? ($out / $jHari) : 0.0;
             $reviewPeriod = (int) ($currentImpor?->review_period ?? $meta?->review_period ?? 30);
-            $bufferDays = (float) ($currentImpor?->buffer_days ?? 0);
+            $tambahanAbc = (float) ($currentImpor?->tambahan_buffer_hari ?? 0);
         } else {
             $inputLokal = AnalisaLokalInput::where('produk_id', $produk->id)->first();
             $adu = (float) ($currentLokal?->adu ?? (($inputLokal?->terjual_rata_rata_4bulan ?? 0) / 30));
             $reviewPeriod = (int) ($currentLokal?->review_period ?? $inputLokal?->review_period ?? 15);
-            $existingLt = LeadTimeLokal::where('produk_id', $produk->id)->first();
-            $bufferDays = $existingLt && $existingLt->tambahan_buffer_hari !== null
-                ? (float) $existingLt->tambahan_buffer_hari
-                : (float) (Schema::hasTable('lead_time_stage') ? (DB::table('lead_time_stage')->where('produk_id', $produk->id)->sum('tambahan_buffer_hari') ?? 0) : 0);
         }
         if ($reviewPeriod <= 0) {
             $reviewPeriod = $isImpor ? 30 : 15;
         }
 
         $result = [];
-        foreach ($suppliers as $s) {
-            $pivot = $s->pivot ?? null;
-            $summary = SupplierProdukLtSummary::where('supplier_id', $s->id)
-                ->where('produk_id', $produk->id)
-                ->first();
-
-            $trxCount = $summary ? (int) ($summary->jumlah_transaksi ?? $summary->total_po_selesai ?? 0) : 0;
+        foreach ($entries as $entry) {
+            $sid = (int) $entry['supplier_id'];
+            $summary = $ltSummaries->get($sid . ':' . $produk->id);
+            $trxCount = $summary ? (int) ($summary->jumlah_transaksi ?? 0) : 0;
 
             if ($isImpor) {
-                $resolvedLt = $this->resolveSupplierProdukLeadTimeImpor($produk->id, $s->id);
+                $resolvedLt = $this->resolveSupplierProdukLeadTimeImpor($produk->id, $sid);
                 $avgLt = $summary && $trxCount >= 1
-                    ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0))
+                    ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? 0))
                     : $resolvedLt['lead_time_average'];
                 $maxLt = $summary && $trxCount >= 1
-                    ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0))
+                    ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? 0))
                     : $resolvedLt['lead_time_max'];
 
+                $simBufferDays = self::roundLeadTimeDays(max(0.0, $maxLt - $avgLt) + $tambahanAbc);
                 $simBatasMin = round($adu * $avgLt);
-                $simTargetStock = (int) floor($adu * ($avgLt + $bufferDays + $reviewPeriod) + 0.0001);
+                $simTargetStock = (int) floor($adu * ($avgLt + $simBufferDays + $reviewPeriod) + 0.0001);
             } else {
-                $resolvedLt = $this->resolveSupplierProdukLeadTimeLokal($produk->id, $s->id);
+                $resolvedLt = $this->resolveSupplierProdukLeadTimeLokal($produk->id, $sid);
                 $avgLt = $summary && $trxCount >= 1
-                    ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? $summary->average_lt_days ?? 0))
+                    ? self::roundLeadTimeDays((float) ($summary->average_lt_hari ?? 0))
                     : $resolvedLt['total_average_lead_time'];
                 $maxLt = $summary && $trxCount >= 1
-                    ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? $summary->max_lt_days ?? 0))
+                    ? self::roundLeadTimeDays((float) ($summary->max_lt_hari ?? 0))
                     : $resolvedLt['total_max_lead_time'];
                 $safetyStock = $resolvedLt['safety_stock'];
 
@@ -393,9 +797,10 @@ class AnalisaService
             $minOrder = (float) ($produk->satuan_order_moq ?: 1);
 
             $result[] = [
-                'supplier_id' => $s->id,
-                'supplier_nama' => $s->nama,
-                'is_current' => (int) $s->id === (int) $currentSupplierId,
+                'supplier_id' => $sid,
+                'supplier_nama' => $entry['supplier_nama'],
+                'is_current' => (int) $sid === (int) $currentSupplierId,
+                'adu' => round($adu, 4),
                 'harga_terakhir' => $harga,
                 'min_order_qty' => $minOrder,
                 'avg_lt_days' => $avgLt,
@@ -405,7 +810,7 @@ class AnalisaService
                 'sumber_lt' => $sumberLt,
                 'sumber_lt_label' => $sumberLtLabel,
                 'is_fallback' => $trxCount === 0,
-                'status' => $pivot ? $pivot->status : 'aktif',
+                'status' => $entry['relasi_status'],
                 'batas_minimum' => (float) $simBatasMin,
                 'target_stock' => (float) $simTargetStock,
                 'simulasi_batas_minimum' => (float) $simBatasMin,
@@ -723,8 +1128,8 @@ class AnalisaService
                 $aduBase = round($jumlahHari > 0 ? ($out / $jumlahHari) : 0);
                 $distribusi = (float) $v->persentase_distribusi;
 
-                // ADU ETA proporsional per varian
-                $aduEta = round($aduBase + ($reviewPeriod > 0 ? ($distribusi * ($ltAvg / $reviewPeriod)) : 0));
+                // ADU murni per produk/varian (tidak bergantung pada supplier / lead time)
+                $aduEta = $aduBase;
 
                 $safetyStock = round($aduEta * $bufferDays);
                 $minimumStock = round($aduEta * $ltAvg);
@@ -760,7 +1165,7 @@ class AnalisaService
         } else {
             $out = round((float) $meta->out_total_4bulan);
             $aduBase = round($jumlahHari > 0 ? ($out / $jumlahHari) : 0);
-            $aduEta = round($aduBase + ($reviewPeriod > 0 ? ($ltAvg / $reviewPeriod) : 0));
+            $aduEta = $aduBase;
             $safetyStock = round($aduEta * $bufferDays);
             $minimumStock = round($aduEta * $ltAvg);
             $targetStock = round($aduEta * ($ltAvg + $bufferDays + $reviewPeriod));
@@ -910,9 +1315,9 @@ class AnalisaService
                 $jumlahHari = 122;
             }
 
-            // Hitung ADU Base & ADU ETA Produk Master dengan presisi desimal riil seperti Excel
+            // Hitung ADU murni per produk (tidak bergantung pada supplier / lead time)
             $aduBase = $jumlahHari > 0 ? ($out / $jumlahHari) : 0;
-            $aduEta = $aduBase + ($reviewPeriod > 0 ? ($ltAvg / $reviewPeriod) : 0);
+            $aduEta = $aduBase;
 
             $totalSafetyStock = round($aduEta * $bufferDays);
             $totalMinStock = round($aduEta * $ltAvg);

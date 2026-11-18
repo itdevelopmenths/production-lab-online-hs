@@ -107,7 +107,7 @@
                         Total OUT (Pengeluaran)
                     </label>
                     <p class="text-[11px] text-muted-foreground mb-2.5">
-                        ADU Base = OUT / <span class="font-bold font-mono text-foreground" x-text="simulasiImporJumlahHari()"></span> Hari
+                        ADU = OUT / <span class="font-bold font-mono text-foreground" x-text="simulasiImporJumlahHari()"></span> Hari (per produk)
                     </p>
                     <div class="relative flex items-center">
                         <input type="number" step="0.01" min="0" x-model.number="manualImporForm.out" class="w-full px-3 py-2 text-xs rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold text-foreground pr-12 shadow-xs">
@@ -224,14 +224,10 @@
                     MOQ: <span class="font-mono font-bold text-foreground" x-text="formatNumber(manualImporForm.satuan_order_moq || 1) + ' ' + (manualImporForm.satuan || '')"></span>
                 </div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-xs">
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
                 <div class="p-2.5 bg-muted/40 rounded-lg border border-border text-center shadow-xs">
-                    <div class="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">ADU Base</div>
+                    <div class="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">ADU Harian</div>
                     <div class="font-mono font-bold text-foreground text-xs mt-1" x-text="simulasiImporAdu()"></div>
-                </div>
-                <div class="p-2.5 bg-muted/40 rounded-lg border border-border text-center shadow-xs">
-                    <div class="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">ADU ETA</div>
-                    <div class="font-mono font-bold text-foreground text-xs mt-1" x-text="simulasiImporAduEta()"></div>
                 </div>
                 <div class="p-2.5 bg-muted/40 rounded-lg border border-border text-center shadow-xs">
                     <div class="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider">Safety Stock</div>

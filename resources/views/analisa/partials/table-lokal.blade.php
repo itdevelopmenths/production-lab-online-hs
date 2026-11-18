@@ -169,11 +169,11 @@
             </x-card>
         </div>
 
-        {{-- TABEL 2: Working Data Analisa (analisa_lokal) --}}
+        {{-- TABEL 2: Working Data Analisa (analisa_lokal — seluruh kombinasi supplier-produk) --}}
         <div x-show="lokalSubTab === 'analisa'">
             <x-card 
-                title="Tabel Working Data Analisa Stok (analisa_lokal)" 
-                subtitle="Perhitungan ADU (Average Daily Usage), Batas Minimum [ADU x (Lead Time + Safety Stock)], dan Target Stock"
+                title="Tabel Working Data Analisa Stok — ADU Seluruh Supplier–Produk" 
+                subtitle="ADU dihitung murni per produk (tidak bergantung supplier); Lead Time, Safety Stock, Batas Minimum, & Target Stock mengikuti masing-masing supplier"
                 :noPadding="true"
             >
                 <div class="overflow-x-auto">
@@ -182,7 +182,7 @@
                             <tr>
                                 <th class="py-3 px-4">Bahan Baku</th>
                                 <th class="py-3 px-4">Supplier</th>
-                                <th class="py-3 px-4 text-right">Avg Lead Time (Hari)</th>
+                                <th class="py-3 px-4 text-right">Avg LT (Hari)</th>
                                 <th class="py-3 px-4 text-right">Safety Stock (Hari)</th>
                                 <th class="py-3 px-4 text-right">Terjual 4 Bulan</th>
                                 <th class="py-3 px-4 text-right bg-muted/40 text-foreground">ADU</th>
@@ -190,12 +190,12 @@
                                 <th class="py-3 px-4 text-right bg-muted/40 text-foreground font-bold">Batas Minimum</th>
                                 <th class="py-3 px-4 text-right font-bold text-foreground">Target Stock</th>
                                 <th class="py-3 px-4 text-right">Generated At</th>
-                                <th class="py-3 px-3 text-center w-24">Aksi</th>
+                                <th class="py-3 px-3 text-center w-36">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border bg-card">
-                            <template x-for="r in paginatedRows()" :key="r.id">
-                                <tr class="hover:bg-muted/40 transition">
+                            <template x-for="r in paginatedAnalisaRows()" :key="r.row_key">
+                                <tr class="hover:bg-muted/40 transition" :class="r.is_active_supplier ? 'bg-primary/[0.03]' : ''">
                                     <td class="py-3 px-4">
                                         <div class="font-bold text-foreground" x-text="r.nama"></div>
                                         <div class="font-mono text-[10px] text-muted-foreground" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
@@ -206,10 +206,13 @@
                                                 <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
                                                 <svg class="size-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
                                             </button>
+                                            <template x-if="r.is_active_supplier && r.supplier_id">
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/70">Aktif</span>
+                                            </template>
                                             <template x-if="r.sumber_lt === 'otomatis'">
-                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" title="Sumber: Histori PO Otomatis">
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" :title="'Sumber: Histori PO Otomatis (' + (r.total_po_selesai || 0) + ' PO)'">
                                                     <span class="size-1 rounded-full bg-emerald-500 shrink-0"></span>
-                                                    <span>Otomatis</span>
+                                                    <span x-text="'Otomatis (' + (r.total_po_selesai || 0) + ' PO)'"></span>
                                                 </span>
                                             </template>
                                             <template x-if="r.sumber_lt !== 'otomatis'">
@@ -217,6 +220,9 @@
                                                     <span class="size-1 rounded-full bg-amber-500 shrink-0"></span>
                                                     <span>Manual</span>
                                                 </span>
+                                            </template>
+                                            <template x-if="r.relasi_status === 'riwayat_po'">
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-muted text-muted-foreground border border-border" title="Pernah menyuplai berdasarkan riwayat PO">Riwayat PO</span>
                                             </template>
                                             <a :href="'{{ route('purchasing.index', ['tab' => 'po']) }}' + (r.supplier_nama && r.supplier_nama !== '-' ? '&search=' + encodeURIComponent(r.supplier_nama) : '')" href="{{ route('purchasing.index', ['tab' => 'po']) }}" class="text-[10px] text-muted-foreground hover:text-primary underline ml-1" title="Lihat Daftar Purchase Order Supplier">Histori LT</a>
                                         </div>
@@ -231,16 +237,23 @@
                                     <td class="py-3 px-4 text-right font-mono text-[11px] text-muted-foreground" x-text="r.generated_at"></td>
                                     <td class="py-3 px-3 text-center">
                                         @can('analisa.manage')
-                                        <button type="button" @click="openManualLokalModal(r)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border text-[10px] font-medium transition cursor-pointer" title="Edit Terjual 4 Bulan & Review Period">
-                                            Edit Input
-                                        </button>
+                                        <div class="flex items-center justify-center gap-1 flex-wrap">
+                                            <template x-if="!r.is_active_supplier && r.supplier_id">
+                                                <button type="button" @click="selectSupplierDirect(r.produk_id, r.supplier_id)" :disabled="savingSelectSupplier" class="px-2 py-1 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 rounded-lg text-[10px] font-medium transition cursor-pointer" title="Jadikan Supplier Aktif untuk Rekomendasi Order">
+                                                    Aktifkan
+                                                </button>
+                                            </template>
+                                            <button type="button" @click="openManualLokalModal(r)" class="px-2 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border text-[10px] font-medium transition cursor-pointer" title="Edit Terjual 4 Bulan & Review Period Produk">
+                                                Edit Input
+                                            </button>
+                                        </div>
                                         @else
                                         <span class="text-muted-foreground text-[10px]">-</span>
                                         @endcan
                                     </td>
                                 </tr>
                             </template>
-                            <template x-if="paginatedRows().length === 0">
+                            <template x-if="paginatedAnalisaRows().length === 0">
                                 <tr>
                                     <td colspan="11" class="py-8 text-center text-muted-foreground text-xs">
                                         Tidak ada data working analisa yang cocok.

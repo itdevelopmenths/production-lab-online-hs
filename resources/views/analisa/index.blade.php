@@ -151,7 +151,7 @@
 
                 <template x-if="tab === 'lokal' || tab === 'impor'">
                     <div class="flex items-center gap-2">
-                        <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || tab === 'impor'">
+                        <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || (tab === 'impor' && imporSubTab === 'rekomendasi')">
                             <select 
                                 x-model="statusFilter" 
                                 @change="page = 1"
@@ -178,7 +178,7 @@
 
             <!-- Kanan: Tombol Aksi Massal & Jumlah per Halaman -->
             <div class="flex flex-wrap items-center gap-3 text-xs">
-                <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || tab === 'impor'">
+                <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || (tab === 'impor' && imporSubTab === 'rekomendasi')">
                     <div class="flex items-center gap-2 border-r border-border pr-3">
                         <button type="button" @click="selectAllPerluOrder()" class="px-2.5 py-1.5 text-xs font-semibold text-destructive bg-destructive/10 hover:bg-destructive/15 rounded-lg border border-destructive/20 transition cursor-pointer">
                             Pilih Perlu Order (<span x-text="kpiOrderCount()"></span>)
@@ -231,6 +231,7 @@
       return {
         tab: 'lokal',
         lokalSubTab: 'rekomendasi',
+        imporSubTab: 'rekomendasi',
         rows: [],
         tables: {
           rekomendasi: [],
@@ -469,6 +470,10 @@
         },
         async selectSupplier(supplierId) {
           if (!this.compareProduct.id || !supplierId) return;
+          await this.selectSupplierDirect(this.compareProduct.id, supplierId, true);
+        },
+        async selectSupplierDirect(produkId, supplierId, closeModal = false) {
+          if (!produkId || !supplierId) return;
           this.savingSelectSupplier = true;
           try {
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -480,13 +485,15 @@
                 'X-CSRF-TOKEN': csrf
               },
               body: JSON.stringify({
-                produk_id: this.compareProduct.id,
+                produk_id: produkId,
                 supplier_id: supplierId
               })
             });
             const data = await res.json();
             if (data.success) {
-              this.showCompareSupplierModal = false;
+              if (closeModal) {
+                this.showCompareSupplierModal = false;
+              }
               await this.load();
             } else {
               alert(data.message || 'Gagal memilih supplier');
@@ -563,7 +570,7 @@
             );
           }
           if (this.tab === 'lokal' || this.tab === 'impor') {
-            if (this.statusFilter !== 'all' && ((this.tab === 'lokal' && this.lokalSubTab === 'rekomendasi') || this.tab === 'impor')) {
+            if (this.statusFilter !== 'all' && ((this.tab === 'lokal' && this.lokalSubTab === 'rekomendasi') || (this.tab === 'impor' && this.imporSubTab === 'rekomendasi'))) {
               list = list.filter(r => {
                 const s = String(r.status || '').toLowerCase();
                 if (this.statusFilter === 'order') return s === 'order' || s === 'po';
@@ -580,6 +587,29 @@
         },
         paginatedRows(){
           const list = this.filteredRows();
+          if (this.perPage === 'all') return list;
+          const pp = Number(this.perPage) || 15;
+          const start = (this.page - 1) * pp;
+          return list.slice(start, start + pp);
+        },
+        filteredAnalisaRows(){
+          let list = (this.tables && Array.isArray(this.tables.analisa)) ? this.tables.analisa : [];
+          if (this.searchQuery && this.searchQuery.trim()) {
+            const q = this.searchQuery.toLowerCase().trim();
+            list = list.filter(r =>
+              (r.nama && r.nama.toLowerCase().includes(q)) ||
+              (r.sku && r.sku.toLowerCase().includes(q)) ||
+              (r.supplier_nama && r.supplier_nama.toLowerCase().includes(q))
+            );
+          }
+          if (this.supplierFilter !== 'all') {
+            const sf = String(this.supplierFilter);
+            list = list.filter(r => String(r.supplier_id) === sf);
+          }
+          return list;
+        },
+        paginatedAnalisaRows(){
+          const list = this.filteredAnalisaRows();
           if (this.perPage === 'all') return list;
           const pp = Number(this.perPage) || 15;
           const start = (this.page - 1) * pp;
@@ -650,11 +680,17 @@
           if (this.tab === 'lokal' && this.lokalSubTab === 'stages') {
             return this.filteredStages().length;
           }
+          if ((this.tab === 'lokal' && this.lokalSubTab === 'analisa') || (this.tab === 'impor' && this.imporSubTab === 'analisa')) {
+            return this.filteredAnalisaRows().length;
+          }
           return this.filteredRows().length;
         },
         currentRawLength(){
           if (this.tab === 'lokal' && this.lokalSubTab === 'stages') {
             return (this.tables && this.tables.stages) ? this.tables.stages.length : 0;
+          }
+          if ((this.tab === 'lokal' && this.lokalSubTab === 'analisa') || (this.tab === 'impor' && this.imporSubTab === 'analisa')) {
+            return (this.tables && Array.isArray(this.tables.analisa)) ? this.tables.analisa.length : 0;
           }
           return this.rows.length;
         },
@@ -1264,10 +1300,8 @@
         simulasiImporAduEtaRaw(){
           const out = Number(this.manualImporForm.out) || 0;
           const days = this.simulasiImporJumlahHari();
-          const aduBase = days > 0 ? (out / days) : 0;
-          const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
-          const rp = Number(this.manualImporForm.review_period) || 30;
-          return aduBase + (rp > 0 ? (avgLt / rp) : 0);
+          // ADU murni per produk (tidak bergantung pada supplier / lead time)
+          return days > 0 ? (out / days) : 0;
         },
         simulasiImporAduEta(){
           return this.formatNumber(this.simulasiImporAduEtaRaw());
@@ -1606,9 +1640,7 @@
             const res = await fetch(this.urls[this.tab]);
             const j = await res.json();
             this.rows = j.data || [];
-            if (j.tables) {
-              this.tables = j.tables;
-            }
+            this.tables = j.tables || { rekomendasi: [], analisa: [], lead_time: [], stages: [] };
             if (j.meta) {
               this.meta = j.meta;
             }

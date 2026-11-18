@@ -286,31 +286,31 @@ class AnalisaImporEngineTest extends TestCase
         // Jumlah hari: 01/10/2024 s/d 31/01/2025 = 123 hari (31 + 30 + 31 + 31)
         $this->assertEquals(123, $ai->jumlah_hari_periode);
 
-        // ADU Base = 55.099 / 123 = 447.96 pcs/hari
-        $this->assertEqualsWithDelta(447.96, (float) $ai->adu_base, 150.0);
+        // ADU Base = 55.099 / 123 = 447.9593 pcs/hari (murni per produk, tidak bergantung supplier / LT)
+        $this->assertEqualsWithDelta(447.96, (float) $ai->adu_base, 0.05);
 
         // Buffer Days = (92 - 60) + 4 = 36 hari
         $this->assertEqualsWithDelta(36.00, (float) $ai->buffer_days, 0.01);
 
-        // ADU ETA = 447.96 + (60 / 30) = 449.96 pcs/hari
-        $this->assertEqualsWithDelta(449.96, (float) $ai->adu_eta, 150.0);
+        // ADU ETA = ADU Base = 447.9593 pcs/hari (tidak bergantung pada LT supplier)
+        $this->assertEqualsWithDelta((float) $ai->adu_base, (float) $ai->adu_eta, 0.0001);
 
-        // Safety Stock = 449.96 * 36 = 16.198,56 pcs
-        $this->assertEqualsWithDelta(16198.56, (float) $ai->safety_stock, 1.0);
+        // Safety Stock = round(447.9593 * 36) = 16.127 pcs
+        $this->assertEqualsWithDelta(16127, (float) $ai->safety_stock, 1.0);
 
-        // Minimum Stock = 449.96 * 60 = 26.997,60 pcs
-        $this->assertEqualsWithDelta(26997.60, (float) $ai->minimum_stock, 1.0);
+        // Minimum Stock = round(447.9593 * 60) = 26.878 pcs
+        $this->assertEqualsWithDelta(26878, (float) $ai->minimum_stock, 1.0);
 
-        // Target Stock = 449.96 * (60 + 36 + 30) = 56.694,96 pcs
-        $this->assertEqualsWithDelta(56694.96, (float) $ai->target_stock, 1.0);
+        // Target Stock = floor(447.9593 * (60 + 36 + 30)) = 56.442 pcs
+        $this->assertEqualsWithDelta(56442, (float) $ai->target_stock, 1.0);
 
-        // Proyeksi = 1.200 + 0 - 26.997,60 = -25.797,60 pcs
-        $this->assertEqualsWithDelta(-25797.60, (float) $ai->proyeksi, 1.0);
+        // Proyeksi = 1.200 + 0 - 26.878 = -25.678 pcs
+        $this->assertEqualsWithDelta(-25678, (float) $ai->proyeksi, 1.0);
 
-        // Kebutuhan Qty Order = 82.492,56 pcs
-        $this->assertEqualsWithDelta(82492.56, (float) $ai->qty_order, 1.0);
+        // Kebutuhan Qty Order = 82.120 pcs
+        $this->assertEqualsWithDelta(82120, (float) $ai->qty_order, 1.0);
 
-        // Rekomendasi Order Bulat MOQ 10.000 = ceil(82.492,56 / 10.000) * 10.000 = 90.000 pcs!
+        // Rekomendasi Order Bulat MOQ 10.000 = ceil(82.120 / 10.000) * 10.000 = 90.000 pcs!
         $this->assertEquals(90000, (int) $ai->po);
         $this->assertEquals('po', $ai->status);
     }

@@ -396,4 +396,189 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
         $this->assertNotNull($invalidRow);
         $this->assertSame('manual', $invalidRow['sumber_lt']);
     }
+
+    /**
+     * Opsi 1 (Lokal): Tab Working Data ADU menampilkan seluruh kombinasi supplier-produk
+     * (termasuk supplier yang pernah menyuplai via histori PO) dengan ADU murni per produk
+     * dan Lead Time / Safety Stock / Batas Minimum / Target Stock masing-masing supplier,
+     * sementara Tab Rekomendasi Order tetap 1 baris aktif per produk.
+     */
+    public function test_lokal_adu_table_lists_all_supplier_product_pairs_with_supplier_independent_adu(): void
+    {
+        $supplierC = Supplier::create([
+            'nama' => 'PT C Histori Saja',
+            'kode' => 'SUP-C',
+            'kategori' => 'lokal',
+            'is_active' => true,
+        ]);
+
+        // Input pemakaian produk: 3.000 / 30 = ADU 100 per hari
+        \App\Models\AnalisaLokalInput::create([
+            'produk_id' => $this->produkLokal->id,
+            'terjual_rata_rata_4bulan' => 3000,
+            'review_period' => 15,
+        ]);
+        LeadTimeLokal::create([
+            'produk_id' => $this->produkLokal->id,
+            'total_average_lead_time' => 5.0,
+            'total_max_lead_time' => 7.0,
+            'tambahan_buffer_hari' => 2.0,
+            'safety_stock' => 4.0,
+        ]);
+
+        // PT A (aktif, 5 avg / 7 max -> SS 4), PT B (aktif, 8 avg / 12 max -> SS 6), PT C (hanya histori PO, 10 avg / 13 max -> SS 5)
+        SupplierProdukLtSummary::create([
+            'supplier_id' => $this->supplierA->id,
+            'produk_id' => $this->produkLokal->id,
+            'jumlah_transaksi' => 2,
+            'average_lt_hari' => 5.0,
+            'max_lt_hari' => 7.0,
+            'diperbarui_pada' => now(),
+        ]);
+        SupplierProdukLtSummary::create([
+            'supplier_id' => $this->supplierB->id,
+            'produk_id' => $this->produkLokal->id,
+            'jumlah_transaksi' => 3,
+            'average_lt_hari' => 8.0,
+            'max_lt_hari' => 12.0,
+            'diperbarui_pada' => now(),
+        ]);
+        SupplierProdukLtSummary::create([
+            'supplier_id' => $supplierC->id,
+            'produk_id' => $this->produkLokal->id,
+            'jumlah_transaksi' => 1,
+            'average_lt_hari' => 10.0,
+            'max_lt_hari' => 13.0,
+            'diperbarui_pada' => now(),
+        ]);
+
+        $this->analisaService->generateLokal($this->produkLokal->id, $this->manager->id);
+
+        $res = $this->actingAs($this->purchasing)->getJson(route('analisa.lokal.data'));
+        $res->assertOk();
+
+        // Tab 1 Rekomendasi tetap 1 baris untuk produk ini (supplier aktif = PT A)
+        $rekRows = collect($res->json('data'))->where('produk_id', $this->produkLokal->id);
+        $this->assertCount(1, $rekRows);
+
+        // Tab 2 Working Data ADU menampilkan 3 baris (PT A, PT B, PT C)
+        $aduRows = collect($res->json('tables.analisa'))->where('produk_id', $this->produkLokal->id)->values();
+        $this->assertCount(3, $aduRows);
+
+        $rowA = $aduRows->firstWhere('supplier_id', $this->supplierA->id);
+        $rowB = $aduRows->firstWhere('supplier_id', $this->supplierB->id);
+        $rowC = $aduRows->firstWhere('supplier_id', $supplierC->id);
+
+        $this->assertNotNull($rowA);
+        $this->assertNotNull($rowB);
+        $this->assertNotNull($rowC);
+
+        // ADU sama persis di ketiga supplier (100/hari, tidak bergantung supplier)
+        $this->assertEquals(100, $rowA['adu']);
+        $this->assertEquals(100, $rowB['adu']);
+        $this->assertEquals(100, $rowC['adu']);
+
+        // Lead time, safety stock, batas minimum, target stock mengikuti masing-masing supplier
+        $this->assertTrue($rowA['is_active_supplier']);
+        $this->assertEquals(900, $rowA['batas_minimum']);   // 100 * (5 + 4)
+        $this->assertEquals(2400, $rowA['target_stock']);   // 100 * (5 + 4 + 15)
+
+        $this->assertFalse($rowB['is_active_supplier']);
+        $this->assertEquals(1400, $rowB['batas_minimum']);  // 100 * (8 + 6)
+        $this->assertEquals(2900, $rowB['target_stock']);   // 100 * (8 + 6 + 15)
+
+        $this->assertFalse($rowC['is_active_supplier']);
+        $this->assertSame('riwayat_po', $rowC['relasi_status']);
+        $this->assertEquals(1500, $rowC['batas_minimum']);  // 100 * (10 + 5)
+        $this->assertEquals(3000, $rowC['target_stock']);   // 100 * (10 + 5 + 15)
+    }
+
+    /**
+     * Opsi 1 (Impor): ADU tidak boleh berubah saat supplier (dan Lead Time) berbeda/diganti,
+     * sementara Buffer Days, Safety Stock, Min Stock, & Target Stock dihitung per supplier.
+     */
+    public function test_impor_adu_is_supplier_independent_and_lists_all_supplier_product_pairs(): void
+    {
+        ProdukSupplier::updateOrCreate(
+            ['produk_id' => $this->produkImpor->id, 'supplier_id' => $this->supplierA->id],
+            ['status' => 'aktif']
+        );
+        ProdukSupplier::updateOrCreate(
+            ['produk_id' => $this->produkImpor->id, 'supplier_id' => $this->supplierB->id],
+            ['status' => 'aktif']
+        );
+
+        SupplierProdukLtSummary::create([
+            'supplier_id' => $this->supplierA->id,
+            'produk_id' => $this->produkImpor->id,
+            'jumlah_transaksi' => 2,
+            'average_lt_hari' => 30.0,
+            'max_lt_hari' => 40.0,
+            'diperbarui_pada' => now(),
+        ]);
+        SupplierProdukLtSummary::create([
+            'supplier_id' => $this->supplierB->id,
+            'produk_id' => $this->produkImpor->id,
+            'jumlah_transaksi' => 2,
+            'average_lt_hari' => 60.0,
+            'max_lt_hari' => 75.0,
+            'diperbarui_pada' => now(),
+        ]);
+
+        // Set OUT = 10.000 selama 100 hari -> ADU = 100.0 tepat
+        AnalisaImpor::create([
+            'produk_id' => $this->produkImpor->id,
+            'supplier_terpilih_id' => $this->supplierA->id,
+            'out' => 10000,
+            'periode_mulai' => '2026-01-01',
+            'periode_akhir' => '2026-04-10', // 100 hari inklusif
+            'jumlah_hari_periode' => 100,
+            'review_period' => 30,
+            'klasifikasi_abc' => 'c',
+            'tambahan_buffer_hari' => 0,
+            'stok_saat_ini' => 500,
+            'inbound_before_eta' => 0,
+        ]);
+
+        $this->analisaService->generateImpor($this->produkImpor->id, $this->manager->id);
+
+        $beforeSwitch = AnalisaImpor::where('produk_id', $this->produkImpor->id)->firstOrFail();
+        $this->assertEqualsWithDelta(100.0, (float) $beforeSwitch->adu_base, 0.001);
+        $this->assertEqualsWithDelta(100.0, (float) $beforeSwitch->adu_eta, 0.001);
+
+        $res = $this->actingAs($this->purchasing)->getJson(route('analisa.impor.data'));
+        $res->assertOk();
+
+        // Tab 1 Rekomendasi Impor tetap 1 baris
+        $this->assertCount(1, collect($res->json('data'))->where('produk_id', $this->produkImpor->id));
+
+        // Tab 2 Working Data ADU Impor menampilkan 2 baris (Supplier A & Supplier B)
+        $aduRows = collect($res->json('tables.analisa'))->where('produk_id', $this->produkImpor->id)->values();
+        $this->assertCount(2, $aduRows);
+
+        $rowA = $aduRows->firstWhere('supplier_id', $this->supplierA->id);
+        $rowB = $aduRows->firstWhere('supplier_id', $this->supplierB->id);
+
+        // ADU identik di kedua supplier (100/hari) meski LT berbeda (30 vs 60)
+        $this->assertEqualsWithDelta(100.0, (float) $rowA['adu'], 0.01);
+        $this->assertEqualsWithDelta(100.0, (float) $rowB['adu'], 0.01);
+        $this->assertEquals(3000, $rowA['minimum_stock']);  // 100 * 30
+        $this->assertEquals(1000, $rowA['safety_stock']);   // 100 * (40 - 30)
+        $this->assertEquals(7000, $rowA['target_stock']);   // 100 * (30 + 10 + 30)
+        $this->assertEquals(6000, $rowB['minimum_stock']);  // 100 * 60
+        $this->assertEquals(1500, $rowB['safety_stock']);   // 100 * (75 - 60)
+        $this->assertEquals(10500, $rowB['target_stock']);  // 100 * (60 + 15 + 30)
+
+        // Ganti supplier aktif ke Supplier B -> ADU tetap 100.0, hanya LT & target berubah
+        $this->actingAs($this->manager)->postJson(route('analisa.select-supplier'), [
+            'produk_id' => $this->produkImpor->id,
+            'supplier_id' => $this->supplierB->id,
+        ])->assertOk();
+
+        $afterSwitch = AnalisaImpor::where('produk_id', $this->produkImpor->id)->firstOrFail();
+        $this->assertEqualsWithDelta(100.0, (float) $afterSwitch->adu_base, 0.001);
+        $this->assertEqualsWithDelta(100.0, (float) $afterSwitch->adu_eta, 0.001);
+        $this->assertEquals(60.0, (float) $afterSwitch->lead_time);
+        $this->assertEquals(6000, (int) $afterSwitch->minimum_stock);
+    }
 }
