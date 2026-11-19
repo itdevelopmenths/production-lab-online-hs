@@ -14,29 +14,19 @@
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Pemeriksaan Opname</p>
-            <p class="text-xl font-bold font-mono text-foreground mt-1">{{ number_format($totalOpname) }} <span class="text-xs font-normal text-muted-foreground">Record</span></p>
-        </div>
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Selisih Lebih (Pemborosan)</p>
-            <p class="text-xl font-bold font-mono {{ $borosCount > 0 ? 'text-destructive' : 'text-muted-foreground' }} mt-1">
-                {{ number_format($borosCount) }} <span class="text-xs font-normal text-muted-foreground">Batch</span>
-            </p>
-        </div>
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Sesuai / Efisien (&le; 0)</p>
-            <p class="text-xl font-bold font-mono text-emerald-600 mt-1">
-                {{ number_format($hematCount) }} <span class="text-xs font-normal text-muted-foreground">Batch</span>
-            </p>
-        </div>
+        <x-stat-box title="Total Pemeriksaan Opname" :value="number_format($totalOpname)" subtitle="Record" iconColor="gray" />
+        <x-stat-box title="Selisih Lebih (Pemborosan)" :value="number_format($borosCount)" subtitle="Batch" :iconColor="$borosCount > 0 ? 'rose' : 'gray'" />
+        <x-stat-box title="Sesuai / Efisien (&le; 0)" :value="number_format($hematCount)" subtitle="Batch" iconColor="emerald" />
     </div>
 
     <!-- Table Card -->
-    <x-card title="Data Deviasi Pemakaian Bahan Baku" subtitle="Daftar rekapitulasi audit opname bahan dari batch produksi">
-        <div class="-mx-4 -my-4 overflow-x-auto">
-            <table class="w-full text-xs text-left border-collapse">
-                <thead class="bg-muted/70 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
+    <x-card title="Data Deviasi Pemakaian Bahan Baku" subtitle="Daftar rekapitulasi audit opname bahan dari batch produksi" :noPadding="true">
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Data Deviasi Pemakaian Bahan Baku" class="overflow-x-auto">
+            <table class="w-full text-sm text-left border-collapse">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 text-[13px] font-medium border-b border-[#E8E8E8] dark:border-gray-800">
                     <tr>
                         <th class="px-4 py-3 w-40">No. Batch</th>
                         <th class="px-4 py-3">Nama Bahan / Material</th>
@@ -46,41 +36,41 @@
                         <th class="px-4 py-3">Keterangan</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-border">
+                <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800">
                     @forelse($opname as $o)
                     @php
                         $var = $o->variance();
                     @endphp
-                    <tr class="hover:bg-muted/40 transition-colors">
-                        <td class="px-4 py-2.5 font-mono font-medium text-foreground">
+                    <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
+                        <td class="px-4 py-3 font-mono font-medium text-[#101828] dark:text-white">
                             {{ $o->batch->no_batch ?? '-' }}
                         </td>
-                        <td class="px-4 py-2.5 font-medium text-foreground">
+                        <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                             {{ $o->bahan->nama ?? '-' }}
                         </td>
-                        <td class="px-4 py-2.5 text-right font-mono text-muted-foreground">
+                        <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
                             {{ number_format($o->pemakaian_teoritis, 2, ',', '.') }}
                         </td>
-                        <td class="px-4 py-2.5 text-right font-mono text-foreground font-medium">
+                        <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white font-medium">
                             {{ number_format($o->pemakaian_aktual, 2, ',', '.') }}
                         </td>
-                        <td class="px-4 py-2.5 text-right font-mono font-semibold">
+                        <td class="px-4 py-3 text-right font-mono font-semibold">
                             @if($var > 0)
-                                <span class="text-destructive font-semibold">+{{ number_format($var, 2, ',', '.') }}</span>
+                                <span class="text-rose-600 dark:text-rose-400 font-semibold">+{{ number_format($var, 2, ',', '.') }}</span>
                             @elseif($var < 0)
-                                <span class="text-emerald-600 font-semibold">{{ number_format($var, 2, ',', '.') }}</span>
+                                <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ number_format($var, 2, ',', '.') }}</span>
                             @else
-                                <span class="text-muted-foreground">0,00</span>
+                                <span class="text-[#667085] dark:text-gray-400">0,00</span>
                             @endif
                         </td>
-                        <td class="px-4 py-2.5 text-muted-foreground text-xs">
+                        <td class="px-4 py-3 text-[#667085] dark:text-gray-400 text-xs">
                             {{ $o->keterangan ?? '-' }}
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-12 text-center text-xs text-muted-foreground">
-                            <svg class="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <td colspan="6" class="px-4 py-12 text-center text-xs text-[#667085] dark:text-gray-400">
+                            <svg class="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                             Belum ada catatan audit variance opname.
                         </td>
                     </tr>

@@ -94,99 +94,100 @@
         />
 
         {{-- Banner Panduan Rekomendasi --}}
-        <div class="rounded-xl border border-border bg-card p-4.5 flex items-start justify-between gap-4 shadow-xs">
+        <div class="rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-5 flex flex-wrap items-start justify-between gap-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div class="flex items-start gap-3.5">
-                <div class="size-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-                    <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                <div class="size-10 rounded-[10px] border border-[#E8E8E8] dark:border-gray-700 bg-[#fafafa] dark:bg-gray-800 text-[#111111] dark:text-white flex items-center justify-center shrink-0 mt-0.5">
+                    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                 </div>
                 <div>
-                    <h4 class="text-sm font-semibold text-foreground">Formulir Pengadaan dari Analisa Stok</h4>
-                    <p class="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    <h4 class="text-sm font-semibold text-[#101828] dark:text-white">Formulir Pengadaan dari Analisa Stok</h4>
+                    <p class="text-xs text-[#667085] dark:text-gray-400 mt-0.5 leading-relaxed">
                         Daftar bahan baku di bawah ini dimuat berdasarkan rekomendasi perhitungan batas minimum & rumus MOQ. Anda dapat memilih supplier rekanan, menyesuaikan kuantitas beli, atau menambah dan menghapus baris item sesuai kebutuhan.
                     </p>
                 </div>
             </div>
             <div class="text-right shrink-0">
-                <span class="text-xs text-muted-foreground block">Total Baris Terisi</span>
-                <span class="text-base font-bold text-foreground font-mono">{{ count($rows) }} Bahan</span>
+                <span class="text-xs text-[#667085] dark:text-gray-400 block">Total Baris Terisi</span>
+                <span class="text-base font-bold text-[#101828] dark:text-white font-mono">{{ count($rows) }} Bahan</span>
             </div>
         </div>
 
         <div x-data="poForm({{ Js::from($initialData) }})" x-init="init()">
             <form method="POST" action="{{ route('analisa.create-po.store') }}" @submit="if(submitting) return false; submitting = true">
             @csrf
-            <div class="space-y-6">
-                {{-- Card 1: Informasi Header PO & Lokasi --}}
-                <x-card title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <x-form-group name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
-                            <x-select name="supplier_id" placeholder="— Pilih Supplier —" :required="true" x-model="supplierId">
+            <div class="bg-[#F5F5F5] dark:bg-gray-950 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 sm:p-5 space-y-5">
+                {{-- Section 1: Informasi Header PO & Lokasi --}}
+                <x-form-section title="Informasi Purchase Order" subtitle="Identitas pengadaan, supplier rekanan, gudang tujuan, dan nomor invoice">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <x-form-field name="supplier_id" label="Pemasok / Supplier" :required="true" help="Daftar rekanan aktif terverifikasi">
+                            <x-select name="supplier_id" variant="seamless" placeholder="— Pilih Supplier —" :required="true" x-model="supplierId">
                                 @foreach($suppliers as $s)
                                     <option value="{{ $s->id }}" @selected(old('supplier_id', $defaultSupplierId ?? '') == $s->id)>
                                         {{ $s->nama }} ({{ ucfirst($s->kategori) }})
                                     </option>
                                 @endforeach
                             </x-select>
-                        </x-form-group>
+                        </x-form-field>
 
-                        <x-form-group name="gudang_id" label="Lokasi PO (Gudang Tujuan)" help="Gudang penerima saat barang datang">
-                            <x-select name="gudang_id" placeholder="— Pilih Gudang Penerima —">
+                        <x-form-field name="gudang_id" label="Lokasi PO (Gudang Tujuan)" help="Gudang penerima saat barang datang">
+                            <x-select name="gudang_id" variant="seamless" placeholder="— Pilih Gudang Penerima —">
                                 @foreach($gudang as $g)
                                     <option value="{{ $g->id }}" @selected(old('gudang_id') == $g->id)>
                                         {{ $g->nama }} ({{ ucwords(str_replace('_', ' ', $g->tipe)) }})
                                     </option>
                                 @endforeach
                             </x-select>
-                        </x-form-group>
+                        </x-form-field>
 
-                        <x-form-group name="no_invoice" label="No Invoice / Vendor Ref" help="Kosongkan jika ingin dibuat otomatis oleh sistem">
-                            <x-input type="text" name="no_invoice" value="{{ old('no_invoice') }}" placeholder="Otomatis (cth: INV/PO/202609/0001)" />
-                        </x-form-group>
+                        <x-form-field name="no_invoice" label="No Invoice / Vendor Ref" help="Kosongkan jika ingin dibuat otomatis oleh sistem">
+                            <x-input type="text" name="no_invoice" variant="seamless" value="{{ old('no_invoice') }}" placeholder="Otomatis (cth: INV/PO/202609/0001)" />
+                        </x-form-field>
 
-                        <x-form-group name="tanggal" label="Tanggal PO" :required="true">
-                            <x-input type="date" name="tanggal" value="{{ old('tanggal', date('Y-m-d')) }}" :required="true" />
-                        </x-form-group>
+                        <x-form-field name="tanggal" label="Tanggal PO" :required="true">
+                            <x-input type="date" name="tanggal" variant="seamless" value="{{ old('tanggal', date('Y-m-d')) }}" :required="true" />
+                        </x-form-field>
 
-                        <x-form-group name="eta" label="Estimasi Kedatangan (ETA)" help="Perkiraan pesanan tiba di gudang">
-                            <x-input type="date" name="eta" value="{{ old('eta') }}" />
-                        </x-form-group>
+                        <x-form-field name="eta" label="Estimasi Kedatangan (ETA)" help="Perkiraan pesanan tiba di gudang">
+                            <x-input type="date" name="eta" variant="seamless" value="{{ old('eta') }}" />
+                        </x-form-field>
 
-                        <x-form-group name="sumber_dana" label="Sumber Dana / Rekening">
-                            <x-input type="text" name="sumber_dana" value="{{ old('sumber_dana', 'BCA Operasional') }}" placeholder="Contoh: BCA Operasional" />
-                        </x-form-group>
-                    </div>
+                        <x-form-field name="sumber_dana" label="Sumber Dana / Rekening">
+                            <x-input type="text" name="sumber_dana" variant="seamless" value="{{ old('sumber_dana', 'BCA Operasional') }}" placeholder="Contoh: BCA Operasional" />
+                        </x-form-field>
 
-                    <div class="mt-5 pt-5 border-t border-border grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <x-form-group name="skema_bayar" label="Skema Pembayaran" :required="true">
-                            <select name="skema_bayar" x-model="skemaBayar" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
+                        <x-form-field name="skema_bayar" label="Skema Pembayaran" :required="true">
+                            <x-select name="skema_bayar" x-model="skemaBayar" variant="seamless">
                                 <option value="cash">Tunai (Cash / Transfer Penuh)</option>
                                 <option value="tempo">Tempo (Jatuh Tempo Tunggal)</option>
                                 <option value="termin">Termin (Pembayaran Bertahap / Cicil)</option>
-                            </select>
-                        </x-form-group>
+                            </x-select>
+                        </x-form-field>
 
                         <div x-show="skemaBayar === 'tempo'" x-cloak>
-                            <x-form-group name="tanggal_tempo" label="Jatuh Tempo Pembayaran (Deadline)" :required="true" help="Batas akhir pelunasan tagihan tempo">
-                                <x-input type="date" name="tanggal_tempo" x-bind:required="skemaBayar === 'tempo'" value="{{ old('tanggal_tempo') }}" />
-                            </x-form-group>
+                            <x-form-field name="tanggal_tempo" label="Jatuh Tempo Pembayaran (Deadline)" :required="true" help="Batas akhir pelunasan tagihan tempo">
+                                <x-input type="date" name="tanggal_tempo" variant="seamless" x-bind:required="skemaBayar === 'tempo'" value="{{ old('tanggal_tempo') }}" />
+                            </x-form-field>
                         </div>
                     </div>
-                </x-card>
+                </x-form-section>
 
                 {{-- Card 2: Rincian Bahan yang Dipesan --}}
                 <x-card title="Daftar Bahan Baku" subtitle="Input kuantitas dan total harga per bahan. Diskon, PPN, ongkir, dan adjustment diatur pada formulir Global di bawah dan dialokasikan ke HPP secara realtime." :noPadding="true" class="relative z-20" overflow="visible">
+                    <x-slot:icon>
+                        <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    </x-slot:icon>
                     <div class="overflow-visible min-h-[220px]">
-                        <table class="w-full text-xs">
-                            <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                        <table class="w-full text-sm">
+                            <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 font-medium text-[13px]">
                                 <tr>
-                                    <th class="px-4 py-3 text-left w-[36%]">Bahan Baku <span class="text-destructive">*</span></th>
-                                    <th class="px-3 py-3 text-left w-56">Kuantitas & Satuan Beli <span class="text-destructive">*</span></th>
-                                    <th class="px-3 py-3 text-right w-44">Total Harga <span class="text-destructive">*</span></th>
-                                    <th class="px-4 py-3 text-right w-52 bg-muted/40 text-foreground">HPP / Satuan Dasar</th>
+                                    <th class="px-4 py-3 text-left w-[36%]">Bahan Baku <span class="text-rose-500">*</span></th>
+                                    <th class="px-3 py-3 text-left w-56">Kuantitas & Satuan Beli <span class="text-rose-500">*</span></th>
+                                    <th class="px-3 py-3 text-right w-44">Total Harga <span class="text-rose-500">*</span></th>
+                                    <th class="px-4 py-3 text-right w-52 bg-gray-100/70 dark:bg-gray-800 text-[#101828] dark:text-white font-semibold">HPP / Satuan Dasar</th>
                                     <th class="px-2 py-3 text-center w-12">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-border bg-card">
+                            <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800 bg-white dark:bg-gray-900">
                                 <template x-for="(row, i) in rows" :key="i">
                                     <tr
                                         class="hover:bg-muted/40 transition"
@@ -615,19 +616,20 @@
                 </div>
 
                 {{-- Card 5: Catatan / Instruksi Khusus PO --}}
-                <x-card title="Catatan / Instruksi Khusus PO" subtitle="Tambahkan catatan internal atau arahan pengiriman untuk supplier" :noPadding="true">
-                    <div class="p-4">
-                        <textarea
+                <x-form-section title="Catatan / Instruksi Khusus PO" subtitle="Tambahkan catatan internal atau arahan pengiriman untuk supplier">
+                    <x-form-field name="catatan" label="Catatan Tambahan PO">
+                        <x-textarea
                             name="catatan"
                             rows="3"
+                            variant="seamless"
                             placeholder="Contoh: Pesanan mendesak dari hasil analisa stok mingguan. Mohon kirimkan COA bersamaan dengan barang fisik."
-                            class="w-full text-xs rounded-lg border border-input bg-background text-foreground p-3 focus:ring-1 focus:ring-ring focus:border-ring shadow-xs"
-                        >{{ old('catatan') }}</textarea>
-                    </div>
-                </x-card>
+                            :value="old('catatan')"
+                        />
+                    </x-form-field>
+                </x-form-section>
 
-                <div class="flex items-center justify-end gap-3 pt-2">
-                    <x-button href="{{ route('analisa.index') }}" variant="outline" size="sm">
+                <div class="flex items-center justify-end gap-3 px-4 py-3.5 bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px]">
+                    <x-button href="{{ route('analisa.index') }}" variant="secondary" size="sm">
                         Batal
                     </x-button>
                     <x-button type="submit" variant="primary" size="sm">

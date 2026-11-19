@@ -7,11 +7,11 @@
     />
 
     {{-- Filter Toolbar --}}
-    <form method="GET" action="{{ route('reports.lead-time') }}" class="mb-6 bg-card p-4 rounded-xl border border-border shadow-xs flex flex-wrap items-end justify-between gap-4">
+    <form method="GET" action="{{ route('reports.lead-time') }}" class="mb-6 bg-white dark:bg-gray-900 p-4 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-wrap items-end justify-between gap-4">
         <div class="flex flex-wrap items-center gap-3">
             <div>
-                <label for="filter-supplier" class="block text-xs font-medium text-muted-foreground mb-1">Mitra Supplier</label>
-                <select name="supplier_id" id="filter-supplier" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                <label for="filter-supplier" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Mitra Supplier</label>
+                <select name="supplier_id" id="filter-supplier" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Supplier —</option>
                     @foreach($suppliers as $sup)
                         <option value="{{ $sup->id }}" @selected($supplierId == $sup->id)>
@@ -22,24 +22,26 @@
             </div>
 
             <div>
-                <label for="filter-kategori" class="block text-xs font-medium text-muted-foreground mb-1">Kategori Supplier</label>
-                <select name="kategori" id="filter-kategori" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
+                <label for="filter-kategori" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Kategori Supplier</label>
+                <select name="kategori" id="filter-kategori" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Kategori —</option>
-                    <option value="lokal" @selected($kategori === 'lokal')>🇮🇩 Supplier Lokal</option>
-                    <option value="impor" @selected($kategori === 'impor')>🌐 Supplier Impor</option>
+                    <option value="lokal" @selected($kategori === 'lokal')>Supplier Lokal</option>
+                    <option value="impor" @selected($kategori === 'impor')>Supplier Impor</option>
                 </select>
             </div>
 
             <div class="pt-5">
-                <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                <x-button type="submit" variant="primary" size="xs">
+                    <x-slot:icon>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                    </x-slot:icon>
                     Terapkan Filter
-                </button>
+                </x-button>
             </div>
         </div>
 
         <div>
-            <a href="{{ route('reports.lead-time') }}" class="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors">
+            <a href="{{ route('reports.lead-time') }}" class="text-xs text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white font-medium transition-colors">
                 Reset Filter
             </a>
         </div>
@@ -47,60 +49,41 @@
 
     {{-- KPI Lead Time Cards --}}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Rata-Rata Lead Time</p>
-            <p class="text-xl font-bold font-mono text-primary mt-1">
-                {{ number_format($avgLtHari, 1) }} <span class="text-xs font-normal text-muted-foreground">Hari</span>
-            </p>
-            <p class="text-[11px] text-muted-foreground mt-0.5">≈ {{ number_format($avgLtJam, 1) }} Jam Operasional</p>
-        </div>
-
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Supplier Tercepat</p>
-            <p class="text-base font-bold text-emerald-600 truncate mt-1" title="{{ $fastestSupplier['supplier_nama'] ?? '—' }}">
-                {{ $fastestSupplier['supplier_nama'] ?? '—' }}
-            </p>
-            <p class="text-[11px] text-muted-foreground mt-0.5 font-mono">
-                @if($fastestSupplier)
-                    {{ number_format($fastestSupplier['average_lt_hari'], 1) }} Hari ({{ number_format($fastestSupplier['average_lt_jam'], 1) }} Jam)
-                @else
-                    Belum ada data
-                @endif
-            </p>
-        </div>
-
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Supplier Terlama</p>
-            <p class="text-base font-bold text-amber-600 truncate mt-1" title="{{ $slowestSupplier['supplier_nama'] ?? '—' }}">
-                {{ $slowestSupplier['supplier_nama'] ?? '—' }}
-            </p>
-            <p class="text-[11px] text-muted-foreground mt-0.5 font-mono">
-                @if($slowestSupplier)
-                    {{ number_format($slowestSupplier['average_lt_hari'], 1) }} Hari ({{ number_format($slowestSupplier['average_lt_jam'], 1) }} Jam)
-                @else
-                    Belum ada data
-                @endif
-            </p>
-        </div>
-
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Histori PO & Validitas</p>
-            <p class="text-xl font-bold font-mono text-foreground mt-1">
-                {{ number_format($totalHistory) }} <span class="text-xs font-normal text-muted-foreground">PO</span>
-            </p>
-            <p class="text-[11px] text-muted-foreground mt-0.5">
-                <span class="text-emerald-600 font-semibold">{{ $totalValid }} Valid</span> ·
-                <span class="{{ $totalInvalid > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground' }}">{{ $totalInvalid }} Diinvalidasi</span>
-            </p>
-        </div>
+        <x-stat-box
+            title="Rata-Rata Lead Time"
+            :value="number_format($avgLtHari, 1) . ' Hari'"
+            :subtitle="'≈ ' . number_format($avgLtJam, 1) . ' Jam Operasional'"
+            iconColor="gray"
+        />
+        <x-stat-box
+            title="Supplier Tercepat"
+            :value="$fastestSupplier['supplier_nama'] ?? '—'"
+            :subtitle="$fastestSupplier ? number_format($fastestSupplier['average_lt_hari'], 1) . ' Hari (' . number_format($fastestSupplier['average_lt_jam'], 1) . ' Jam)' : 'Belum ada data'"
+            iconColor="emerald"
+        />
+        <x-stat-box
+            title="Supplier Terlama"
+            :value="$slowestSupplier['supplier_nama'] ?? '—'"
+            :subtitle="$slowestSupplier ? number_format($slowestSupplier['average_lt_hari'], 1) . ' Hari (' . number_format($slowestSupplier['average_lt_jam'], 1) . ' Jam)' : 'Belum ada data'"
+            iconColor="amber"
+        />
+        <x-stat-box
+            title="Histori PO & Validitas"
+            :value="number_format($totalHistory) . ' PO'"
+            :subtitle="$totalValid . ' Valid · ' . $totalInvalid . ' Diinvalidasi'"
+            iconColor="blue"
+        />
     </div>
 
     {{-- Level-1: Tabel Ringkasan Supplier & 9-Stage Breakdown --}}
     <div class="space-y-6 mb-8">
-        <x-card title="Level-1: Ringkasan Performa Lead Time Supplier & 9-Stage Breakdown" subtitle="Rata-rata durasi aktual pengiriman per supplier beserta rincian akumulasi pada 9 tahapan alur PO">
-            <div tabindex="0" role="region" aria-label="Tabel Ringkasan Lead Time Level-1 Supplier dan Breakdown 9 Stage" class="-mx-4 -my-4 overflow-x-auto focus:outline-none focus:ring-1 focus:ring-primary/30">
-                <table class="w-full text-xs text-left border-collapse min-w-[900px]">
-                    <thead class="bg-muted/70 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
+        <x-card title="Level-1: Ringkasan Performa Lead Time Supplier & 9-Stage Breakdown" subtitle="Rata-rata durasi aktual pengiriman per supplier beserta rincian akumulasi pada 9 tahapan alur PO" :noPadding="true">
+            <x-slot:icon>
+                <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </x-slot:icon>
+            <div tabindex="0" role="region" aria-label="Tabel Ringkasan Lead Time Level-1 Supplier dan Breakdown 9 Stage" class="overflow-x-auto focus:outline-none focus:ring-1 focus:ring-[#111111]/20 dark:focus:ring-white/20">
+                <table class="w-full text-sm text-left border-collapse min-w-[900px]">
+                    <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 text-[13px] font-medium border-b border-[#E8E8E8] dark:border-gray-800">
                         <tr>
                             <th class="px-4 py-3">Supplier</th>
                             <th class="px-4 py-3 text-center">Kategori</th>
@@ -111,50 +94,50 @@
                             <th class="px-4 py-3 text-left min-w-72">Breakdown 9 Stage (Avg Hari)</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-border">
+                    <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800">
                         @forelse($supplierSummaries as $s)
                         @php
                             $stages = $stageSummaries->get($s['supplier_id'], collect());
                         @endphp
-                        <tr class="hover:bg-muted/40 transition-colors">
-                            <td class="px-4 py-3 font-semibold text-foreground">
+                        <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
+                            <td class="px-4 py-3 font-semibold text-[#101828] dark:text-white">
                                 {{ $s['supplier_nama'] }}
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border {{ $s['kategori'] === 'impor' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200' }} uppercase">
-                                    {{ $s['kategori'] }}
-                                </span>
+                                <x-badge :variant="$s['kategori'] === 'impor' ? 'purple' : 'success'" size="xs" :pill="true">
+                                    {{ strtoupper($s['kategori']) }}
+                                </x-badge>
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-foreground">
+                            <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white">
                                 {{ number_format($s['jumlah_transaksi']) }}
                             </td>
-                            <td class="px-4 py-3 text-right font-mono font-bold text-primary">
+                            <td class="px-4 py-3 text-right font-mono font-bold text-[#101828] dark:text-white">
                                 {{ number_format($s['average_lt_hari'], 1) }} d
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-muted-foreground">
+                            <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
                                 {{ number_format($s['average_lt_jam'], 1) }} h
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-muted-foreground">
+                            <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
                                 {{ number_format($s['max_lt_hari'], 1) }} d
                             </td>
                             <td class="px-4 py-3">
                                 @if($stages->isNotEmpty())
                                     <div class="grid grid-cols-3 gap-1.5 text-[10px]">
                                         @foreach($stages as $stg)
-                                            <div class="p-1 rounded bg-muted/50 border border-border/60">
-                                                <span class="text-muted-foreground font-mono font-semibold">{{ $stg->stage }}:</span>
-                                                <span class="font-bold text-foreground font-mono">{{ number_format($stg->average_hari, 1) }}d</span>
+                                            <div class="p-1.5 rounded-md bg-[#F5F5F5] dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700">
+                                                <span class="text-[#667085] dark:text-gray-400 font-mono font-semibold">{{ $stg->stage }}:</span>
+                                                <span class="font-bold text-[#101828] dark:text-white font-mono">{{ number_format($stg->average_hari, 1) }}d</span>
                                             </div>
                                         @endforeach
                                     </div>
                                 @else
-                                    <span class="text-muted-foreground italic text-[11px]">Belum ada breakdown tahapan stage</span>
+                                    <span class="text-[#667085] dark:text-gray-400 italic text-[11px]">Belum ada breakdown tahapan stage</span>
                                 @endif
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-muted-foreground text-xs">
+                            <td colspan="7" class="px-4 py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
                                 Tidak ada data ringkasan lead time supplier yang sesuai filter.
                             </td>
                         </tr>
@@ -165,10 +148,13 @@
         </x-card>
 
         {{-- Level-2: Tabel Supplier - SKU Produk --}}
-        <x-card title="Level-2: Rata-Rata Lead Time per Pasangan Supplier & SKU Produk" subtitle="Evaluasi granular durasi lead time pengadaan untuk setiap komoditas barang dari masing-masing supplier">
-            <div tabindex="0" role="region" aria-label="Tabel Ringkasan Lead Time Level-2 Supplier dan SKU Produk" class="-mx-4 -my-4 overflow-x-auto focus:outline-none focus:ring-1 focus:ring-primary/30">
-                <table class="w-full text-xs text-left border-collapse min-w-[760px]">
-                    <thead class="bg-muted/70 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
+        <x-card title="Level-2: Rata-Rata Lead Time per Pasangan Supplier & SKU Produk" subtitle="Evaluasi granular durasi lead time pengadaan untuk setiap komoditas barang dari masing-masing supplier" :noPadding="true">
+            <x-slot:icon>
+                <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </x-slot:icon>
+            <div tabindex="0" role="region" aria-label="Tabel Ringkasan Lead Time Level-2 Supplier dan SKU Produk" class="overflow-x-auto focus:outline-none focus:ring-1 focus:ring-[#111111]/20 dark:focus:ring-white/20">
+                <table class="w-full text-sm text-left border-collapse min-w-[760px]">
+                    <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 text-[13px] font-medium border-b border-[#E8E8E8] dark:border-gray-800">
                         <tr>
                             <th class="px-4 py-3">Supplier</th>
                             <th class="px-4 py-3">SKU</th>
@@ -179,37 +165,37 @@
                             <th class="px-4 py-3 text-right">Maks (Hari)</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-border">
+                    <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800">
                         @forelse($produkSummaries as $sp)
-                        <tr class="hover:bg-muted/40 transition-colors">
-                            <td class="px-4 py-2.5 font-medium text-foreground">
+                        <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
+                            <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                                 {{ $sp['supplier_nama'] }}
                             </td>
-                            <td class="px-4 py-2.5 font-mono text-muted-foreground">
+                            <td class="px-4 py-3 font-mono text-[#667085] dark:text-gray-400">
                                 {{ $sp['sku'] }}
                             </td>
-                            <td class="px-4 py-2.5 font-medium text-foreground">
+                            <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                                 {{ $sp['nama_produk'] }}
                                 @if(!empty($sp['satuan']))
-                                    <span class="text-[10px] text-muted-foreground font-mono">({{ $sp['satuan'] }})</span>
+                                    <span class="text-[11px] text-[#667085] dark:text-gray-400 font-mono">({{ $sp['satuan'] }})</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-2.5 text-right font-mono text-foreground">
+                            <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white">
                                 {{ number_format($sp['jumlah_transaksi']) }}
                             </td>
-                            <td class="px-4 py-2.5 text-right font-mono font-bold text-primary">
+                            <td class="px-4 py-3 text-right font-mono font-bold text-[#101828] dark:text-white">
                                 {{ number_format($sp['average_lt_hari'], 1) }} d
                             </td>
-                            <td class="px-4 py-2.5 text-right font-mono text-muted-foreground">
+                            <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
                                 {{ number_format($sp['average_lt_jam'], 1) }} h
                             </td>
-                            <td class="px-4 py-2.5 text-right font-mono text-muted-foreground">
+                            <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
                                 {{ number_format($sp['max_lt_hari'], 1) }} d
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-muted-foreground text-xs">
+                            <td colspan="7" class="px-4 py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
                                 Tidak ada data lead time tingkat produk untuk kriteria filter ini.
                             </td>
                         </tr>
@@ -220,10 +206,13 @@
         </x-card>
 
         {{-- Tabel Histori Transaksi PoLeadTime --}}
-        <x-card title="Buku Audit Transaksi Lead Time Purchase Order" subtitle="Histori lengkap pencatatan lead time transaksi PO beserta status validitas perhitungan KPI">
-            <div tabindex="0" role="region" aria-label="Tabel Histori Transaksi Lead Time Purchase Order" class="-mx-4 -my-4 overflow-x-auto focus:outline-none focus:ring-1 focus:ring-primary/30">
-                <table class="w-full text-xs text-left border-collapse min-w-[950px]">
-                    <thead class="bg-muted/70 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
+        <x-card title="Buku Audit Transaksi Lead Time Purchase Order" subtitle="Histori lengkap pencatatan lead time transaksi PO beserta status validitas perhitungan KPI" :noPadding="true">
+            <x-slot:icon>
+                <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </x-slot:icon>
+            <div tabindex="0" role="region" aria-label="Tabel Histori Transaksi Lead Time Purchase Order" class="overflow-x-auto focus:outline-none focus:ring-1 focus:ring-[#111111]/20 dark:focus:ring-white/20">
+                <table class="w-full text-sm text-left border-collapse min-w-[950px]">
+                    <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 text-[13px] font-medium border-b border-[#E8E8E8] dark:border-gray-800">
                         <tr>
                             <th class="px-4 py-3">No. PO</th>
                             <th class="px-4 py-3">Supplier</th>
@@ -234,59 +223,55 @@
                             <th class="px-4 py-3">Catatan / Validator</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-border">
+                    <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800">
                         @forelse($transaksiList as $lt)
-                        <tr class="hover:bg-muted/40 transition-colors">
-                            <td class="px-4 py-2.5 font-mono font-medium text-foreground">
+                        <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
+                            <td class="px-4 py-3 font-mono font-semibold text-[#101828] dark:text-white">
                                 @can('purchasing.view')
-                                    <a href="{{ route('purchasing.show', $lt->po_id) }}" class="text-primary hover:underline font-semibold">
+                                    <a href="{{ route('purchasing.show', $lt->po_id) }}" class="underline decoration-gray-400 hover:decoration-current">
                                         {{ $lt->purchaseOrder?->no_po ?? 'PO#' . substr($lt->po_id, 0, 8) }}
                                     </a>
                                 @else
                                     {{ $lt->purchaseOrder?->no_po ?? 'PO#' . substr($lt->po_id, 0, 8) }}
                                 @endcan
                             </td>
-                            <td class="px-4 py-2.5 font-medium text-foreground">
+                            <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                                 {{ $lt->supplier?->nama ?? '—' }}
                             </td>
-                            <td class="px-4 py-2.5 text-muted-foreground font-mono text-[11px]">
+                            <td class="px-4 py-3 text-[#667085] dark:text-gray-400 font-mono text-xs">
                                 {{ $lt->waktu_mulai?->format('d/m/Y H:i') ?? '—' }} &rarr; {{ $lt->waktu_selesai?->format('d/m/Y H:i') ?? '—' }}
                             </td>
-                            <td class="px-4 py-2.5 text-right font-mono font-bold text-foreground">
+                            <td class="px-4 py-3 text-right font-mono font-bold text-[#101828] dark:text-white">
                                 {{ number_format((float) $lt->total_lt_hari, 1) }} d
-                                <span class="text-[10px] text-muted-foreground font-normal">({{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($lt->total_lt_menit), 1) }}h)</span>
+                                <span class="text-[11px] text-[#667085] dark:text-gray-400 font-normal">({{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($lt->total_lt_menit), 1) }}h)</span>
                             </td>
-                            <td class="px-4 py-2.5 text-center font-mono text-[10px]">
-                                <span class="text-blue-700 bg-blue-50 px-1 py-0.5 rounded border border-blue-200" title="Internal LT">Int: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_internal_menit), 1) }}d</span>
-                                <span class="text-amber-700 bg-amber-50 px-1 py-0.5 rounded border border-amber-200" title="Supplier LT">Sup: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_supplier_menit), 1) }}d</span>
-                                <span class="text-purple-700 bg-purple-50 px-1 py-0.5 rounded border border-purple-200" title="Logistik LT">Log: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_logistik_menit), 1) }}d</span>
+                            <td class="px-4 py-3 text-center font-mono text-[10px]">
+                                <span class="text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800/50" title="Internal LT">Int: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_internal_menit), 1) }}d</span>
+                                <span class="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50" title="Supplier LT">Sup: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_supplier_menit), 1) }}d</span>
+                                <span class="text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800/50" title="Logistik LT">Log: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_logistik_menit), 1) }}d</span>
                             </td>
-                            <td class="px-4 py-2.5 text-center">
+                            <td class="px-4 py-3 text-center">
                                 @if($lt->is_valid)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                        VALID
-                                    </span>
+                                    <x-badge variant="success" size="xs" :pill="true">VALID</x-badge>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                        DIINVALIDASI
-                                    </span>
+                                    <x-badge variant="danger" size="xs" :pill="true">DIINVALIDASI</x-badge>
                                 @endif
                             </td>
-                            <td class="px-4 py-2.5 text-[11px] text-muted-foreground">
+                            <td class="px-4 py-3 text-xs text-[#667085] dark:text-gray-400">
                                 @if(! $lt->is_valid && $lt->alasan_tidak_valid)
-                                    <div class="text-rose-600 font-medium">{{ $lt->alasan_tidak_valid }}</div>
+                                    <div class="text-rose-600 dark:text-rose-400 font-medium">{{ $lt->alasan_tidak_valid }}</div>
                                 @endif
                                 @if($lt->validator)
-                                    <div class="text-[10px] text-muted-foreground">Oleh: {{ $lt->validator->name }}</div>
+                                    <div class="text-[11px] text-[#667085] dark:text-gray-400">Oleh: {{ $lt->validator->name }}</div>
                                 @endif
                                 @if($lt->is_valid && ! $lt->alasan_tidak_valid && ! $lt->validator)
-                                    <span class="text-muted-foreground">—</span>
+                                    <span class="text-[#667085] dark:text-gray-400">—</span>
                                 @endif
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-muted-foreground text-xs">
+                            <td colspan="7" class="px-4 py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
                                 Belum ada riwayat transaksi lead time yang tercatat.
                             </td>
                         </tr>

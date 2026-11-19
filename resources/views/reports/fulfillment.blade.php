@@ -14,25 +14,19 @@
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Transaksi Mutasi</p>
-            <p class="text-xl font-bold font-mono text-foreground mt-1">{{ number_format($totalLogs) }} <span class="text-xs font-normal text-muted-foreground">Log</span></p>
-        </div>
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Masuk (IN)</p>
-            <p class="text-xl font-bold font-mono text-emerald-600 mt-1">+{{ number_format($totalIn, 0, ',', '.') }} <span class="text-xs font-normal text-muted-foreground">Pcs</span></p>
-        </div>
-        <div class="rounded-xl border border-border bg-card p-4 shadow-xs">
-            <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Keluar (OUT)</p>
-            <p class="text-xl font-bold font-mono text-foreground mt-1">-{{ number_format($totalOut, 0, ',', '.') }} <span class="text-xs font-normal text-muted-foreground">Pcs</span></p>
-        </div>
+        <x-stat-box title="Total Transaksi Mutasi" :value="number_format($totalLogs)" subtitle="Log" iconColor="gray" />
+        <x-stat-box title="Total Masuk (IN)" :value="'+' . number_format($totalIn, 0, ',', '.')" subtitle="Pcs" iconColor="emerald" />
+        <x-stat-box title="Total Keluar (OUT)" :value="'-' . number_format($totalOut, 0, ',', '.')" subtitle="Pcs" iconColor="amber" />
     </div>
 
     <!-- Table Card -->
-    <x-card title="Riwayat Mutasi Stok Fulfillment" subtitle="Data pergerakan kartu stok pada gudang bertipe fulfillment">
-        <div class="-mx-4 -my-4 overflow-x-auto">
-            <table class="w-full text-xs text-left border-collapse">
-                <thead class="bg-muted/70 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
+    <x-card title="Riwayat Mutasi Stok Fulfillment" subtitle="Data pergerakan kartu stok pada gudang bertipe fulfillment" :noPadding="true">
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Riwayat Mutasi Stok Fulfillment" class="overflow-x-auto">
+            <table class="w-full text-sm text-left border-collapse">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 text-[13px] font-medium border-b border-[#E8E8E8] dark:border-gray-800">
                     <tr>
                         <th class="px-4 py-3 w-32">Tanggal</th>
                         <th class="px-4 py-3">Lokasi Gudang</th>
@@ -42,43 +36,39 @@
                         <th class="px-4 py-3 text-right">Saldo Akhir</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-border">
+                <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800">
                     @forelse($rows as $r)
                     @php
                         $isMasuk = strtolower($r->tipe) === 'in';
                     @endphp
-                    <tr class="hover:bg-muted/40 transition-colors">
-                        <td class="px-4 py-2.5 font-mono text-muted-foreground">
+                    <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
+                        <td class="px-4 py-3 font-mono text-[#667085] dark:text-gray-400">
                             {{ $r->tanggal->format('d/m/Y') }}
                         </td>
-                        <td class="px-4 py-2.5 font-medium text-foreground">
+                        <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                             {{ $r->gudang->nama ?? '-' }}
                         </td>
-                        <td class="px-4 py-2.5 text-foreground">
+                        <td class="px-4 py-3 text-[#101828] dark:text-white">
                             {{ $r->produk->nama ?? '-' }}
                         </td>
-                        <td class="px-4 py-2.5 text-center">
+                        <td class="px-4 py-3 text-center">
                             @if($isMasuk)
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                                    MASUK
-                                </span>
+                                <x-badge variant="success" size="xs" :pill="true">MASUK</x-badge>
                             @else
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                                    KELUAR
-                                </span>
+                                <x-badge variant="warning" size="xs" :pill="true">KELUAR</x-badge>
                             @endif
                         </td>
-                        <td class="px-4 py-2.5 text-right font-mono font-medium {{ $isMasuk ? 'text-emerald-600' : 'text-amber-600' }}">
+                        <td class="px-4 py-3 text-right font-mono font-medium {{ $isMasuk ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
                             {{ $isMasuk ? '+' : '-' }}{{ number_format($r->qty, 0, ',', '.') }}
                         </td>
-                        <td class="px-4 py-2.5 text-right font-mono text-foreground font-semibold">
+                        <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white font-semibold">
                             {{ number_format($r->saldo_setelah, 0, ',', '.') }}
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-12 text-center text-xs text-muted-foreground">
-                            <svg class="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                        <td colspan="6" class="px-4 py-12 text-center text-xs text-[#667085] dark:text-gray-400">
+                            <svg class="mx-auto h-8 w-8 text-gray-400 dark:text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                             Belum ada catatan mutasi stok fulfillment.
                         </td>
                     </tr>

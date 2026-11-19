@@ -5,31 +5,31 @@
             :breadcrumbs="['Inventori' => null, 'Analisa Stok' => null]"
         >
             <x-slot:actions>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <template x-if="tab === 'lokal'">
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             @can('analisa.manage')
-                            <button type="button" @click="openAddSkuModal('lokal')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Tambah atau pindahkan SKU ke Analisa Lokal / Impor">
-                                <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            <button type="button" @click="openAddSkuModal('lokal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700 text-xs font-medium rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors cursor-pointer" title="Tambah atau pindahkan SKU ke Analisa Lokal / Impor">
+                                <svg class="size-3.5 text-[#667085] dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 <span>Tambah SKU</span>
                             </button>
 
                             <!-- Fase 1: Generate -->
-                            <button type="button" @click="generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 text-xs font-medium rounded-lg shadow-sm transition-colors cursor-pointer" title="Generate working data analisa dari master">
+                            <button type="button" @click="generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-[#292929] dark:bg-white dark:hover:bg-gray-100 text-white dark:text-[#111111] disabled:opacity-50 text-xs font-semibold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors cursor-pointer" title="Generate working data analisa dari master">
                                 <svg x-show="!generating" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 <svg x-show="generating" class="animate-spin size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 <span x-text="generating ? 'Menghitung Engine...' : 'Generate Analisa'"></span>
                             </button>
 
                             <!-- Fase 2: Checking (Generate Ulang) -->
-                            <button type="button" @click="checkingLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border disabled:opacity-50 text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO berjalan saat ini">
-                                <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            <button type="button" @click="checkingLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700 disabled:opacity-50 text-xs font-medium rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO berjalan saat ini">
+                                <svg class="size-3.5 text-[#667085] dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                 <span>Checking (Generate Ulang)</span>
                             </button>
                             @endcan
 
                             @can('analisa.create_po')
-                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer">
+                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-colors cursor-pointer">
                                 <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 <span>Buat PO (<span x-text="selectedOrderCount()"></span>)</span>
                             </button>
@@ -38,29 +38,29 @@
                     </template>
 
                     <template x-if="tab === 'impor'">
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             @can('analisa.manage')
-                            <button type="button" @click="openAddSkuModal('impor')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Tambah atau pindahkan SKU ke Analisa Impor & Klasifikasi ABC">
-                                <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            <button type="button" @click="openAddSkuModal('impor')" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700 text-xs font-medium rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors cursor-pointer" title="Tambah atau pindahkan SKU ke Analisa Impor & Klasifikasi ABC">
+                                <svg class="size-3.5 text-[#667085] dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 <span>Tambah SKU</span>
                             </button>
 
                             <!-- Fase 1: Generate -->
-                            <button type="button" @click="generateImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 text-xs font-medium rounded-lg shadow-sm transition-colors cursor-pointer" title="Generate working data analisa impor">
+                            <button type="button" @click="generateImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-[#292929] dark:bg-white dark:hover:bg-gray-100 text-white dark:text-[#111111] disabled:opacity-50 text-xs font-semibold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors cursor-pointer" title="Generate working data analisa impor">
                                 <svg x-show="!generating" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 <svg x-show="generating" class="animate-spin size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 <span x-text="generating ? 'Menghitung Engine Impor...' : 'Generate Analisa Impor'"></span>
                             </button>
 
                             <!-- Fase 2: Checking (Generate Ulang) -->
-                            <button type="button" @click="checkingImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border disabled:opacity-50 text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO impor saat ini">
-                                <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            <button type="button" @click="checkingImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700 disabled:opacity-50 text-xs font-medium rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors cursor-pointer" title="Periksa dan hitung ulang stok fisik & PO impor saat ini">
+                                <svg class="size-3.5 text-[#667085] dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                                 <span>Checking (Generate Ulang)</span>
                             </button>
                             @endcan
 
                             @can('analisa.create_po')
-                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer">
+                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-colors cursor-pointer">
                                 <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 <span>Buat PO Impor (<span x-text="selectedOrderCount()"></span>)</span>
                             </button>
@@ -70,8 +70,8 @@
 
                     @can('analisa.snapshot')
                     <!-- Fase 3: Finalisasi -->
-                    <button type="button" @click="confirmFinalisasi()" x-show="tab !== 'riwayat'" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-card hover:bg-accent text-foreground border border-border text-xs font-medium rounded-lg shadow-xs transition-colors cursor-pointer" title="Kunci data working analisa aktif ke riwayat snapshot">
-                        <svg class="size-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <button type="button" @click="confirmFinalisasi()" x-show="tab !== 'riwayat'" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700 text-xs font-medium rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors cursor-pointer" title="Kunci data working analisa aktif ke riwayat snapshot">
+                        <svg class="size-3.5 text-[#667085] dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         <span>Finalisasi ke Riwayat</span>
                     </button>
                     @endcan
@@ -79,23 +79,23 @@
             </x-slot:actions>
         </x-page-header>
 
-        <!-- Segmented Tab Navigation & Status -->
-        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
-            <div class="inline-flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/40">
+        <!-- Segmented Tab Navigation & Status (Blueprint StatusTabs) -->
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#E8E8E8] dark:border-gray-800 pb-4">
+            <div class="inline-flex flex-wrap items-center gap-1 p-1 bg-[#f3f4f6] dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
                 <template x-for="t in tabs" :key="t.key">
                     <button type="button"
                         @click="tab = t.key; load()"
-                        :class="tab === t.key ? 'bg-primary text-primary-foreground shadow-xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                        class="px-4 py-2 text-xs rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer select-none font-medium"
+                        :class="tab === t.key ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                        class="px-3.5 py-1.5 text-xs rounded-[7px] transition-all flex items-center gap-1.5 cursor-pointer select-none font-medium"
                     >
                         <span x-text="t.label"></span>
                     </button>
                 </template>
             </div>
             
-            <div class="text-xs text-muted-foreground flex items-center gap-2">
+            <div class="text-xs text-[#667085] dark:text-gray-400 flex items-center gap-2">
                 <template x-if="(tab === 'lokal' || tab === 'impor') && meta.last_generated_at">
-                    <div class="flex items-center gap-1.5 text-[11px] bg-muted text-foreground px-2.5 py-1 rounded-md border border-border font-mono">
+                    <div class="flex items-center gap-1.5 text-[11px] bg-white dark:bg-gray-900 text-[#101828] dark:text-gray-200 px-3 py-1.5 rounded-lg border border-[#E8E8E8] dark:border-gray-800 font-mono shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                         <span class="inline-block size-2 rounded-full bg-emerald-500"></span>
                         <span>Di-generate: <strong x-text="meta.last_generated_at"></strong> (<span x-text="meta.last_generated_by"></span>)</span>
                     </div>
@@ -109,28 +109,48 @@
             </div>
         </div>
 
-        <!-- Quick KPI Summary Strip -->
+        <!-- Quick KPI Summary Strip (Preserves sm:grid-cols-4) -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
-                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Item</p>
-                <p class="text-xl font-bold font-mono text-foreground mt-1" x-text="rows.length"></p>
+            <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-[11px] font-semibold text-[#667085] dark:text-gray-400 uppercase tracking-wider">Total Item</p>
+                    <p class="text-[28px] leading-tight font-semibold tracking-tight font-mono text-[#101828] dark:text-white mt-1.5" x-text="rows.length"></p>
+                </div>
+                <div class="size-8 rounded-lg flex items-center justify-center shrink-0" style="background-color: rgba(17, 17, 17, 0.08); color: #111111;">
+                    <svg class="size-4 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
             </div>
-            <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
-                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Perlu Tindakan / Order</p>
-                <p class="text-xl font-bold font-mono text-destructive mt-1" x-text="kpiOrderCount()"></p>
+            <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-[11px] font-semibold text-[#667085] dark:text-gray-400 uppercase tracking-wider">Perlu Tindakan / Order</p>
+                    <p class="text-[28px] leading-tight font-semibold tracking-tight font-mono text-rose-600 dark:text-rose-400 mt-1.5" x-text="kpiOrderCount()"></p>
+                </div>
+                <div class="size-8 rounded-lg flex items-center justify-center shrink-0" style="background-color: rgba(239, 68, 68, 0.12); color: #EF4444;">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
             </div>
-            <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
-                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status Aman</p>
-                <p class="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1" x-text="kpiAmanCount()"></p>
+            <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-[11px] font-semibold text-[#667085] dark:text-gray-400 uppercase tracking-wider">Status Aman</p>
+                    <p class="text-[28px] leading-tight font-semibold tracking-tight font-mono text-emerald-600 dark:text-emerald-400 mt-1.5" x-text="kpiAmanCount()"></p>
+                </div>
+                <div class="size-8 rounded-lg flex items-center justify-center shrink-0" style="background-color: rgba(16, 185, 129, 0.12); color: #10B981;">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
             </div>
-            <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
-                <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Qty Rekomendasi</p>
-                <p class="text-xl font-bold font-mono text-foreground mt-1" x-text="kpiTotalOrderQty()"></p>
+            <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-[11px] font-semibold text-[#667085] dark:text-gray-400 uppercase tracking-wider">Total Qty Rekomendasi</p>
+                    <p class="text-[28px] leading-tight font-semibold tracking-tight font-mono text-[#101828] dark:text-white mt-1.5" x-text="kpiTotalOrderQty()"></p>
+                </div>
+                <div class="size-8 rounded-lg flex items-center justify-center shrink-0" style="background-color: rgba(59, 130, 246, 0.12); color: #3B82F6;">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </div>
             </div>
         </div>
 
         <!-- Toolbar Pencarian, Filter & Kontrol Pagination -->
-        <div class="bg-card p-4 rounded-xl border border-border shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div class="bg-white dark:bg-gray-900 p-4 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-wrap items-center justify-between gap-4">
             <!-- Kiri: Input Cari & Filter Status -->
             <div class="flex flex-wrap items-center gap-3 flex-1 min-w-0">
                 <div class="relative flex-1 min-w-44 max-w-sm">
@@ -139,23 +159,23 @@
                         x-model.debounce.250ms="searchQuery" 
                         @input="page = 1; if(tab !== 'lokal') renderTable();"
                         placeholder="Cari SKU, nama bahan, supplier..."
-                        class="w-full pl-9 pr-8 py-2 text-xs rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                        class="w-full h-9 pl-9 pr-8 py-1.5 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#101828] dark:text-white placeholder:text-[#667085] dark:placeholder:text-gray-500 focus:border-[#111111] dark:focus:border-white outline-none"
                     >
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#667085] dark:text-gray-400">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
-                    <button type="button" x-show="searchQuery" @click="searchQuery = ''; page = 1; if(tab !== 'lokal') renderTable();" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-muted-foreground hover:text-foreground cursor-pointer">
+                    <button type="button" x-show="searchQuery" @click="searchQuery = ''; page = 1; if(tab !== 'lokal') renderTable();" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white cursor-pointer">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
 
                 <template x-if="tab === 'lokal' || tab === 'impor'">
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || (tab === 'impor' && imporSubTab === 'rekomendasi')">
                             <select 
                                 x-model="statusFilter" 
                                 @change="page = 1"
-                                class="rounded-lg border border-input bg-background text-xs py-2 px-3 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-xs py-1.5 px-3 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none cursor-pointer"
                             >
                                 <option value="all">Semua Status</option>
                                 <option value="order">Hanya Perlu Order</option>
@@ -165,7 +185,7 @@
                         <select 
                             x-model="supplierFilter" 
                             @change="page = 1"
-                            class="rounded-lg border border-input bg-background text-xs py-2 px-3 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                            class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-xs py-1.5 px-3 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none cursor-pointer"
                         >
                             <option value="all">Semua Supplier</option>
                             @foreach($suppliers as $s)
@@ -179,25 +199,25 @@
             <!-- Kanan: Tombol Aksi Massal & Jumlah per Halaman -->
             <div class="flex flex-wrap items-center gap-3 text-xs">
                 <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || (tab === 'impor' && imporSubTab === 'rekomendasi')">
-                    <div class="flex items-center gap-2 border-r border-border pr-3">
-                        <button type="button" @click="selectAllPerluOrder()" class="px-2.5 py-1.5 text-xs font-semibold text-destructive bg-destructive/10 hover:bg-destructive/15 rounded-lg border border-destructive/20 transition cursor-pointer">
+                    <div class="flex items-center gap-2 border-r border-[#E8E8E8] dark:border-gray-800 pr-3">
+                        <button type="button" @click="selectAllPerluOrder()" class="px-2.5 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 rounded-lg border border-rose-200 dark:border-rose-800/50 transition cursor-pointer">
                             Pilih Perlu Order (<span x-text="kpiOrderCount()"></span>)
                         </button>
-                        <button type="button" @click="selectAllFiltered()" class="px-2.5 py-1.5 text-xs font-medium text-foreground bg-muted hover:bg-muted/80 rounded-lg border border-border transition cursor-pointer">
+                        <button type="button" @click="selectAllFiltered()" class="px-2.5 py-1.5 text-xs font-medium text-[#101828] dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg border border-[#E8E8E8] dark:border-gray-700 transition cursor-pointer">
                             Pilih Semua Hasil (<span x-text="filteredRows().length"></span>)
                         </button>
-                        <button type="button" x-show="selectedItemIds.length > 0" @click="selectedItemIds = []" class="px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition cursor-pointer">
+                        <button type="button" x-show="selectedItemIds.length > 0" @click="selectedItemIds = []" class="px-2.5 py-1.5 text-xs font-medium text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer">
                             Batal Pilih
                         </button>
                     </div>
                 </template>
 
-                <div class="flex items-center gap-2 text-muted-foreground text-xs">
+                <div class="flex items-center gap-2 text-[#667085] dark:text-gray-400 text-xs">
                     <span>Tampilkan:</span>
                     <select 
                         x-model="perPage" 
                         @change="page = 1; if(tab !== 'lokal') renderTable();"
-                        class="rounded-lg border border-input bg-background text-xs py-1.5 px-2.5 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                        class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-xs py-1.5 px-2.5 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none cursor-pointer"
                     >
                         <option :value="10">10</option>
                         <option :value="15">15</option>
@@ -529,12 +549,12 @@
         badge(s){
           const st = String(s || '').toLowerCase();
           if (st === 'order' || st === 'po') {
-            return '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 uppercase tracking-wide">ORDER</span>';
+            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 uppercase tracking-wide">ORDER</span>';
           }
           if (st === 'aman' || st === 'tidak') {
-            return '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">AMAN</span>';
+            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 uppercase tracking-wide">AMAN</span>';
           }
-          return `<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200 uppercase tracking-wide">${st}</span>`;
+          return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 uppercase tracking-wide">${st}</span>`;
         },
         kpiOrderCount(){
           return this.rows.filter(r => {
@@ -784,7 +804,7 @@
               icon: 'info',
               title: 'Pilih Item',
               text: 'Silakan centang setidaknya satu item bahan yang ingin dibuatkan Purchase Order.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
             return;
           }
@@ -794,7 +814,7 @@
               icon: 'warning',
               title: 'Supplier Belum Ditentukan',
               text: 'Sebagian item yang dipilih belum memiliki supplier yang ditentukan. Harap tentukan supplier untuk semua item terlebih dahulu.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
             return;
           }
@@ -805,7 +825,7 @@
               icon: 'warning',
               title: 'Supplier Tidak Konsisten',
               text: 'Item yang dipilih memiliki supplier yang berbeda-beda. Harap pilih item dari satu supplier yang sama untuk membuat Purchase Order.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
             return;
           }
@@ -818,9 +838,9 @@
         },
         abcBadgeClass(abc){
           const v = String(abc || '').toLowerCase();
-          if (v === 'wajib_a' || v === 'a') return 'bg-amber-100 text-amber-800 border border-amber-300';
-          if (v === 'b') return 'bg-blue-100 text-blue-800 border border-blue-300';
-          return 'bg-gray-100 text-gray-700 border border-gray-300';
+          if (v === 'wajib_a' || v === 'a') return 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50';
+          if (v === 'b') return 'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50';
+          return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700';
         },
         openSnapshotModal(item){
           this.activeSnapshot = item;
@@ -955,7 +975,7 @@
                 icon: 'success',
                 title: 'Tahap Lead Time Disimpan',
                 text: 'Perubahan 9 tahap lead time berhasil disimpan & analisa dihitung ulang.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
               await this.load();
             } else {
@@ -963,7 +983,7 @@
                 icon: 'error',
                 title: 'Gagal Menyimpan',
                 text: j.message || 'Terjadi kesalahan saat menyimpan data tahap.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
             }
           } catch(e) {
@@ -971,7 +991,7 @@
               icon: 'error',
               title: 'Kesalahan Sistem',
               text: 'Tidak dapat terhubung ke server.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
           } finally {
             this.savingStage = false;
@@ -1066,7 +1086,7 @@
                 icon: 'success',
                 title: 'Data Manual Tersimpan',
                 text: 'Parameter manual bahan lokal berhasil diperbarui & analisa dihitung ulang.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
               await this.load();
             } else {
@@ -1074,7 +1094,7 @@
                 icon: 'error',
                 title: 'Gagal Menyimpan',
                 text: j.message || 'Terjadi kesalahan saat menyimpan data manual.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
             }
           } catch(e) {
@@ -1082,7 +1102,7 @@
               icon: 'error',
               title: 'Kesalahan Sistem',
               text: 'Tidak dapat terhubung ke server.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
           } finally {
             this.savingManualLokal = false;
@@ -1236,10 +1256,10 @@
               await this.load();
               Swal.fire({ icon: 'success', title: 'Berhasil', text: j.message, timer: 1600, showConfirmButton: false });
             } else {
-              Swal.fire({ icon: 'error', title: 'Gagal', text: j.message || 'Gagal menambahkan SKU ke Analisa.', confirmButtonColor: '#0284c7' });
+              Swal.fire({ icon: 'error', title: 'Gagal', text: j.message || 'Gagal menambahkan SKU ke Analisa.', confirmButtonColor: '#111111' });
             }
           } catch (e) {
-            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Tidak dapat terhubung ke server.', confirmButtonColor: '#0284c7' });
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Tidak dapat terhubung ke server.', confirmButtonColor: '#111111' });
           } finally {
             this.savingAddSku = false;
           }
@@ -1262,11 +1282,11 @@
             if (res.ok && j.success) {
               await this.load();
             } else {
-              Swal.fire({ icon: 'error', title: 'Gagal', text: j.message || 'Gagal memperbarui Klasifikasi ABC.', confirmButtonColor: '#0284c7' });
+              Swal.fire({ icon: 'error', title: 'Gagal', text: j.message || 'Gagal memperbarui Klasifikasi ABC.', confirmButtonColor: '#111111' });
               await this.load();
             }
           } catch (e) {
-            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Tidak dapat terhubung ke server.', confirmButtonColor: '#0284c7' });
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Tidak dapat terhubung ke server.', confirmButtonColor: '#111111' });
           }
         },
         simulasiImporJumlahHari(){
@@ -1385,7 +1405,7 @@
                 icon: 'success',
                 title: 'Data Manual Tersimpan',
                 text: 'Parameter manual bahan impor berhasil diperbarui & analisa dihitung ulang (PRD v2.2).',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
               await this.load();
             } else {
@@ -1393,7 +1413,7 @@
                 icon: 'error',
                 title: 'Gagal Menyimpan',
                 text: j.message || 'Terjadi kesalahan saat menyimpan data manual.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
             }
           } catch(e) {
@@ -1401,7 +1421,7 @@
               icon: 'error',
               title: 'Kesalahan Sistem',
               text: 'Tidak dapat terhubung ke server.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
           } finally {
             this.savingManualImpor = false;
@@ -1423,7 +1443,7 @@
                 icon: 'success',
                 title: 'Generate Berhasil',
                 text: j.message,
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
               await this.load();
             } else {
@@ -1431,7 +1451,7 @@
                 icon: 'error',
                 title: 'Generate Gagal',
                 text: j.message || 'Terjadi kesalahan saat memproses data.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
             }
           } catch(e) {
@@ -1439,7 +1459,7 @@
               icon: 'error',
               title: 'Kesalahan Sistem',
               text: 'Tidak dapat terhubung ke server.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
           } finally {
             this.generating = false;
@@ -1461,7 +1481,7 @@
                 icon: 'success',
                 title: 'Generate Impor Berhasil',
                 text: j.message,
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
               await this.load();
             } else {
@@ -1469,7 +1489,7 @@
                 icon: 'error',
                 title: 'Generate Gagal',
                 text: j.message || 'Terjadi kesalahan saat memproses data.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
             }
           } catch(e) {
@@ -1477,7 +1497,7 @@
               icon: 'error',
               title: 'Kesalahan Sistem',
               text: 'Tidak dapat terhubung ke server.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
           } finally {
             this.generating = false;
@@ -1499,7 +1519,7 @@
                 icon: 'success',
                 title: 'Checking & Sinkronisasi Selesai',
                 text: 'Data stok fisik real-time, outstanding PO berjalan, dan batas stok berhasil diperbarui.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
               await this.load();
             } else {
@@ -1507,7 +1527,7 @@
                 icon: 'error',
                 title: 'Checking Gagal',
                 text: j.message || 'Terjadi kesalahan saat memeriksa data.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
             }
           } catch(e) {
@@ -1515,7 +1535,7 @@
               icon: 'error',
               title: 'Kesalahan Sistem',
               text: 'Tidak dapat terhubung ke server.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
           } finally {
             this.generating = false;
@@ -1537,7 +1557,7 @@
                 icon: 'success',
                 title: 'Checking Impor Selesai',
                 text: 'Data stok fisik, inbound ETA berjalan, dan rekomendasi order impor berhasil diperbarui.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
               await this.load();
             } else {
@@ -1545,7 +1565,7 @@
                 icon: 'error',
                 title: 'Checking Gagal',
                 text: j.message || 'Terjadi kesalahan saat memeriksa data.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
             }
           } catch(e) {
@@ -1553,7 +1573,7 @@
               icon: 'error',
               title: 'Kesalahan Sistem',
               text: 'Tidak dapat terhubung ke server.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
           } finally {
             this.generating = false;
@@ -1577,7 +1597,7 @@
             text: `Kunci working data ${namaTipe} ke Log Riwayat Snapshot? Seluruh data aktif saat ini akan diarsipkan sebagai snapshot locked.`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#0284c7',
+            confirmButtonColor: '#111111',
             cancelButtonColor: '#6b7280',
             confirmButtonText: 'Ya, Finalisasi Sekarang',
             cancelButtonText: 'Batal'
@@ -1604,7 +1624,7 @@
                 icon: 'success',
                 title: 'Finalisasi Berhasil',
                 text: j.message,
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               }).then(() => {
                 this.tab = 'riwayat';
                 this.load();
@@ -1614,7 +1634,7 @@
                 icon: 'error',
                 title: 'Gagal Finalisasi',
                 text: j.message || 'Tidak dapat memfinalisasi analisa.',
-                confirmButtonColor: '#0284c7'
+                confirmButtonColor: '#111111'
               });
             }
           } catch(e) {
@@ -1622,7 +1642,7 @@
               icon: 'error',
               title: 'Terjadi Kesalahan',
               text: 'Koneksi ke server terganggu.',
-              confirmButtonColor: '#0284c7'
+              confirmButtonColor: '#111111'
             });
           }
         },
@@ -1670,7 +1690,7 @@
 
           if (ahead) {
             ahead.innerHTML = cols.map(c => `
-              <th class="py-2.5 px-3 text-[11px] font-semibold text-gray-700 uppercase tracking-wider bg-gray-100 border-b border-gray-200 ${c[2]}">
+              <th class="py-3 px-4 text-[13px] font-medium text-[#667085] dark:text-gray-400 bg-[#f8fafb] dark:bg-gray-800/95 border-b border-[#E8E8E8] dark:border-gray-800 ${c[2]}">
                 ${c[1]}
               </th>
             `).join('');
@@ -1679,34 +1699,34 @@
           if (abody) {
             const list = this.paginatedRows();
             if (list.length === 0) {
-              abody.innerHTML = '<tr><td colspan="' + cols.length + '" class="py-8 text-center text-gray-400 text-xs">Tidak ada data analisa yang cocok dengan filter atau pencarian.</td></tr>';
+              abody.innerHTML = '<tr><td colspan="' + cols.length + '" class="py-8 text-center text-[#667085] dark:text-gray-400 text-xs">Tidak ada data analisa yang cocok dengan filter atau pencarian.</td></tr>';
               return;
             }
 
             abody.innerHTML = list.map((r, idx) => {
-              const bg = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40';
-              return `<tr class="${bg} hover:bg-primary-50/20 transition-colors">` + cols.map(c => {
+              const bg = idx % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-[#fafafa] dark:bg-gray-900/60';
+              return `<tr class="${bg} hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">` + cols.map(c => {
                 const val = r[c[0]];
                 const colKey = c[0];
                 const align = c[2];
 
                 if (colKey === 'status') {
-                  return `<td class="px-3 py-2 text-xs ${align}">${this.badge(val)}</td>`;
+                  return `<td class="px-4 py-3 text-sm ${align}">${this.badge(val)}</td>`;
                 }
 
                 if (colKey === 'sku') {
-                  return `<td class="px-3 py-2 text-xs font-mono font-medium text-primary-800 ${align}">${val ?? '-'}</td>`;
+                  return `<td class="px-4 py-3 text-xs font-mono font-semibold text-[#101828] dark:text-white ${align}">${val ?? '-'}</td>`;
                 }
 
                 if (colKey === 'nama' || colKey === 'item_label') {
-                  return `<td class="px-3 py-2 text-xs font-medium text-gray-900 ${align}">${val ?? '-'}</td>`;
+                  return `<td class="px-4 py-3 text-sm font-medium text-[#101828] dark:text-white ${align}">${val ?? '-'}</td>`;
                 }
 
                 if (align === 'text-right') {
-                  return `<td class="px-3 py-2 text-xs font-mono text-gray-800 ${align}">${this.fmt(val, colKey)}</td>`;
+                  return `<td class="px-4 py-3 text-sm font-mono text-[#101828] dark:text-gray-200 ${align}">${this.fmt(val, colKey)}</td>`;
                 }
 
-                return `<td class="px-3 py-2 text-xs text-gray-700 ${align}">${this.fmt(val, colKey)}</td>`;
+                return `<td class="px-4 py-3 text-sm text-[#667085] dark:text-gray-300 ${align}">${this.fmt(val, colKey)}</td>`;
               }).join('') + '</tr>';
             }).join('');
           }
