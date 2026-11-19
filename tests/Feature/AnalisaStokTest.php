@@ -201,7 +201,8 @@ class AnalisaStokTest extends TestCase
         $analisaService = app(AnalisaService::class);
         $input = AnalisaLokalInput::with('produk')->firstOrFail();
 
-        $input->terjual_rata_rata_4bulan = 0;
+        // Tidak ada permintaan bahan baku dari Gudang Produksi -> ADU 0
+        \App\Models\StockRequestItem::query()->delete();
         $input->stok_saat_ini = 0;
         $input->akan_datang = 0;
 

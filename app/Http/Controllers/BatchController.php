@@ -450,6 +450,7 @@ class BatchController extends Controller
                     'qty_baik' => $totalBaik,
                     'qty_rusak' => $totalRusak,
                     'status' => 'selesai',
+                    'waktu_selesai' => now(),
                 ]);
             } else {
                 $qtyBaik = (float) ($data['qty_baik'] ?? 0);
@@ -467,6 +468,7 @@ class BatchController extends Controller
                     'qty_baik' => $qtyBaik,
                     'qty_rusak' => $qtyRusak,
                     'status' => 'selesai',
+                    'waktu_selesai' => now(),
                 ]);
 
                 if ($gudang && $qtyBaik > 0) {

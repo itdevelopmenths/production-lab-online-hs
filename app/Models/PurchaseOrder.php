@@ -264,7 +264,7 @@ class PurchaseOrder extends Model
      * Cek apakah PO sudah disetujui Manager sehingga pembayaran boleh dicatat.
      *
      * PO bertahap tetap berstatus 'berjalan' dari Tahap 1 sampai 8, jadi
-     * persetujuan dibaca dari posisi stage_aktif (lewat Tahap 2). PO alur
+     * persetujuan dibaca dari posisi stage_aktif (lewat Tahap Approval, urutan 3). PO alur
      * legacy tidak memakai tahap (kolom stage_aktif di DB default 'perencanaan'
      * dan tidak pernah bergerak), sehingga persetujuannya dibaca dari status:
      * status legacy tersebut tidak pernah dipakai PO bertahap. PO tanpa baris
@@ -286,7 +286,9 @@ class PurchaseOrder extends Model
 
         $posisi = array_search($this->stage_aktif, PoStage::STAGES, true);
 
-        if ($posisi !== false && $posisi >= 3) {
+        // Urutan: 1 perencanaan, 2 konfirmasi_supplier, 3 approval, 4 pembayaran dst.
+        // Disetujui Manager = sudah melewati approval (posisi >= 4).
+        if ($posisi !== false && $posisi >= 4) {
             return true;
         }
 

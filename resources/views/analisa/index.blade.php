@@ -341,6 +341,7 @@
         tabs: [
           { key: 'lokal', label: 'Bahan Baku Lokal' },
           { key: 'impor', label: 'Bahan Baku Impor' },
+          { key: 'produksi', label: 'Produk Jadi (Gudang Produksi)' },
           { key: 'fulfillment', label: 'Produk Jadi (Fulfillment)' },
           { key: 'riwayat', label: 'Log Riwayat Snapshot' }
         ],
@@ -369,6 +370,21 @@
             ['total_qty_order', 'Qty Order', 'text-right'],
             ['total_nominal_order', 'Nominal Order', 'text-right']
           ],
+          produksi: [
+            ['sku', 'SKU', 'text-left'],
+            ['nama', 'Nama Produk', 'text-left'],
+            ['gudang_nama', 'Gudang Produksi', 'text-left'],
+            ['adu', 'ADU', 'text-right'],
+            ['lead_time_average', 'LT Rata-rata (hari)', 'text-right'],
+            ['safety_stock_hari', 'Safety (hari)', 'text-right'],
+            ['batas_minimum', 'Batas Min', 'text-right'],
+            ['target_stock', 'Target', 'text-right'],
+            ['stok_saat_ini', 'Stok Saat Ini', 'text-right'],
+            ['akan_datang', 'Akan Datang', 'text-right'],
+            ['selisih', 'Selisih', 'text-right'],
+            ['status', 'Status', 'text-center'],
+            ['qty_produksi', 'Qty Produksi', 'text-right']
+          ],
           fulfillment: [
             ['sku', 'SKU', 'text-left'],
             ['nama', 'Nama Produk', 'text-left'],
@@ -395,6 +411,7 @@
         urls: {
           lokal: '{{ route('analisa.lokal.data') }}',
           impor: '{{ route('analisa.impor.data') }}',
+          produksi: '{{ route('analisa.produksi.data') }}',
           fulfillment: '{{ route('analisa.fulfillment.data') }}',
           riwayat: '{{ route('analisa.riwayat.data') }}'
         },
@@ -680,7 +697,7 @@
           if (p < 1) p = 1;
           if (p > max) p = max;
           this.page = p;
-          if (this.tab === 'fulfillment') {
+          if (this.tab === 'fulfillment' || this.tab === 'produksi') {
             this.renderTable();
           }
         },
@@ -1614,7 +1631,7 @@
               this.selectedItemIds = [];
             }
             this.page = 1;
-            if (this.tab === 'fulfillment') {
+            if (this.tab === 'fulfillment' || this.tab === 'produksi') {
               this.renderTable();
             }
           } catch(e) {

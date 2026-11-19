@@ -1,8 +1,8 @@
 {{-- Section: Produk Jadi Fulfillment --}}
-<div x-show="tab === 'fulfillment'">
+<div x-show="tab === 'fulfillment' || tab === 'produksi'">
     <x-card class="tbl-modern" 
-        title="Tabel Analisa Produk Jadi (Fulfillment)" 
-        subtitle="Monitoring stok fisik produk jadi terhadap batas aman dan alokasi pesanan distributor" 
+        title="Tabel Analisa Produk Jadi" 
+        subtitle="Fulfillment: batas aman per gudang cabang. Gudang Produksi: ADU dari permintaan produk jadi Fulfillment (4 bulan) dan lead time batch." 
         :noPadding="true"
     >
         <x-slot:icon>

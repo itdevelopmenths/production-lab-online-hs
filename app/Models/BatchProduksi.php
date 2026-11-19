@@ -25,6 +25,7 @@ class BatchProduksi extends Model
         'gudang_tujuan_rencana_id',
         'status',
         'tanggal',
+        'waktu_selesai',
         'created_by',
     ];
 
@@ -33,6 +34,7 @@ class BatchProduksi extends Model
         'qty_baik' => 'decimal:2',
         'qty_rusak' => 'decimal:2',
         'tanggal' => 'date',
+        'waktu_selesai' => 'datetime',
     ];
 
     public const STATUS = ['rencana', 'release', 'selesai', 'dibatalkan'];

@@ -434,9 +434,9 @@ class PurchasingController extends Controller
                 ->with('error', 'Dokumen Purchase Order ini sudah final / barang sudah diterima sehingga tidak dapat diubah.');
         }
 
-        if ($purchaseOrder->stage_aktif !== null && $purchaseOrder->stage_aktif !== PoStage::STAGE_1) {
+        if (! $this->isPoEditablePreApproval($purchaseOrder)) {
             return redirect()->route('purchasing.show', $purchaseOrder)
-                ->with('error', 'PO dengan tahapan aktif tidak dapat diedit penuh. Gunakan Direct Edit atau Ajukan Revisi Komitmen.');
+                ->with('error', 'PO sudah masuk tahap approval / disetujui sehingga terkunci dan tidak dapat diubah. Batalkan PO dan buat baru jika ada kesalahan.');
         }
 
         if ($purchaseOrder->hasPendingRevision()) {
@@ -465,9 +465,9 @@ class PurchasingController extends Controller
             ]);
         }
 
-        if ($purchaseOrder->stage_aktif !== null && $purchaseOrder->stage_aktif !== PoStage::STAGE_1) {
+        if (! $this->isPoEditablePreApproval($purchaseOrder)) {
             throw ValidationException::withMessages([
-                'stage_aktif' => 'PO dengan tahapan aktif tidak dapat diedit penuh. Gunakan Direct Edit atau Ajukan Revisi Komitmen.',
+                'stage_aktif' => 'PO sudah masuk tahap approval / disetujui sehingga terkunci dan tidak dapat diubah. Batalkan PO dan buat baru jika ada kesalahan.',
             ]);
         }
 
@@ -1125,6 +1125,16 @@ class PurchasingController extends Controller
     private function ensureStatus(PurchaseOrder $po, array $allowed): void
     {
         abort_unless(in_array($po->status, $allowed, true), 422, 'Transisi status PO tidak valid.');
+    }
+
+    /**
+     * PO hanya boleh diedit penuh sebelum tahap Approval Manager
+     * (perencanaan atau konfirmasi supplier). Setelah itu terkunci.
+     */
+    private function isPoEditablePreApproval(PurchaseOrder $po): bool
+    {
+        return $po->stage_aktif === null
+            || in_array($po->stage_aktif, [PoStage::STAGE_1, PoStage::STAGE_3], true);
     }
 
     private function ensureNoPendingRevision(PurchaseOrder $po): void

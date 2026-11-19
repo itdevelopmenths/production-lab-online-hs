@@ -19,6 +19,7 @@ use Tests\TestCase;
 class AnalisaMultiSupplierLeadTimeTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Concerns\SeedsDemandRequests;
 
     private User $purchasing;
     private User $manager;
@@ -344,10 +345,10 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
         $stageService->initializePoStages($po, $t0, $this->purchasing);
         $t1 = $t0->copy()->addHours(24); // stage 1 = 1.0 hari
         $stageService->completeStage1($po, $this->purchasing, $t1);
-        $t2 = $t1->copy()->addHours(12); // stage 2 = 0.5 hari
-        $stageService->approveStage2($po, $this->manager, $t2);
-        $t3 = $t2->copy()->addHours(24); // stage 3 = 1.0 hari
-        $stageService->completeStage3($po, $this->purchasing, [], $t3);
+        $t2 = $t1->copy()->addHours(24); // konfirmasi supplier = 1.0 hari
+        $stageService->completeStage3($po, $this->purchasing, [], $t2);
+        $t3 = $t2->copy()->addHours(12); // approval = 0.5 hari
+        $stageService->approveStage2($po, $this->manager, $t3);
         $t4 = $t3->copy()->addHours(12); // stage 4 = 0.5 hari
         $stageService->completeStage4Tempo($po, $this->purchasing, $t4);
         $t5 = $t4->copy()->addHours(12); // stage 5 = 0.5 hari
@@ -407,10 +408,11 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
             'is_active' => true,
         ]);
 
-        // Input pemakaian produk: 3.000 / 30 = ADU 100 per hari
+        // ADU 100 per hari dari permintaan bahan baku Gudang Produksi
+        $this->seedPusatDemand($this->produkLokal, 100);
         \App\Models\AnalisaLokalInput::create([
             'produk_id' => $this->produkLokal->id,
-            'terjual_rata_rata_4bulan' => 3000,
+            'terjual_rata_rata_4bulan' => 0,
             'review_period' => 15,
         ]);
         LeadTimeLokal::create([
@@ -520,7 +522,8 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
             'diperbarui_pada' => now(),
         ]);
 
-        // Set OUT = 10.000 selama 100 hari -> ADU = 100.0 tepat
+        // ADU = 100.0 per hari dari permintaan bahan baku Gudang Produksi
+        $this->seedPusatDemand($this->produkImpor, 100);
         AnalisaImpor::create([
             'produk_id' => $this->produkImpor->id,
             'supplier_terpilih_id' => $this->supplierA->id,

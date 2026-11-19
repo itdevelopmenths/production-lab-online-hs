@@ -3,11 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\PoLeadTime;
-use App\Models\PoRevisi;
 use App\Models\PoStage;
 use App\Models\PurchaseOrder;
 use App\Services\Authorization\LocationScopeService;
-use App\Services\Purchasing\PurchaseOrderRevisionService;
 use App\Services\Purchasing\PurchasingStageService;
 use App\Services\Purchasing\SupplierLeadTimeService;
 use App\Traits\ResolvesGudangOnlyUser;
@@ -21,16 +19,13 @@ class PurchasingStageController extends Controller
     use ResolvesGudangOnlyUser;
 
     protected PurchasingStageService $stageService;
-    protected PurchaseOrderRevisionService $revisionService;
     protected SupplierLeadTimeService $leadTimeService;
 
     public function __construct(
         PurchasingStageService $stageService,
-        PurchaseOrderRevisionService $revisionService,
         SupplierLeadTimeService $leadTimeService
     ) {
         $this->stageService = $stageService;
-        $this->revisionService = $revisionService;
         $this->leadTimeService = $leadTimeService;
     }
 
@@ -172,100 +167,6 @@ class PurchasingStageController extends Controller
         }
 
         return back()->with('success', 'Stage 4 diselesaikan via skema tempo.');
-    }
-
-    /**
-     * Direct edit field operasional tanpa approval (TC-33).
-     */
-    public function directEdit(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse|JsonResponse
-    {
-        $this->authorize('purchasing.edit');
-        $request->validate([
-            'fields' => ['required', 'array'],
-            'fields.eta' => ['nullable', 'date'],
-            'fields.eta_supplier' => ['nullable', 'date'],
-            'fields.eta_tiba' => ['nullable', 'date'],
-        ]);
-        $fields = $request->input('fields', []);
-
-        $this->revisionService->updateOperationalFields($purchaseOrder, $fields, auth()->user());
-
-        if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Field operasional berhasil diperbarui.']);
-        }
-
-        return back()->with('success', 'Field operasional berhasil diperbarui.');
-    }
-
-    /**
-     * Mengajukan revisi data komitmen (TC-34, TC-37).
-     */
-    public function submitRevisi(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse|JsonResponse
-    {
-        $this->authorize('purchasing.edit');
-        $data = $request->validate([
-            'alasan' => ['required', 'string', 'max:255'],
-            'data_usulan' => ['required', 'array'],
-            'data_usulan.diskon_total' => ['nullable', 'numeric', 'min:0'],
-            'data_usulan.ppn_nominal' => ['nullable', 'numeric', 'min:0'],
-            'data_usulan.ongkos_kirim' => ['nullable', 'numeric', 'min:0'],
-            'data_usulan.adjustment' => ['nullable', 'numeric'],
-            'data_usulan.items' => ['nullable', 'array', 'min:1'],
-            'data_usulan.items.*.po_item_id' => ['nullable', 'string'],
-            'data_usulan.items.*.produk_id' => ['required_with:data_usulan.items', 'integer', 'exists:produk,id'],
-            'data_usulan.items.*.qty' => ['nullable', 'numeric', 'gt:0'],
-            'data_usulan.items.*.qty_satuan_beli' => ['nullable', 'numeric', 'gt:0'],
-            'data_usulan.items.*.satuan_beli' => ['nullable', 'string', 'max:20'],
-            'data_usulan.items.*.faktor_konversi' => ['nullable', 'numeric', 'gt:0'],
-            'data_usulan.items.*.harga_total' => ['required_with:data_usulan.items', 'numeric', 'min:0'],
-        ]);
-
-        $revisi = $this->revisionService->submitCommitmentRevision(
-            $purchaseOrder,
-            $data['data_usulan'],
-            $data['alasan'],
-            auth()->user()
-        );
-
-        if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'revisi' => $revisi]);
-        }
-
-        return back()->with('success', 'Usulan revisi berhasil diajukan ke Manager.');
-    }
-
-    /**
-     * Manager menyetujui usulan revisi (TC-35).
-     */
-    public function approveRevisi(Request $request, PoRevisi $revisi): RedirectResponse|JsonResponse
-    {
-        $this->authorize('purchasing.approve');
-        $this->revisionService->approveRevision($revisi, auth()->user());
-
-        if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Usulan revisi telah disetujui.']);
-        }
-
-        return back()->with('success', 'Usulan revisi telah disetujui.');
-    }
-
-    /**
-     * Manager menolak usulan revisi (TC-36).
-     */
-    public function rejectRevisi(Request $request, PoRevisi $revisi): RedirectResponse|JsonResponse
-    {
-        $this->authorize('purchasing.approve');
-        $data = $request->validate([
-            'alasan' => ['required', 'string', 'max:255'],
-        ]);
-
-        $this->revisionService->rejectRevision($revisi, auth()->user(), $data['alasan']);
-
-        if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Usulan revisi telah ditolak.']);
-        }
-
-        return back()->with('warning', 'Usulan revisi telah ditolak.');
     }
 
     /**

@@ -119,8 +119,9 @@ class PurchasingPaymentGateTest extends TestCase
     {
         $po = $this->createStagedPo();
         $this->stageService->completeStage1($po, $this->purchasing);
+        $this->stageService->completeStage3($po, $this->purchasing);
         $this->stageService->approveStage2($po, $this->manager);
-        $this->assertSame(PoStage::STAGE_3, $po->stage_aktif);
+        $this->assertSame(PoStage::STAGE_4, $po->stage_aktif);
 
         $this->actingAs($this->purchasing)
             ->post(route('purchasing.pay', $po), $this->payload())
@@ -133,8 +134,10 @@ class PurchasingPaymentGateTest extends TestCase
     {
         $po = $this->createStagedPo();
         $this->stageService->completeStage1($po, $this->purchasing);
+        $this->stageService->completeStage3($po, $this->purchasing);
         $this->stageService->rejectStage2($po, $this->manager, 'Harga perlu dinegosiasi ulang');
-        $this->stageService->completeStage1($po, $this->purchasing);
+        $this->assertSame(PoStage::STAGE_3, $po->fresh()->stage_aktif);
+        $this->stageService->completeStage3($po->fresh(), $this->purchasing);
 
         $this->actingAs($this->purchasing)
             ->post(route('purchasing.pay', $po), $this->payload())
@@ -194,7 +197,7 @@ class PurchasingPaymentGateTest extends TestCase
 
         foreach (PoStage::STAGES as $stage) {
             $po->stage_aktif = $stage;
-            $expected = ! in_array($stage, [PoStage::STAGE_1, PoStage::STAGE_2], true);
+            $expected = ! in_array($stage, [PoStage::STAGE_1, PoStage::STAGE_3, PoStage::STAGE_2], true);
             $this->assertSame($expected, $po->isApprovedForPayment(), "Stage {$stage}");
         }
 

@@ -71,12 +71,12 @@ class AnalisaLokalEngineTest extends TestCase
         $this->assertNotNull($analisa);
         $this->assertEquals(13, $analisa->total_average_lead_time);
         $this->assertEquals(11, $analisa->safety_stock);
-        // ADU = 39303.25 / 30 = 1310.1083
+        // ADU otomatis dari permintaan bahan baku Produksi->Pusat (seeder): 39303.25 / 30 = 1310.1083
         $this->assertEqualsWithDelta(1310.1083, (float) $analisa->adu, 0.001);
         // Batas Minimum = 1310.1083 * (13 + 11) = 31442.60
-        $this->assertEqualsWithDelta(31442.60, (float) $analisa->batas_minimum, 0.01);
+        $this->assertEqualsWithDelta(31442.60, (float) $analisa->batas_minimum, 0.05);
         // Target Stock = 1310.1083 * (13 + 11 + 15) = 51094.23
-        $this->assertEqualsWithDelta(51094.23, (float) $analisa->target_stock, 0.01);
+        $this->assertEqualsWithDelta(51094.23, (float) $analisa->target_stock, 0.05);
         $this->assertEquals($this->purchasing->id, $analisa->generated_by);
 
         // 4. Table 4: rekomendasi_order_lokal

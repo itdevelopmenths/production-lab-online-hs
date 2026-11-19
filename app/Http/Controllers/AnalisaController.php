@@ -316,7 +316,7 @@ class AnalisaController extends Controller
 
         $data = $request->validate([
             'produk_id' => ['required', 'exists:produk,id'],
-            'terjual_rata_rata_4bulan' => ['nullable', 'numeric', 'min:0'],
+            // ADU Gudang Pusat otomatis dari permintaan bahan baku Gudang Produksi (4 bulan); tidak diinput manual.
             'review_period' => ['nullable', 'integer', 'min:1'],
             'tambahan_buffer_hari' => ['nullable', 'numeric', 'min:0'],
             'stok_saat_ini' => ['nullable', 'numeric', 'min:0'],
@@ -328,9 +328,6 @@ class AnalisaController extends Controller
         DB::transaction(function () use ($prodId, $data) {
             // Update / simpan ke AnalisaLokalInput agar konsisten saat re-generate
             $input = AnalisaLokalInput::firstOrNew(['produk_id' => $prodId]);
-            if (array_key_exists('terjual_rata_rata_4bulan', $data) && $data['terjual_rata_rata_4bulan'] !== null) {
-                $input->terjual_rata_rata_4bulan = $data['terjual_rata_rata_4bulan'];
-            }
             if (array_key_exists('review_period', $data) && $data['review_period'] !== null) {
                 $input->review_period = (int) $data['review_period'];
             }
@@ -488,7 +485,7 @@ class AnalisaController extends Controller
             'produk_id' => ['required', 'exists:produk,id'],
             'lead_time_average' => ['nullable', 'numeric', 'min:0'],
             'lead_time_max' => ['nullable', 'numeric', 'min:0'],
-            'out' => ['nullable', 'numeric', 'min:0'],
+            // Out/ADU impor otomatis dari permintaan bahan baku Gudang Produksi (4 bulan); tidak diinput manual.
             'periode_mulai' => ['nullable', 'date'],
             'periode_akhir' => ['nullable', 'date'],
             'review_period' => ['nullable', 'integer', 'min:1'],
@@ -539,9 +536,6 @@ class AnalisaController extends Controller
 
             // Update Analisa Impor
             $ai = AnalisaImpor::firstOrNew(['produk_id' => $prodId]);
-            if (array_key_exists('out', $data) && $data['out'] !== null) {
-                $ai->out = $data['out'];
-            }
             if (array_key_exists('periode_mulai', $data) && $data['periode_mulai'] !== null) {
                 $ai->periode_mulai = $data['periode_mulai'];
             }
@@ -613,7 +607,6 @@ class AnalisaController extends Controller
                     $meta->klasifikasi_abc_id = $ai->klasifikasi_abc_id;
                     $meta->klasifikasi_abc = $ai->klasifikasi_abc;
                 }
-                if (isset($data['out'])) $meta->out_total_4bulan = $data['out'];
                 if (isset($data['harga_per_satuan'])) $meta->harga_per_satuan = $data['harga_per_satuan'];
                 if (isset($data['review_period'])) $meta->review_period = $data['review_period'];
                 if (isset($data['lead_time_average'])) $meta->lead_time_average = $data['lead_time_average'];
@@ -787,6 +780,13 @@ class AnalisaController extends Controller
         })->values();
 
         return response()->json(['data' => $rows]);
+    }
+
+    public function produksiData(): JsonResponse
+    {
+        $this->authorize('analisa.view');
+
+        return response()->json(['data' => $this->analisa->produksi()]);
     }
 
     public function riwayatData(): JsonResponse

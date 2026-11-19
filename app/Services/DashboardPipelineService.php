@@ -18,8 +18,8 @@ class DashboardPipelineService
 {
     private const LABEL_TAHAP_PO = [
         PoStage::STAGE_1 => 'Perencanaan',
-        PoStage::STAGE_2 => 'Approval',
         PoStage::STAGE_3 => 'Konfirmasi',
+        PoStage::STAGE_2 => 'Approval',
         PoStage::STAGE_4 => 'Pembayaran',
         PoStage::STAGE_5 => 'PO Terbit',
         PoStage::STAGE_6 => 'Pengiriman',

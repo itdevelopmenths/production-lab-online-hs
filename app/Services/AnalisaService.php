@@ -53,6 +53,8 @@ class AnalisaService
     /** @var array<int, string> */
     public const IMPOR_PROFILES = ['impor', 'bahan_impor'];
 
+    private ?DemandAduService $demandSvc = null;
+
     public static function isImporProfile(?string $profilAnalisa): bool
     {
         return in_array($profilAnalisa, self::IMPOR_PROFILES, true);
@@ -744,20 +746,13 @@ class AnalisaService
 
         if ($isImpor) {
             $meta = AnalisaImporMeta::where('produk_id', $produk->id)->first();
-            // ADU murni per produk (out / jumlah_hari), tidak bergantung pada supplier
-            $out = (float) ($currentImpor?->out ?? $meta?->out_total_4bulan ?? 0);
-            $jHari = (int) ($currentImpor?->jumlah_hari_periode ?? 0);
-            if ($jHari <= 0) {
-                $pMulai = $currentImpor?->periode_mulai?->toDateString() ?? $meta?->periode_mulai?->toDateString() ?? now()->subMonths(4)->toDateString();
-                $pAkhir = $currentImpor?->periode_akhir?->toDateString() ?? $meta?->periode_akhir?->toDateString() ?? now()->toDateString();
-                $jHari = \Carbon\Carbon::parse($pMulai)->diffInDays(\Carbon\Carbon::parse($pAkhir)) + 1;
-            }
-            $adu = $jHari > 0 ? ($out / $jHari) : 0.0;
+            // ADU murni per produk dari permintaan produksi 4 bulan, tidak bergantung pada supplier
+            $adu = $this->pusatAdu($produk->id);
             $reviewPeriod = (int) ($currentImpor?->review_period ?? $meta?->review_period ?? 30);
             $tambahanAbc = (float) ($currentImpor?->tambahan_buffer_hari ?? 0);
         } else {
             $inputLokal = AnalisaLokalInput::where('produk_id', $produk->id)->first();
-            $adu = (float) ($currentLokal?->adu ?? (($inputLokal?->terjual_rata_rata_4bulan ?? 0) / 30));
+            $adu = (float) ($currentLokal?->adu ?? $this->pusatAdu($produk->id));
             $reviewPeriod = (int) ($currentLokal?->review_period ?? $inputLokal?->review_period ?? 15);
         }
         if ($reviewPeriod <= 0) {
@@ -898,6 +893,8 @@ class AnalisaService
         $products = $query->orderBy('nama')->get();
         $generated = [];
         $now = now();
+        // ADU Gudang Pusat otomatis dari permintaan bahan baku Gudang Produksi (4 bulan terakhir)
+        $demandMap = $this->demand()->aduBahanPusat($products->pluck('id')->map(fn ($id) => (int) $id)->all());
 
         foreach ($products as $p) {
             // 1. Stage Lead Time (9 stages per scenario)
@@ -957,13 +954,13 @@ class AnalisaService
             // 3. Analisa Lokal (Working Table)
             $existingInput = AnalisaLokalInput::where('produk_id', $p->id)->first();
 
-            $terjual = (float) ($existingInput?->terjual_rata_rata_4bulan ?? $existingAnalisa?->terjual_rata_rata_4bulan ?? 0);
+            $adu = (float) ($demandMap[(int) $p->id]['adu'] ?? 0.0);
+            $terjual = $adu * 30; // ekuivalen rata-rata per bulan (ADU otomatis dari permintaan produksi)
             $reviewPeriod = (int) ($existingInput?->review_period ?? $existingAnalisa?->review_period ?? 15);
             if ($reviewPeriod <= 0) {
                 $reviewPeriod = 15;
             }
 
-            $adu = $terjual / 30;
             $batasMinimum = $adu * ($totalAvg + $safetyStock);
             $targetStock = $adu * ($totalAvg + $safetyStock + $reviewPeriod);
 
@@ -1073,7 +1070,7 @@ class AnalisaService
             $safetyStockHari = max(0, $totalMax - $totalAvg) + $tambahanBuffer;
         }
 
-        $adu = (float) $input->terjual_rata_rata_4bulan / 30;
+        $adu = $this->pusatAdu((int) $input->produk_id);
         $batasMinimum = round($adu * ($totalAvg + $safetyStockHari));
         $targetStock = round($adu * ($totalAvg + $safetyStockHari + (int) $input->review_period));
 
@@ -1110,14 +1107,9 @@ class AnalisaService
         $reviewPeriod = (int) ($meta->review_period ?: 30);
         $bufferDays = max(0, $ltMax - $ltAvg) + $meta->tambahanHariAbc();
 
-        $periodeMulai = $meta->periode_mulai?->toDateString();
-        $periodeAkhir = $meta->periode_akhir?->toDateString();
-        $jumlahHari = ($periodeMulai && $periodeAkhir)
-            ? (\Carbon\Carbon::parse($periodeMulai)->diffInDays(\Carbon\Carbon::parse($periodeAkhir)) + 1)
-            : ($meta->jumlah_hari_periode ?: 122);
-        if ($jumlahHari <= 0) {
-            $jumlahHari = 122;
-        }
+        // Demand otomatis dari permintaan bahan baku Gudang Produksi (jendela 4 bulan)
+        $jumlahHari = $this->demand()->window()['days'];
+        $outTotal = (float) $this->pusatDemand((int) $meta->produk_id)['total'];
 
         $varianHasil = [];
         $totalQtyOrder = 0.0;
@@ -1128,7 +1120,7 @@ class AnalisaService
 
         if ($varians->isNotEmpty()) {
             foreach ($varians as $v) {
-                $out = round((float) $v->persentase_distribusi * (float) $meta->out_total_4bulan);
+                $out = round((float) $v->persentase_distribusi * $outTotal);
                 $aduBase = round($jumlahHari > 0 ? ($out / $jumlahHari) : 0);
                 $distribusi = (float) $v->persentase_distribusi;
 
@@ -1167,7 +1159,7 @@ class AnalisaService
                 ];
             }
         } else {
-            $out = round((float) $meta->out_total_4bulan);
+            $out = round($outTotal);
             $aduBase = round($jumlahHari > 0 ? ($out / $jumlahHari) : 0);
             $aduEta = $aduBase;
             $safetyStock = round($aduEta * $bufferDays);
@@ -1304,20 +1296,16 @@ class AnalisaService
             ])->save();
 
             // 2. Data Out, Periode, & Harga
-            $out = (float) ($existingAnalisa?->out ?? $meta?->out_total_4bulan ?? 0);
+            $demandImpor = $this->pusatDemand((int) $p->id);
+            $out = (float) $demandImpor['total'];
             $harga = (float) ($existingAnalisa?->harga_per_satuan ?? $meta?->harga_per_satuan ?? $p->harga_hpp ?? 0);
             $moq = (float) ($p->satuan_order_moq ?: 1);
 
-            $periodeMulai = $existingAnalisa?->periode_mulai?->toDateString()
-                ?? $meta?->periode_mulai?->toDateString()
-                ?? now()->subMonths(4)->toDateString();
-            $periodeAkhir = $existingAnalisa?->periode_akhir?->toDateString()
-                ?? $meta?->periode_akhir?->toDateString()
-                ?? now()->toDateString();
-            $jumlahHari = \Carbon\Carbon::parse($periodeMulai)->diffInDays(\Carbon\Carbon::parse($periodeAkhir)) + 1;
-            if ($jumlahHari <= 0) {
-                $jumlahHari = 122;
-            }
+            // Jendela 4 bulan terakhir (otomatis); ADU = total permintaan / jumlah hari jendela
+            $win = $this->demand()->window();
+            $periodeMulai = $win['start']->toDateString();
+            $periodeAkhir = $win['end']->toDateString();
+            $jumlahHari = $win['days'];
 
             // Hitung ADU murni per produk (tidak bergantung pada supplier / lead time)
             $aduBase = $jumlahHari > 0 ? ($out / $jumlahHari) : 0;
@@ -1614,6 +1602,27 @@ class AnalisaService
         ];
     }
 
+    private function demand(): DemandAduService
+    {
+        return $this->demandSvc ??= app(DemandAduService::class);
+    }
+
+    /**
+     * Demand Gudang Pusat (bahan baku) satu produk: permintaan bahan baku dari Gudang Produksi
+     * selama 4 bulan terakhir. ADU = total / jumlah hari jendela.
+     *
+     * @return array{total: float, adu: float}
+     */
+    public function pusatDemand(int $produkId): array
+    {
+        return $this->demand()->aduBahanPusat([$produkId])[$produkId] ?? ['total' => 0.0, 'adu' => 0.0];
+    }
+
+    private function pusatAdu(int $produkId): float
+    {
+        return (float) $this->pusatDemand($produkId)['adu'];
+    }
+
     /** Bulatkan ke atas ke kelipatan MOQ. */
     private function bulatkanMoq(float $qty, float $moq): float
     {
@@ -1681,10 +1690,167 @@ class AnalisaService
             $byProduct[$r->produk_id] = ($byProduct[$r->produk_id] ?? 0) + $batasMin;
         }
 
+        // 4. Profil Barang Jadi di Gudang Produksi (ADU dari permintaan produk jadi Fulfillment)
+        foreach ($this->produksi() as $row) {
+            $key = "{$row['produk_id']}_{$row['gudang_id']}";
+            $byProductGudang[$key] = (float) $row['batas_minimum'];
+        }
+
         return [
             'by_product' => $byProduct,
             'by_product_gudang' => $byProductGudang,
+            // Batas minimum bahan (lokal/impor) hanya berlaku untuk Gudang Pusat (bahan baku).
+            'pusat_gudang_ids' => \App\Models\Gudang::query()->where('tipe', 'bahan_baku')->pluck('id')->map(fn ($id) => (int) $id)->all(),
         ];
+    }
+
+    /**
+     * Review period (hari) default analisa barang jadi di Gudang Produksi.
+     */
+    public const PRODUKSI_REVIEW_PERIOD = 15;
+
+    /**
+     * Statistik lead time produksi per produk jadi dari batch selesai:
+     * durasi = waktu rencana batch dibuat -> waktu batch diselesaikan (hari, 1 desimal half-up).
+     *
+     * @param  array<int, int>  $produkIds
+     * @return array<int, array{avg: float, max: float, count: int}>
+     */
+    public function batchLeadTimeStats(array $produkIds): array
+    {
+        if (empty($produkIds)) {
+            return [];
+        }
+
+        $rows = [];
+
+        if (Schema::hasTable('batch_produksi_outputs')) {
+            foreach (DB::table('batch_produksi_outputs as bpo')
+                ->join('batch_produksi as bp', 'bp.id', '=', 'bpo.batch_id')
+                ->where('bp.status', 'selesai')
+                ->whereNotNull('bp.waktu_selesai')
+                ->whereIn('bpo.produk_id', $produkIds)
+                ->get(['bpo.produk_id', 'bp.created_at', 'bp.waktu_selesai']) as $r) {
+                $rows[] = $r;
+            }
+        }
+
+        foreach (DB::table('batch_produksi as bp')
+            ->where('bp.status', 'selesai')
+            ->whereNotNull('bp.waktu_selesai')
+            ->whereNotNull('bp.produk_id')
+            ->whereIn('bp.produk_id', $produkIds)
+            ->when(Schema::hasTable('batch_produksi_outputs'), function ($q) {
+                $q->whereNotExists(function ($sub) {
+                    $sub->select(DB::raw(1))->from('batch_produksi_outputs as bpo')->whereColumn('bpo.batch_id', 'bp.id');
+                });
+            })
+            ->get(['bp.produk_id', 'bp.created_at', 'bp.waktu_selesai']) as $r) {
+            $rows[] = $r;
+        }
+
+        $perProduk = [];
+        foreach ($rows as $r) {
+            $menit = max(0, (int) round((\Carbon\Carbon::parse($r->waktu_selesai)->timestamp - \Carbon\Carbon::parse($r->created_at)->timestamp) / 60));
+            $perProduk[(int) $r->produk_id][] = $menit;
+        }
+
+        $out = [];
+        foreach ($perProduk as $pid => $list) {
+            $out[$pid] = [
+                'avg' => self::roundLeadTimeDays((array_sum($list) / count($list)) / 1440),
+                'max' => self::roundLeadTimeDays(max($list) / 1440),
+                'count' => count($list),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Analisa barang jadi di Gudang Produksi (operasional).
+     * ADU = permintaan produk jadi dari Gudang Fulfillment selama 4 bulan / jumlah hari jendela.
+     * Lead time = rata-rata dan maksimum durasi batch (rencana -> selesai); safety = max - avg.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function produksi(): array
+    {
+        $demand = $this->demand()->aduProdukJadiProduksi();
+        if (empty($demand)) {
+            return [];
+        }
+
+        $produkIds = array_values(array_unique(array_map(fn ($d) => (int) $d['produk_id'], $demand)));
+        $gudangIds = array_values(array_unique(array_map(fn ($d) => (int) $d['gudang_id'], $demand)));
+
+        $produkMap = Produk::whereIn('id', $produkIds)->get()->keyBy('id');
+        $gudangMap = \App\Models\Gudang::whereIn('id', $gudangIds)->get()->keyBy('id');
+        $ltStats = $this->batchLeadTimeStats($produkIds);
+
+        $stokMap = [];
+        foreach (Stok::whereIn('produk_id', $produkIds)->whereIn('gudang_id', $gudangIds)->get(['produk_id', 'gudang_id', 'qty_saat_ini']) as $st) {
+            $stokMap["{$st->produk_id}_{$st->gudang_id}"] = (float) $st->qty_saat_ini;
+        }
+
+        // Rencana batch aktif di gudang produksi = produk jadi yang akan datang
+        $akanDatang = [];
+        foreach (DB::table('batch_produksi_outputs as bpo')
+            ->join('batch_produksi as bp', 'bp.id', '=', 'bpo.batch_id')
+            ->whereIn('bp.status', ['rencana', 'release'])
+            ->whereIn('bpo.produk_id', $produkIds)
+            ->whereIn('bp.gudang_operasional_id', $gudangIds)
+            ->groupBy('bpo.produk_id', 'bp.gudang_operasional_id')
+            ->get(['bpo.produk_id', 'bp.gudang_operasional_id as gudang_id', DB::raw('SUM(bpo.qty_rencana) as total')]) as $r) {
+            $akanDatang["{$r->produk_id}_{$r->gudang_id}"] = (float) $r->total;
+        }
+
+        $rows = [];
+        foreach ($demand as $key => $d) {
+            $pid = (int) $d['produk_id'];
+            $gid = (int) $d['gudang_id'];
+            $produk = $produkMap->get($pid);
+
+            $avgLt = (float) ($ltStats[$pid]['avg'] ?? 0.0);
+            $maxLt = (float) ($ltStats[$pid]['max'] ?? 0.0);
+            $safety = max(0.0, self::roundLeadTimeDays($maxLt - $avgLt));
+            $adu = (float) $d['adu'];
+
+            $batasMinimum = round($adu * ($avgLt + $safety));
+            $target = round($adu * ($avgLt + $safety + self::PRODUKSI_REVIEW_PERIOD));
+            $stok = (float) ($stokMap[$key] ?? 0.0);
+            $akan = (float) ($akanDatang[$key] ?? 0.0);
+            $tersedia = $stok + $akan;
+            $selisih = $tersedia - $batasMinimum;
+            $isOrder = $batasMinimum > 0 && $tersedia <= $batasMinimum;
+            $moq = (float) ($produk?->satuan_order_moq ?: 1);
+
+            $rows[] = [
+                'produk_id' => $pid,
+                'sku' => $produk?->sku,
+                'nama' => $produk?->nama,
+                'gudang_id' => $gid,
+                'gudang_nama' => $gudangMap->get($gid)?->nama,
+                'total_permintaan_4bulan' => (float) $d['total'],
+                'adu' => round($adu, 4),
+                'lead_time_average' => $avgLt,
+                'lead_time_max' => $maxLt,
+                'jumlah_batch_selesai' => (int) ($ltStats[$pid]['count'] ?? 0),
+                'safety_stock_hari' => $safety,
+                'review_period' => self::PRODUKSI_REVIEW_PERIOD,
+                'batas_minimum' => (float) $batasMinimum,
+                'target_stock' => (float) $target,
+                'stok_saat_ini' => $stok,
+                'akan_datang' => $akan,
+                'selisih' => round($selisih, 2),
+                'status' => $isOrder ? 'order' : 'tidak',
+                'qty_produksi' => $isOrder ? $this->bulatkanMoq(abs($selisih), $moq) : 0.0,
+            ];
+        }
+
+        usort($rows, fn ($a, $b) => strcmp((string) $a['nama'], (string) $b['nama']));
+
+        return $rows;
     }
 
     /**
@@ -1693,11 +1859,21 @@ class AnalisaService
     public function getBatasMinimumForStok(int $produkId, ?int $gudangId = null, ?array $map = null): float
     {
         $map = $map ?? $this->getBatasMinimumMap();
-        if ($gudangId !== null && isset($map['by_product_gudang']["{$produkId}_{$gudangId}"])) {
+        if ($gudangId === null) {
+            return (float) ($map['by_product'][$produkId] ?? 0.0);
+        }
+
+        if (isset($map['by_product_gudang']["{$produkId}_{$gudangId}"])) {
             return (float) $map['by_product_gudang']["{$produkId}_{$gudangId}"];
         }
 
-        return (float) ($map['by_product'][$produkId] ?? 0.0);
+        // Batas minimum bahan (lokal/impor) hanya berlaku untuk Gudang Pusat (bahan baku);
+        // gudang lain tanpa baris analisa sendiri tidak punya batas minimum.
+        if (in_array($gudangId, $map['pusat_gudang_ids'] ?? [], true)) {
+            return (float) ($map['by_product'][$produkId] ?? 0.0);
+        }
+
+        return 0.0;
     }
 
     /**

@@ -151,7 +151,7 @@ class PurchasingStageService
     }
 
     /**
-     * Selesaikan Stage 1 (Perencanaan & Pengajuan) -> Buka Stage 2 (Approval Manager).
+     * Selesaikan Stage 1 (Perencanaan & Pengajuan) -> Buka Konfirmasi Supplier (urutan 2).
      */
     public function completeStage1(PurchaseOrder $po, User $actor, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
     {
@@ -170,9 +170,9 @@ class PurchasingStageService
                 'catatan' => $catatan ?: $current->catatan,
             ]);
 
-            // Buka Stage 2 dengan waktu mulai persis sama dengan waktu selesai Stage 1 (TC-06)
+            // Buka Konfirmasi Supplier dengan waktu mulai persis sama dengan waktu selesai Stage 1 (TC-06)
             $nextStage = $po->stages()->create([
-                'stage' => PoStage::STAGE_2,
+                'stage' => PoStage::STAGE_3,
                 'urutan' => 2,
                 'putaran' => $current->putaran,
                 'status' => 'berjalan',
@@ -181,7 +181,7 @@ class PurchasingStageService
                 'dicatat_pada' => now(),
             ]);
 
-            $po->stage_aktif = PoStage::STAGE_2;
+            $po->stage_aktif = PoStage::STAGE_3;
             $po->status = 'berjalan';
             $po->save();
 
@@ -190,7 +190,7 @@ class PurchasingStageService
     }
 
     /**
-     * Selesaikan Stage 2 (Approval Manager) -> Buka Stage 3 (Konfirmasi Supplier).
+     * Selesaikan Approval Manager -> Buka Stage Pembayaran (urutan 4). Setelah ini PO terkunci.
      */
     public function approveStage2(PurchaseOrder $po, User $manager, ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
     {
@@ -210,10 +210,10 @@ class PurchasingStageService
                 'catatan' => $catatan ?: 'Disetujui oleh Manager',
             ]);
 
-            // Buka Stage 3
+            // Buka Stage Pembayaran
             $nextStage = $po->stages()->create([
-                'stage' => PoStage::STAGE_3,
-                'urutan' => 3,
+                'stage' => PoStage::STAGE_4,
+                'urutan' => 4,
                 'putaran' => $current->putaran,
                 'status' => 'berjalan',
                 'waktu_mulai' => $selesai,
@@ -221,7 +221,7 @@ class PurchasingStageService
                 'dicatat_pada' => now(),
             ]);
 
-            $po->stage_aktif = PoStage::STAGE_3;
+            $po->stage_aktif = PoStage::STAGE_4;
             $po->save();
 
             return $nextStage;
@@ -229,7 +229,7 @@ class PurchasingStageService
     }
 
     /**
-     * Reject Stage 2 oleh Manager -> Tandai 'dikembalikan' & Buka Putaran Baru di Stage 1 (BR-06, TC-12).
+     * Reject Approval oleh Manager -> Tandai 'dikembalikan' & Buka Putaran Baru di Konfirmasi Supplier (BR-06, TC-12).
      */
     public function rejectStage2(PurchaseOrder $po, User $manager, string $alasan, ?DateTimeInterface $waktuSelesai = null): PoStage
     {
@@ -256,10 +256,10 @@ class PurchasingStageService
 
             $newPutaran = $current->putaran + 1;
 
-            // Buka Stage 1 pada putaran baru
-            $newStage1 = $po->stages()->create([
-                'stage' => PoStage::STAGE_1,
-                'urutan' => 1,
+            // Buka Konfirmasi Supplier pada putaran baru
+            $newStage = $po->stages()->create([
+                'stage' => PoStage::STAGE_3,
+                'urutan' => 2,
                 'putaran' => $newPutaran,
                 'status' => 'berjalan',
                 'waktu_mulai' => $selesai,
@@ -269,15 +269,15 @@ class PurchasingStageService
                 'catatan' => 'Putaran ' . $newPutaran . ' setelah penolakan: ' . $alasan,
             ]);
 
-            $po->stage_aktif = PoStage::STAGE_1;
+            $po->stage_aktif = PoStage::STAGE_3;
             $po->save();
 
-            return $newStage1;
+            return $newStage;
         });
     }
 
     /**
-     * Selesaikan Stage 3 (Konfirmasi Supplier) -> Buka Stage 4 (Pembayaran).
+     * Selesaikan Konfirmasi Supplier -> Buka Approval Manager (urutan 3).
      */
     public function completeStage3(PurchaseOrder $po, User $purchasing, array $confirmationData = [], ?DateTimeInterface $waktuSelesai = null, ?string $catatan = null): PoStage
     {
@@ -319,10 +319,10 @@ class PurchasingStageService
                 'catatan' => $catatan ?: $current->catatan,
             ]);
 
-            // Buka Stage 4
+            // Buka Approval Manager
             $nextStage = $po->stages()->create([
-                'stage' => PoStage::STAGE_4,
-                'urutan' => 4,
+                'stage' => PoStage::STAGE_2,
+                'urutan' => 3,
                 'putaran' => $current->putaran,
                 'status' => 'berjalan',
                 'waktu_mulai' => $selesai,
@@ -330,7 +330,7 @@ class PurchasingStageService
                 'dicatat_pada' => now(),
             ]);
 
-            $po->stage_aktif = PoStage::STAGE_4;
+            $po->stage_aktif = PoStage::STAGE_2;
             $po->save();
 
             return $nextStage;

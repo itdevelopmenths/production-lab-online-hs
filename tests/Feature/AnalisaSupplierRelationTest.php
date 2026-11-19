@@ -189,7 +189,6 @@ class AnalisaSupplierRelationTest extends TestCase
         $response = $this->actingAs($this->purchasing)
             ->postJson(route('analisa.update-manual-lokal'), [
                 'produk_id' => $this->alkohol->id,
-                'terjual_rata_rata_4bulan' => 600,
                 'review_period' => 10,
                 'tambahan_buffer_hari' => 4,
                 'stok_saat_ini' => 150,
@@ -203,7 +202,6 @@ class AnalisaSupplierRelationTest extends TestCase
 
         $input = \App\Models\AnalisaLokalInput::where('produk_id', $this->alkohol->id)->first();
         $this->assertNotNull($input);
-        $this->assertEquals(600, $input->terjual_rata_rata_4bulan);
         $this->assertEquals(10, $input->review_period);
         $this->assertEquals(150, $input->stok_saat_ini);
         $this->assertEquals(250, $input->harga_per_satuan);
@@ -214,7 +212,8 @@ class AnalisaSupplierRelationTest extends TestCase
 
         $analisa = \App\Models\AnalisaLokal::where('produk_id', $this->alkohol->id)->first();
         $this->assertNotNull($analisa);
-        $this->assertEquals(20.0, (float) $analisa->adu); // 600 / 30
+        // ADU otomatis dari permintaan produksi (seeder ALK-01): 39303.25 / 30
+        $this->assertEqualsWithDelta(39303.25 / 30, (float) $analisa->adu, 0.001);
         $this->assertEquals(10, $analisa->review_period);
 
         $rek = \App\Models\RekomendasiOrderLokal::where('produk_id', $this->alkohol->id)->first();
@@ -230,7 +229,6 @@ class AnalisaSupplierRelationTest extends TestCase
                 'produk_id' => $this->botol->id,
                 'lead_time_average' => 45,
                 'lead_time_max' => 65,
-                'out' => 1200,
                 'review_period' => 20,
                 'klasifikasi_abc' => 'a',
                 'stok_saat_ini' => 200,
@@ -250,8 +248,9 @@ class AnalisaSupplierRelationTest extends TestCase
 
         $ai = \App\Models\AnalisaImpor::where('produk_id', $this->botol->id)->first();
         $this->assertNotNull($ai);
-        $this->assertEquals(1200, (float) $ai->out);
-        $this->assertEquals(round(1200 / $ai->jumlah_hari_periode, 4), (float) $ai->adu_base);
+        // Out dan ADU otomatis dari permintaan bahan baku Gudang Produksi (seeder BTL-P50): 47312 / 122 per hari
+        $this->assertEqualsWithDelta(47312 / 122, (float) $ai->adu_base, 0.01);
+        $this->assertEqualsWithDelta((float) $ai->out / $ai->jumlah_hari_periode, (float) $ai->adu_base, 0.01);
         $this->assertEquals(20, $ai->review_period);
         $this->assertEquals('a', $ai->klasifikasi_abc);
         $this->assertEquals(200, (float) $ai->stok_saat_ini);

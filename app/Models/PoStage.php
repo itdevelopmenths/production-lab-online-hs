@@ -45,10 +45,13 @@ class PoStage extends Model
     // Legacy stage key for historic PO compatibility
     public const LEGACY_STAGE_PENGEMASAN = 'pengemasan';
 
+    // Catatan: nama konstanta STAGE_n mengikuti kunci stage historis, BUKAN urutan eksekusi.
+    // Urutan eksekusi: perencanaan -> konfirmasi_supplier -> approval -> pembayaran -> ...
+    // Setelah approval Manager, data PO terkunci (tanpa direct edit / revisi).
     public const STAGES = [
         1 => self::STAGE_1,
-        2 => self::STAGE_2,
-        3 => self::STAGE_3,
+        2 => self::STAGE_3,
+        3 => self::STAGE_2,
         4 => self::STAGE_4,
         5 => self::STAGE_5,
         6 => self::STAGE_6,

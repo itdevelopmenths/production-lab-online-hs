@@ -158,10 +158,6 @@ Route::middleware('auth')->group(function () {
         Route::post('{purchaseOrder}/stages/payment/dibayarkan', [\App\Http\Controllers\PurchasingStageController::class, 'dibayarkan'])->name('stages.dibayarkan');
         Route::post('{purchaseOrder}/stages/payment/lanjut-tempo', [\App\Http\Controllers\PurchasingStageController::class, 'lanjutTempo'])->name('stages.lanjut-tempo');
         Route::post('{purchaseOrder}/stages/{stage}/complete', [\App\Http\Controllers\PurchasingStageController::class, 'completeStage'])->name('stages.complete');
-        Route::post('{purchaseOrder}/direct-edit', [\App\Http\Controllers\PurchasingStageController::class, 'directEdit'])->name('direct-edit');
-        Route::post('{purchaseOrder}/revisi/submit', [\App\Http\Controllers\PurchasingStageController::class, 'submitRevisi'])->name('revisi.submit');
-        Route::post('revisi/{revisi}/approve', [\App\Http\Controllers\PurchasingStageController::class, 'approveRevisi'])->name('revisi.approve');
-        Route::post('revisi/{revisi}/reject', [\App\Http\Controllers\PurchasingStageController::class, 'rejectRevisi'])->name('revisi.reject');
         Route::post('lead-time/{poLeadTime}/invalidate', [\App\Http\Controllers\PurchasingStageController::class, 'invalidateLeadTime'])->name('lead-time.invalidate');
     });
 
@@ -216,6 +212,7 @@ Route::middleware('auth')->group(function () {
         Route::post('add-sku', [AnalisaController::class, 'addSku'])
             ->middleware('can:analisa.manage')->name('add-sku');
         Route::get('fulfillment/data', [AnalisaController::class, 'fulfillmentData'])->name('fulfillment.data');
+        Route::get('produksi/data', [AnalisaController::class, 'produksiData'])->name('produksi.data');
         Route::get('riwayat/data', [AnalisaController::class, 'riwayatData'])->name('riwayat.data');
         Route::post('generate-lokal', [AnalisaController::class, 'generateLokal'])
             ->middleware('can:analisa.manage')->name('generate-lokal');

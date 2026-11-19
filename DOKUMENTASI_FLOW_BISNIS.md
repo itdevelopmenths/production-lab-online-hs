@@ -14,7 +14,7 @@
 4. [Panduan Alur Penggunaan Detail per Modul](#4-panduan-alur-penggunaan-detail-per-modul)
    - [Modul 1: Master Data & Resep BOM (Fondasi Sistem)](#modul-1-master-data--resep-bom-fondasi-sistem)
    - [Modul 2: Analisa Stok, Klasifikasi ABC & Komparasi Multi-Supplier](#modul-2-analisa-stok-klasifikasi-abc--komparasi-multi-supplier)
-   - [Modul 3: Purchasing 9-Tahap, Pembayaran Bertahap & Perhitungan Lead Time](#modul-3-purchasing-9-tahap-pembayaran-bertahap--perhitungan-lead-time)
+   - [Modul 3: Purchasing 8-Tahap, Pembayaran Bertahap & Perhitungan Lead Time](#modul-3-purchasing-8-tahap-pembayaran-bertahap--perhitungan-lead-time)
    - [Modul 4: Permintaan Barang (Request) & Pengiriman Fisik (Transfer)](#modul-4-permintaan-barang-request--pengiriman-fisik-transfer)
    - [Modul 5: Produksi Parfum Multi-Produk (Batch & BOM)](#modul-5-produksi-parfum-multi-produk-batch--bom)
    - [Modul 6: Stok, Mutasi, Kartu Stok & Stock Opname](#modul-6-stok-mutasi-kartu-stok--stock-opname)
@@ -25,7 +25,7 @@
    - [5.3 Rumus Analisa Produk Jadi (Fulfillment Multi-Cabang)](#53-rumus-analisa-produk-jadi-fulfillment-multi-cabang)
    - [5.4 Rumus Stok Aktual, Stok Berjalan, Status Peringatan & Hierarki HPP](#54-rumus-stok-aktual-stok-berjalan-status-peringatan--hierarki-hpp)
    - [5.5 Rumus Kalkulasi Biaya PO, Prorata, Konversi Satuan & Alokasi Pembayaran Termin](#55-rumus-kalkulasi-biaya-po-prorata-konversi-satuan--alokasi-pembayaran-termin)
-   - [5.6 Rumus Durasi 9-Tahap Purchasing & Rekam Jejak Lead Time Supplier](#56-rumus-durasi-9-tahap-purchasing--rekam-jejak-lead-time-supplier)
+   - [5.6 Rumus Durasi 8-Tahap Purchasing & Rekam Jejak Lead Time Supplier](#56-rumus-durasi-8-tahap-purchasing--rekam-jejak-lead-time-supplier)
    - [5.7 Rumus Batch Produksi (Perhitungan Resep BOM, Kesiapan Bahan, Yield, Defect & Opname)](#57-rumus-batch-produksi-perhitungan-resep-bom-kesiapan-bahan-yield-defect--opname)
    - [5.8 Rumus Validasi QC Transfer & Tingkat Kerusakan (Defect Rate) Gabungan](#58-rumus-validasi-qc-transfer--tingkat-kerusakan-defect-rate-gabungan)
 6. [Aturan Keamanan, Anti-Selisih & Pengendalian Operasional](#6-aturan-keamanan-anti-selisih--pengendalian-operasional)
@@ -48,7 +48,7 @@ Sebelum menggunakan SC Online, operasional rantai pasok sering menghadapi 4 kend
 > [!IMPORTANT]
 > **4 Prinsip Utama Sistem SC Online:**
 > 1. **Satu Sumber Acuan Analisa Stok:** Seluruh angka **Batas Minimum (Titik Pesan Ulang)** dan **Target Stok** di seluruh gudang dihitung secara terpusat oleh modul **Analisa Stok**—tidak diinput manual secara terpisah di tabel stok.
-> 2. **Rekam Jejak Waktu Kirim Otomatis (9 Tahap PO):** Setiap Purchase Order (PO) dilacak melewati **9 Tahap Berurutan**. Begitu PO selesai di tahap ke-9, durasi nyata pengiriman otomatis memperbarui rata-rata dan maksimum *Lead Time* supplier tersebut di modul Analisa Stok.
+> 2. **Rekam Jejak Waktu Kirim Otomatis (8 Tahap PO):** Setiap Purchase Order (PO) dilacak melewati **8 Tahap Berurutan**. Begitu PO selesai di tahap ke-8, durasi nyata pengiriman otomatis memperbarui rata-rata dan maksimum *Lead Time* supplier tersebut di modul Analisa Stok.
 > 3. **Kartu Stok Permanen & Transparan:** Tidak ada saldo stok yang bisa berubah tanpa catatan. Setiap penambahan dan pengurangan stok fisik wajib tercatat secara kronologis di dalam **Kartu Stok (Log Pergerakan)**.
 > 4. **Pemeriksaan Kualitas (QC) Anti-Selisih & Pemisahan Tugas:** Pengirim barang dilarang mengonfirmasi penerimaan barangnya sendiri. Saat barang diterima atau selesai diproduksi, berlaku rumus wajib: **$\text{Jumlah Baik} + \text{Jumlah Rusak} = \text{Jumlah Dikirim / Rencana}$**.
 
@@ -101,9 +101,9 @@ Sistem menerapkan pembagian hak akses berdasarkan **Jabatan (Peran)** dan **Caku
 
 | Peran | Contoh Pengguna | Cakupan Gudang | Fokus Tugas Harian |
 | :--- | :--- | :---: | :--- |
-| **Manager** | **Andyka** | Seluruh Gudang | Memantau indikator kinerja seluruh divisi, menyetujui PO & Revisi PO, menyetujui Permintaan Barang, mengesampingkan data Lead Time yang tidak wajar, serta mengelola akun & wewenang. |
+| **Manager** | **Andyka** | Seluruh Gudang | Memantau indikator kinerja seluruh divisi, menyetujui PO, menyetujui Permintaan Barang, mengesampingkan data Lead Time yang tidak wajar, serta mengelola akun & wewenang. |
 | **Purchasing** | **Rina** | Seluruh Gudang | Menjalankan **Analisa Stok** (Lokal & Impor), membandingkan kinerja supplier, membuat PO dari hasil analisa, mengawal Tahap 1–7 PO, dan mencatat pembayaran/cicilan tagihan. |
-| **Gudang** | **Budi** | Gudang Pusat (`GD-PUSAT`) | Melakukan bongkar muat & cek fisik barang PO datang (**Tahap 8 Unloading**), memposting saldo masuk PO (**Tahap 9 Input Sistem**), serta mengirim bahan baku ke Lab sesuai Permintaan yang disetujui. |
+| **Gudang** | **Budi** | Gudang Pusat (`GD-PUSAT`) | Melakukan bongkar muat & cek fisik barang PO datang (**Tahap 7 Unloading**), memposting saldo masuk PO (**Tahap 8 Input Sistem**), serta mengirim bahan baku ke Lab sesuai Permintaan yang disetujui. |
 | **Operasional** | **Dedi** | Gudang Operasional (`GD-OPS`) | Mengelola formula **Resep (BOM)**, mengajukan **Permintaan Bahan Baku**, membuat & menjalankan **Batch Produksi** (*Rencana $\rightarrow$ Release $\rightarrow$ Selesai*), mengisi *Opname Batch*, dan mengirim produk jadi ke Fulfillment. |
 | **Fulfillment** | **Sari** | Gudang Fulfillment (`FF-PUSAT`, `FF-SBY`, `FF-SOLO`) | Menerima kiriman produk jadi dari Lab, memantau **Analisa Stok Produk Jadi** lintas cabang, mengajukan **Permintaan Produk Jadi**, dan mendistribusikan stok antar-cabang. |
 
@@ -121,12 +121,13 @@ flowchart TD
         A3 -- "Ya (Status: ORDER / PO)" --> A4["Rekomendasi Order otomatis\ndibulatkan ke kelipatan MOQ"]
     end
 
-    subgraph F2["FASE 2: Pengadaan & 9-Tahap Purchasing"]
+    subgraph F2["FASE 2: Pengadaan & 8-Tahap Purchasing"]
         A4 -- "Untuk Bahan Lokal / Impor" --> B1["Purchasing: Buat PO\n(Tahap 1: Perencanaan)"]
-        B1 --> B2["Manager: Setujui PO\n(Tahap 2: Approval)"]
-        B2 --> B3["Purchasing: Konfirmasi Supplier, Bayar/Tempo,\nPO Terbit, Kemas, Kirim (Tahap 3 - 7)"]
-        B3 --> B4["Gudang: Unloading & Cek Fisik\n(Tahap 8: Belum Tambah Stok)"]
-        B4 --> B5["Gudang: Input Sistem & Posting\n(Tahap 9: Stok Pusat Bertambah & Catat Lead Time)"]
+        B1 --> B2["Purchasing: Konfirmasi Supplier\n(Tahap 2)"]
+        B2 --> B2b["Manager: Setujui PO\n(Tahap 3: Approval, PO Terkunci)"]
+        B2b --> B3["Purchasing: Bayar/Tempo, PO Terbit, Kirim\n(Tahap 4 - 6)"]
+        B3 --> B4["Gudang: Unloading & Cek Fisik\n(Tahap 7: Belum Tambah Stok)"]
+        B4 --> B5["Gudang: Input Sistem & Posting\n(Tahap 8: Stok Pusat Bertambah & Catat Lead Time)"]
     end
 
     subgraph F3["FASE 3: Permintaan & Pengiriman Bahan ke Lab"]
@@ -190,7 +191,7 @@ Terbagi menjadi 4 tampilan informasi yang saling terhubung:
 - **Rekomendasi Order:** Menampilkan status akhir setiap bahan lokal (`ORDER` atau `TIDAK`), kuantitas yang harus dipesan setelah pembulatan MOQ, konversi ke satuan beli, dan total nominal rupiahnya.
 - **Analisa Stok:** Menampilkan parameter pemakaian rata-rata 4 bulan, pemakaian harian rata-rata (*ADU*), rata-rata waktu kirim (*Total Average Lead Time*), *Safety Stock*, *Review Period*, *Batas Minimum*, dan *Target Stock*.
 - **Ringkasan Lead Time:** Menampilkan perbandingan *Average Lead Time*, *Max Lead Time*, *Tambahan Buffer Hari*, dan asal datanya (otomatis dari riwayat PO selesai atau input manual).
-- **Rincian 9 Tahap Lead Time:** Membedah waktu tunggu ke dalam 9 tahapan pengadaan (Skenario Rata-Rata dan Skenario Maksimum).
+- **Rincian 8 Tahap Lead Time:** Membedah waktu tunggu ke dalam 8 tahapan pengadaan (Skenario Rata-Rata dan Skenario Maksimum).
 
 #### 2. Tab Impor
 - Dirancang khusus untuk bahan dan kemasan impor yang memiliki waktu tunggu pengiriman panjang (misal 45–114 hari).
@@ -209,49 +210,43 @@ Terbagi menjadi 4 tampilan informasi yang saling terhubung:
 
 ---
 
-### Modul 3: Purchasing 9-Tahap, Pembayaran Bertahap & Perhitungan Lead Time
+### Modul 3: Purchasing 8-Tahap, Pembayaran Bertahap & Perhitungan Lead Time
 
 Menu **Purchasing** mengelola siklus pesanan pembelian (PO) dari perencanaan hingga stok masuk ke Gudang Pusat dan tagihan lunas.
 
-#### A. Pelacakan 9 Tahap Pengadaan (9-Stage Tracker)
-Setiap PO wajib melewati **9 tahap secara berurutan tanpa boleh melompati tahap**:
+#### A. Pelacakan 8 Tahap Pengadaan (8-Stage Tracker)
+Setiap PO wajib melewati **8 tahap secara berurutan tanpa boleh melompati tahap**. Konfirmasi supplier dilakukan **sebelum** approval Manager:
 
 ```mermaid
 flowchart LR
-    S1["1. Perencanaan\n(Purchasing)"] --> S2{"2. Approval\n(Manager)"}
-    S2 -- "Disetujui" --> S3["3. Konfirmasi\nSupplier\n(Purchasing)"]
-    S2 -- "Ditolak / Revisi\n(Buka Putaran Baru)" --> S1
-    S3 --> S4["4. Pembayaran / DP\natau Lanjut Tempo\n(Purchasing)"]
+    S1["1. Perencanaan\n(Purchasing)"] --> S2["2. Konfirmasi\nSupplier\n(Purchasing)"]
+    S2 --> S3{"3. Approval\n(Manager)"}
+    S3 -- "Ditolak\n(Putaran Baru)" --> S2
+    S3 -- "Disetujui\n(PO Terkunci)" --> S4["4. Pembayaran / DP\natau Lanjut Tempo\n(Purchasing)"]
     S4 --> S5["5. PO Terbit\n(Purchasing)"]
-    S5 --> S6["6. Pengemasan\n(Purchasing)"]
-    S6 --> S7["7. Pengiriman\n(Purchasing)"]
-    S7 --> S8["8. Unloading\ndi Gudang\n(Gudang)"]
-    S8 --> S9["9. Input Sistem &\nPosting Stok\n(Gudang)"]
+    S5 --> S6["6. Pengiriman\n(Purchasing)"]
+    S6 --> S7["7. Unloading\ndi Gudang\n(Gudang)"]
+    S7 --> S8["8. Input Sistem &\nPosting Stok\n(Gudang)"]
 ```
 
 | Urutan | Nama Tahap | Penanggung Jawab | Apa yang Terjadi pada Tahap Ini? |
 | :---: | :--- | :---: | :--- |
-| **1** | **Perencanaan** | Purchasing | Staf Purchasing membuat PO dan mengajukannya kepada Manager. Saat diajukan, Tahap 1 selesai dan Tahap 2 dimulai pada waktu yang sama. |
-| **2** | **Approval** | Manager | Manager memeriksa harga, jumlah, dan termin pembayaran. Jika **Setuju**, lanjut ke Tahap 3. Jika **Tolak** dengan alasan wajib, dokumen dikembalikan ke Tahap 1 dan sistem membuka **Putaran Baru**. |
-| **3** | **Konfirmasi Supplier** | Purchasing | Mencatat konfirmasi kesanggupan kuantitas, harga, nomor referensi supplier, dan estimasi kedatangan (ETA). |
-| **4** | **Pembayaran** | Purchasing | Dua jalur penyelesaian:<br>1. **Tombol "Dibayarkan":** Wajib sudah mencatat minimal 1 pembayaran (DP/Termin/Pelunasan) dengan nominal $> 0$.<br>2. **Tombol "Lanjut Tempo":** Khusus PO berskema **Tempo**, boleh lanjut ke Tahap 5 tanpa bayar uang muka di awal. Pembayaran hanya dapat dicatat setelah PO disetujui Manager (Tahap 2 selesai). |
+| **1** | **Perencanaan** | Purchasing | Staf Purchasing membuat PO. PO masih dapat diedit penuh. Saat tahap selesai, Konfirmasi Supplier dimulai pada waktu yang sama. |
+| **2** | **Konfirmasi Supplier** | Purchasing | Mencatat konfirmasi kesanggupan kuantitas, harga, nomor referensi supplier, dan estimasi kedatangan (ETA). PO masih dapat diedit penuh pada tahap ini. |
+| **3** | **Approval** | Manager | Manager memeriksa harga, jumlah, dan termin pembayaran. Jika **Setuju**, PO **terkunci** dan lanjut ke Pembayaran. Jika **Tolak** dengan alasan wajib, dokumen kembali ke **Konfirmasi Supplier** dan sistem membuka **Putaran Baru**. |
+| **4** | **Pembayaran** | Purchasing | Dua jalur penyelesaian:<br>1. **Tombol "Dibayarkan":** Wajib sudah mencatat minimal 1 pembayaran (DP/Termin/Pelunasan) dengan nominal $> 0$.<br>2. **Tombol "Lanjut Tempo":** Khusus PO berskema **Tempo**, boleh lanjut tanpa bayar uang muka di awal. Pembayaran hanya dapat dicatat setelah PO disetujui Manager. |
 | **5** | **PO Terbit** | Purchasing | Dokumen PO resmi dikirimkan kepada supplier sebagai perintah pemenuhan pesanan. |
-| **6** | **Pengemasan** | Purchasing | Mencatat kesiapan barang di tempat supplier: jumlah koli, berat (kg), dan catatan pengemasan. |
-| **7** | **Pengiriman** | Purchasing | Barang diserahkan ke ekspedisi. **Wajib mengisi nama Ekspedisi**, serta moda pengiriman (darat/laut/udara), nomor resi, nomor kontainer, dan perkiraan tanggal tiba. |
-| **8** | **Unloading (Bongkar Muat)** | Gudang | Barang tiba di Gudang Pusat. Petugas gudang membongkar muatan dan mencatat jumlah fisik kedatangan beserta kondisinya (Baik/Rusak) dan selisihnya. **Saldo stok sistem belum bertambah pada tahap ini!** |
-| **9** | **Input Sistem (Posting Stok)** | Gudang | Petugas gudang menyelesaikan Tahap 9. Secara otomatis:<br>1. Saldo stok **Gudang Pusat** bertambah sesuai jumlah fisik yang diterima.<br>2. Kartu Stok **Masuk (IN)** tercatat.<br>3. Status PO menjadi **Selesai**.<br>4. Sistem menghitung durasi menit & hari untuk seluruh 9 tahap dan memperbarui rata-rata serta maksimum *Lead Time* supplier tersebut! |
+| **6** | **Pengiriman** | Purchasing | Barang diserahkan ke ekspedisi. **Wajib mengisi nama Ekspedisi**, serta moda pengiriman (darat/laut/udara), nomor resi, nomor kontainer, dan perkiraan tanggal tiba. |
+| **7** | **Unloading (Bongkar Muat)** | Gudang | Barang tiba di Gudang Pusat. Petugas gudang membongkar muatan dan mencatat jumlah fisik kedatangan beserta kondisinya (Baik/Rusak) dan selisihnya. **Saldo stok sistem belum bertambah pada tahap ini!** |
+| **8** | **Input Sistem (Posting Stok)** | Gudang | Petugas gudang menyelesaikan tahap ini. Secara otomatis:<br>1. Saldo stok **Gudang Pusat** bertambah sesuai jumlah fisik yang diterima.<br>2. Kartu Stok **Masuk (IN)** tercatat.<br>3. Status PO menjadi **Selesai**.<br>4. Sistem menghitung durasi menit & hari untuk seluruh tahap dan memperbarui rata-rata serta maksimum *Lead Time* supplier tersebut! |
 
-User Gudang hanya dapat melihat PO mulai Tahap 5 (PO Terbit); PO pada Tahap 1–4 tidak muncul di daftar dan tidak dapat dibuka lewat tautan langsung.
+User Gudang hanya dapat melihat PO mulai tahap PO Terbit; PO pada tahap sebelumnya tidak muncul di daftar dan tidak dapat dibuka lewat tautan langsung.
 
-#### B. Dua Mekanisme Perubahan Data PO (Direct Edit vs Ajukan Revisi)
-Apabila terjadi perubahan data saat PO sedang berjalan, sistem menyediakan 2 mekanisme:
-1. **Direct Edit (Ubah Data Administratif & Logistik Tanpa Persetujuan Ulang):**
-   - Berlaku untuk informasi pengiriman dan catatan: catatan PO, tanggal ETA, nomor referensi supplier, nomor invoice, nama ekspedisi, moda pengiriman, nomor resi, nomor kontainer, jumlah koli, dan berat (kg).
-   - Perubahan langsung tersimpan dan tercatat di riwayat perubahan PO.
-2. **Ajukan Revisi (Ubah Komitmen Harga & Jumlah — Wajib Persetujuan Manager):**
-   - Berlaku jika ada perubahan **jumlah barang, harga beli, diskon, PPN, ongkos kirim, atau biaya penyesuaian** (selama PO belum mencapai Tahap 8/9).
-   - Staf Purchasing mengajukan usulan revisi disertai alasan. Selama revisi masih menunggu keputusan Manager, penyelesaian tahap maupun pencatatan pembayaran dikunci sementara.
-   - Saat Manager menyetujui revisi, sistem menghitung ulang HPP per satuan dan Grand Total PO secara otomatis tanpa merusak perhitungan waktu tahap yang sedang berjalan.
+#### B. PO Terkunci Setelah Approval (Tidak Ada Direct Edit maupun Revisi)
+- Seluruh data PO (barang, jumlah, harga, diskon, PPN, ongkos kirim, ETA, dan sebagainya) hanya dapat diubah pada tahap **Perencanaan** dan **Konfirmasi Supplier**, yaitu sebelum approval Manager.
+- Setelah Manager menyetujui, tidak ada lagi edit data, direct edit, maupun pengajuan revisi komitmen.
+- Jika ditemukan kesalahan setelah approval, Manager membatalkan PO (alasan wajib) lalu Purchasing membuat PO baru.
+- Pencatatan pembayaran dan termin tetap dapat dilakukan setelah approval.
 
 ---
 
@@ -352,7 +347,7 @@ Menu **Stok & Mutasi** adalah pusat pemantauan fisik dan nilai persediaan di sel
    - Halaman **Beranda** otomatis menyesuaikan indikator utama dan **Antrean Tugas Prioritas** sesuai peran pengguna yang sedang masuk:
      - **Manager:** Antrean PO butuh persetujuan/revisi, Permintaan Barang menunggu persetujuan, total komitmen tagihan PO, tingkat kerusakan gabungan bulan ini, dan peringatan stok kritis.
      - **Purchasing:** Daftar bahan lokal & impor yang perlu dipesan (`ORDER`), PO sedang berjalan, PO terlambat dari jadwal, total komitmen tagihan, dan pemantauan ekspedisi.
-     - **Gudang:** Kedatangan PO siap bongkar muat (Tahap 8), PO menunggu posting stok (Tahap 9), draft transfer perlu dikirim, kiriman masuk di jalan, dan catatan kerusakan terbaru.
+     - **Gudang:** Kedatangan PO siap bongkar muat (Tahap 7), PO menunggu posting stok (Tahap 8), draft transfer perlu dikirim, kiriman masuk di jalan, dan catatan kerusakan terbaru.
      - **Operasional:** Rencana batch yang siap rilis vs kurang bahan, batch yang sedang diracik, dan status permintaan bahan ke Gudang Pusat.
      - **Fulfillment:** Total saldo produk jadi di seluruh cabang, kiriman produk jadi dari Lab, transfer antar-cabang, dan produk jadi yang stoknya menipis.
 2. **Pusat Laporan:**
@@ -366,13 +361,41 @@ Bagian ini menjelaskan **seluruh rumus perhitungan** yang digunakan oleh sistem 
 
 ---
 
+### 5.0 Sumber ADU per Gudang (Dihitung Otomatis dari Permintaan Barang)
+
+ADU (*Average Daily Usage*) tidak lagi diinput manual. Sistem menghitungnya dari **permintaan barang (Request)** selama **4 bulan terakhir** (jendela bergulir, dihitung dari hari ini mundur 4 bulan, inklusif):
+
+$$\text{ADU} = \frac{\sum \text{Qty Diminta}}{\text{Jumlah Hari Jendela}} \quad (\approx 122\text{–}124\text{ hari})$$
+
+| Gudang | Jenis Barang | Permintaan yang Dihitung | Pemohon → Pengirim |
+| :--- | :--- | :--- | :--- |
+| **Gudang Pusat** (bahan baku) | Bahan baku & kemasan | Request Bahan Baku | Gudang Produksi → Gudang Pusat |
+| **Gudang Produksi** | Produk jadi | Request Produk Jadi | Gudang Fulfillment → Gudang Produksi |
+| **Gudang Fulfillment** | Produk jadi | Input penjualan per gudang (seperti 5.3) | - |
+
+- Hanya request berstatus **Disetujui, Diproses, atau Selesai** yang dihitung, memakai kuantitas yang **diminta** (`qty_diminta`). Draft, Diajukan, Ditolak, dan Dibatalkan diabaikan.
+- Tanggal request = waktu disetujui (jika kosong, tanggal dibuat).
+- ADU Gudang Pusat dipakai oleh Analisa Bahan Lokal (5.1) dan Impor (5.2). Input manual "terjual 4 bulan" dan "out" sudah tidak dipakai.
+
+#### Analisa Barang Jadi di Gudang Produksi
+Untuk setiap produk jadi dan Gudang Produksi pengirim:
+$$\text{ADU} = \frac{\sum \text{Qty Request Produk Jadi (4 bulan)}}{\text{Jumlah Hari Jendela}}$$
+- **Lead Time Produksi** rata-rata dan maksimum diambil dari batch yang sudah selesai: durasi = waktu rencana batch dibuat sampai batch diselesaikan (hari, 1 desimal).
+- $\text{Safety Stock (Hari)} = \max(0, LT_{\text{max}} - LT_{\text{avg}})$
+- $\text{Batas Minimum} = \text{ADU} \times (LT_{\text{avg}} + \text{Safety})$, $\text{Target Stock} = \text{ADU} \times (LT_{\text{avg}} + \text{Safety} + 15)$
+- Stok tersedia = stok fisik + rencana batch aktif. Status **ORDER** jika stok tersedia $\le$ Batas Minimum, dan rekomendasi produksi dibulatkan ke kelipatan MOQ produk jadi.
+- Produk yang belum punya batch selesai memakai lead time 0 (Batas Minimum 0) sampai ada riwayat batch.
+- Batas minimum di layar **Stok & Mutasi** kini per gudang: bahan hanya dibandingkan di Gudang Pusat, produk jadi di Gudang Produksi memakai angka di atas, dan di Gudang Fulfillment memakai angka per gudang pada 5.3.
+
+---
+
 ### 5.1 Rumus Analisa Bahan Lokal
 
 #### Daftar Variabel Input:
-- $T_{\text{4bln}}$ = Pemakaian rata-rata per bulan selama 4 bulan terakhir (dalam satuan dasar, misal `ml` atau `pcs`).
+- $T_{\text{4bln}}$ = Ekuivalen pemakaian per bulan, yaitu $\text{ADU} \times 30$, dengan ADU dari permintaan produksi 4 bulan terakhir (lihat 5.0).
 - $RP$ = *Review Period* / periode tinjau ulang stok (standar = $15\text{ hari}$).
-- $LT_{\text{avg}}$ = Total Rata-Rata Waktu Kirim (*Average Lead Time*) dari 9 tahap pengadaan (dalam hari, dibulatkan 1 angka di belakang koma).
-- $LT_{\text{max}}$ = Total Waktu Kirim Terlama (*Max Lead Time*) dari 9 tahap pengadaan (dalam hari, dibulatkan 1 angka di belakang koma).
+- $LT_{\text{avg}}$ = Total Rata-Rata Waktu Kirim (*Average Lead Time*) dari 8 tahap pengadaan (dalam hari, dibulatkan 1 angka di belakang koma).
+- $LT_{\text{max}}$ = Total Waktu Kirim Terlama (*Max Lead Time*) dari 8 tahap pengadaan (dalam hari, dibulatkan 1 angka di belakang koma).
 - $B_{\text{hari}}$ = Tambahan Hari Pengaman (Buffer Hari) manual.
 - $S_{\text{now}}$ = Saldo stok fisik saat ini di gudang.
 - $S_{\text{in}}$ = Stok yang sedang dipesan dari PO aktif (PO yang belum selesai/dibatalkan).
@@ -418,7 +441,7 @@ Bagian ini menjelaskan **seluruh rumus perhitungan** yang digunakan oleh sistem 
 Bahan impor memiliki karakteristik waktu pengiriman yang panjang, sehingga selama menunggu barang tiba (*ETA*), laju kebutuhan harian disesuaikan menjadi **ADU ETA** dan stok diproyeksikan ke titik saat barang tiba.
 
 #### Daftar Variabel Input:
-- $\text{Out}$ = Total pemakaian keluar selama periode analisa (misal 4 bulan).
+- $\text{Out}$ = Total permintaan bahan baku dari Gudang Produksi dalam jendela 4 bulan terakhir (lihat 5.0).
 - $D_{\text{periode}}$ = Jumlah hari dalam periode analisa: $(\text{Tanggal Akhir} - \text{Tanggal Mulai}) + 1$ (standar = $122\text{ hari}$).
 - $LT_{\text{avg}}$ = Rata-rata waktu kirim (*Lead Time Average*) impor (hari).
 - $LT_{\text{max}}$ = Waktu kirim terlama (*Lead Time Max*) impor (hari).
@@ -527,20 +550,20 @@ Saat membuat atau merevisi PO, sistem menghitung biaya bersih dan HPP per barang
 
 ---
 
-### 5.6 Rumus Durasi 9-Tahap Purchasing & Rekam Jejak Lead Time Supplier
+### 5.6 Rumus Durasi 8-Tahap Purchasing & Rekam Jejak Lead Time Supplier
 
 1. **Durasi Menit per Tahap:**
    Setiap kali satu tahap PO diselesaikan, waktu mulai tahap berikutnya dikunci sama persis dengan waktu selesai tahap sebelumnya:
    $$\text{Durasi Menit}_k = \max\left(0,\; \text{pembulatan}\left(\frac{\text{Waktu Selesai}_k - \text{Waktu Mulai}_k}{60\text{ detik}}\right)\right)$$
 2. **Pengelompokan 3 Kategori Waktu Tunggu (Lead Time) PO:**
-   - $\text{Lead Time Internal (Menit)} = \text{Tahap } 1 + \text{Tahap } 2 + \text{Tahap } 4 + \text{Tahap } 5 + \text{Tahap } 8 + \text{Tahap } 9$
-   - $\text{Lead Time Supplier (Menit)} = \text{Tahap } 3 + \text{Tahap } 6$
-   - $\text{Lead Time Logistik (Menit)} = \text{Tahap } 7$
+   - $\text{Lead Time Internal (Menit)} = \text{Perencanaan} + \text{Approval} + \text{Pembayaran} + \text{PO Terbit} + \text{Unloading} + \text{Input Sistem}$
+   - $\text{Lead Time Supplier (Menit)} = \text{Konfirmasi Supplier}$ (PO arsip lama: ditambah tahap Pengemasan)
+   - $\text{Lead Time Logistik (Menit)} = \text{Pengiriman}$
    - $\text{Total Lead Time (Menit)} = \text{Lead Time Internal} + \text{Lead Time Supplier} + \text{Lead Time Logistik}$
 3. **Konversi Menit ke Hari & Jam:**
    $$\text{Total Lead Time (Hari)} = \text{pembulatan 1 desimal}\left(\frac{\text{Total Lead Time (Menit)}}{1.440\text{ menit}}\right)$$
    $$\text{Total Lead Time (Jam)} = \text{pembulatan 2 desimal}\left(\frac{\text{Total Lead Time (Menit)}}{60\text{ menit}}\right)$$
-4. **Pembaruan Rata-Rata & Maksimum Lead Time (Saat Tahap 9 Selesai):**
+4. **Pembaruan Rata-Rata & Maksimum Lead Time (Saat Tahap 8 Input Sistem Selesai):**
    Baik untuk **Tingkat Supplier** maupun **Tingkat Supplier + Barang**:
    $$\text{Total Transaksi Baru } (N_{\text{baru}}) = N_{\text{lama}} + 1$$
    $$\text{Akumulasi Menit Baru } (M_{\text{baru}}) = M_{\text{lama}} + \text{Total Lead Time (Menit)}$$
@@ -597,9 +620,9 @@ Untuk menjaga ketertiban stok dan keuangan, sistem menerapkan 7 aturan pengendal
 
 | No | Nama Pengendalian | Aturan & Cara Kerja di Sistem |
 | :-: | :--- | :--- |
-| **1** | **Urutan 9 Tahap PO Ketat** | PO tidak dapat melompati tahap (misal dari Tahap 3 langsung ke Tahap 8). Setiap tahap harus diselesaikan secara berurutan dengan waktu yang valid. |
-| **2** | **Kunci Transaksi Saat Revisi PO Menunggu** | Jika sebuah PO memiliki usulan revisi harga/jumlah yang masih menunggu persetujuan Manager, penyelesaian tahap maupun pencatatan pembayaran dikunci sementara hingga Manager memberikan keputusan. |
-| **3** | **Cegah Lebih Bayar (Anti-Overpayment)** | Pembayaran PO tidak boleh melebihi **Sisa Tagihan**. Selain itu, revisi PO tidak boleh menurunkan **Grand Total** menjadi lebih kecil daripada total uang yang sudah telanjur dibayarkan ke supplier. |
+| **1** | **Urutan 8 Tahap PO Ketat** | PO tidak dapat melompati tahap (misal dari Konfirmasi Supplier langsung ke Pengiriman). Setiap tahap harus diselesaikan secara berurutan dengan waktu yang valid. |
+| **2** | **PO Terkunci Setelah Approval Manager** | Konfirmasi supplier dilakukan **sebelum** approval, sehingga setelah Manager menyetujui tidak ada lagi edit data PO, direct edit, maupun revisi komitmen. Jika ada kesalahan, PO harus dibatalkan (alasan wajib) dan dibuat ulang. Edit penuh hanya dapat dilakukan pada tahap Perencanaan dan Konfirmasi Supplier. |
+| **3** | **Cegah Lebih Bayar (Anti-Overpayment)** | Pembayaran PO tidak boleh melebihi **Sisa Tagihan**. |
 | **4** | **Reset Persetujuan Permintaan Saat Diubah** | Apabila dokumen **Permintaan Barang** yang sudah berstatus **Disetujui** diubah isinya oleh pemohon, statusnya otomatis kembali menjadi **Diajukan** dan wajib disetujui ulang oleh Manager. |
 | **5** | **Satu Pengiriman Aktif per Permintaan** | Satu dokumen Permintaan yang disetujui hanya boleh memiliki maksimal **1 dokumen Transfer aktif** (yang tidak dibatalkan) untuk mencegah pengiriman ganda atas tiket permintaan yang sama. |
 | **6** | **Pemisahan Petugas Pengirim & Penerima** | Petugas yang mengirim barang pada dokumen **Transfer** **dilarang mengonfirmasi penerimaan** atas kiriman tersebut di gudang tujuan (kecuali Manager). |
@@ -619,8 +642,8 @@ Untuk menjaga ketertiban stok dan keuangan, sistem menerapkan 7 aturan pengendal
 | **Kunci Finalisasi Analisa ke Riwayat** | ✅ | ❌ | ❌ | ✅ | ✅ |
 | **Buat PO dari Analisa / Manual** | ✅ | ❌ | ❌ | ❌ | ✅ |
 | **Lihat Harga Beli, HPP & Tagihan PO** | ✅ | ❌ | ❌ | ❌ | ✅ |
-| **Setujui / Tolak PO & Revisi PO** | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Bongkar Muat (Tahap 8) & Input Stok PO (Tahap 9)** | ❌ | ✅ | ❌ | ❌ | ✅ |
+| **Setujui / Tolak PO** | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **Bongkar Muat (Tahap 7) & Input Stok PO (Tahap 8)** | ❌ | ✅ | ❌ | ❌ | ✅ |
 | **Catat Pembayaran PO** | ✅ | ❌ | ❌ | ❌ | ✅ |
 | **Buat Permintaan Bahan Baku & Kemasan** | ❌ | ❌ | ✅ | ❌ | ✅ |
 | **Buat Permintaan Produk Jadi** | ❌ | ❌ | ❌ | ✅ | ✅ |

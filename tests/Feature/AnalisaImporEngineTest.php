@@ -18,6 +18,7 @@ use Tests\TestCase;
 class AnalisaImporEngineTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Concerns\SeedsDemandRequests;
 
     protected User $purchasing;
     protected Produk $botol;
@@ -264,12 +265,12 @@ class AnalisaImporEngineTest extends TestCase
 
         $abcA = \App\Models\KlasifikasiAbc::where('kode', 'a')->firstOrFail();
 
-        // 2. Submit update manual impor dengan parameter pasti Bab 6.3.5
+        // ADU otomatis dari permintaan bahan baku Gudang Produksi: 448 pcs/hari (jendela 4 bulan)
+        $this->seedPusatDemand($p, 448);
+
+        // 2. Submit update manual impor (out/periode tidak lagi diinput manual)
         $res = $this->postJson(route('analisa.update-manual-impor'), [
             'produk_id' => $p->id,
-            'periode_mulai' => '2024-10-01',
-            'periode_akhir' => '2025-01-31',
-            'out' => 55099,
             'lead_time_average' => 60,
             'lead_time_max' => 92,
             'klasifikasi_abc_id' => $abcA->id,
@@ -283,11 +284,11 @@ class AnalisaImporEngineTest extends TestCase
         // 3. Verifikasi hasil kalkulasi engine pada database
         $ai = AnalisaImpor::where('produk_id', $p->id)->firstOrFail();
 
-        // Jumlah hari: 01/10/2024 s/d 31/01/2025 = 123 hari (31 + 30 + 31 + 31)
-        $this->assertEquals(123, $ai->jumlah_hari_periode);
+        // Jumlah hari = jendela 4 bulan terakhir (otomatis)
+        $this->assertEquals(app(\App\Services\DemandAduService::class)->window()['days'], $ai->jumlah_hari_periode);
 
-        // ADU Base = 55.099 / 123 = 447.9593 pcs/hari (murni per produk, tidak bergantung supplier / LT)
-        $this->assertEqualsWithDelta(447.96, (float) $ai->adu_base, 0.05);
+        // ADU Base = 448 pcs/hari (murni per produk, tidak bergantung supplier / LT)
+        $this->assertEqualsWithDelta(448.0, (float) $ai->adu_base, 0.01);
 
         // Buffer Days = (92 - 60) + 4 = 36 hari
         $this->assertEqualsWithDelta(36.00, (float) $ai->buffer_days, 0.01);
@@ -295,22 +296,22 @@ class AnalisaImporEngineTest extends TestCase
         // ADU ETA = ADU Base = 447.9593 pcs/hari (tidak bergantung pada LT supplier)
         $this->assertEqualsWithDelta((float) $ai->adu_base, (float) $ai->adu_eta, 0.0001);
 
-        // Safety Stock = round(447.9593 * 36) = 16.127 pcs
-        $this->assertEqualsWithDelta(16127, (float) $ai->safety_stock, 1.0);
+        // Safety Stock = round(448 * 36) = 16.128 pcs
+        $this->assertEqualsWithDelta(16128, (float) $ai->safety_stock, 1.0);
 
-        // Minimum Stock = round(447.9593 * 60) = 26.878 pcs
-        $this->assertEqualsWithDelta(26878, (float) $ai->minimum_stock, 1.0);
+        // Minimum Stock = round(448 * 60) = 26.880 pcs
+        $this->assertEqualsWithDelta(26880, (float) $ai->minimum_stock, 1.0);
 
-        // Target Stock = floor(447.9593 * (60 + 36 + 30)) = 56.442 pcs
-        $this->assertEqualsWithDelta(56442, (float) $ai->target_stock, 1.0);
+        // Target Stock = floor(448 * (60 + 36 + 30)) = 56.448 pcs
+        $this->assertEqualsWithDelta(56448, (float) $ai->target_stock, 1.0);
 
-        // Proyeksi = 1.200 + 0 - 26.878 = -25.678 pcs
-        $this->assertEqualsWithDelta(-25678, (float) $ai->proyeksi, 1.0);
+        // Proyeksi = 1.200 + 0 - 26.880 = -25.680 pcs
+        $this->assertEqualsWithDelta(-25680, (float) $ai->proyeksi, 1.0);
 
-        // Kebutuhan Qty Order = 82.120 pcs
-        $this->assertEqualsWithDelta(82120, (float) $ai->qty_order, 1.0);
+        // Kebutuhan Qty Order = 82.128 pcs
+        $this->assertEqualsWithDelta(82128, (float) $ai->qty_order, 1.0);
 
-        // Rekomendasi Order Bulat MOQ 10.000 = ceil(82.120 / 10.000) * 10.000 = 90.000 pcs!
+        // Rekomendasi Order Bulat MOQ 10.000 = ceil(82.128 / 10.000) * 10.000 = 90.000 pcs!
         $this->assertEquals(90000, (int) $ai->po);
         $this->assertEquals('po', $ai->status);
     }

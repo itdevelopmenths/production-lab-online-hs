@@ -101,16 +101,16 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
         // Stage 1 -> 2
         $t1 = $t0->copy()->addHours(2);
         $this->stageService->completeStage1($po, $this->purchasing, $t1);
-        $this->assertEquals(PoStage::STAGE_2, $po->stage_aktif);
-
-        // Stage 2 -> 3 (Approved by Manager)
-        $t2 = $t1->copy()->addHours(3);
-        $this->stageService->approveStage2($po, $this->manager, $t2);
         $this->assertEquals(PoStage::STAGE_3, $po->stage_aktif);
 
-        // Stage 3 -> 4 (Konfirmasi Supplier)
-        $t3 = $t2->copy()->addHours(4);
-        $this->stageService->completeStage3($po, $this->purchasing, [], $t3);
+        // Urutan 2 -> 3 (Konfirmasi Supplier, sebelum approval)
+        $t2 = $t1->copy()->addHours(4);
+        $this->stageService->completeStage3($po, $this->purchasing, [], $t2);
+        $this->assertEquals(PoStage::STAGE_2, $po->stage_aktif);
+
+        // Urutan 3 -> 4 (Approved by Manager, PO terkunci setelah ini)
+        $t3 = $t2->copy()->addHours(3);
+        $this->stageService->approveStage2($po, $this->manager, $t3);
         $this->assertEquals(PoStage::STAGE_4, $po->stage_aktif);
 
         // Stage 4 -> 5 (Tempo)
@@ -227,8 +227,8 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
 
         $this->stageService->completeStage1($po, $this->purchasing, $t1);
 
-        $stage2 = $po->stages()->where('stage', PoStage::STAGE_2)->first();
-        $this->assertEquals($t1->toDateTimeString(), $stage2->waktu_mulai->toDateTimeString());
+        $stageKonfirmasi = $po->stages()->where('stage', PoStage::STAGE_3)->first();
+        $this->assertEquals($t1->toDateTimeString(), $stageKonfirmasi->waktu_mulai->toDateTimeString());
     }
 
     /**
@@ -554,24 +554,25 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
     /**
      * TC-12: Reject pada Stage 2 mencatat riwayat putaran.
      */
-    public function test_tc12_stage_2_rejection_creates_new_round_from_stage_1(): void
+    public function test_tc12_stage_2_rejection_creates_new_round_from_supplier_confirmation(): void
     {
         $po = $this->createSamplePo('tempo');
         $this->stageService->completeStage1($po, $this->purchasing, now()->subHours(4));
+        $this->stageService->completeStage3($po, $this->purchasing, [], now()->subHours(3));
         $this->assertEquals(PoStage::STAGE_2, $po->stage_aktif);
 
         $this->stageService->rejectStage2($po, $this->manager, 'Harga bahan terlalu tinggi');
         $po->refresh();
 
-        $this->assertEquals(PoStage::STAGE_1, $po->stage_aktif);
+        $this->assertEquals(PoStage::STAGE_3, $po->stage_aktif);
 
         $rejectedStage2 = $po->stages()->where('stage', PoStage::STAGE_2)->first();
         $this->assertEquals('dikembalikan', $rejectedStage2->status);
         $this->assertEquals('Harga bahan terlalu tinggi', $rejectedStage2->catatan);
 
-        $newStage1 = $po->stages()->where('stage', PoStage::STAGE_1)->where('putaran', 2)->first();
-        $this->assertNotNull($newStage1);
-        $this->assertEquals('berjalan', $newStage1->status);
+        $newStage = $po->stages()->where('stage', PoStage::STAGE_3)->where('putaran', 2)->first();
+        $this->assertNotNull($newStage);
+        $this->assertEquals('berjalan', $newStage->status);
     }
 
     /**

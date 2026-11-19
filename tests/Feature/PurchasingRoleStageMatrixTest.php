@@ -82,8 +82,8 @@ class PurchasingRoleStageMatrixTest extends TestCase
 
         $steps = [
             PoStage::STAGE_1 => fn () => $this->stageService->completeStage1($po, $this->manager),
-            PoStage::STAGE_2 => fn () => $this->stageService->approveStage2($po, $this->manager),
             PoStage::STAGE_3 => fn () => $this->stageService->completeStage3($po, $this->manager),
+            PoStage::STAGE_2 => fn () => $this->stageService->approveStage2($po, $this->manager),
             PoStage::STAGE_4 => fn () => $this->stageService->completeStage4Tempo($po, $this->manager),
             PoStage::STAGE_5 => fn () => $this->stageService->completeStage5($po, $this->manager),
             PoStage::STAGE_6 => fn () => $this->stageService->completeStage6($po, $this->manager, ['ekspedisi' => 'JNE']),
@@ -125,9 +125,7 @@ class PurchasingRoleStageMatrixTest extends TestCase
             'pengiriman' => [PoStage::STAGE_6, $stage(PoStage::STAGE_6), ['shipping' => ['ekspedisi' => 'JNE']], ['purchasing', 'gudang', 'manager']],
             'unloading' => [PoStage::STAGE_7, $stage(PoStage::STAGE_7), ['physical_check' => ['kondisi' => 'baik']], ['gudang', 'manager']],
             'input sistem' => [PoStage::STAGE_8, $stage(PoStage::STAGE_8), ['no_resi' => 'RESI-001'], ['gudang', 'manager']],
-            'record payment' => [PoStage::STAGE_3, fn (PurchaseOrder $po) => route('purchasing.pay', $po), [], ['purchasing', 'manager']],
-            'direct edit' => [PoStage::STAGE_6, fn (PurchaseOrder $po) => route('purchasing.direct-edit', $po), [], ['purchasing', 'manager']],
-            'submit revisi' => [PoStage::STAGE_3, fn (PurchaseOrder $po) => route('purchasing.revisi.submit', $po), [], ['purchasing', 'manager']],
+            'record payment' => [PoStage::STAGE_4, fn (PurchaseOrder $po) => route('purchasing.pay', $po), [], ['purchasing', 'manager']],
             'cancel' => [PoStage::STAGE_1, fn (PurchaseOrder $po) => route('purchasing.cancel', $po), ['alasan' => 'Batal uji matriks'], ['purchasing', 'manager']],
         ];
     }
@@ -167,6 +165,7 @@ class PurchasingRoleStageMatrixTest extends TestCase
             ->assertSee('Pembayaran tersedia setelah PO disetujui Manager');
 
         $this->stageService->completeStage1($po, $this->manager);
+        $this->stageService->completeStage3($po->fresh(), $this->manager);
         $this->stageService->approveStage2($po->fresh(), $this->manager);
 
         $this->actingAs($this->purchasing)

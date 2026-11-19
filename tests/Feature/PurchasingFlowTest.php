@@ -194,6 +194,7 @@ class PurchasingFlowTest extends TestCase
         $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
         $stageService = app(\App\Services\Purchasing\PurchasingStageService::class);
         $stageService->completeStage1($po, $purchasing);
+        $stageService->completeStage3($po, $purchasing);
         $stageService->approveStage2($po, $manager);
 
         // Split payments in 3 installments

@@ -58,6 +58,27 @@ class MasterDataSeeder extends Seeder
             }
         }
 
+        // ===== Demand ADU Gudang Pusat: permintaan bahan baku Gudang Produksi -> Pusat (4 bulan terakhir) =====
+        // ADU dihitung otomatis dari request_bahan berstatus disetujui/diproses/selesai (DemandAduService).
+        $days = app(\App\Services\DemandAduService::class)->window()['days'];
+        $seedUser = \App\Models\User::query()->orderBy('id')->first();
+        foreach ([[$alk, 39303.25 / 30], [$btl, 47312 / 122]] as [$produkDemand, $aduDemand]) {
+            $req = \App\Models\StockRequest::firstOrCreate(
+                ['no_request' => 'REQ-SEED-' . $produkDemand->sku],
+                [
+                    'jenis' => 'request_bahan',
+                    'gudang_asal_id' => $gOps->id,
+                    'gudang_tujuan_id' => $gBahan->id,
+                    'status' => 'selesai',
+                    'disetujui_pada' => now(),
+                    'created_by' => $seedUser?->id,
+                ]
+            );
+            if ($req->wasRecentlyCreated) {
+                $req->items()->create(['produk_id' => $produkDemand->id, 'qty_diminta' => round($aduDemand * $days, 2)]);
+            }
+        }
+
         // ===== Analisa Lokal (ALK-01) + Lead Time Stage =====
         AnalisaLokalInput::firstOrCreate(['produk_id' => $alk->id], [
             'terjual_rata_rata_4bulan' => 39303.25, 'review_period' => 15,

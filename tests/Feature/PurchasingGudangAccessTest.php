@@ -76,8 +76,8 @@ class PurchasingGudangAccessTest extends TestCase
 
         $steps = [
             PoStage::STAGE_1 => fn () => $this->stageService->completeStage1($po, $this->purchasing),
-            PoStage::STAGE_2 => fn () => $this->stageService->approveStage2($po, $this->manager),
             PoStage::STAGE_3 => fn () => $this->stageService->completeStage3($po, $this->purchasing),
+            PoStage::STAGE_2 => fn () => $this->stageService->approveStage2($po, $this->manager),
             PoStage::STAGE_4 => fn () => $this->stageService->completeStage4Tempo($po, $this->purchasing),
             PoStage::STAGE_5 => fn () => $this->stageService->completeStage5($po, $this->purchasing),
             PoStage::STAGE_6 => fn () => $this->stageService->completeStage6($po, $this->purchasing, ['ekspedisi' => 'JNE']),
