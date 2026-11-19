@@ -56,6 +56,8 @@ window.productSearchSelect = function(config) {
         total: 0,
         loading: false,
         items: [],
+        panelStyle: 'position: fixed; z-index: 9999;',
+        _boundReposition: null,
         name: config ? (config.name || '') : '',
         selectedId: config ? (config.selectedId || '') : '',
         selectedItem: config ? (config.selectedItem || null) : null,
@@ -92,6 +94,64 @@ window.productSearchSelect = function(config) {
                 this.selectedId = this.selectedItem.id;
             }
             this._lastFilterSignature = this._filterSignature();
+            this._boundReposition = () => {
+                if (this.open) {
+                    this.updatePosition();
+                }
+            };
+            this.$watch('open', (isOpen) => {
+                if (isOpen) {
+                    this._bindListeners();
+                    this.$nextTick(() => this.updatePosition());
+                } else {
+                    this._unbindListeners();
+                }
+            });
+        },
+
+        _bindListeners() {
+            if (!this._boundReposition) return;
+            window.addEventListener('scroll', this._boundReposition, true);
+            window.addEventListener('resize', this._boundReposition);
+        },
+
+        _unbindListeners() {
+            if (!this._boundReposition) return;
+            window.removeEventListener('scroll', this._boundReposition, true);
+            window.removeEventListener('resize', this._boundReposition);
+        },
+
+        updatePosition() {
+            const trigger = this.$refs && this.$refs.trigger ? this.$refs.trigger : null;
+            if (!trigger) return;
+            const rect = trigger.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            const width = Math.min(Math.max(rect.width, 280), window.innerWidth - 16);
+            const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+
+            if (spaceBelow < 280 && spaceAbove > spaceBelow) {
+                const bottom = Math.max(8, window.innerHeight - rect.top + 6);
+                this.panelStyle = `position: fixed; left: ${left}px; bottom: ${bottom}px; width: ${width}px; z-index: 9999;`;
+            } else {
+                const top = Math.max(8, rect.bottom + 6);
+                this.panelStyle = `position: fixed; left: ${left}px; top: ${top}px; width: ${width}px; z-index: 9999;`;
+            }
+        },
+
+        close() {
+            if (this.open) {
+                this.open = false;
+                window.dispatchEvent(new CustomEvent('hs-dropdown-closed', { detail: this.name }));
+            }
+        },
+
+        handleOutsideClick(event) {
+            if (!this.open) return;
+            const panel = this.$refs && this.$refs.panel ? this.$refs.panel : null;
+            if (this.$el.contains(event.target)) return;
+            if (panel && panel.contains(event.target)) return;
+            this.close();
         },
 
         async toggle() {
@@ -99,6 +159,7 @@ window.productSearchSelect = function(config) {
             if (this.open) {
                 window.dispatchEvent(new CustomEvent('hs-dropdown-opened', { detail: this.name }));
                 this.$nextTick(() => {
+                    this.updatePosition();
                     if (this.$refs.searchInput) {
                         this.$refs.searchInput.focus();
                     }
@@ -162,7 +223,7 @@ window.productSearchSelect = function(config) {
             clearTimeout(this._debounce);
             this._debounce = setTimeout(() => {
                 this.fetchItems(1, false);
-            }, 200);
+            }, 300);
         },
 
         loadMore() {

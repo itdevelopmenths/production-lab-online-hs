@@ -19,17 +19,17 @@
             @if($checked) checked @endif
             @if($disabled) disabled @endif
             {{ $attributes->merge([
-                'class' => 'size-4 rounded border-border text-primary focus:ring-primary/20 shadow-xs cursor-pointer disabled:cursor-not-allowed transition'
+                'class' => 'size-4 rounded-[4px] border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-black dark:text-white accent-black dark:accent-white focus:ring-black/20 dark:focus:ring-white/20 shadow-theme-xs cursor-pointer disabled:cursor-not-allowed transition'
             ]) }}
         />
     </div>
     @if ($label || $slot->isNotEmpty())
         <div class="text-sm">
-            <label @if($name) for="{{ $name }}" @endif class="font-medium text-foreground cursor-pointer select-none">
+            <label @if($name) for="{{ $name }}" @endif class="font-medium text-text-active cursor-pointer select-none">
                 {{ $label ?? $slot }}
             </label>
             @if ($help)
-                <p class="text-xs text-muted-foreground mt-0.5 leading-tight">{{ $help }}</p>
+                <p class="text-xs text-text-muted mt-0.5 leading-tight">{{ $help }}</p>
             @endif
         </div>
     @endif

@@ -34,4 +34,25 @@ class DesignSystemComponentsTest extends TestCase
         $this->assertStringContainsString('rounded-full', $pill);
         $this->assertStringContainsString('dark:bg-emerald-500/10', $pill);
     }
+
+    public function test_form_architecture_and_teleported_searchable_select(): void
+    {
+        $modal = Blade::render('<x-modal name="openTest" title="Modal Uji">Konten</x-modal>');
+        $this->assertStringContainsString('bg-[#F5F5F5] dark:bg-gray-950', $modal);
+        $this->assertStringContainsString('rounded-[12px]', $modal);
+        $this->assertStringContainsString('z-[999]', $modal);
+        $this->assertStringContainsString('custom-scrollbar', $modal);
+
+        $field = Blade::render('<x-form-section title="Informasi"><x-form-field label="Kode SKU" name="sku" :required="true"><x-input name="sku" variant="seamless" /></x-form-field></x-form-section>');
+        $this->assertStringContainsString('text-[12px] font-medium text-text-muted tracking-[0.12px] uppercase', $field);
+        $this->assertStringContainsString('rounded-[8px]', $field);
+        $this->assertStringContainsString('sm:w-[150px]', $field);
+        $this->assertStringContainsString('bg-transparent border-0 p-0', $field);
+
+        $select = Blade::render('<x-product-search-select name="produk_id" variant="seamless" />');
+        $this->assertStringContainsString('x-teleport="body"', $select);
+        $this->assertStringContainsString('z-index: 9999', $select);
+        $this->assertStringContainsString('position: fixed', $select);
+        $this->assertStringContainsString('dark:bg-gray-900', $select);
+    }
 }
