@@ -456,4 +456,102 @@ class DashboardTest extends TestCase
         $response->assertSee(route('batches.show', $batch));
         $response->assertSee(route('transfers.show', $trf));
     }
+
+    private function kpiValue(\Illuminate\Testing\TestResponse $response, string $title): mixed
+    {
+        return collect($response->viewData('kpis'))->firstWhere('title', $title)['value'] ?? null;
+    }
+
+    public function test_purchasing_overdue_kpi_counts_beyond_list_limit(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+
+        SupplierLtStageSummary::updateOrCreate(
+            ['supplier_id' => $supplier->id, 'stage' => 'konfirmasi_supplier'],
+            ['jumlah_transaksi' => 5, 'total_menit' => 300, 'average_hari' => 0.1, 'max_hari' => 0.2]
+        );
+
+        foreach (range(1, 10) as $i) {
+            $po = PurchaseOrder::create([
+                'no_po' => "PO-OVR-{$i}",
+                'supplier_id' => $supplier->id,
+                'tanggal' => now()->subDays(2),
+                'status' => 'berjalan',
+                'stage_aktif' => 'konfirmasi_supplier',
+                'created_by' => $purchasing->id,
+            ]);
+            $po->stages()->create([
+                'stage' => 'konfirmasi_supplier',
+                'urutan' => 3,
+                'putaran' => 1,
+                'status' => 'berjalan',
+                'waktu_mulai' => now()->subMinutes(300),
+            ]);
+        }
+
+        $response = $this->actingAs($purchasing)->get('/');
+        $response->assertOk();
+        $this->assertSame(10, $this->kpiValue($response, 'PO Terlambat SLA'));
+    }
+
+    public function test_fulfillment_total_saldo_only_counts_produk_jadi(): void
+    {
+        $ff = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
+        $gudang = Gudang::fulfillment()->firstOrFail();
+        $jadi = \App\Models\Produk::create(['sku' => 'PJ-T1', 'nama' => 'Parfum T1', 'tipe' => 'produk_jadi', 'satuan' => 'pcs']);
+        $kemas = \App\Models\Produk::create(['sku' => 'PRD-BOX-T1', 'nama' => 'Box T1', 'tipe' => 'kemas', 'satuan' => 'pcs']);
+        app(\App\Services\StokService::class)->masuk($jadi->id, $gudang->id, 100, 'test');
+        app(\App\Services\StokService::class)->masuk($kemas->id, $gudang->id, 500, 'test');
+
+        $response = $this->actingAs($ff)->get('/');
+        $value = (string) $this->kpiValue($response, 'Total Saldo Produk Jadi');
+
+        $this->assertStringContainsString('100', $value);
+        $this->assertStringNotContainsString('600', $value);
+    }
+
+    public function test_fulfillment_transfer_masuk_kpi_counts_beyond_list_limit(): void
+    {
+        $ff = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
+        $asal = Gudang::where('tipe', 'operasional')->firstOrFail();
+        $tujuan = Gudang::fulfillment()->firstOrFail();
+
+        foreach (range(1, 7) as $i) {
+            Transfer::create([
+                'no_transaksi' => "TRF-FF-{$i}",
+                'jenis' => 'kirim_produk_jadi',
+                'gudang_asal_id' => $asal->id,
+                'gudang_tujuan_id' => $tujuan->id,
+                'status' => 'dikirim',
+                'created_by' => $ff->id,
+            ]);
+        }
+
+        $response = $this->actingAs($ff)->get('/');
+        $this->assertSame(7, $this->kpiValue($response, 'Transfer Masuk dari Lab'));
+    }
+
+    public function test_manager_queue_count_reflects_total_not_page(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+
+        foreach (range(1, 12) as $i) {
+            PurchaseOrder::create([
+                'no_po' => "PO-Q-{$i}",
+                'supplier_id' => $supplier->id,
+                'tanggal' => now(),
+                'status' => 'berjalan',
+                'stage_aktif' => 'approval',
+                'created_by' => $manager->id,
+            ]);
+        }
+
+        $response = $this->actingAs($manager)->get('/');
+        $queue = $response->viewData('actionQueue');
+
+        $this->assertGreaterThanOrEqual(12, $queue['total']);
+        $this->assertLessThanOrEqual(10, count($queue['items']));
+    }
 }
