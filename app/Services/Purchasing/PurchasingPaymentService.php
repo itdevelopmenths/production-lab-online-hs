@@ -43,6 +43,12 @@ class PurchasingPaymentService
                 ]);
             }
 
+            if (! $lockedPo->isApprovedForPayment()) {
+                throw ValidationException::withMessages([
+                    'status' => 'Pembayaran belum dapat dicatat. PO harus disetujui Manager (Tahap 2 selesai) terlebih dahulu.',
+                ]);
+            }
+
             if ($lockedPo->hasPendingRevision()) {
                 throw ValidationException::withMessages([
                     'revisi' => 'Pembayaran dikunci karena masih ada usulan revisi harga atau komitmen yang menunggu keputusan Manager.',

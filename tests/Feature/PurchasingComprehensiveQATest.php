@@ -684,7 +684,7 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_pay_01_full_lump_sum_payment_marks_po_as_lunas(): void
     {
-        $po = $this->createTestPo(['grand_total' => 2000000]);
+        $po = $this->createTestPo(['grand_total' => 2000000, 'status' => 'dikirim_ke_gudang']);
         $this->assertEquals(2000000, $po->sisaTagihan());
 
         $this->actingAs($this->purchasing)
@@ -707,7 +707,7 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_pay_02_partial_payment_marks_po_as_parsial(): void
     {
-        $po = $this->createTestPo(['grand_total' => 3000000]);
+        $po = $this->createTestPo(['grand_total' => 3000000, 'status' => 'dikirim_ke_gudang']);
 
         $this->actingAs($this->purchasing)
             ->post(route('purchasing.pay', $po), [
@@ -728,7 +728,7 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_pay_03_targeted_termin_payment_updates_specific_termin_status(): void
     {
-        $po = $this->createTestPo(['grand_total' => 2000000, 'skema_bayar' => 'termin']);
+        $po = $this->createTestPo(['grand_total' => 2000000, 'skema_bayar' => 'termin', 'status' => 'dikirim_ke_gudang']);
         $termin1 = $po->termins()->create([
             'termin_ke' => 1,
             'tanggal_tempo' => now()->addDays(5),
@@ -771,7 +771,7 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_pay_04_fifo_termin_payment_allocates_across_unpaid_termins(): void
     {
-        $po = $this->createTestPo(['grand_total' => 2000000, 'skema_bayar' => 'termin']);
+        $po = $this->createTestPo(['grand_total' => 2000000, 'skema_bayar' => 'termin', 'status' => 'dikirim_ke_gudang']);
         $termin1 = $po->termins()->create([
             'termin_ke' => 1,
             'tanggal_tempo' => now()->addDays(5),
@@ -812,7 +812,7 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_pay_05_overpayment_strictly_rejected_with_validation_exception(): void
     {
-        $po = $this->createTestPo(['grand_total' => 1000000]);
+        $po = $this->createTestPo(['grand_total' => 1000000, 'status' => 'dikirim_ke_gudang']);
 
         $this->actingAs($this->purchasing);
 
@@ -832,7 +832,7 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_pay_06_underpayment_on_pelunasan_scheme_rejected(): void
     {
-        $po = $this->createTestPo(['grand_total' => 1000000]);
+        $po = $this->createTestPo(['grand_total' => 1000000, 'status' => 'dikirim_ke_gudang']);
 
         $this->actingAs($this->purchasing);
 
@@ -853,7 +853,7 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_pay_07_cash_payment_scheme_and_show_view_rendering(): void
     {
-        $poCash = $this->createTestPo(['grand_total' => 1500000, 'skema_bayar' => 'cash']);
+        $poCash = $this->createTestPo(['grand_total' => 1500000, 'skema_bayar' => 'cash', 'status' => 'dikirim_ke_gudang']);
 
         // 1. Verifikasi show view merender badge tunai dan opsi form
         $this->actingAs($this->purchasing)
@@ -1360,7 +1360,7 @@ class PurchasingComprehensiveQATest extends TestCase
     {
         $this->actingAs($this->purchasing);
 
-        $po = $this->createTestPo(['status' => 'diajukan', 'grand_total' => 2000000, 'skema_bayar' => 'tempo']);
+        $po = $this->createTestPo(['status' => 'dikirim_ke_gudang', 'grand_total' => 2000000, 'skema_bayar' => 'tempo']);
 
         // Simulasikan pembayaran DP Rp 1.500.000 (skema tempo mengizinkan pembayaran parsial)
         $payRes = $this->post(route('purchasing.pay', $po), [

@@ -177,6 +177,12 @@ class PurchasingFlowTest extends TestCase
         $this->assertEquals(12.75, (float) $po->items->first()->qty);
         $this->assertEquals(50000, $po->items->first()->hargaPerSatuan());
 
+        // Pembayaran hanya boleh dicatat setelah Manager menyetujui PO (Tahap 2 selesai)
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $stageService = app(\App\Services\Purchasing\PurchasingStageService::class);
+        $stageService->completeStage1($po, $purchasing);
+        $stageService->approveStage2($po, $manager);
+
         // Split payments in 3 installments
         $this->post(route('purchasing.pay', $po), [
             'skema' => 'termin',

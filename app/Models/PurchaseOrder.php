@@ -206,6 +206,38 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Cek apakah PO sudah disetujui Manager sehingga pembayaran boleh dicatat.
+     *
+     * PO bertahap tetap berstatus 'berjalan' dari Tahap 1 sampai 8, jadi
+     * persetujuan dibaca dari posisi stage_aktif (lewat Tahap 2). PO alur
+     * legacy tidak memakai tahap (kolom stage_aktif di DB default 'perencanaan'
+     * dan tidak pernah bergerak), sehingga persetujuannya dibaca dari status:
+     * status legacy tersebut tidak pernah dipakai PO bertahap.
+     */
+    public function isApprovedForPayment(): bool
+    {
+        if ($this->isCancelled()) {
+            return false;
+        }
+
+        if (in_array($this->status, ['disetujui', 'dikirim_ke_gudang', 'selesai'], true)) {
+            return true;
+        }
+
+        if ($this->stage_aktif === null) {
+            return false;
+        }
+
+        if ($this->stage_aktif === PoStage::LEGACY_STAGE_PENGEMASAN) {
+            return true;
+        }
+
+        $posisi = array_search($this->stage_aktif, PoStage::STAGES, true);
+
+        return $posisi !== false && $posisi >= 3;
+    }
+
+    /**
      * Cek apakah PO sudah memasuki status final (selesai atau dibatalkan).
      */
     public function isFinal(): bool
