@@ -475,6 +475,8 @@ class PurchasingFraudAndWorkflowAuditTest extends TestCase
 
         // 2. Legacy receive / approve / update diblokir saat ada revisi menunggu
         $poLegacy = $this->createPo(['status' => 'dikirim_ke_gudang', 'stage_aktif' => PoStage::STAGE_6], 1000000, 100);
+        // PO legacy sungguhan = tanpa baris po_stage (guard ensureLegacyFlow menolak PO bertahap).
+        $poLegacy->stages()->delete();
         $this->revisionService->submitCommitmentRevision($poLegacy, [
             'items' => [
                 ['produk_id' => $this->produk1->id, 'qty' => 100, 'harga_total' => 1200000],

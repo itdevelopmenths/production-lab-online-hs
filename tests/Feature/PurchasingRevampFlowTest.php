@@ -21,6 +21,18 @@ class PurchasingRevampFlowTest extends TestCase
         $this->seed();
     }
 
+    /**
+     * Jadikan PO hasil store() sebagai PO legacy (tanpa baris po_stage) supaya
+     * test yang memang menargetkan rute legacy submit/approve/receive tetap valid.
+     * stage_aktif tidak diubah: kolomnya NOT NULL.
+     */
+    private function makeLegacy(PurchaseOrder $po): PurchaseOrder
+    {
+        $po->stages()->delete();
+
+        return $po->fresh();
+    }
+
     public function test_purchasing_revamp_full_lifecycle_with_breakdown_termins_and_discrepancy(): void
     {
         $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
@@ -83,6 +95,7 @@ class PurchasingRevampFlowTest extends TestCase
         $response = $this->post(route('purchasing.store'), $poData);
         $po = PurchaseOrder::latest()->firstOrFail();
         $response->assertRedirect(route('purchasing.show', $po));
+        $po = $this->makeLegacy($po);
 
         $this->assertEquals('draft', $po->status);
         $this->assertEquals('INV-SUPP-999', $po->no_invoice);

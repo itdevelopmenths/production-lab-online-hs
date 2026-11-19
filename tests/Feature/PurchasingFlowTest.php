@@ -28,6 +28,18 @@ class PurchasingFlowTest extends TestCase
         Model::preventLazyLoading(true);
     }
 
+    /**
+     * Jadikan PO hasil store() sebagai PO legacy (tanpa baris po_stage) supaya
+     * test yang memang menargetkan rute legacy submit/approve/receive tetap valid.
+     * stage_aktif tidak diubah: kolomnya NOT NULL.
+     */
+    private function makeLegacy(PurchaseOrder $po): PurchaseOrder
+    {
+        $po->stages()->delete();
+
+        return $po->fresh();
+    }
+
     // ==========================================
     // 🌟 1. BEST-CASE SCENARIO (GOLDEN PATH)
     // ==========================================
@@ -71,6 +83,7 @@ class PurchasingFlowTest extends TestCase
         $response->assertRedirect(route('purchasing.show', $po));
         $this->assertEquals('draft', $po->status);
         $this->assertCount(2, $po->items);
+        $po = $this->makeLegacy($po);
 
         // 2. Purchasing submits PO to Manager
         $this->post(route('purchasing.submit', $po))->assertSessionHas('success');
@@ -316,7 +329,7 @@ class PurchasingFlowTest extends TestCase
                 ['produk_id' => $item->id, 'qty' => 10, 'harga_total' => 100000],
             ],
         ]);
-        $po = PurchaseOrder::latest()->firstOrFail();
+        $po = $this->makeLegacy(PurchaseOrder::latest()->firstOrFail());
 
         // Cannot approve draft directly
         $this->actingAs($manager);

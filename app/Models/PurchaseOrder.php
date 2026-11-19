@@ -65,6 +65,18 @@ class PurchaseOrder extends Model
         return $this->hasMany(PoStage::class, 'po_id')->orderBy('urutan')->orderBy('putaran');
     }
 
+    /**
+     * PO alur 8 tahap = PO yang punya baris po_stage (semua PO hasil store()).
+     * PO legacy tidak punya baris tahap. Kolom stage_aktif tidak bisa dipakai
+     * sebagai pembeda karena NOT NULL dengan default 'perencanaan'.
+     */
+    public function usesStageFlow(): bool
+    {
+        return $this->relationLoaded('stages')
+            ? $this->stages->isNotEmpty()
+            : $this->stages()->exists();
+    }
+
     public function pengiriman(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(PoPengiriman::class, 'po_id');

@@ -669,6 +669,7 @@ class PurchasingController extends Controller
     public function submit(PurchaseOrder $purchaseOrder)
     {
         $this->authorize('purchasing.submit');
+        $this->ensureLegacyFlow($purchaseOrder);
         $this->ensureStatus($purchaseOrder, ['draft']);
         $this->ensureNoPendingRevision($purchaseOrder);
         $purchaseOrder->update(['status' => 'diajukan']);
@@ -689,6 +690,7 @@ class PurchasingController extends Controller
     public function approve(PurchaseOrder $purchaseOrder)
     {
         $this->authorize('purchasing.approve');
+        $this->ensureLegacyFlow($purchaseOrder);
         $this->ensureStatus($purchaseOrder, ['diajukan']);
         $this->ensureNoPendingRevision($purchaseOrder);
         $purchaseOrder->update(['status' => 'dikirim_ke_gudang']);
@@ -709,6 +711,7 @@ class PurchasingController extends Controller
     public function receive(Request $request, PurchaseOrder $purchaseOrder)
     {
         $this->authorize('purchasing.receive');
+        $this->ensureLegacyFlow($purchaseOrder);
         $this->ensureStatus($purchaseOrder, ['dikirim_ke_gudang']);
         $this->ensureNoPendingRevision($purchaseOrder);
 
@@ -1099,6 +1102,15 @@ class PurchasingController extends Controller
         }
 
         return $po->status_pembayaran ?? 'belum_lunas';
+    }
+
+    private function ensureLegacyFlow(PurchaseOrder $po): void
+    {
+        abort_if(
+            $po->usesStageFlow(),
+            422,
+            'PO ini memakai alur 8 tahap. Gunakan tombol pada panel Eksekusi Tahap Aktif.'
+        );
     }
 
     private function ensureStatus(PurchaseOrder $po, array $allowed): void
