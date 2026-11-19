@@ -378,7 +378,7 @@ class PurchasingRevampFlowTest extends TestCase
         $pageRes = $this->get(route('stok.log-pergerakan'));
         $pageRes->assertOk();
         $pageRes->assertSee('Log Pergerakan Stok');
-        $pageRes->assertSee('Buku Audit Mutasi Fisik Barang');
+        $pageRes->assertSee('Riwayat Mutasi Barang');
 
         // 3. DataTables AJAX endpoint returns correct audit columns
         $dataRes = $this->getJson(route('stok.log-pergerakan.data'));

@@ -18,7 +18,7 @@
 
 <div {{ $attributes->merge(['class' => 'flex flex-col gap-1.5 w-full']) }}>
     @if ($label)
-        <label @if($name) for="{{ $name }}" @endif class="text-[13px] text-text-muted leading-snug select-none">
+        <label @if($name) for="{{ $name }}" @endif class="text-[13px] font-medium text-text-active leading-snug select-none">
             <span>{!! $label !!}</span>@if ($required)<span class="text-red-500 ml-0.5">*</span>@endif
         </label>
     @endif

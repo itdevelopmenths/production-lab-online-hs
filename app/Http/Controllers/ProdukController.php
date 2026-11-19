@@ -26,7 +26,17 @@ class ProdukController extends Controller
 
         $kategoriList = Kategori::orderBy('nama')->get();
 
-        return view('produk.index', compact('kategoriList'));
+        $createKategoriList = $uomList = $suppliers = $klasifikasiAbcList = collect();
+        if (auth()->user()->can('produk.create')) {
+            $createKategoriList = Kategori::with(['varians' => fn ($q) => $q->orderBy('nama')])->orderBy('nama')->get();
+            $uomList = Uom::active()->orderBy('nama')->get();
+            $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
+            $klasifikasiAbcList = KlasifikasiAbc::where('is_active', true)
+                ->orderByDesc('tambahan_buffer_hari')
+                ->get(['id', 'kode', 'nama', 'tambahan_buffer_hari', 'warna_badge']);
+        }
+
+        return view('produk.index', compact('kategoriList', 'createKategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList'));
     }
 
     public function data(Request $request): JsonResponse
@@ -70,59 +80,59 @@ class ProdukController extends Controller
                     }
                 }
             })
-            ->editColumn('sku', fn ($p) => '<span class="font-mono text-xs font-semibold text-[#101828] dark:text-white">' . e($p->sku) . '</span>')
-            ->editColumn('nama', fn ($p) => '<span class="font-medium text-[#101828] dark:text-white">' . e($p->nama) . '</span>')
+            ->editColumn('sku', fn ($p) => '<span class="tbl-id tabular-nums">' . e($p->sku) . '</span>')
+            ->editColumn('nama', fn ($p) => '<span class="tbl-primary">' . e($p->nama) . '</span>')
             ->editColumn('kategori_nama', fn ($p) => $p->kategori
-                ? '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">' . e($p->kategori->nama) . '</span>'
-                : '<span class="text-text-muted">—</span>'
+                ? UiTableHelper::tag($p->kategori->nama)
+                : '<span class="tbl-dash">—</span>'
             )
             ->editColumn('varian_nama', fn ($p) => $p->varian
-                ? '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-500/20">' . e($p->varian->nama) . '</span>'
-                : '<span class="text-text-muted">—</span>'
+                ? e($p->varian->nama)
+                : '<span class="tbl-dash">—</span>'
             )
             ->editColumn('tipe', fn ($p) => match($p->tipe) {
-                'bahan' => '<span class="inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">Bahan Baku</span>',
-                'kemas' => '<span class="inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20">Kemasan</span>',
-                'produk_jadi' => '<span class="inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">Produk Jadi</span>',
-                default => '<span class="text-text-muted">' . e(ucfirst(str_replace('_', ' ', $p->tipe))) . '</span>'
+                'bahan' => UiTableHelper::tag('Bahan Baku', 'warn'),
+                'kemas' => UiTableHelper::tag('Kemasan', 'info'),
+                'produk_jadi' => UiTableHelper::tag('Produk Jadi', 'ink'),
+                default => '<span class="tbl-dash">' . e(ucfirst(str_replace('_', ' ', $p->tipe))) . '</span>'
             })
             ->addColumn('supplier_count', function ($p) {
                 if ($p->tipe === 'produk_jadi') {
-                    return '<span class="text-xs text-text-muted font-mono">—</span>';
+                    return '<span class="tbl-dash">—</span>';
                 }
                 $count = (int) ($p->active_suppliers_count ?? 0);
-                if ($count > 0) {
-                    return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">' . $count . ' Supplier</span>';
-                }
-                return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">0 Supplier</span>';
+
+                return $count > 0
+                    ? UiTableHelper::statusDot($count . ' Supplier', 'ok')
+                    : UiTableHelper::statusDot('0 Supplier', 'warn');
             })
-            ->editColumn('satuan', fn ($p) => '<span class="font-mono text-xs text-text-muted font-medium">' . e($p->satuan) . '</span>')
+            ->editColumn('satuan', fn ($p) => e($p->satuan))
             ->addColumn('klasifikasi_abc_badge', function ($p) {
                 if ($p->tipe === 'produk_jadi') {
-                    return '<span class="text-xs text-text-muted font-mono">—</span>';
+                    return '<span class="tbl-dash">—</span>';
                 }
 
                 if (AnalisaService::isImporProfile($p->profil_analisa)) {
                     if ($p->klasifikasiAbc) {
-                        $color = match ($p->klasifikasiAbc->warna_badge) {
-                            'red' => 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20',
-                            'amber' => 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20',
-                            'blue' => 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-500/20',
-                            'emerald', 'green' => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
-                            default => 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700',
+                        $dot = match ($p->klasifikasiAbc->warna_badge) {
+                            'red' => 'bad',
+                            'amber' => 'warn',
+                            'blue' => 'info',
+                            'emerald', 'green' => 'ok',
+                            default => null,
                         };
 
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ' . $color . '" title="' . e($p->klasifikasiAbc->nama) . '">Impor · ' . e(strtoupper($p->klasifikasiAbc->kode)) . '</span>';
+                        return '<span title="' . e($p->klasifikasiAbc->nama) . '">' . UiTableHelper::tag('Impor · ' . strtoupper($p->klasifikasiAbc->kode), $dot) . '</span>';
                     }
 
-                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">Impor · Default C</span>';
+                    return UiTableHelper::tag('Impor · Default C');
                 }
 
-                return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-text-muted border border-border">Lokal</span>';
+                return UiTableHelper::tag('Lokal');
             })
             ->editColumn('is_active', fn ($p) => $p->is_active
-                ? UiTableHelper::statusPill('Aktif', 'completed')
-                : UiTableHelper::statusPill('Nonaktif', 'cancelled')
+                ? UiTableHelper::statusDot('Aktif', 'ok')
+                : UiTableHelper::statusDot('Nonaktif', 'bad')
             )
             ->addColumn('action', function ($p) use ($canEdit, $canDelete) {
                 $buttons = [];

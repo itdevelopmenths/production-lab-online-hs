@@ -16,7 +16,9 @@ class SupplierController extends Controller
     {
         $this->authorize('supplier.view');
 
-        return view('supplier.index');
+        $produks = auth()->user()->can('supplier.create') ? $this->suppliableProduks() : collect();
+
+        return view('supplier.index', compact('produks'));
     }
 
     public function data(): JsonResponse

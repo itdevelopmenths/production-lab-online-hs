@@ -275,8 +275,8 @@ class StokController extends Controller
                 $isOrder = $batasMin > 0 && round($selisih, 4) <= 0;
 
                 return $isOrder
-                    ? UiTableHelper::statusPill('ORDER', 'cancelled')
-                    : UiTableHelper::statusPill('AMAN', 'completed');
+                    ? UiTableHelper::statusPill('Perlu Order', 'cancelled')
+                    : UiTableHelper::statusPill('Aman', 'completed');
             })
             ->addColumn('hpp', function ($s) use ($hppMap, $canSeePrice) {
                 if (! $canSeePrice) {
@@ -559,30 +559,34 @@ class StokController extends Controller
             })
             ->editColumn('tipe', function ($k) {
                 $isMasuk = strtolower($k->tipe) === 'in';
-                return $isMasuk
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">MASUK (IN)</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30">KELUAR (OUT)</span>';
+                $arrow = $isMasuk ? 'M12 5v14m0 0l-5-5m5 5l5-5' : 'M12 19V5m0 0l-5 5m5-5l5 5';
+                $label = $isMasuk ? 'Masuk' : 'Keluar';
+
+                return '<span class="inline-flex items-center gap-1 text-xs font-medium text-[#475467] dark:text-gray-300">'
+                    . '<svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="' . $arrow . '"/></svg>'
+                    . $label . '</span>';
             })
             ->addColumn('item', function ($k) {
                 $sku = e($k->produk?->sku ?? '—');
                 $nama = e($k->produk?->nama ?? '—');
-                $satuan = e($k->produk?->satuan ?? '');
-                return '<div class="font-medium text-[#101828] dark:text-white">' . $nama . '</div><div class="text-[10px] font-mono text-text-muted">' . $sku . ' · ' . $satuan . '</div>';
+
+                return '<div class="text-[13px] text-[#101828] dark:text-white">' . $nama . '</div><div class="text-[11px] text-text-muted tabular-nums">' . $sku . '</div>';
             })
-            ->addColumn('lokasi_gudang', fn ($k) => e($k->gudang?->nama ?? '—'))
+            ->addColumn('lokasi_gudang', fn ($k) => '<span class="text-[13px] text-[#475467] dark:text-gray-300">' . e($k->gudang?->nama ?? '—') . '</span>')
             ->addColumn('ref', function ($k) {
                 $refHtml = $this->formatReferenceLink($k->referensi_tipe, $k->referensi_id);
-                $catatan = $k->catatan ? '<div class="text-[10px] text-text-muted truncate max-w-[200px]" title="' . e($k->catatan) . '">' . e($k->catatan) . '</div>' : '';
+                $catatan = $k->catatan ? '<div class="text-[11px] text-text-muted max-w-[260px] leading-snug" title="' . e($k->catatan) . '">' . e($k->catatan) . '</div>' : '';
 
                 return $refHtml . $catatan;
             })
             ->editColumn('qty', function ($k) {
                 $isMasuk = strtolower($k->tipe) === 'in';
-                $sign = $isMasuk ? '+' : '-';
-                $color = $isMasuk ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-rose-700 dark:text-rose-400 font-bold';
+                $sign = $isMasuk ? '+' : '−';
+                $color = $isMasuk ? 'text-[#101828] dark:text-white' : 'text-rose-600 dark:text-rose-400';
                 $formatted = $this->formatQty((float) $k->qty);
                 $satuan = e($k->produk?->satuan ?? '');
-                return '<span class="font-mono ' . $color . '">' . $sign . ' ' . $formatted . ' ' . $satuan . '</span>';
+
+                return '<span class="text-[13px] font-medium tabular-nums ' . $color . '">' . $sign . $formatted . '</span> <span class="text-[11px] text-text-muted">' . $satuan . '</span>';
             })
             ->addColumn('sebelum_sesudah', function ($k) {
                 $isMasuk = strtolower($k->tipe) === 'in';
@@ -590,13 +594,21 @@ class StokController extends Controller
                 $saldoSesudah = (float) $k->saldo_setelah;
                 $saldoSebelum = $isMasuk ? ($saldoSesudah - $qty) : ($saldoSesudah + $qty);
                 $satuan = e($k->produk?->satuan ?? '');
-                return '<span class="font-mono text-text-muted">' . $this->formatQty($saldoSebelum) . '</span> <span class="text-text-muted">➔</span> <span class="font-mono font-bold text-[#101828] dark:text-white">' . $this->formatQty($saldoSesudah) . ' ' . $satuan . '</span>';
+
+                return '<span class="text-[13px] tabular-nums text-text-muted">' . $this->formatQty($saldoSebelum) . '</span>'
+                    . ' <span class="text-text-muted" aria-hidden="true">→</span> '
+                    . '<span class="text-[13px] font-medium tabular-nums text-[#101828] dark:text-white">' . $this->formatQty($saldoSesudah) . '</span> <span class="text-[11px] text-text-muted">' . $satuan . '</span>';
             })
-            ->editColumn('tanggal', fn ($k) => '<span class="font-mono text-xs text-text-muted">' . ($k->created_at ? $k->created_at->format('d/m/Y H:i') : $k->tanggal->format('d/m/Y')) . '</span>')
+            ->editColumn('tanggal', function ($k) {
+                $dt = $k->created_at ?? $k->tanggal;
+
+                return '<div class="text-[13px] tabular-nums text-[#101828] dark:text-white">' . $dt->format('d/m/Y') . '</div>'
+                    . ($k->created_at ? '<div class="text-[11px] tabular-nums text-text-muted">' . $k->created_at->format('H:i') . '</div>' : '');
+            })
             ->addColumn('oleh', function ($k) {
-                return '<span class="text-[#101828] dark:text-gray-200 font-medium text-xs">' . e($k->creator?->name ?? 'Sistem') . '</span>';
+                return '<span class="text-[13px] text-[#475467] dark:text-gray-300">' . e($k->creator?->name ?? 'Sistem') . '</span>';
             })
-            ->rawColumns(['tipe', 'item', 'ref', 'qty', 'sebelum_sesudah', 'tanggal', 'oleh'])
+            ->rawColumns(['tipe', 'item', 'lokasi_gudang', 'ref', 'qty', 'sebelum_sesudah', 'tanggal', 'oleh'])
             ->toJson();
     }
 
@@ -628,9 +640,9 @@ class StokController extends Controller
         }
 
         if ($url) {
-            return '<a href="' . e($url) . '" class="text-[#101828] dark:text-white hover:underline font-semibold inline-flex items-center gap-1">' . e($label) . '<span class="font-mono text-text-muted text-[11px]">' . e($idShort) . '</span></a>';
+            return '<a href="' . e($url) . '" class="text-[#101828] dark:text-white hover:underline text-[13px] inline-flex items-center gap-1">' . e($label) . '<span class="text-text-muted text-[11px] tabular-nums">' . e($idShort) . '</span></a>';
         }
 
-        return '<div class="font-semibold text-text-active">' . e($label) . '<span class="font-mono text-text-muted text-[11px]">' . e($idShort) . '</span></div>';
+        return '<div class="text-[13px] text-text-active">' . e($label) . '<span class="text-text-muted text-[11px] tabular-nums">' . e($idShort) . '</span></div>';
     }
 }

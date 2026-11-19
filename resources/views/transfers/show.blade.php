@@ -45,33 +45,32 @@
             :backUrl="route('transfers.index')"
         />
 
-        {{-- Header Status Bar --}}
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-[12px] bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div class="flex items-center gap-4">
-                <div class="size-12 rounded-[10px] bg-gray-100 dark:bg-gray-800 text-[#111111] dark:text-white border border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0">
-                    <svg class="size-6" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <h2 class="text-xl font-semibold tabular-nums text-[#101828] dark:text-white">{{ $transfer->no_transfer }}</h2>
-                        @php
-                            $statusLabel = match($transfer->status) {
-                                'draft' => 'Draft',
-                                'dikirim' => 'In Transit (Dikirim)',
-                                'selesai' => 'Selesai Diterima',
-                                'dibatalkan' => 'Dibatalkan',
-                                default => ucfirst($transfer->status),
-                            };
-                        @endphp
-                        <x-badge :variant="$transfer->status" :pill="true">{{ $statusLabel }}</x-badge>
-                    </div>
-                    <p class="text-xs text-[#667085] dark:text-gray-400 mt-1">
-                        Dibuat oleh <span class="font-medium text-[#101828] dark:text-gray-200">{{ $transfer->creator?->name ?? 'Sistem' }}</span> pada {{ $transfer->created_at->format('d/m/Y H:i') }}
-                    </p>
-                </div>
-            </div>
+        @php
+            $statusLabel = match($transfer->status) {
+                'draft' => 'Draft',
+                'dikirim' => 'In Transit (Dikirim)',
+                'selesai' => 'Selesai Diterima',
+                'dibatalkan' => 'Dibatalkan',
+                default => ucfirst($transfer->status),
+            };
+            $trfSteps = [
+                ['label' => 'Draft', 'hint' => 'Disiapkan gudang asal'],
+                ['label' => 'Dikirim', 'hint' => 'In transit'],
+                ['label' => 'Diterima', 'hint' => 'Stok masuk gudang tujuan'],
+            ];
+            $trfPos = match($transfer->status) { 'draft' => 1, 'dikirim' => 2, 'selesai' => 3, default => 1 };
+            $trfTerminal = $transfer->status === 'dibatalkan' ? 'Dibatalkan' : null;
+            $totalRusak = (float) $transfer->items->sum('qty_rusak');
+            $totalKirim = (float) $transfer->items->sum('qty_dikirim');
+            $fmtTrf = static fn (float $v): string => rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ',');
+        @endphp
 
-            <div class="flex flex-wrap items-center gap-2">
+        <x-doc-hero :title="$transfer->no_transfer" :meta="'Dibuat oleh <span class=&quot;font-medium text-text-active&quot;>' . e($transfer->creator?->name ?? 'Sistem') . '</span> pada ' . $transfer->created_at->format('d/m/Y H:i')">
+            <x-slot:icon><svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg></x-slot:icon>
+            <x-slot:badge>
+                <x-badge :variant="$transfer->status" :pill="true">{{ $statusLabel }}</x-badge>
+            </x-slot:badge>
+            <x-slot:actions>
                 @if(in_array($transfer->status, ['dikirim', 'selesai'], true))
                     <x-button href="{{ route('transfers.surat-jalan', $transfer) }}" target="_blank" variant="secondary" size="sm">
                         <x-slot:icon>
@@ -94,10 +93,10 @@
                 @endif
 
                 @if($canReceive)
-                    <button type="button" @click="openReceiveModal = true" class="px-3.5 py-2 text-xs font-medium bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition flex items-center gap-1.5 shadow-xs cursor-pointer rounded-[6px]">
-                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <x-button type="button" variant="primary" @click="openReceiveModal = true">
+                        <x-slot:icon><svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></x-slot:icon>
                         Konfirmasi Penerimaan Barang
-                    </button>
+                    </x-button>
                 @elseif($receiveBlockReason)
                     <span class="text-[11px] text-[#667085] dark:text-gray-400 italic px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg border border-[#E8E8E8] dark:border-gray-700">
                         {{ $receiveBlockReason }}
@@ -109,53 +108,53 @@
                         Batalkan Transfer
                     </button>
                 @endif
+
+            </x-slot:actions>
+        </x-doc-hero>
+
+        <x-flow-stepper title="Alur Transfer" :steps="$trfSteps" :current="$trfPos" :completed="$transfer->status === 'selesai'" :terminal="$trfTerminal" />
+
+        {{-- Ringkasan --}}
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+            <div class="xl:col-span-6 card-elevated rounded-[14px] border border-border bg-card p-4 sm:p-5 min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <span class="text-[12px] text-muted-foreground">Rute Pengiriman</span>
+                    <span class="size-8 rounded-[9px] bg-[#F4F6FE] dark:bg-[#627EF2]/15 text-[#3C55C9] dark:text-[#AEBBF9] flex items-center justify-center [&>svg]:size-4" aria-hidden="true"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></span>
+                </div>
+                <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-3">
+                    <div class="min-w-0">
+                        <p class="text-[11px] text-muted-foreground">Gudang Asal (Pengirim)</p>
+                        <p class="mt-0.5 text-[15px] font-semibold text-foreground leading-snug">{{ $transfer->gudangAsal?->nama ?? '-' }}</p>
+                        <p class="text-[11px] text-muted-foreground tabular-nums">{{ $transfer->gudangAsal?->kode }}</p>
+                        @if($transfer->waktu_dikirim)
+                            <p class="mt-1.5 text-[11px] text-muted-foreground tabular-nums">Dikirim {{ $transfer->waktu_dikirim->format('d/m/Y H:i') }} · {{ $transfer->sender?->name ?? 'Staff' }}</p>
+                        @endif
+                    </div>
+                    <span class="mt-3 text-muted-foreground" aria-hidden="true">→</span>
+                    <div class="min-w-0">
+                        <p class="text-[11px] text-muted-foreground">Gudang Tujuan (Penerima)</p>
+                        <p class="mt-0.5 text-[15px] font-semibold text-foreground leading-snug">{{ $transfer->gudangTujuan?->nama ?? '-' }}</p>
+                        <p class="text-[11px] text-muted-foreground tabular-nums">{{ $transfer->gudangTujuan?->kode }}</p>
+                        @if($transfer->waktu_diterima)
+                            <p class="mt-1.5 text-[11px] text-muted-foreground tabular-nums">Diterima {{ $transfer->waktu_diterima->format('d/m/Y H:i') }} · {{ $transfer->receiver?->name ?? 'Staff' }}</p>
+                        @endif
+                    </div>
+                </div>
             </div>
-        </div>
 
-        {{-- Grid Info --}}
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <x-card class="p-4">
-                <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Gudang Asal (Pengirim)</div>
-                <div class="text-sm font-medium text-[#101828] dark:text-white mt-1">{{ $transfer->gudangAsal?->nama ?? '-' }}</div>
-                <div class="text-[10px] text-[#667085] dark:text-gray-400">{{ $transfer->gudangAsal?->kode }}</div>
-                @if($transfer->waktu_dikirim)
-                    <div class="text-[10px] text-[#111111] dark:text-gray-300 font-medium mt-1">Dikirim: {{ $transfer->waktu_dikirim->format('d/m/Y H:i') }} ({{ $transfer->sender?->name ?? 'Staff' }})</div>
+            <x-info-tile label="Referensi Request" class="xl:col-span-3">
+                @if($transfer->stockRequest)
+                    <a href="{{ route('requests.show', $transfer->stockRequest) }}" class="text-[15px] font-semibold tabular-nums text-foreground hover:underline">{{ $transfer->stockRequest->no_request }}</a>
+                @else
+                    <p class="text-[15px] font-semibold text-muted-foreground">Transfer Mandiri</p>
                 @endif
-            </x-card>
+                <p class="mt-1 text-[12px] text-muted-foreground">{{ \App\Models\Transfer::JENIS_LABELS[$transfer->jenis] ?? ucfirst(str_replace('_', ' ', $transfer->jenis)) }}</p>
+            </x-info-tile>
 
-            <x-card class="p-4">
-                <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Gudang Tujuan (Penerima)</div>
-                <div class="text-sm font-medium text-[#101828] dark:text-white mt-1">{{ $transfer->gudangTujuan?->nama ?? '-' }}</div>
-                <div class="text-[10px] text-[#667085] dark:text-gray-400">{{ $transfer->gudangTujuan?->kode }}</div>
-                @if($transfer->waktu_diterima)
-                    <div class="text-[10px] text-foreground dark:text-foreground mt-1">Diterima: {{ $transfer->waktu_diterima->format('d/m/Y H:i') }} ({{ $transfer->receiver?->name ?? 'Staff' }})</div>
-                @endif
-            </x-card>
-
-            <x-card class="p-4">
-                <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Referensi Request</div>
-                <div class="text-sm font-medium text-[#101828] dark:text-white mt-1 tabular-nums">
-                    @if($transfer->stockRequest)
-                        <a href="{{ route('requests.show', $transfer->stockRequest) }}" class="text-[#111111] dark:text-white underline decoration-gray-400 hover:decoration-current">
-                            {{ $transfer->stockRequest->no_request }}
-                        </a>
-                    @else
-                        <span class="text-[#667085] dark:text-gray-400">Transfer Mandiri</span>
-                    @endif
-                </div>
-                <div class="text-[10px] text-[#667085] dark:text-gray-400 font-medium">{{ \App\Models\Transfer::JENIS_LABELS[$transfer->jenis] ?? ucfirst(str_replace('_', ' ', $transfer->jenis)) }}</div>
-            </x-card>
-
-            <x-card class="p-4">
-                <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Status Barang Rusak</div>
-                @php
-                    $totalRusak = (float) $transfer->items->sum('qty_rusak');
-                @endphp
-                <div class="text-sm font-medium {{ $totalRusak > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground dark:text-foreground' }} mt-1">
-                    {{ $totalRusak > 0 ? number_format($totalRusak, 2) . ' Rusak / Defect' : '0 Rusak (Kondisi Baik)' }}
-                </div>
-                <div class="text-[10px] text-[#667085] dark:text-gray-400">Dari total {{ number_format($transfer->items->sum('qty_dikirim'), 2) }} dikirim</div>
-            </x-card>
+            <x-info-tile label="Status Barang Rusak" class="xl:col-span-3" :tone="$totalRusak > 0 ? 'danger' : 'default'">
+                <p class="tabular-nums leading-none {{ $totalRusak > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground' }}"><span class="text-[28px] font-semibold tracking-[-0.03em]">{{ $fmtTrf($totalRusak) }}</span><span class="text-[13px] font-medium text-muted-foreground"> rusak</span></p>
+                <p class="mt-1.5 text-[12px] text-muted-foreground tabular-nums">dari {{ $fmtTrf($totalKirim) }} dikirim · {{ $transfer->items->count() }} item</p>
+            </x-info-tile>
         </div>
 
         @if($transfer->catatan)
@@ -173,7 +172,7 @@
         @endif
 
         {{-- Items Table --}}
-        <x-card title="Rincian Barang Mutasi" subtitle="Daftar produk, volume pengiriman, serta verifikasi barang baik vs rusak" :noPadding="true">
+        <x-card class="tbl-modern" variant="elevated" title="Rincian Barang Mutasi" subtitle="Daftar produk, volume pengiriman, serta verifikasi barang baik vs rusak" :noPadding="true">
             <x-slot:icon>
                 <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             </x-slot:icon>
@@ -291,9 +290,7 @@
 
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <x-button type="button" variant="secondary" @click="openReceiveModal = false">Batal</x-button>
-                    <button type="submit" :disabled="!isReceiveValid()" class="px-5 py-2 text-xs font-medium bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer rounded-[6px]">
-                        Konfirmasi & Terima Stok
-                    </button>
+                    <x-button type="submit" variant="primary" x-bind:disabled="!isReceiveValid()">Konfirmasi &amp; Terima Stok</x-button>
                 </div>
             </form>
         </x-modal>

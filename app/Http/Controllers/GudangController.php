@@ -16,7 +16,9 @@ class GudangController extends Controller
     {
         $this->authorize('gudang.view');
 
-        return view('gudang.index');
+        $parents = Gudang::active()->orderBy('nama')->pluck('nama', 'id');
+
+        return view('gudang.index', compact('parents'));
     }
 
     public function data(): JsonResponse

@@ -1,4 +1,5 @@
 <x-app-layout title="Satuan (UOM)">
+    <div x-data="{ createOpen: {{ (($errors->any() && old('_modal') === 'create') || request()->boolean('tambah')) ? 'true' : 'false' }} }">
     <x-page-header
         title="Master Satuan Unit (UOM)"
         subtitle="Daftar unit pengukuran standar untuk bahan baku kimia, kemasan, dan produk jadi manufaktur"
@@ -6,7 +7,7 @@
     >
         <x-slot:actions>
             @can('uom.create')
-            <x-button href="{{ route('uom.create') }}" variant="primary" size="sm">
+            <x-button type="button" @click="createOpen = true" variant="primary" size="sm">
                 <x-slot:icon>
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </x-slot:icon>
@@ -16,7 +17,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <x-card title="Daftar Master Satuan Unit (Unit of Measure)" subtitle="Standar pengukuran unit untuk resep BOM, kartu stok, dan pemesanan" :noPadding="true">
+    <x-card class="tbl-modern" title="Daftar Master Satuan Unit (Unit of Measure)" subtitle="Standar pengukuran unit untuk resep BOM, kartu stok, dan pemesanan" :noPadding="true">
         <x-slot:icon>
             <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
         </x-slot:icon>
@@ -36,6 +37,11 @@
             </table>
         </div>
     </x-card>
+
+    @can('uom.create')
+        @include('uom._create-modal')
+        @endcan
+    </div>
 
     @push('scripts')
     <script>
@@ -138,7 +144,7 @@
                         const cls = isAktif
                             ? 'bg-card text-foreground dark:text-foreground border-border'
                             : 'bg-zinc-100 dark:bg-gray-800 text-text-muted border-[#E8E8E8] dark:border-gray-700';
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ' + cls + '">' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
+                        return '<span class="tbl-status"><i class="tbl-dot ' + (isAktif ? 'tbl-dot--ok' : 'tbl-dot--bad') + '" aria-hidden="true"></i>' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
                     }
                 },
                 { data: 'action', orderable: false, searchable: false, className: 'text-center' }

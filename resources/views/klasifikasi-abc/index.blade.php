@@ -17,7 +17,7 @@
             </x-slot:actions>
         </x-page-header>
 
-        <x-card title="Daftar Klasifikasi ABC" subtitle="Pengaturan buffer lead time dan bobot prioritas pengadaan" :noPadding="true">
+        <x-card class="tbl-modern" title="Daftar Klasifikasi ABC" subtitle="Pengaturan buffer lead time dan bobot prioritas pengadaan" :noPadding="true">
             <x-slot:icon>
                 <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
             </x-slot:icon>

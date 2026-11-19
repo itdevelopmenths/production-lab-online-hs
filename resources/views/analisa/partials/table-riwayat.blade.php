@@ -1,6 +1,6 @@
 {{-- Section: Log Riwayat Snapshot (riwayat_analisa) --}}
 <template x-if="tab === 'riwayat'">
-    <x-card 
+    <x-card class="tbl-modern" 
         title="Log Riwayat Snapshot Analisa (riwayat_analisa)" 
         subtitle="Audit trail arsip historis snapshot terkunci (locked) lengkap dengan kode sesi batch finalisasi" 
         :noPadding="true"

@@ -15,7 +15,7 @@
 
         {{-- TABEL 1: Rekomendasi Order Impor (1 baris per produk — supplier aktif) --}}
         <div x-show="imporSubTab === 'rekomendasi'">
-        <x-card 
+        <x-card class="tbl-modern" 
             title="Tabel Analisa & Rekomendasi Pemesanan Bahan Impor (analisa_impor & lead_time_impor)"
             subtitle="Lead Time (Avg/Max), Buffer Hari ABC (+4d/+2d/+0d), Safety Stock, Target Stock, Inbound ETA, Proyeksi, dan Rekomendasi Order MOQ"
             :noPadding="true"
@@ -199,7 +199,7 @@
 
         {{-- TABEL 2: Working Data Analisa Impor (ADU Seluruh Supplier-Produk) --}}
         <div x-show="imporSubTab === 'analisa'">
-            <x-card
+            <x-card class="tbl-modern"
                 title="Tabel Working Data Analisa Impor — ADU Seluruh Supplier–Produk"
                 subtitle="ADU dihitung murni per produk (OUT / Jumlah Hari, tidak bergantung supplier); Lead Time, Buffer Days, Safety Stock, Min Stock, & Target Stock mengikuti masing-masing supplier"
                 :noPadding="true"

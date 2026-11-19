@@ -89,7 +89,7 @@ class OperationalAudit extends Model
         $html = [];
 
         if (! empty($this->action_title)) {
-            $html[] = '<div class="font-medium text-gray-900 leading-snug mb-1">' . e($this->action_title) . '</div>';
+            $html[] = '<div class="font-medium text-gray-900 dark:text-white leading-snug mb-1">' . e($this->action_title) . '</div>';
         }
 
         $old = $this->old_values ?? [];
@@ -108,10 +108,10 @@ class OperationalAudit extends Model
                 $to = isset($new[$field]) ? (is_array($new[$field]) ? json_encode($new[$field]) : (string) $new[$field]) : '—';
                 $fieldLabel = ucwords(str_replace('_', ' ', $field));
 
-                $diffLines[] = "<span class=\"font-medium text-gray-700\">{$fieldLabel}:</span> <span class=\"text-rose-600 line-through\">" . e($from) . "</span> &rarr; <span class=\"text-emerald-700 font-semibold\">" . e($to) . "</span>";
+                $diffLines[] = "<span class=\"font-medium text-gray-700 dark:text-gray-300\">{$fieldLabel}:</span> <span class=\"text-rose-600 dark:text-rose-400 line-through\">" . e($from) . "</span> &rarr; <span class=\"text-gray-900 dark:text-white font-semibold\">" . e($to) . "</span>";
             }
             if (! empty($diffLines)) {
-                $html[] = '<div class="text-[11px] text-gray-600 space-y-0.5 pl-2 border-l-2 border-gray-200">' . implode('<br>', $diffLines) . '</div>';
+                $html[] = '<div class="text-xs text-gray-600 dark:text-gray-400 space-y-0.5 pl-2 border-l-2 border-gray-200 dark:border-gray-700">' . implode('<br>', $diffLines) . '</div>';
             }
         }
 
@@ -120,10 +120,10 @@ class OperationalAudit extends Model
             foreach ($this->metadata as $k => $v) {
                 $kLabel = ucwords(str_replace('_', ' ', $k));
                 $vStr = is_array($v) ? json_encode($v) : (string) $v;
-                $metaPairs[] = "<span class=\"text-gray-500\">{$kLabel}:</span> <span class=\"font-mono font-medium text-gray-800\">" . e($vStr) . "</span>";
+                $metaPairs[] = "<span class=\"text-gray-500 dark:text-gray-400\">{$kLabel}:</span> <span class=\"font-mono font-medium text-gray-800 dark:text-gray-200\">" . e($vStr) . "</span>";
             }
             if (! empty($metaPairs)) {
-                $html[] = '<div class="text-[10px] text-gray-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">' . implode(' &bull; ', $metaPairs) . '</div>';
+                $html[] = '<div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">' . implode(' &bull; ', $metaPairs) . '</div>';
             }
         }
 

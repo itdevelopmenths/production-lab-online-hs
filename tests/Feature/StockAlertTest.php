@@ -50,7 +50,7 @@ class StockAlertTest extends TestCase
         $this->assertStringContainsString('31.442', $row['batas_minimum']);
         $this->assertStringContainsString('500.000 ml', $row['stok_aktual']);
         $this->assertStringContainsString('0 ml', $row['stok_berjalan']);
-        $this->assertStringContainsString('AMAN', $row['status_stok']);
+        $this->assertStringContainsString('Aman', $row['status_stok']);
 
         // 1. Turunkan stok aktual di bawah Batas Min (10.000 <= 31.442,6) tanpa PO berjalan -> ORDER
         app(StokService::class)->setAbsolut($alk->id, $gBahan->id, 10000, 'Simulasi stok menipis');
@@ -59,7 +59,7 @@ class StockAlertTest extends TestCase
             ->firstWhere('sku', 'ALK-01');
         $this->assertStringContainsString('10.000 ml', $rowLow['stok_aktual']);
         $this->assertStringContainsString('0 ml', $rowLow['stok_berjalan']);
-        $this->assertStringContainsString('ORDER', $rowLow['status_stok']);
+        $this->assertStringContainsString('Perlu Order', $rowLow['status_stok']);
 
         // 2. Buat PO berjalan 25.000 ml -> Aktual tetap 10.000, Berjalan = 25.000, (10.000 + 25.000 - 31.442,6 > 0) -> AMAN
         $supplier = Supplier::firstOrFail();
@@ -82,7 +82,7 @@ class StockAlertTest extends TestCase
             ->firstWhere('sku', 'ALK-01');
         $this->assertStringContainsString('10.000 ml', $rowCovered['stok_aktual']);
         $this->assertStringContainsString('25.000 ml', $rowCovered['stok_berjalan']);
-        $this->assertStringContainsString('AMAN', $rowCovered['status_stok']);
+        $this->assertStringContainsString('Aman', $rowCovered['status_stok']);
 
         // 3. Kurangi qty PO berjalan menjadi 20.000 ml -> (10.000 + 20.000 - 31.442,6 <= 0) -> ORDER
         $poItem->update(['qty' => 20000]);
@@ -91,14 +91,14 @@ class StockAlertTest extends TestCase
             ->firstWhere('sku', 'ALK-01');
         $this->assertStringContainsString('10.000 ml', $rowDeficit['stok_aktual']);
         $this->assertStringContainsString('20.000 ml', $rowDeficit['stok_berjalan']);
-        $this->assertStringContainsString('ORDER', $rowDeficit['status_stok']);
+        $this->assertStringContainsString('Perlu Order', $rowDeficit['status_stok']);
 
         // 4. Boundary tepat sama: batas_minimum = 30.000 -> (10.000 + 20.000 - 30.000 == 0 <= 0) -> ORDER
         AnalisaLokal::where('produk_id', $alk->id)->update(['batas_minimum' => 30000]);
 
         $rowBoundary = collect($this->getJson(route('stok.data', ['gudang_id' => $gBahan->id]))->json('data'))
             ->firstWhere('sku', 'ALK-01');
-        $this->assertStringContainsString('ORDER', $rowBoundary['status_stok']);
+        $this->assertStringContainsString('Perlu Order', $rowBoundary['status_stok']);
 
         // 5. Item dengan Batas Min Analisa = 0 dan stok 0 + berjalan 0 -> tetap AMAN (bukan ORDER palsu)
         $noMinProduk = Produk::create([
@@ -121,7 +121,7 @@ class StockAlertTest extends TestCase
         $this->assertEquals('-', $rowNoMin['batas_minimum']);
         $this->assertStringContainsString('0 pcs', $rowNoMin['stok_aktual']);
         $this->assertStringContainsString('0 pcs', $rowNoMin['stok_berjalan']);
-        $this->assertStringContainsString('AMAN', $rowNoMin['status_stok']);
+        $this->assertStringContainsString('Aman', $rowNoMin['status_stok']);
 
         // 6. Toleransi presisi floating-point IEEE 754 pada boundary tepat sama (0.1 + 0.2 - 0.3 == 0 -> ORDER)
         app(StokService::class)->setAbsolut($alk->id, $gBahan->id, 0.1, 'Simulasi stok desimal 0.1');
@@ -131,6 +131,6 @@ class StockAlertTest extends TestCase
         $rowFloatBoundary = collect($this->getJson(route('stok.data', ['gudang_id' => $gBahan->id]))->json('data'))
             ->firstWhere('sku', 'ALK-01');
         $this->assertNotNull($rowFloatBoundary);
-        $this->assertStringContainsString('ORDER', $rowFloatBoundary['status_stok']);
+        $this->assertStringContainsString('Perlu Order', $rowFloatBoundary['status_stok']);
     }
 }

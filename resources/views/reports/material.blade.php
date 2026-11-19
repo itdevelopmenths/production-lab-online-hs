@@ -20,7 +20,7 @@
     </div>
 
     <!-- Table Card -->
-    <x-card title="Konsumsi Bahan Baku Manufaktur" subtitle="Data agregat pengeluaran bahan dari kartu stok dengan referensi batch produksi" :noPadding="true">
+    <x-card class="tbl-modern" title="Konsumsi Bahan Baku Manufaktur" subtitle="Data agregat pengeluaran bahan dari kartu stok dengan referensi batch produksi" :noPadding="true">
         <x-slot:icon>
             <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
         </x-slot:icon>

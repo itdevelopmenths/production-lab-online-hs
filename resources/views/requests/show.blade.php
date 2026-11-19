@@ -15,26 +15,25 @@
             :backUrl="route('requests.index')"
         />
 
-        {{-- Header Status Bar --}}
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-[12px] bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-border shadow-theme-xs">
-            <div class="flex items-center gap-4">
-                <div class="size-12 rounded-[10px] bg-[#FBFBFB] dark:bg-gray-800 border border-[#E8E8E8] dark:border-border text-text-active flex items-center justify-center shrink-0">
-                    <svg class="size-6" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <h2 class="text-xl font-semibold tabular-nums text-[#101828] dark:text-white">{{ $stockRequest->no_request }}</h2>
-                        <x-badge :variant="$stockRequest->status" :pill="true">
-                            {{ ucfirst($stockRequest->status) }}
-                        </x-badge>
-                    </div>
-                    <p class="text-xs text-text-muted mt-1">
-                        Dibuat oleh <span class="font-medium text-text-active">{{ $stockRequest->creator?->name ?? 'Sistem' }}</span> pada {{ $stockRequest->created_at->format('d/m/Y H:i') }}
-                    </p>
-                </div>
-            </div>
+        @php
+            $reqSteps = [
+                ['label' => 'Draft', 'hint' => 'Disusun pemohon'],
+                ['label' => 'Diajukan', 'hint' => 'Menunggu Manager'],
+                ['label' => 'Disetujui', 'hint' => 'Siap dipenuhi'],
+                ['label' => 'Diproses', 'hint' => 'Transfer berjalan'],
+                ['label' => 'Selesai', 'hint' => 'Barang diterima'],
+            ];
+            $reqPos = match($stockRequest->status) { 'draft' => 1, 'diajukan' => 2, 'disetujui' => 3, 'diproses' => 4, 'selesai' => 5, default => 1 };
+            $reqTerminal = match($stockRequest->status) { 'ditolak' => 'Ditolak Manager', 'dibatalkan' => 'Dibatalkan', default => null };
+            $reqTotalQty = (float) $stockRequest->items->sum('qty_diminta');
+        @endphp
 
-            <div class="flex flex-wrap items-center gap-2">
+        <x-doc-hero :title="$stockRequest->no_request" :meta="'Dibuat oleh <span class=&quot;font-medium text-text-active&quot;>' . e($stockRequest->creator?->name ?? 'Sistem') . '</span> pada ' . $stockRequest->created_at->format('d/m/Y H:i')">
+            <x-slot:icon><svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></x-slot:icon>
+            <x-slot:badge>
+                <x-badge :variant="$stockRequest->status" :pill="true">{{ ucfirst($stockRequest->status) }}</x-badge>
+            </x-slot:badge>
+            <x-slot:actions>
                 @if($canSubmit)
                     <form method="POST" action="{{ route('requests.submit', $stockRequest) }}" class="inline">
                         @csrf
@@ -73,46 +72,38 @@
                         Batalkan
                     </button>
                 @endif
-            </div>
-        </div>
 
-        {{-- Grid Info --}}
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <x-card class="p-4">
-                <div class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Jenis Permintaan</div>
-                <div class="text-sm font-medium text-foreground mt-1">
-                    {{ $stockRequest->jenis === 'request_bahan' ? 'Bahan Baku Operasional' : 'Produk Jadi Fulfillment' }}
-                </div>
-            </x-card>
+            </x-slot:actions>
+        </x-doc-hero>
 
-            <x-card class="p-4">
-                <div class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Gudang Pemohon</div>
-                <div class="text-sm font-medium text-foreground mt-1">
-                    {{ $stockRequest->gudangPemohon?->nama ?? '-' }}
-                </div>
-                <div class="text-[10px] text-muted-foreground">{{ $stockRequest->gudangPemohon?->kode }}</div>
-            </x-card>
+        <x-flow-stepper title="Alur Permintaan" :steps="$reqSteps" :current="$reqPos" :completed="$stockRequest->status === 'selesai'" :terminal="$reqTerminal" />
 
-            <x-card class="p-4">
-                <div class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Gudang Penyedia</div>
-                <div class="text-sm font-medium text-foreground mt-1">
-                    {{ $stockRequest->gudangTujuan?->nama ?? '-' }}
-                </div>
-                <div class="text-[10px] text-muted-foreground">{{ $stockRequest->gudangTujuan?->kode }}</div>
-            </x-card>
+        {{-- Ringkasan --}}
+        <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+            <x-info-tile label="Jenis Permintaan">
+                <p class="text-[15px] font-semibold text-foreground leading-snug">{{ $stockRequest->jenis === 'request_bahan' ? 'Bahan Baku Operasional' : 'Produk Jadi Fulfillment' }}</p>
+                <p class="mt-1 text-[12px] text-muted-foreground tabular-nums">{{ $stockRequest->items->count() }} item · total {{ rtrim(rtrim(number_format($reqTotalQty, 2, ',', '.'), '0'), ',') }}</p>
+            </x-info-tile>
 
-            <x-card class="p-4">
-                <div class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Batch Produksi</div>
-                <div class="text-sm font-medium text-foreground mt-1 tabular-nums">
-                    @if($stockRequest->batch)
-                        <a href="{{ route('batches.show', $stockRequest->batch) }}" class="text-primary hover:underline">
-                            {{ $stockRequest->batch->no_batch }}
-                        </a>
-                    @else
-                        -
-                    @endif
-                </div>
-            </x-card>
+            <x-info-tile label="Gudang Pemohon">
+                <p class="text-[15px] font-semibold text-foreground leading-snug">{{ $stockRequest->gudangPemohon?->nama ?? '-' }}</p>
+                <p class="mt-1 text-[12px] text-muted-foreground tabular-nums">{{ $stockRequest->gudangPemohon?->kode }}</p>
+            </x-info-tile>
+
+            <x-info-tile label="Gudang Penyedia">
+                <p class="text-[15px] font-semibold text-foreground leading-snug">{{ $stockRequest->gudangTujuan?->nama ?? '-' }}</p>
+                <p class="mt-1 text-[12px] text-muted-foreground tabular-nums">{{ $stockRequest->gudangTujuan?->kode }}</p>
+            </x-info-tile>
+
+            <x-info-tile label="Batch Produksi">
+                @if($stockRequest->batch)
+                    <a href="{{ route('batches.show', $stockRequest->batch) }}" class="text-[15px] font-semibold tabular-nums text-foreground hover:underline">{{ $stockRequest->batch->no_batch }}</a>
+                    <p class="mt-1 text-[12px] text-muted-foreground">Terhubung ke produksi</p>
+                @else
+                    <p class="text-[15px] font-semibold text-muted-foreground">—</p>
+                    <p class="mt-1 text-[12px] text-muted-foreground">Tidak terkait batch</p>
+                @endif
+            </x-info-tile>
         </div>
 
         @if($stockRequest->catatan)
@@ -138,7 +129,7 @@
         @endif
 
         {{-- Table Items --}}
-        <x-card>
+        <x-card class="tbl-modern" variant="elevated">
             <x-slot:header>
                 <div>
                     <h2 class="text-lg font-semibold text-foreground tracking-tight">Rincian Barang yang Diminta</h2>
@@ -176,7 +167,7 @@
 
         {{-- Associated Transfers --}}
         @if($stockRequest->transfers->isNotEmpty())
-        <x-card>
+        <x-card class="tbl-modern" variant="elevated">
             <x-slot:header>
                 <div>
                     <h2 class="text-lg font-semibold text-foreground tracking-tight">Dokumen Transfer Terkait</h2>

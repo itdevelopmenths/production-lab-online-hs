@@ -28,7 +28,7 @@
         </div>
     @endif
 
-    <div class="w-full gap-x-4 gap-y-3 grid {{ $gridColsClass }}">
+    <div class="w-full gap-x-4 gap-y-3 grid [&>div.grid]:col-span-full [&>div:has(input[type=checkbox])]:col-span-full {{ $gridColsClass }}">
         {{ $slot }}
     </div>
 </div>

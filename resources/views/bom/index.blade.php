@@ -25,7 +25,7 @@
         </x-alert>
     </div>
 
-    <x-card title="Daftar Resep Produk Jadi (BOM)" subtitle="Komposisi bahan kimia dan botol per unit output produksi" :noPadding="true">
+    <x-card class="tbl-modern" title="Daftar Resep Produk Jadi (BOM)" subtitle="Komposisi bahan kimia dan botol per unit output produksi" :noPadding="true">
         <x-slot:icon>
             <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         </x-slot:icon>
@@ -71,7 +71,7 @@
                     render: function(data) {
                         const count = parseInt(data) || 0;
                         const cls = count > 0 ? 'bg-primary/10 text-primary border-primary/20' : 'bg-destructive/10 text-destructive border-destructive/20';
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ' + cls + '">' + count + ' Komponen</span>';
+                        return count + ' Komponen';
                     }
                 },
                 { data: 'action', className: 'text-center', orderable: false, searchable: false }

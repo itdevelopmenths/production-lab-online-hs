@@ -561,10 +561,10 @@ class ViewRenderingSafetyTest extends TestCase
         $poShow = $this->get(route('purchasing.show', $po));
         $poShow->assertOk();
         $poShow->assertSee('tabindex="0" role="region" aria-label="Scroll Tahapan Purchase Order"', false);
-        $poShow->assertSee('min-w-[44rem] lg:min-w-0', false);
+        $poShow->assertSee('data-stepper="po"', false);
         $poShow->assertDontSee('sm:min-w-0', false);
         $poShow->assertDontSee('max-w-[85px]', false);
-        $poShow->assertSee('flex-1 min-w-0 px-1 relative z-10', false);
+        $poShow->assertSee('xl:grid-cols-8', false);
         $poShow->assertSee('aria-label="Tahapan Purchase Order"', false);
         $poShow->assertSee('flex flex-wrap items-center gap-2 shrink-0', false);
     }

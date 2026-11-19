@@ -1,5 +1,6 @@
 import Alpine from 'alpinejs';
 import Swal from 'sweetalert2';
+import './select-menu';
 
 window.Alpine = Alpine;
 window.Swal = Swal;

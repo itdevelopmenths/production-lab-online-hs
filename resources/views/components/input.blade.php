@@ -16,7 +16,7 @@
     $hasError = isset($errors) && $name && $errors->has($name);
 
     if ($variant === 'seamless') {
-        $baseInputClass = 'w-full bg-transparent border-0 p-0 shadow-none outline-none text-[14px] font-medium text-text-active placeholder:text-text-placeholder focus:ring-0 disabled:text-text-muted disabled:cursor-not-allowed';
+        $baseInputClass = 'w-full bg-transparent border-0 p-0 shadow-none outline-none text-[13px] font-normal text-text-active placeholder:text-text-placeholder focus:ring-0 disabled:text-text-muted disabled:cursor-not-allowed';
         $paddingLeft = $icon ? 'pl-6' : '';
         $paddingRight = $addonRight ? 'pr-10' : '';
     } else {

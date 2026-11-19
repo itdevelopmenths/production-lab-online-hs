@@ -1,4 +1,5 @@
 <x-app-layout title="Gudang">
+    <div x-data="{ createOpen: {{ (($errors->any() && old('_modal') === 'create') || request()->boolean('tambah')) ? 'true' : 'false' }} }">
     <x-page-header
         title="Master Gudang"
         subtitle="Daftar lokasi penyimpanan bahan baku, gudang operasional, dan fulfillment hub"
@@ -6,7 +7,7 @@
     >
         <x-slot:actions>
             @can('gudang.create')
-            <x-button href="{{ route('gudang.create') }}" variant="primary" size="sm">
+            <x-button type="button" @click="createOpen = true" variant="primary" size="sm">
                 <x-slot:icon>
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </x-slot:icon>
@@ -16,7 +17,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <x-card title="Daftar Lokasi Gudang" subtitle="Kelola seluruh fasilitas gudang fisik dan hierarki cabang" :noPadding="true">
+    <x-card class="tbl-modern" title="Daftar Lokasi Gudang" subtitle="Kelola seluruh fasilitas gudang fisik dan hierarki cabang" :noPadding="true">
         <x-slot:icon>
             <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
         </x-slot:icon>
@@ -35,6 +36,11 @@
             </table>
         </div>
     </x-card>
+
+    @can('gudang.create')
+        @include('gudang._create-modal')
+        @endcan
+    </div>
 
     @push('scripts')
     <script>
@@ -110,11 +116,11 @@
                     data: 'status',
                     className: 'text-center',
                     render: function(data) {
-                        const isAktif = String(data).toLowerCase() === 'aktif';
+                        const isAktif = /(^|>)\s*aktif\s*(<|$)/i.test(String(data));  // data berupa HTML statusPill dari server
                         const cls = isAktif
                             ? 'bg-card text-foreground dark:text-foreground border-border'
                             : 'bg-muted text-muted-foreground border-border';
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ' + cls + '">' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
+                        return '<span class="tbl-status"><i class="tbl-dot ' + (isAktif ? 'tbl-dot--ok' : 'tbl-dot--bad') + '" aria-hidden="true"></i>' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
                     }
                 },
                 { data: 'action', orderable: false, searchable: false, className: 'text-center' }

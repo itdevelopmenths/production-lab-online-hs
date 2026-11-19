@@ -648,6 +648,15 @@
             if ($.fn && $.fn.dataTable) {
                 $.fn.dataTable.ext.errMode = 'none';
 
+                // Header kolom mengikuti perataan isi kolom (angka rata kanan, aksi di tengah)
+                $(document).on('init.dt', function(e, settings) {
+                    (settings.aoColumns || []).forEach(function(col) {
+                        var cls = col.sClass || '';
+                        if (!col.nTh) return;
+                        if (/\btext-right\b/.test(cls)) $(col.nTh).addClass('dt-align-right');
+                    });
+                });
+
                 $.extend(true, $.fn.dataTable.defaults, {
                     dom: "<'dt-layout-header'lf><'overflow-x-auto't><'dt-layout-footer'ip>",
                     autoWidth: false,

@@ -27,7 +27,7 @@
         @if ($icon)
             {!! $iconSvg !!}
         @endif
-        <div class="truncate">
+        <div class="min-w-0 leading-snug">
             @if ($title)
                 <span class="font-medium mr-1.5">{{ $title }}</span>
             @endif

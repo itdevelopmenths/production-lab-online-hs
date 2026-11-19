@@ -19,7 +19,11 @@ class DivisiController extends Controller
     {
         $this->authorize('divisi.view');
 
-        return view('divisi.index');
+        $createDivisi = new Divisi(['color' => 'slate', 'is_active' => true]);
+
+        $availableColors = Divisi::AVAILABLE_COLORS;
+
+        return view('divisi.index', compact('createDivisi', 'availableColors'));
     }
 
     public function data(): JsonResponse
@@ -39,7 +43,7 @@ class DivisiController extends Controller
             })
             ->addColumn('nama_section', function (Divisi $d) {
                 $nama = e($d->nama);
-                $desc = $d->deskripsi ? '<p class="text-xs text-text-muted mt-0.5 line-clamp-1">' . e($d->deskripsi) . '</p>' : '';
+                $desc = $d->deskripsi ? '<p class="text-xs text-text-muted mt-0.5 max-w-md leading-relaxed">' . e($d->deskripsi) . '</p>' : '';
                 return '<div>
                             <div class="font-semibold text-[#101828] dark:text-white text-sm leading-snug">' . $nama . '</div>
                             ' . $desc . '

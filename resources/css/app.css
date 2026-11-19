@@ -659,3 +659,293 @@ dialog::backdrop {
   }
   .dark .btn-soft:hover:not(:disabled) { background-color: #1f2937; border-color: #4b5563; }
 }
+
+
+/* ===== Elevated surfaces (halaman detail): tanpa shadow, pakai border + gradien halus ===== */
+.card-elevated { box-shadow: none; }
+.dark .card-elevated { box-shadow: none; }
+.card-elevated-head {
+  background-image: linear-gradient(to bottom, #fcfcfd, #ffffff);
+}
+.dark .card-elevated-head {
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+}
+.po-hero {
+  background-image:
+    radial-gradient(120% 140% at 0% 0%, rgba(98, 126, 242, 0.07), transparent 55%),
+    linear-gradient(to bottom, #ffffff, #fafbfc);
+}
+.dark .po-hero {
+  background-image:
+    radial-gradient(120% 140% at 0% 0%, rgba(98, 126, 242, 0.12), transparent 55%),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+}
+
+/* ===== Form aksi kompak (panel eksekusi tahap PO) ===== */
+.po-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 500;
+  color: var(--color-text-active, #101828);
+}
+.po-field {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.625rem;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  color: #101828;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+textarea.po-field { height: auto; padding: 0.5rem 0.625rem; line-height: 1.4; resize: vertical; }
+.po-field::placeholder { color: #98a2b3; }
+.po-field:focus { border-color: #111; box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.08); }
+.dark .po-field { background: #101828; border-color: rgba(255, 255, 255, 0.12); color: #fff; }
+.dark .po-field:focus { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12); }
+
+/* ===== Tabel modern (opt-in: tambahkan class `tbl-modern` pada kartu pembungkus tabel) ===== */
+.tbl-modern { --tbl-line: #eef0f3; --tbl-head: #f9fafb; --tbl-hover: #f7f8fb; --tbl-muted: #667085; --tbl-text: #101828; --tbl-text-2: #475467; }
+.dark .tbl-modern { --tbl-line: rgba(255, 255, 255, 0.07); --tbl-head: rgba(255, 255, 255, 0.03); --tbl-hover: rgba(255, 255, 255, 0.04); --tbl-muted: #98a2b3; --tbl-text: #fff; --tbl-text-2: #c4c9d4; }
+
+/* Toolbar: pencarian di kiri, jumlah baris di kanan */
+.tbl-modern .dt-layout-header { padding: 0.875rem 1.25rem; border-bottom: 1px solid var(--tbl-line); background: transparent; flex-direction: row; flex-wrap: wrap; gap: 0.75rem; }
+.tbl-modern .dataTables_filter { order: -1; }
+.tbl-modern .dataTables_filter label { font-size: 0; gap: 0; }
+.tbl-modern .dataTables_filter input {
+  height: 2.25rem; width: min(20rem, 100%); padding-left: 2.25rem; border-radius: 8px; font-size: 13px; box-shadow: none; background-color: var(--tbl-head);
+  background-repeat: no-repeat; background-position: 0.75rem center; background-size: 15px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2398a2b3' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z'/%3E%3C/svg%3E");
+}
+.tbl-modern .dataTables_filter input:focus { background-color: #fff; box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.06); }
+.dark .tbl-modern .dataTables_filter input:focus { background-color: transparent; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1); }
+.tbl-modern .dataTables_length select { height: 2.25rem; border-radius: 8px; box-shadow: none; }
+
+/* Dropdown kustom (resources/js/select-menu.js): ikon chevron rapat, daftar pilihan bersih */
+.dd, .dd-menu { --tbl-text: #101828; --tbl-text-2: #475467; }
+.dark .dd, .dark .dd-menu { --tbl-text: #fff; --tbl-text-2: #c4c9d4; }
+.dd-block { display: block; width: 100%; }
+.dd-block .dd-trigger { width: 100%; justify-content: space-between; }
+.dd-sm .dd-trigger { height: 2rem; font-size: 12px; padding-left: 0.625rem; }
+/* select di dalam form / modal */
+.dd-field .dd-trigger { height: 2.375rem; border-radius: 6px; border-color: #e8e8e8; font-size: 13px; font-weight: 400; padding: 0 0.75rem 0 0.875rem; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04); }
+.dd-field.dd-sm .dd-trigger { height: 2.125rem; font-size: 12px; }
+.dd-field.dd-lg .dd-trigger { height: 2.75rem; font-size: 14px; }
+.dd-field .dd-label { overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.dd-field.is-placeholder .dd-label { color: #98a2b3; }
+.dd-field.dd-seamless .dd-trigger { border: 0; background: transparent !important; box-shadow: none !important; height: auto; min-height: 1.5rem; padding: 0; }
+.dd-field.dd-seamless.is-open .dd-trigger, .dd-field.dd-seamless .dd-trigger:focus-visible { box-shadow: none !important; }
+.dd-field.dd-error .dd-trigger { border-color: #f04438; background: rgba(240, 68, 56, 0.04); }
+.dd-field.dd-error .dd-trigger:focus-visible, .dd-field.dd-error.is-open .dd-trigger { box-shadow: 0 0 0 3px rgba(240, 68, 56, 0.15); border-color: #f04438; }
+.dark .dd-field .dd-trigger { background: #111827; border-color: rgba(255, 255, 255, 0.12); box-shadow: none; }
+.dark .dd-field.is-placeholder .dd-label { color: #667085; }
+.dd { position: relative; display: inline-block; }
+.dd-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
+.dd-trigger {
+  display: inline-flex; align-items: center; gap: 0.5rem; height: 2.25rem; padding: 0 0.625rem 0 0.75rem;
+  border: 1px solid #e4e7ec; border-radius: 8px; background: #fff; color: var(--tbl-text);
+  font-size: 13px; font-weight: 500; line-height: 1; white-space: nowrap; cursor: pointer;
+  transition: border-color 120ms ease-out, background-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+.dd-trigger:hover { background: #f9fafb; border-color: #d0d5dd; }
+.dd-trigger:focus-visible,
+.dd.is-open .dd-trigger { border-color: #111; box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.07); outline: none; }
+.dd-trigger:disabled { opacity: 0.5; cursor: not-allowed; }
+.dd-chevron { width: 14px; height: 14px; flex: none; color: #98a2b3; transition: transform 160ms ease-out, color 120ms; }
+.dd-trigger:hover .dd-chevron { color: var(--tbl-text-2); }
+.dd.is-open .dd-chevron { transform: rotate(180deg); color: var(--tbl-text); }
+.dark .dd-trigger { background: transparent; border-color: rgba(255, 255, 255, 0.12); }
+.dark .dd-trigger:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.2); }
+.dark .dd-trigger:focus-visible,
+.dark .dd.is-open .dd-trigger { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1); }
+
+.dd-menu {
+  position: fixed; z-index: 9999; max-height: 18rem; overflow-y: auto; padding: 4px;
+  background: #fff; border: 1px solid #e4e7ec; border-radius: 10px;
+  box-shadow: 0 12px 28px -8px rgba(16, 24, 40, 0.16), 0 2px 6px -2px rgba(16, 24, 40, 0.06);
+  animation: dd-in 120ms ease-out;
+}
+.dd-menu[data-side="up"] { animation-name: dd-in-up; }
+.dd-menu[hidden] { display: none; }
+@keyframes dd-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes dd-in-up { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.dd-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%;
+  padding: 0.5rem 0.625rem; border: 0; border-radius: 7px; background: transparent;
+  color: var(--tbl-text-2); font-size: 13px; line-height: 1.25; text-align: left; white-space: nowrap; cursor: pointer;
+}
+.dd-item.is-active,
+.dd-item:hover { background: #f2f4f7; color: var(--tbl-text); }
+.dd-item.is-selected { color: var(--tbl-text); font-weight: 600; }
+.dd-item:disabled { opacity: 0.4; cursor: not-allowed; }
+.dd-check { width: 14px; height: 14px; flex: none; opacity: 0; color: var(--tbl-text); }
+.dd-item.is-selected .dd-check { opacity: 1; }
+.dark .dd-menu { background: #1a1d24; border-color: rgba(255, 255, 255, 0.1); box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.6); }
+.dark .dd-item.is-active,
+.dark .dd-item:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* Header kolom */
+.tbl-modern table.dataTable { font-size: 13px; }
+.tbl-modern table.dataTable thead th,
+.tbl-modern table.dataTable thead td {
+  background: var(--tbl-head); backdrop-filter: none; border-top: 0; border-bottom: 1px solid var(--tbl-line);
+  padding: 0.75rem 1rem; font-size: 12px; font-weight: 500; color: var(--tbl-muted); letter-spacing: 0;
+}
+.tbl-modern table.dataTable thead th.sorting_asc,
+.tbl-modern table.dataTable thead th.sorting_desc { color: var(--tbl-text); font-weight: 600; }
+
+/* Baris */
+.tbl-modern table.dataTable tbody th,
+.tbl-modern table.dataTable tbody td {
+  padding: 0.875rem 1rem; border-bottom: 1px solid var(--tbl-line); background: transparent;
+  font-size: 13px; line-height: 1.35; letter-spacing: 0; color: var(--tbl-text-2); font-variant-numeric: tabular-nums;
+}
+.tbl-modern table.dataTable tbody tr:last-child td { border-bottom: 0; }
+.tbl-modern table.dataTable tbody tr:hover td { background: var(--tbl-hover); }
+.tbl-modern table.dataTable tbody td:first-child { color: var(--tbl-text); }
+.tbl-modern table.dataTable tbody td.dataTables_empty { padding: 3.5rem 1rem !important; color: var(--tbl-muted); font-size: 13px; }
+
+/* Isi sel: konsisten di semua kolom */
+.tbl-modern .tbl-primary { color: var(--tbl-text); font-weight: 500; }
+.tbl-modern .tbl-sub { display: block; margin-top: 1px; font-size: 11.5px; color: var(--tbl-muted); }
+.tbl-modern .tbl-id { font-size: 12.5px; color: var(--tbl-text-2); }
+.tbl-modern .tbl-dash { color: #c4c9d4; }
+.tbl-tag { display: inline-flex; align-items: center; gap: 0.375rem; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; line-height: 1.4; white-space: nowrap; color: #344054; background: #f2f4f7; }
+.dark .tbl-tag { color: #d0d5dd; background: rgba(255, 255, 255, 0.08); }
+.tbl-dot { width: 6px; height: 6px; border-radius: 9999px; flex-shrink: 0; background: #98a2b3; }
+.tbl-dot--ok { background: #12b76a; }
+.tbl-dot--warn { background: #f79009; }
+.tbl-dot--bad { background: #f04438; }
+.tbl-dot--info { background: #2e90fa; }
+.tbl-dot--ink { background: #111; }
+.dark .tbl-dot--ink { background: #fff; }
+.tbl-status { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 13px; font-weight: 500; color: var(--tbl-text, #101828); white-space: nowrap; }
+
+/* Tombol aksi: ghost, tanpa border sampai di-hover */
+.tbl-modern table.dataTable td [class*="size-[32px]"] {
+  width: 30px; height: 30px; border-color: transparent; background: transparent; color: var(--tbl-muted); border-radius: 8px;
+}
+.tbl-modern table.dataTable td [class*="size-[32px]"]:hover { background: #f2f4f7; border-color: transparent; color: var(--tbl-text); }
+.dark .tbl-modern table.dataTable td [class*="size-[32px]"]:hover { background: rgba(255, 255, 255, 0.08); }
+.tbl-modern table.dataTable td [class*="size-[32px]"][class*="text-[#e7000b]"]:hover { background: rgba(240, 68, 56, 0.1); color: #d92d20; }
+
+/* Footer: info kiri, pagination kanan */
+.tbl-modern .dt-layout-footer { padding: 0.75rem 1.25rem; border-top: 1px solid var(--tbl-line); background: transparent; }
+.tbl-modern .dataTables_paginate { gap: 0.375rem; }
+.tbl-modern .dataTables_paginate .paginate_button {
+  min-width: 34px; height: 34px; padding: 0 0.625rem; border-radius: 8px; font-size: 13px; font-weight: 500;
+  color: var(--tbl-text-2) !important; background: #fff !important; border: 1px solid #e4e7ec !important;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04); transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, transform 100ms ease-out;
+}
+.tbl-modern .dataTables_paginate .paginate_button:hover:not(.current):not(.disabled) {
+  color: var(--tbl-text) !important; background: #f2f4f7 !important; border-color: #d0d5dd !important;
+}
+.tbl-modern .dataTables_paginate .paginate_button:active:not(.current):not(.disabled) { transform: translateY(0.5px); background: #eaecf0 !important; }
+.tbl-modern .dataTables_paginate .paginate_button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.12); }
+/* Halaman aktif: tombol glossy primer */
+.tbl-modern .dataTables_paginate .paginate_button.current,
+.tbl-modern .dataTables_paginate .paginate_button.current:hover,
+.tbl-modern .dataTables_paginate .paginate_button.current:focus,
+.tbl-modern .dataTables_paginate .paginate_button.current:active {
+  color: #fff !important; border: 1px solid #000 !important; border-radius: 8px; font-weight: 600;
+  background-color: #1d1d1d !important;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0 50%, rgba(255, 255, 255, 0) 50% 100%),
+    linear-gradient(180deg, #474747 0%, #1d1d1d 55%, #0c0c0c 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -1px 0 rgba(0, 0, 0, 0.5), 0 1px 2px rgba(16, 24, 40, 0.22), 0 3px 8px -2px rgba(16, 24, 40, 0.18);
+}
+.tbl-modern .dataTables_paginate .paginate_button.current:hover { filter: brightness(1.15); }
+.tbl-modern .dataTables_paginate .paginate_button.current:active { transform: translateY(0.5px); filter: none; }
+.dark .tbl-modern .dataTables_paginate .paginate_button { background: transparent !important; border-color: rgba(255, 255, 255, 0.12) !important; box-shadow: none; }
+.dark .tbl-modern .dataTables_paginate .paginate_button:hover:not(.current):not(.disabled) { background: rgba(255, 255, 255, 0.08) !important; border-color: rgba(255, 255, 255, 0.22) !important; }
+.dark .tbl-modern .dataTables_paginate .paginate_button.current,
+.dark .tbl-modern .dataTables_paginate .paginate_button.current:hover,
+.dark .tbl-modern .dataTables_paginate .paginate_button.current:focus,
+.dark .tbl-modern .dataTables_paginate .paginate_button.current:active {
+  color: #111 !important; border-color: #b9b9b9 !important; background-color: #ececec !important;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0 50%, rgba(255, 255, 255, 0) 50% 100%),
+    linear-gradient(180deg, #ffffff 0%, #ececec 55%, #d4d4d4 100%) !important;
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.5), 0 3px 8px -2px rgba(0, 0, 0, 0.45);
+}
+.dark .tbl-modern .dataTables_paginate .paginate_button.current:hover { filter: brightness(0.96); }
+.tbl-modern .dataTables_paginate .paginate_button.disabled,
+.tbl-modern .dataTables_paginate .paginate_button.disabled:hover { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
+.tbl-modern .dataTables_paginate .ellipsis { color: var(--tbl-muted); }
+
+/* Tata letak footer: info kiri, pagination kanan, sejajar vertikal */
+.tbl-modern .dt-layout-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1rem; }
+.tbl-modern .dataTables_info { padding: 0 !important; font-size: 12.5px; color: var(--tbl-muted); white-space: nowrap; }
+.tbl-modern .dataTables_paginate { display: inline-flex; align-items: center; gap: 0.25rem; }
+.tbl-modern .dataTables_paginate > span { display: inline-flex; align-items: center; gap: 0.25rem; }
+/* semua tombol sama ukuran: kotak 34px */
+.tbl-modern .dataTables_paginate .paginate_button { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 34px; height: 34px; padding: 0 0.5rem; margin: 0 !important; font-variant-numeric: tabular-nums; }
+/* Back/Next jadi tombol ikon chevron */
+.tbl-modern .dataTables_paginate .paginate_button.previous,
+.tbl-modern .dataTables_paginate .paginate_button.next,
+.tbl-modern .dataTables_paginate .paginate_button.first,
+.tbl-modern .dataTables_paginate .paginate_button.last { width: 34px; padding: 0; font-size: 0; position: relative; }
+.tbl-modern .dataTables_paginate .paginate_button.previous::before,
+.tbl-modern .dataTables_paginate .paginate_button.next::before {
+  content: ""; width: 16px; height: 16px; background-color: currentColor;
+  -webkit-mask: var(--pg-chev) center / contain no-repeat; mask: var(--pg-chev) center / contain no-repeat;
+}
+.tbl-modern .dataTables_paginate .paginate_button.previous { --pg-chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 5l-5 5 5 5'/%3E%3C/svg%3E"); }
+.tbl-modern .dataTables_paginate .paginate_button.next { --pg-chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='black' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M8 5l5 5-5 5'/%3E%3C/svg%3E"); }
+/* elipsis selebar tombol agar ritme jarak tetap */
+.tbl-modern .dataTables_paginate .ellipsis { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 34px; padding: 0; letter-spacing: 1px; }
+@media (max-width: 640px) {
+  .tbl-modern .dt-layout-footer { flex-direction: column; align-items: center; }
+  .tbl-modern .dataTables_paginate .paginate_button { min-width: 32px; height: 32px; }
+}
+.tbl-modern .tbl-id { white-space: nowrap; }
+.tbl-modern table.dataTable th.text-center:not(:last-child),
+.tbl-modern table.dataTable td.text-center:not(:last-child) { text-align: left; }
+.tbl-modern table.dataTable td { vertical-align: middle; }
+
+/* ===== Kompatibilitas: badge lama di dalam sel `tbl-modern` tampil sebagai titik + teks =====
+   Mencakup UiTableHelper::statusPill, badge inline di controller, dan tautan/tombol berbentuk pil.
+   Warna titik diambil dari kata warna pada class badge; tanpa warna (abu-abu) = teks polos. */
+.tbl-modern table.dataTable td :is(span, a, button)[class*="rounded-"][class*="bg-"][class*="border"] {
+  display: inline-flex; align-items: center; gap: 0.4rem; margin-right: 0.625rem; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  font-family: inherit; font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; line-height: 1.35; white-space: nowrap;
+  color: var(--tbl-text);
+  &:last-child { margin-right: 0; }
+  &::before { content: ""; display: none; flex: none; width: 6px; height: 6px; border-radius: 9999px; background: var(--dot, #98a2b3); }
+  &:is([class*="text-amber"], [class*="text-yellow"]) { --dot: #f79009; }
+  &[class*="text-orange"] { --dot: #fb6514; }
+  &:is([class*="text-emerald"], [class*="text-green"], [class*="text-teal"], [class*="text-lime"]) { --dot: #12b76a; }
+  &:is([class*="text-red"], [class*="text-rose"]) { --dot: #f04438; }
+  &:is([class*="text-blue"], [class*="text-sky"], [class*="text-cyan"]) { --dot: #2e90fa; }
+  &:is([class*="text-indigo"], [class*="text-violet"], [class*="text-purple"], [class*="text-fuchsia"], [class*="text-pink"]) { --dot: #7a5af8; }
+  &:is([class*="text-amber"], [class*="text-yellow"], [class*="text-orange"], [class*="text-emerald"], [class*="text-green"], [class*="text-teal"], [class*="text-lime"], [class*="text-red"], [class*="text-rose"], [class*="text-blue"], [class*="text-sky"], [class*="text-cyan"], [class*="text-indigo"], [class*="text-violet"], [class*="text-purple"], [class*="text-fuchsia"], [class*="text-pink"]):not(:has(svg))::before { display: block; }
+}
+.tbl-modern table.dataTable td :is(a, button)[class*="rounded-"][class*="bg-"][class*="border"] { cursor: pointer; color: var(--tbl-text-2); }
+.tbl-modern table.dataTable td :is(a, button)[class*="rounded-"][class*="bg-"][class*="border"]:hover { color: var(--tbl-text); text-decoration: underline; text-underline-offset: 3px; opacity: 1; }
+/* teks kecil di sel disamakan dengan ukuran isi tabel */
+.tbl-modern table.dataTable td .text-xs { font-size: 13px; }
+
+/* kolom pertama (nomor dokumen / SKU) tidak dipotong ke baris berikutnya */
+.tbl-modern table.dataTable tbody td:first-child { white-space: nowrap; }
+/* kartu tidak perlu tinggi minimum: footer menempel rapat di bawah baris terakhir */
+.tbl-modern .table-wrapper, .tbl-modern .dataTables_wrapper { min-height: 0; }
+.tbl-modern table.dataTable td.text-right, .tbl-modern table.dataTable td.tabular-nums { white-space: nowrap; }
+.tbl-modern table.dataTable thead th.dt-align-right { text-align: right; }
+
+/* ===== Tabel statis (bukan DataTables) di dalam `tbl-modern`: header, garis, dan hover yang sama.
+   Padding sel sengaja tidak diubah agar tabel padat (analisa, laporan) tetap muat. ===== */
+.tbl-modern table:not(.dataTable) { border-collapse: collapse; }
+.tbl-modern table:not(.dataTable) thead th {
+  background: var(--tbl-head); color: var(--tbl-muted); font-size: 12px; font-weight: 500; text-transform: none; letter-spacing: 0;
+  border-bottom: 1px solid var(--tbl-line);
+}
+.tbl-modern table:not(.dataTable) thead { background: var(--tbl-head); border-color: var(--tbl-line); }
+.tbl-modern table:not(.dataTable) tbody tr { border-bottom: 1px solid var(--tbl-line); }
+.tbl-modern table:not(.dataTable) tbody tr:last-child { border-bottom: 0; }
+.tbl-modern table:not(.dataTable) tbody td { border-color: var(--tbl-line); vertical-align: middle; }
+.tbl-modern table:not(.dataTable) tbody tr:hover > td { background: var(--tbl-hover); }
+.tbl-modern table:not(.dataTable) tfoot td, .tbl-modern table:not(.dataTable) tfoot th { background: var(--tbl-head); border-top: 1px solid var(--tbl-line); }

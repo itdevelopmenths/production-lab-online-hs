@@ -58,7 +58,7 @@
         @endcan
 
         {{-- Daftar Transaksi Transfer Antar Gudang --}}
-        <x-card title="Daftar Dokumen Transfer" subtitle="Riwayat mutasi stok, penerimaan, dan tracking defect antar fasilitas" :noPadding="true">
+        <x-card class="tbl-modern" title="Daftar Dokumen Transfer" subtitle="Riwayat mutasi stok, penerimaan, dan tracking defect antar fasilitas" :noPadding="true">
             <x-slot:icon>
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
             </x-slot:icon>

@@ -63,6 +63,29 @@ class UiTableHelper
         return '<div class="flex items-center ' . $justify . ' gap-1.5">' . implode('', $items) . '</div>';
     }
 
+    /** Status modern: titik warna + label (untuk tabel `tbl-modern`). */
+    public static function statusDot(string $label, string $tone = 'neutral'): string
+    {
+        $dot = match ($tone) {
+            'ok', 'success', 'aktif', 'selesai' => 'tbl-dot--ok',
+            'warn', 'warning', 'pending' => 'tbl-dot--warn',
+            'bad', 'danger', 'nonaktif', 'dibatalkan' => 'tbl-dot--bad',
+            'info' => 'tbl-dot--info',
+            'ink' => 'tbl-dot--ink',
+            default => '',
+        };
+
+        return '<span class="tbl-status"><i class="tbl-dot ' . $dot . '" aria-hidden="true"></i>' . e($label) . '</span>';
+    }
+
+    /** Label kecil netral, opsional dengan titik warna. */
+    public static function tag(string $label, ?string $dotTone = null): string
+    {
+        $dot = $dotTone ? '<i class="tbl-dot tbl-dot--' . e($dotTone) . '" aria-hidden="true"></i>' : '';
+
+        return '<span class="tbl-tag">' . $dot . e($label) . '</span>';
+    }
+
     public static function statusPill(string $label, string $tone = 'draft'): string
     {
         $toneClasses = match ($tone) {

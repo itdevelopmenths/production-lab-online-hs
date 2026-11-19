@@ -178,7 +178,7 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
                     x-model="selectedKategoriId"
                     @change="onKategoriChange()"
                     required
-                    class="w-full h-9 text-xs border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0 cursor-pointer"
+                    class="w-full h-9 text-[13px] border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0 cursor-pointer"
                 >
                     <option value="">— Pilih Kategori Produk —</option>
                     <template x-for="c in categories" :key="c.id">
@@ -193,7 +193,7 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
                     name="varian_id"
                     id="varian_id"
                     x-model="selectedVarianId"
-                    class="w-full h-9 text-xs border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0 cursor-pointer"
+                    class="w-full h-9 text-[13px] border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0 cursor-pointer"
                 >
                     <option value="">— Tanpa Varian (Non-Varian) —</option>
                     <template x-for="v in currentVarians" :key="v.id">
@@ -213,7 +213,7 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
                     placeholder="misal: Travel Perfume"
                     required
                     maxlength="150"
-                    class="w-full h-9 text-xs border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0"
+                    class="w-full h-9 text-[13px] border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0"
                 />
             </x-form-field>
 
@@ -229,7 +229,7 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
                     id="tipe"
                     x-model="tipe"
                     required
-                    class="w-full h-9 text-xs border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0 cursor-pointer"
+                    class="w-full h-9 text-[13px] border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0 cursor-pointer"
                 >
                     @foreach(['bahan' => 'Bahan Baku', 'kemas' => 'Kemasan / Botol', 'produk_jadi' => 'Produk Jadi (Output BOM)'] as $v => $l)
                         <option value="{{ $v }}">{{ $l }}</option>
@@ -295,16 +295,16 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
             
             {{-- Dropdown tambah supplier --}}
             <div class="flex items-center gap-2">
-                <select x-model="selectedSupplierToAdd" class="h-9 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none rounded-[6px]">
+                <select x-model="selectedSupplierToAdd" class="h-[38px] text-[13px] min-w-52 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none rounded-[6px]">
                     <option value="">— Pilih Supplier —</option>
                     <template x-for="s in allSuppliers" :key="s.id">
                         <option :value="s.id" x-text="s.nama + ' (' + (s.kategori || 'lokal').toUpperCase() + ')'" :disabled="assignedSuppliers.some(item => parseInt(item.supplier_id, 10) === parseInt(s.id, 10))"></option>
                     </template>
                 </select>
-                <button type="button" @click="addSupplier()" :disabled="!selectedSupplierToAdd" class="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium bg-[#111111] dark:bg-white text-white dark:text-[#111111] hover:bg-[#292929] dark:hover:bg-gray-100 disabled:opacity-50 transition-colors cursor-pointer rounded-[6px]">
-                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <x-button type="button" variant="secondary" size="md" @click="addSupplier()" ::disabled="!selectedSupplierToAdd">
+                    <x-slot:icon><svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></x-slot:icon>
                     Tambah
-                </button>
+                </x-button>
             </div>
         </div>
 

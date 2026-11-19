@@ -1,4 +1,5 @@
 <x-app-layout title="Supplier">
+    <div x-data="{ createOpen: {{ (($errors->any() && old('_modal') === 'create') || request()->boolean('tambah')) ? 'true' : 'false' }} }">
     <x-page-header
         title="Master Supplier"
         subtitle="Daftar rekanan pemasok bahan baku lokal, importir concentrate oil, dan kemasan botol"
@@ -6,7 +7,7 @@
     >
         <x-slot:actions>
             @can('supplier.create')
-            <x-button href="{{ route('supplier.create') }}" variant="primary" size="sm">
+            <x-button type="button" @click="createOpen = true" variant="primary" size="sm">
                 <x-slot:icon>
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </x-slot:icon>
@@ -16,7 +17,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <x-card title="Daftar Rekanan Pemasok / Supplier" subtitle="Kelola seluruh data kontak, klasifikasi vendor, dan termin pembayaran" :noPadding="true">
+    <x-card class="tbl-modern" title="Daftar Rekanan Pemasok / Supplier" subtitle="Kelola seluruh data kontak, klasifikasi vendor, dan termin pembayaran" :noPadding="true">
         <x-slot:icon>
             <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
         </x-slot:icon>
@@ -36,6 +37,11 @@
             </table>
         </div>
     </x-card>
+
+    @can('supplier.create')
+        @include('supplier._create-modal')
+        @endcan
+    </div>
 
     @push('scripts')
     <script>
@@ -94,7 +100,7 @@
                         const cls = isImpor 
                             ? 'bg-card text-foreground dark:text-foreground border-border' 
                             : 'bg-card text-foreground dark:text-foreground border-border';
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ' + cls + '">' + data + '</span>';
+                        return data;
                     }
                 },
                 { data: 'kontak' },
@@ -114,11 +120,11 @@
                     data: 'is_active',
                     className: 'text-center',
                     render: function(data) {
-                        const isAktif = String(data).toLowerCase() === 'aktif';
+                        const isAktif = /(^|>)\s*aktif\s*(<|$)/i.test(String(data));  // data berupa HTML statusPill dari server
                         const cls = isAktif
                             ? 'bg-card text-foreground dark:text-foreground border-border'
                             : 'bg-muted text-muted-foreground border-border';
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ' + cls + '">' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
+                        return '<span class="tbl-status"><i class="tbl-dot ' + (isAktif ? 'tbl-dot--ok' : 'tbl-dot--bad') + '" aria-hidden="true"></i>' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
                     }
                 },
                 {

@@ -101,11 +101,6 @@
             </x-slot:actions>
         </x-page-header>
 
-        <!-- Progress Status Stepper (Requirement 6) -->
-        <div class="mb-5">
-            <x-purchasing-progress-stepper :po="$po" :stageBenchmarks="$stageBenchmarks ?? null" />
-        </div>
-
         {{-- Panel Approval Usulan Revisi Komitmen & Helper Histori Revisi (PRD v2.4) --}}
         @php
             $hasRevisis = $po->relationLoaded('revisis') && $po->revisis->isNotEmpty();
@@ -251,7 +246,7 @@
             }
         @endphp
         @if($hasPendingRevisi)
-        <section aria-labelledby="pending-revisi-heading" class="mb-5 bg-card border border-border rounded-xl shadow-xs overflow-hidden">
+        <section aria-labelledby="pending-revisi-heading" class="mb-5 bg-card border border-border rounded-xl overflow-hidden">
             <div class="px-4 sm:px-5 py-3.5 bg-card border-b border-border flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3 min-w-0">
                     <span class="size-8 rounded-lg bg-card border border-border text-foreground flex items-center justify-center shrink-0" aria-hidden="true">
@@ -633,46 +628,168 @@
         </section>
         @endif
 
-        <!-- Metadata Singkat PO -->
-        <div class="grid grid-cols-2 {{ $po->skema_bayar === 'tempo' ? 'sm:grid-cols-5' : 'sm:grid-cols-4' }} gap-3 mb-5">
-            <div class="bg-card p-3.5 rounded-xl border border-border shadow-2xs min-w-0">
-                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider block">No. Invoice Vendor</span>
-                <p class="tabular-nums font-medium text-xs text-foreground mt-0.5 truncate">{{ $po->no_invoice ?? '—' }}</p>
-            </div>
-            <div class="bg-card p-3.5 rounded-xl border border-border shadow-2xs min-w-0">
-                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider block">Lokasi PO (Gudang)</span>
-                <p class="font-medium text-xs text-foreground mt-0.5 truncate">{{ $po->gudang?->nama ?? 'Semua Gudang' }}</p>
-            </div>
-            <div class="bg-card p-3.5 rounded-xl border border-border shadow-2xs min-w-0">
-                <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider block">Estimasi Tiba (ETA)</span>
-                    @can('purchasing.edit')
-                        @if($hasStages && !in_array($po->status, ['selesai', 'dibatalkan']))
-                            <button type="button" @click="openDirectEditModal = true" aria-label="Edit ETA" title="Edit ETA" class="text-xs font-medium text-primary hover:underline cursor-pointer">
-                                Edit
-                            </button>
-                        @endif
-                    @endcan
-                </div>
-                <p class="tabular-nums text-xs {{ $isEtaPast ? 'text-destructive font-medium' : 'text-foreground font-medium' }} mt-0.5">
-                    {{ $po->eta ? $po->eta->format('d/m/Y') : '—' }}
-                </p>
-            </div>
-            <div class="bg-card p-3.5 rounded-xl border border-border shadow-2xs min-w-0">
-                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider block">Skema Bayar</span>
-                <p class="font-medium text-xs text-foreground mt-0.5 capitalize">{{ $po->skema_bayar ?? 'cash' }}</p>
-            </div>
-            @if($po->skema_bayar === 'tempo')
-            <div class="bg-card p-3.5 rounded-xl border {{ $isTempoOverdue ? 'border-destructive/30 bg-destructive/5' : 'border-border' }} shadow-2xs min-w-0">
-                <span class="text-[10px] uppercase font-medium {{ $isTempoOverdue ? 'text-destructive' : 'text-muted-foreground' }} tracking-wider block">Deadline Tempo</span>
-                <p class="tabular-nums text-xs {{ $isTempoOverdue ? 'text-destructive font-medium' : 'text-foreground font-medium' }} mt-0.5">
-                    {{ $po->tanggal_tempo ? $po->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—') }}
-                    @if($isTempoOverdue)
-                        <span class="text-[9px] uppercase font-medium text-destructive bg-destructive/10 px-1 py-0.5 rounded ml-1 border border-destructive/20">Overdue</span>
+        <!-- Ringkasan PO: nilai, statistik, fakta -->
+        @php
+            $stageList = array_values(array_diff(\App\Models\PoStage::STAGES, [\App\Models\PoStage::LEGACY_STAGE_PENGEMASAN]));
+            $stageIdx = $po->status === 'selesai' ? count($stageList) : ((int) array_search($po->stage_aktif, $stageList, true) + 1);
+            $stageIdx = $hasStages ? min($stageIdx, count($stageList)) : 0;
+            $stageLabelNow = \App\Models\PoStage::STAGE_LABELS[$po->stage_aktif] ?? ucwords(str_replace('_', ' ', (string) $po->stage_aktif));
+            $etaDays = $po->eta ? (int) now()->startOfDay()->diffInDays($po->eta->copy()->startOfDay(), false) : null;
+            $umurPo = (int) $po->tanggal->copy()->startOfDay()->diffInDays(now()->startOfDay());
+            $qtyOrdered = (float) $po->items->sum('qty');
+            $qtyReceived = (float) $po->barangDatang->flatMap(fn ($bd) => $bd->items)->sum(fn ($bi) => (float) ($bi->qty_fisik ?? $bi->qty_diterima ?? 0));
+            $recvPct = $qtyOrdered > 0 ? (int) min(100, round($qtyReceived / $qtyOrdered * 100)) : 0;
+            $nilaiPo = (float) $po->totalNilai();
+            $dibayarPo = (float) $po->totalDibayar();
+            $bayarPct = $nilaiPo > 0 ? (int) min(100, round($dibayarPo / $nilaiPo * 100)) : 0;
+            $supplierInitials = collect(preg_split('/\s+/', trim($po->supplier->nama)))->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('');
+        @endphp
+        <section class="mb-5 space-y-4" aria-label="Ringkasan Purchase Order">
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+                {{-- Nilai pesanan + progres pembayaran --}}
+                <div class="po-hero card-elevated rounded-[14px] border border-border p-5 xl:col-span-5 flex flex-col justify-between gap-5 min-w-0">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="size-10 rounded-[10px] bg-[#111111] text-white dark:bg-white dark:text-[#0A0A0A] text-[13px] font-semibold flex items-center justify-center shrink-0" aria-hidden="true">{{ $supplierInitials }}</span>
+                        <div class="min-w-0">
+                            <p class="text-[12px] text-muted-foreground">Supplier</p>
+                            <p class="text-[15px] font-semibold text-foreground leading-snug truncate" title="{{ $po->supplier->nama }}">{{ $po->supplier->nama }}</p>
+                        </div>
+                    </div>
+
+                    @if($canSeePrice)
+                        <div>
+                            <p class="text-[12px] text-muted-foreground">Nilai Pesanan</p>
+                            <p class="mt-1 flex items-baseline gap-1.5 tabular-nums">
+                                <span class="text-base font-medium text-muted-foreground">Rp</span>
+                                <span class="text-[36px] leading-none font-semibold tracking-[-0.035em] text-foreground">{{ number_format((float) ($po->grand_total ?? 0), 0, ',', '.') }}</span>
+                            </p>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between text-[12px] tabular-nums mb-1.5">
+                                <span class="text-muted-foreground">Dibayar <strong class="font-semibold text-foreground">Rp {{ number_format($dibayarPo, 0, ',', '.') }}</strong></span>
+                                <span class="font-medium text-foreground">{{ $bayarPct }}%</span>
+                            </div>
+                            <div class="h-2 rounded-full bg-[#EEF0F3] dark:bg-gray-800 overflow-hidden" role="progressbar" aria-valuenow="{{ $bayarPct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progres pembayaran">
+                                <div class="h-full rounded-full bg-gradient-to-r from-[#111111] to-[#3b4258] dark:from-white dark:to-[#c9ceda]" style="width: {{ $bayarPct }}%"></div>
+                            </div>
+                            <div class="mt-1.5 flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
+                                <span>Sisa Rp {{ number_format((float) $po->sisaTagihan(), 0, ',', '.') }}</span>
+                                <span class="capitalize">{{ $po->skema_bayar ?? 'cash' }}@if($po->skema_bayar === 'tempo' && $po->tanggal_tempo) · jatuh tempo {{ $po->tanggal_tempo->format('d/m/Y') }}@endif</span>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-[13px] text-muted-foreground tabular-nums">{{ $po->items->count() }} item bahan baku · {{ $fmtQtyDisplay($qtyOrdered) }} total kuantitas</p>
                     @endif
-                </p>
+                </div>
+
+                {{-- Statistik cepat --}}
+                <div class="xl:col-span-7 grid grid-cols-2 gap-4 min-w-0">
+                    {{-- Tahap --}}
+                    <div class="card-elevated rounded-[14px] border border-border bg-card p-4 flex flex-col justify-between gap-3 min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[12px] text-muted-foreground">Posisi Tahap</span>
+                            <span class="size-8 rounded-[9px] bg-[#F4F6FE] dark:bg-[#627EF2]/15 text-[#3C55C9] dark:text-[#AEBBF9] flex items-center justify-center" aria-hidden="true"><svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg></span>
+                        </div>
+                        <div>
+                            @if($hasStages)
+                                <p class="tabular-nums leading-none"><span class="text-[30px] font-semibold tracking-[-0.03em] text-foreground">{{ $stageIdx }}</span><span class="text-[15px] text-muted-foreground"> / {{ count($stageList) }}</span></p>
+                                <p class="mt-1.5 text-[12px] text-muted-foreground truncate" title="{{ $stageLabelNow }}">{{ $po->status === 'selesai' ? 'Seluruh tahap selesai' : $stageLabelNow }}</p>
+                                <div class="mt-2 flex gap-1" aria-hidden="true">
+                                    @for($i = 1; $i <= count($stageList); $i++)
+                                        <span class="h-1.5 flex-1 rounded-full {{ $i < $stageIdx || $po->status === 'selesai' ? 'bg-[#111111] dark:bg-white' : ($i === $stageIdx ? 'bg-[#627EF2]' : 'bg-[#E4E7EC] dark:bg-gray-800') }}"></span>
+                                    @endfor
+                                </div>
+                            @else
+                                <p class="text-[22px] font-semibold text-foreground leading-tight">{{ ucwords(str_replace('_', ' ', $po->status)) }}</p>
+                                <p class="mt-1.5 text-[12px] text-muted-foreground">Alur dokumen lama</p>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- ETA --}}
+                    <div class="card-elevated rounded-[14px] border {{ $isEtaPast && $etaDays !== null ? 'border-destructive/30' : 'border-border' }} bg-card p-4 flex flex-col justify-between gap-3 min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[12px] text-muted-foreground">Estimasi Tiba (ETA)</span>
+                            @can('purchasing.edit')
+                                @if($hasStages && !in_array($po->status, ['selesai', 'dibatalkan']))
+                                    <button type="button" @click="openDirectEditModal = true" aria-label="Edit ETA" title="Edit ETA" class="text-xs font-medium text-primary hover:underline cursor-pointer">Edit</button>
+                                @endif
+                            @endcan
+                        </div>
+                        <div>
+                            @if($etaDays === null)
+                                <p class="text-[22px] font-semibold text-foreground leading-tight">—</p>
+                                <p class="mt-1.5 text-[12px] text-muted-foreground">ETA belum diisi</p>
+                            @else
+                                <p class="tabular-nums leading-none {{ $isEtaPast ? 'text-destructive' : 'text-foreground' }}"><span class="text-[30px] font-semibold tracking-[-0.03em]">{{ abs($etaDays) }}</span><span class="text-[15px] font-medium opacity-70"> hari</span></p>
+                                <p class="mt-1.5 text-[12px] {{ $isEtaPast ? 'text-destructive font-medium' : 'text-muted-foreground' }}">
+                                    {{ $etaDays === 0 ? 'Tiba hari ini' : ($etaDays > 0 ? 'lagi menuju ETA' : 'terlewat dari ETA') }}
+                                </p>
+                                <p class="mt-2 inline-flex items-center rounded-[6px] border border-border bg-[#FBFBFC] dark:bg-gray-800/60 px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">{{ $po->eta->format('d/m/Y') }}</p>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Penerimaan fisik --}}
+                    <div class="card-elevated rounded-[14px] border border-border bg-card p-4 flex items-center gap-4 min-w-0">
+                        <div class="relative size-[68px] shrink-0 rounded-full" style="background: conic-gradient(#627EF2 {{ $recvPct }}%, rgba(152,162,179,0.25) 0)" role="img" aria-label="Penerimaan fisik {{ $recvPct }} persen">
+                            <div class="absolute inset-[7px] rounded-full bg-card flex items-center justify-center">
+                                <span class="text-[15px] font-semibold tabular-nums text-foreground">{{ $recvPct }}<span class="text-[10px] font-medium text-muted-foreground">%</span></span>
+                            </div>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[12px] text-muted-foreground">Penerimaan Fisik</p>
+                            <p class="mt-1 text-[15px] font-semibold tabular-nums text-foreground leading-tight">{{ $fmtQtyDisplay($qtyReceived) }}<span class="text-[12px] font-normal text-muted-foreground"> / {{ $fmtQtyDisplay($qtyOrdered) }}</span></p>
+                            <p class="mt-0.5 text-[11px] text-muted-foreground">{{ $po->items->count() }} item · {{ $po->barangDatang->count() }} penerimaan</p>
+                        </div>
+                    </div>
+
+                    {{-- Umur PO --}}
+                    <div class="card-elevated rounded-[14px] border border-border bg-card p-4 flex flex-col justify-between gap-3 min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[12px] text-muted-foreground">Umur PO</span>
+                            <span class="size-8 rounded-[9px] bg-[#F4F6FE] dark:bg-[#627EF2]/15 text-[#3C55C9] dark:text-[#AEBBF9] flex items-center justify-center" aria-hidden="true"><svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+                        </div>
+                        <div>
+                            <p class="tabular-nums leading-none text-foreground"><span class="text-[30px] font-semibold tracking-[-0.03em]">{{ $umurPo }}</span><span class="text-[15px] font-medium text-muted-foreground"> hari</span></p>
+                            <p class="mt-1.5 text-[12px] text-muted-foreground tabular-nums">sejak {{ $po->tanggal->format('d/m/Y') }}</p>
+                            <p class="mt-0.5 text-[11px] text-muted-foreground truncate">Dibuat oleh {{ $po->creator?->name ?? '—' }}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            @endif
+
+            {{-- Fakta dokumen --}}
+            <dl class="card-elevated rounded-[14px] border border-border bg-card grid grid-cols-2 {{ $po->skema_bayar === 'tempo' ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} [&>div]:p-4 [&>div]:min-w-0 divide-border">
+                <div>
+                    <dt class="text-[12px] text-muted-foreground">No. Invoice Vendor</dt>
+                    <dd class="tabular-nums font-medium text-[13px] text-foreground mt-1 break-words">{{ $po->no_invoice ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-[12px] text-muted-foreground">Lokasi PO (Gudang)</dt>
+                    <dd class="font-medium text-[13px] text-foreground mt-1 break-words">{{ $po->gudang?->nama ?? 'Semua Gudang' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-[12px] text-muted-foreground">Skema Bayar</dt>
+                    <dd class="font-medium text-[13px] text-foreground mt-1 capitalize">{{ $po->skema_bayar ?? 'cash' }}</dd>
+                </div>
+                @if($po->skema_bayar === 'tempo')
+                    <div class="{{ $isTempoOverdue ? 'bg-destructive/5 rounded-r-[14px]' : '' }}">
+                        <dt class="text-[12px] {{ $isTempoOverdue ? 'text-destructive' : 'text-muted-foreground' }}">Deadline Tempo</dt>
+                        <dd class="tabular-nums text-[13px] mt-1 {{ $isTempoOverdue ? 'text-destructive font-semibold' : 'text-foreground font-medium' }}">
+                            {{ $po->tanggal_tempo ? $po->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—') }}
+                            @if($isTempoOverdue)
+                                <span class="ml-1 text-[11px] font-medium text-destructive bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20">Overdue</span>
+                            @endif
+                        </dd>
+                    </div>
+                @endif
+            </dl>
+        </section>
+
+        <!-- Progress Status Stepper (Requirement 6) -->
+        <div class="mb-5">
+            <x-purchasing-progress-stepper :po="$po" :stageBenchmarks="$stageBenchmarks ?? null" />
         </div>
 
         @if($po->catatan)
@@ -685,11 +802,11 @@
         </div>
         @endif
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
             <!-- Kolom Kiri: Tabel Rincian Item PO & Penerimaan Barang -->
-            <div class="lg:col-span-2 space-y-5 min-w-0">
+            <div class="xl:col-span-2 space-y-5 min-w-0">
                 <!-- Tabel Item PO -->
-                <x-card title="Rincian Item Purchase Order" :noPadding="true">
+                <x-card class="tbl-modern" variant="elevated" title="Rincian Item Purchase Order" :noPadding="true">
                     <x-slot:tools>
                         <span class="text-xs text-muted-foreground tabular-nums font-medium">{{ $po->items->count() }} item</span>
                     </x-slot:tools>
@@ -783,7 +900,7 @@
                                     Komponen <strong class="font-medium text-foreground">Diskon</strong>, <strong class="font-medium text-foreground">PPN</strong>, <strong class="font-medium text-foreground">Ongkir</strong>, dan <strong class="font-medium text-foreground">Adjustment</strong> dikelompokkan di tingkat PO serta dialokasikan proporsional ke Net Total dan HPP per unit.
                                 </p>
 
-                                <div class="w-full md:w-[360px] md:ms-auto shrink-0 rounded-xl border border-border bg-card p-3.5 sm:p-4 shadow-2xs space-y-3">
+                                <div class="w-full md:w-[360px] md:ms-auto shrink-0 rounded-xl border border-border bg-card p-3.5 sm:p-4 space-y-3">
                                     <dl class="flex items-center justify-between gap-4 text-xs">
                                         <dt class="text-muted-foreground font-medium">Subtotal Bahan (Kotor)</dt>
                                         <dd class=" tabular-nums font-medium text-foreground whitespace-nowrap">
@@ -843,7 +960,7 @@
 
                 <!-- Riwayat Penerimaan Barang Datang & Selisih (Requirement 13) -->
                 @if($po->barangDatang->count())
-                <x-card title="Riwayat Penerimaan Barang di Gudang" :noPadding="true">
+                <x-card class="tbl-modern" variant="elevated" title="Riwayat Penerimaan Barang di Gudang" :noPadding="true">
                     <div class="divide-y divide-border">
                         @foreach($po->barangDatang as $bardat)
                         <div class="p-4 space-y-2.5">
@@ -922,7 +1039,7 @@
                 <!-- Konfirmasi Barang Datang (Status dikirim_ke_gudang) -->
                 @can('purchasing.receive')
                 @if($po->status === 'dikirim_ke_gudang' && !$hasStages)
-                <x-card title="Konfirmasi Barang Datang di Gudang" subtitle="Input kuantitas fisik aktual yang diterima. Jika ada selisih, wajib isi kolom keterangan.">
+                <x-card variant="elevated" title="Konfirmasi Barang Datang di Gudang" subtitle="Input kuantitas fisik aktual yang diterima. Jika ada selisih, wajib isi kolom keterangan.">
                     <form method="POST" action="{{ route('purchasing.receive', $po) }}" class="space-y-4" x-data="bardatForm()">
                         @csrf
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1015,7 +1132,7 @@
 
                 {{-- Formulir Pemeriksaan Fisik & Unloading (Stage 7 PRD v2.4 8-Stage) --}}
                 @if($hasStages && $po->stage_aktif === \App\Models\PoStage::STAGE_7 && !in_array($po->status, ['selesai', 'dibatalkan']))
-                <x-card title="Pemeriksaan Fisik & Unloading di Gudang (Tahap 7)" subtitle="Hitung kuantitas fisik aktual yang diturunkan di gudang. Jika ada bahan rusak/kurang, input kuantitas riil yang diterima dan catat keterangan selisih.">
+                <x-card variant="elevated" title="Pemeriksaan Fisik & Unloading di Gudang (Tahap 7)" subtitle="Hitung kuantitas fisik aktual yang diturunkan di gudang. Jika ada bahan rusak/kurang, input kuantitas riil yang diterima dan catat keterangan selisih.">
                     <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_7]) }}" class="space-y-4" x-data="bardatForm()">
                         @csrf
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1104,7 +1221,7 @@
                     $latestBardat = $po->barangDatang->where('status_posting', 'belum')->sortByDesc('created_at')->first();
                 @endphp
                 @if($latestBardat)
-                <x-card title="Verifikasi dan Input Sistem Penerimaan (Tahap 8)"
+                <x-card variant="elevated" title="Verifikasi dan Input Sistem Penerimaan (Tahap 8)"
                         subtitle="Hasil unloading fisik telah tersimpan. Verifikasi data sebelum memposting stok ke inventori gudang.">
                     <div class="space-y-4 text-xs">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-border">
@@ -1229,44 +1346,44 @@
                         $stageLabels = \App\Models\PoStage::STAGE_LABELS;
                         $stgAktif = $po->stage_aktif;
                     @endphp
-                    <x-card title="Eksekusi Tahap Aktif" subtitle="{{ $stageLabels[$stgAktif] ?? ucwords(str_replace('_', ' ', $stgAktif)) }}">
+                    <x-card variant="elevated" bodyClass="p-4" title="Eksekusi Tahap Aktif" subtitle="{{ $stageLabels[$stgAktif] ?? ucwords(str_replace('_', ' ', $stgAktif)) }}">
                         {{-- STAGE 1: Perencanaan & Pengajuan PO --}}
                         @if($stgAktif === \App\Models\PoStage::STAGE_1)
                             @can('purchasing.submit')
-                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_1]) }}" class="space-y-3 text-xs">
+                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_1]) }}" class="space-y-2.5 text-xs">
                                 @csrf
                                 <div>
-                                    <label class="block font-medium mb-1 text-foreground">Catatan Pengajuan (Opsional)</label>
-                                    <textarea name="catatan" rows="2" placeholder="Catatan pengajuan untuk Manager..." class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]"></textarea>
+                                    <label class="po-label">Catatan (opsional)</label>
+                                    <textarea name="catatan" rows="2" placeholder="Catatan untuk Manager" class="po-field"></textarea>
                                 </div>
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
-                                    Ajukan PO ke Manager (Selesaikan Tahap 1)
+                                    Ajukan ke Manager
                                 </x-button>
                             </form>
                             @else
-                            <p class="text-xs text-muted-foreground italic">Menunggu staf Purchasing mengajukan dokumen.</p>
+                            <p class="text-xs text-muted-foreground italic">Menunggu Purchasing mengajukan PO.</p>
                             @endcan
 
                         {{-- STAGE 2: Persetujuan Manager --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_2)
                             @can('purchasing.approve')
-                            <div class="space-y-3 text-xs" x-data="{ openRejectStage2: false, rejectAlasan: '', isRejectDisabled() { return this.rejectAlasan.trim().length < 3; } }">
+                            <div class="space-y-2.5 text-xs" x-data="{ openRejectStage2: false, rejectAlasan: '', isRejectDisabled() { return this.rejectAlasan.trim().length < 3; } }">
                                 <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_2]) }}" class="space-y-2">
                                     @csrf
                                     <x-button type="submit" variant="primary" size="sm" class="w-full">
-                                        ✓ Setujui PO (Lanjut Konfirmasi Supplier)
+                                        Setujui PO
                                     </x-button>
                                 </form>
 
                                 <button type="button" @click="openRejectStage2 = !openRejectStage2" class="w-full px-3 py-1.5 text-xs rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 font-medium transition cursor-pointer">
-                                    ✕ Tolak &amp; Kembalikan ke Tahap 1
+                                    Tolak &amp; Kembalikan
                                 </button>
 
                                 <div x-show="openRejectStage2" class="p-3 rounded-lg border border-destructive/30 bg-destructive/5 space-y-2" x-cloak>
                                     <form method="POST" action="{{ route('purchasing.stages.reject-stage2', $po) }}" class="space-y-2">
                                         @csrf
-                                        <label class="block font-medium text-foreground text-[11px]">Alasan Penolakan / Pengembalian <span class="text-destructive">*</span></label>
-                                        <textarea name="alasan" x-model="rejectAlasan" required minlength="3" rows="2" placeholder="Tuliskan alasan penolakan..." class="w-full text-xs p-2 border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]"></textarea>
+                                        <label class="po-label">Alasan penolakan <span class="text-destructive">*</span></label>
+                                        <textarea name="alasan" x-model="rejectAlasan" required minlength="3" rows="2" placeholder="Tulis alasan" class="po-field"></textarea>
                                         <div class="flex justify-end gap-2">
                                             <x-button type="button" variant="outline" size="xs" @click="openRejectStage2 = false">Batal</x-button>
                                             <x-button type="submit" variant="danger" size="xs" x-bind:disabled="isRejectDisabled()">Konfirmasi Tolak</x-button>
@@ -1275,32 +1392,32 @@
                                 </div>
                             </div>
                             @else
-                            <p class="text-xs text-muted-foreground italic">Menunggu persetujuan otorisasi dari Manager.</p>
+                            <p class="text-xs text-muted-foreground italic">Menunggu persetujuan Manager.</p>
                             @endcan
 
                         {{-- STAGE 3: Konfirmasi Supplier --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_3)
                             @can('purchasing.edit')
-                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_3]) }}" class="space-y-3 text-xs">
+                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_3]) }}" class="space-y-2.5 text-xs">
                                 @csrf
                                 <div>
-                                    <label class="block font-medium mb-1 text-foreground">No. Referensi / Sales Order Supplier</label>
-                                    <input type="text" name="confirmation[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" placeholder="Contoh: SO-SUPPLIER-1234" class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]">
+                                    <label class="po-label">No. Referensi Supplier</label>
+                                    <input type="text" name="confirmation[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" placeholder="SO-SUPPLIER-1234" class="po-field">
                                 </div>
                                 <div>
-                                    <label class="block font-medium mb-1 text-foreground">Catatan Konfirmasi</label>
-                                    <textarea name="catatan" rows="2" placeholder="Catatan konfirmasi kesiapan barang..." class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]"></textarea>
+                                    <label class="po-label">Catatan (opsional)</label>
+                                    <textarea name="catatan" rows="2" placeholder="Kesiapan barang, jadwal, dll." class="po-field"></textarea>
                                 </div>
                                 @foreach($po->items as $it)
                                     <input type="hidden" name="confirmation[items][{{ $it->id }}][qty_konfirmasi]" value="{{ $it->qty }}">
                                     <input type="hidden" name="confirmation[items][{{ $it->id }}][harga_konfirmasi]" value="{{ $it->harga_total }}">
                                 @endforeach
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
-                                    Konfirmasi Supplier Selesai (Lanjut Pembayaran)
+                                    Konfirmasi Supplier
                                 </x-button>
                             </form>
                             @else
-                            <p class="text-xs text-muted-foreground italic">Menunggu konfirmasi ketersediaan barang dan harga dari supplier rekanan.</p>
+                            <p class="text-xs text-muted-foreground italic">Menunggu konfirmasi supplier.</p>
                             @endcan
 
                         {{-- STAGE 4: Pembayaran / DP --}}
@@ -1310,21 +1427,21 @@
                                 <svg class="size-4 shrink-0 mt-0.5 text-foreground" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
-                                <span><strong>Stage Pembayaran dikunci.</strong> Selesaikan persetujuan revisi komitmen di atas sebelum mengonfirmasi pembayaran atau lanjut tempo.</span>
+                                <span><strong>Pembayaran dikunci.</strong> Selesaikan revisi komitmen di atas dulu.</span>
                             </div>
                             @else
                             @can('purchasing.pay')
-                            <div class="space-y-3 text-xs">
+                            <div class="space-y-2.5 text-xs">
                                 @if($po->payments->isNotEmpty())
                                     <form method="POST" action="{{ route('purchasing.stages.dibayarkan', $po) }}">
                                         @csrf
                                         <x-button type="submit" variant="primary" size="sm" class="w-full">
-                                            ✓ Konfirmasi Telah Dibayarkan (Lanjut Terbit PO)
+                                            Konfirmasi Dibayarkan
                                         </x-button>
                                     </form>
                                 @else
                                     <div class="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-border text-muted-foreground text-[11px] leading-tight">
-                                        Tercatat belum ada pembayaran. Catat pembayaran di form bawah untuk opsi "Dibayarkan".
+                                        Belum ada pembayaran. Catat dulu di panel Status Pembayaran.
                                     </div>
                                 @endif
 
@@ -1332,61 +1449,61 @@
                                     <form method="POST" action="{{ route('purchasing.stages.lanjut-tempo', $po) }}">
                                         @csrf
                                         <x-button type="submit" variant="outline" size="sm" class="w-full">
-                                            Lanjut Skema Tempo (Tanpa Pembayaran di Muka)
+                                            Lanjut dengan Tempo
                                         </x-button>
                                     </form>
                                 @endif
                             </div>
                             @else
-                            <p class="text-xs text-muted-foreground italic">Menunggu konfirmasi pelunasan / DP atau pelepasan skema tempo dari Finance.</p>
+                            <p class="text-xs text-muted-foreground italic">Menunggu konfirmasi pembayaran.</p>
                             @endcan
                             @endif
 
                         {{-- STAGE 5: Penerbitan PO Resmi --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_5)
                             @can('purchasing.edit')
-                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_5]) }}" class="space-y-3 text-xs">
+                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_5]) }}" class="space-y-2.5 text-xs">
                                 @csrf
-                                <p class="text-[11px] text-muted-foreground">Penerbitan PO resmi mengunci komitmen pengadaan dan membuka visibilitas PO ke tim Gudang.</p>
+                                <p class="text-[11px] text-muted-foreground">Mengunci komitmen dan membuka PO ke tim Gudang.</p>
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
-                                    Terbitkan PO Resmi (Buka Akses Gudang)
+                                    Terbitkan PO Resmi
                                 </x-button>
                             </form>
                             @else
-                            <p class="text-xs text-muted-foreground italic">Menunggu Purchasing menerbitkan PO resmi.</p>
+                            <p class="text-xs text-muted-foreground italic">Menunggu Purchasing menerbitkan PO.</p>
                             @endcan
 
                         {{-- STAGE 6: Pengiriman & Logistik (Konsolidasi Alur: Pengemasan Dilebur) --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_6)
                             @if(auth()->user()->can('purchasing.edit') || auth()->user()->can('purchasing.receive'))
-                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_6]) }}" class="space-y-3 text-xs">
+                            <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_6]) }}" class="space-y-2.5 text-xs">
                                 @csrf
                                 <div>
-                                    <label class="block font-medium mb-1 text-foreground">Nama Ekspedisi / Kurir <span class="text-destructive">*</span></label>
-                                    <input type="text" name="shipping[ekspedisi]" value="{{ $po->pengiriman?->ekspedisi ?? '' }}" required placeholder="Cth: JNE Cargo / Truk Vendor" class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]">
+                                    <label class="po-label">Ekspedisi / Kurir <span class="text-destructive">*</span></label>
+                                    <input type="text" name="shipping[ekspedisi]" value="{{ $po->pengiriman?->ekspedisi ?? '' }}" required placeholder="JNE Cargo, Truk Vendor" class="po-field">
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="block font-medium mb-1 text-foreground">No. Resi / AWB <span class="text-muted-foreground font-normal">(Opsional)</span></label>
-                                        <input type="text" name="shipping[no_resi]" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="Dapat diisi saat input sistem..." class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]">
+                                        <label class="po-label">No. Resi <span class="text-muted-foreground font-normal">(ops.)</span></label>
+                                        <input type="text" name="shipping[no_resi]" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="AWB" class="po-field">
                                     </div>
                                     <div>
-                                        <label class="block font-medium mb-1 text-foreground">Tanggal Kirim</label>
-                                        <input type="date" name="shipping[tgl_kirim]" value="{{ $po->pengiriman?->tgl_kirim ? $po->pengiriman->tgl_kirim->format('Y-m-d') : date('Y-m-d') }}" class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]">
+                                        <label class="po-label">Tanggal Kirim</label>
+                                        <input type="date" name="shipping[tgl_kirim]" value="{{ $po->pengiriman?->tgl_kirim ? $po->pengiriman->tgl_kirim->format('Y-m-d') : date('Y-m-d') }}" class="po-field">
                                     </div>
                                 </div>
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
-                                    Konfirmasi Barang Telah Berangkat
+                                    Konfirmasi Barang Berangkat
                                 </x-button>
                             </form>
                             @else
-                            <p class="text-xs text-muted-foreground italic">Menunggu update pengiriman dari logistik / supplier.</p>
+                            <p class="text-xs text-muted-foreground italic">Menunggu update pengiriman.</p>
                             @endif
 
                         {{-- STAGE 7: Unloading di Gudang --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_7)
                             <div class="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-border text-foreground text-xs">
-                                Silakan input kuantitas fisik pada formulir pemeriksaan barang di sebelah kiri untuk menyelesaikan Unloading.
+                                Input kuantitas fisik di formulir pemeriksaan (kiri) untuk menyelesaikan Unloading.
                             </div>
 
                         {{-- STAGE 8: Input Sistem & Posting Stok --}}
@@ -1402,16 +1519,16 @@
                                 @endphp
                                 @if($hasPengirimanResi)
                                     <p class="text-[11px] text-muted-foreground leading-relaxed">
-                                        No. Resi tercatat: <strong class="text-foreground tabular-nums">{{ $po->pengiriman->no_resi }}</strong>. Verifikasi kuantitas fisik pada panel verifikasi di sebelah kiri, lalu klik <strong>Posting Stok ke Gudang</strong> untuk menyelesaikan transaksi.
+                                        Resi <strong class="text-foreground tabular-nums">{{ $po->pengiriman->no_resi }}</strong>. Verifikasi kuantitas di panel kiri, lalu klik <strong>Posting Stok ke Gudang</strong>.
                                     </p>
                                 @else
                                     <p class="text-[11px] text-foreground dark:text-foreground leading-relaxed font-medium">
-                                        ⚠️ Nomor resi belum dicatat pada pengiriman. Harap isi nomor resi pada formulir di sebelah kiri sebelum posting stok.
+                                        Nomor resi belum dicatat. Isi di formulir kiri sebelum posting stok.
                                     </p>
                                 @endif
                             </div>
                             @else
-                            <p class="text-xs text-muted-foreground italic">Menunggu staf Gudang memposting transaksi ke sistem persediaan.</p>
+                            <p class="text-xs text-muted-foreground italic">Menunggu Gudang memposting stok.</p>
                             @endcan
                         @endif
                     </x-card>
@@ -1426,7 +1543,7 @@
                         return this.alasan.trim().length < 5 || this.isSubmitting;
                     }
                 }">
-                    <x-card title="Kontrol Purchase Order">
+                    <x-card variant="elevated" bodyClass="p-3" title="Kontrol Purchase Order">
                         <div class="space-y-2">
                             @if(!$hasStages)
                                 @can('purchasing.submit')
@@ -1565,7 +1682,7 @@
 
                 <!-- Panel Pembayaran & AP (Hanya untuk yang memiliki wewenang purchasing.price.view) -->
                 @if($canSeePrice)
-                <x-card title="Status Pembayaran (AP)" id="status-pembayaran-card">
+                <x-card variant="elevated" title="Status Pembayaran (AP)" id="status-pembayaran-card">
                     <div class="space-y-2.5 text-xs pb-3 border-b border-border">
                         <div class="flex justify-between items-center">
                             <span class="text-muted-foreground">Status Pembayaran (AP)</span>
@@ -1919,7 +2036,7 @@
             $sortedRevisis = $po->revisis->sortByDesc('revisi_ke')->values();
         @endphp
         <div class="mt-6">
-            <x-card
+            <x-card class="tbl-modern" variant="elevated"
                 title="Histori Revisi Komitmen"
                 :subtitle="'Jejak seluruh usulan perubahan komitmen PO (' . $sortedRevisis->count() . ' revisi tercatat)'"
                 :noPadding="true"
@@ -2043,7 +2160,7 @@
         {{-- Tabel Riwayat Log Perubahan Operasional (PO_LOG_PERUBAHAN) --}}
         @if($po->relationLoaded('logPerubahan') && $po->logPerubahan->isNotEmpty())
         <div class="mt-6">
-            <x-card title="Riwayat Perubahan Operasional (Direct Edit Log)" subtitle="Jejak audit perubahan field operasional tanpa persetujuan manager" :noPadding="true">
+            <x-card class="tbl-modern" variant="elevated" title="Riwayat Perubahan Operasional (Direct Edit Log)" subtitle="Jejak audit perubahan field operasional tanpa persetujuan manager" :noPadding="true">
                 <div tabindex="0" role="region" aria-label="Riwayat Perubahan Operasional Direct Edit" class="overflow-x-auto">
                     <table class="w-full text-xs text-left">
                         <thead class="bg-gray-50 dark:bg-gray-800/40 text-muted-foreground font-medium uppercase text-[10px] border-b border-border">
@@ -2075,7 +2192,7 @@
         {{-- Kartu Lead Time Transaksi PO & Invalidation --}}
         @if($po->leadTime)
         <div class="mt-6">
-            <x-card title="Lead Time Transaksi PO {{ $po->no_po }}" subtitle="Rekapitulasi durasi realisasi pengadaan aktual per stage & per kompartemen">
+            <x-card variant="elevated" title="Lead Time Transaksi PO {{ $po->no_po }}" subtitle="Rekapitulasi durasi realisasi pengadaan aktual per stage & per kompartemen">
                 <div class="space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border {{ $po->leadTime->is_valid ? 'bg-card border-border' : 'bg-destructive/10 border-destructive/20' }}">
                         <div class="flex items-center gap-3">
@@ -2123,7 +2240,7 @@
                     @endphp
 
                     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 1-4: Perencanaan, Approval, Supplier Confirm, Payment">
+                        <div class="p-3 bg-card rounded-xl border border-border " title="Stage 1-4: Perencanaan, Approval, Supplier Confirm, Payment">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="size-2 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0"></span>
                                 <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider truncate">Internal Processing</span>
@@ -2134,7 +2251,7 @@
                             </p>
                         </div>
 
-                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 5: Penerbitan PO Resmi">
+                        <div class="p-3 bg-card rounded-xl border border-border " title="Stage 5: Penerbitan PO Resmi">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="size-2 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0"></span>
                                 <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider truncate">Supplier Processing</span>
@@ -2145,7 +2262,7 @@
                             </p>
                         </div>
 
-                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 7: Pengiriman">
+                        <div class="p-3 bg-card rounded-xl border border-border " title="Stage 7: Pengiriman">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="size-2 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0"></span>
                                 <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider truncate">Transportation Time</span>
@@ -2156,7 +2273,7 @@
                             </p>
                         </div>
 
-                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 8-9: Unloading, Input">
+                        <div class="p-3 bg-card rounded-xl border border-border " title="Stage 8-9: Unloading, Input">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="size-2 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0"></span>
                                 <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider truncate">Receiving</span>
@@ -2167,7 +2284,7 @@
                             </p>
                         </div>
 
-                        <div class="p-3 bg-card rounded-xl border border-border shadow-2xs">
+                        <div class="p-3 bg-card rounded-xl border border-border ">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="size-2 rounded-full bg-primary shrink-0"></span>
                                 <span class="text-[10px] uppercase font-medium text-foreground tracking-wider truncate">Total Realisasi LT</span>

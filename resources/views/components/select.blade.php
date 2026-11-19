@@ -11,7 +11,7 @@
     $hasError = isset($errors) && $name && $errors->has($name);
 
     if ($variant === 'seamless') {
-        $baseSelectClass = 'w-full bg-transparent border-0 p-0 shadow-none outline-none text-[14px] font-medium text-text-active focus:ring-0 disabled:text-text-muted disabled:cursor-not-allowed cursor-pointer pr-6';
+        $baseSelectClass = 'w-full bg-transparent border-0 p-0 shadow-none outline-none text-[13px] font-normal text-text-active focus:ring-0 disabled:text-text-muted disabled:cursor-not-allowed cursor-pointer pr-6';
     } else {
         $borderClass = $hasError
             ? 'border-red-500 text-red-600 dark:text-red-400 bg-red-50/40 dark:bg-red-500/10 focus:border-red-600 focus:ring-1 focus:ring-red-500/20'
@@ -30,6 +30,7 @@
 
 <div class="relative w-full">
     <select
+        @if($variant !== 'seamless') data-dd @endif
         @if($name) name="{{ $name }}" id="{{ $name }}" @endif
         @if($required) required @endif
         @if($disabled) disabled @endif

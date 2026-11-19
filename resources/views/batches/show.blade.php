@@ -67,60 +67,56 @@
         </x-slot:actions>
     </x-page-header>
 
-    <!-- KPI Stat Boxes Ribbon (4 Cards) -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
-        <x-stat-box
-            title="Target Rencana"
-            :value="\App\Helpers\NumberHelper::formatQty($batch->qty_rencana)"
-            :subtitle="($batch->produk?->satuan ?? 'Unit') . ' · Target kuantitas batch'"
-            iconColor="indigo"
-        >
-            <x-slot:icon>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </x-slot:icon>
-        </x-stat-box>
+    @php
+        $batchSteps = [
+            ['label' => 'Rencana', 'hint' => 'Target & BOM disusun'],
+            ['label' => 'Release & Issue', 'hint' => 'Bahan ditarik dari gudang'],
+            ['label' => 'Selesai', 'hint' => 'Hasil QC dicatat'],
+        ];
+        $batchPos = match($batch->status) { 'rencana' => 1, 'release' => 2, 'selesai' => 3, default => 1 };
+        $batchTerminal = $batch->status === 'dibatalkan' ? 'Dibatalkan' : null;
+        $readinessTone = match($readinessSummary['variant'] ?? 'default') {
+            'danger' => 'danger',
+            default => 'default',
+        };
+        $satuanBatch = $batch->produk?->satuan ?? 'Unit';
+    @endphp
 
-        <x-stat-box
-            title="Gudang Operasional"
-            :value="$batch->gudangOperasional?->nama ?? 'Belum Ditentukan'"
-            subtitle="Sumber penarikan bahan"
-            iconColor="gray"
-        >
-            <x-slot:icon>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-            </x-slot:icon>
-        </x-stat-box>
+    <div class="mb-5">
+        <x-flow-stepper title="Alur Produksi" :steps="$batchSteps" :current="$batchPos" :completed="$batch->status === 'selesai'" :terminal="$batchTerminal" />
+    </div>
 
-        <x-stat-box
-            title="Gudang Tujuan"
-            :value="$batch->gudangTujuan?->nama ?? 'Fulfillment Pusat'"
-            subtitle="Tujuan produk jadi"
-            iconColor="gray"
-        >
-            <x-slot:icon>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"/></svg>
-            </x-slot:icon>
-        </x-stat-box>
+    <!-- Ringkasan batch -->
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-5">
+        <x-info-tile label="Target Rencana">
+            <x-slot:icon><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></x-slot:icon>
+            <p class="tabular-nums leading-none text-foreground"><span class="text-[28px] font-semibold tracking-[-0.03em]">{{ \App\Helpers\NumberHelper::formatQty($batch->qty_rencana) }}</span><span class="text-[13px] font-medium text-muted-foreground"> {{ $satuanBatch }}</span></p>
+            <p class="mt-1.5 text-[12px] text-muted-foreground">{{ $batch->alokasi->count() }} komponen resep</p>
+        </x-info-tile>
 
-        @php
-            $readinessColor = match($readinessSummary['variant'] ?? 'default') {
-                'success' => 'emerald',
-                'danger' => 'rose',
-                'warning' => 'amber',
-                'primary' => 'blue',
-                default => 'gray',
-            };
-        @endphp
-        <x-stat-box
-            title="Kesiapan Bahan"
-            :value="$readinessSummary['value']"
-            :subtitle="$readinessSummary['subtitle']"
-            :iconColor="$readinessColor"
-        >
-            <x-slot:icon>
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            </x-slot:icon>
-        </x-stat-box>
+        <x-info-tile label="Rute Gudang">
+            <x-slot:icon><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></x-slot:icon>
+            <p class="text-[13px] font-semibold text-foreground leading-snug">{{ $batch->gudangOperasional?->nama ?? 'Belum Ditentukan' }}</p>
+            <p class="my-0.5 text-[11px] text-muted-foreground" aria-hidden="true">↓ produk jadi ke</p>
+            <p class="text-[13px] font-semibold text-foreground leading-snug">{{ $batch->gudangTujuan?->nama ?? 'Fulfillment Pusat' }}</p>
+        </x-info-tile>
+
+        <x-info-tile label="Kesiapan Bahan" :tone="$readinessTone">
+            <x-slot:icon><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></x-slot:icon>
+            <p class="text-[22px] leading-tight font-semibold {{ $readinessTone === 'danger' ? 'text-rose-600 dark:text-rose-400' : 'text-foreground' }}">{{ $readinessSummary['value'] }}</p>
+            <p class="mt-1.5 text-[12px] text-muted-foreground">{{ $readinessSummary['subtitle'] }}</p>
+        </x-info-tile>
+
+        <x-info-tile label="Hasil Produksi">
+            <x-slot:icon><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></x-slot:icon>
+            @if($batch->qty_baik !== null)
+                <p class="tabular-nums leading-none text-foreground"><span class="text-[28px] font-semibold tracking-[-0.03em]">{{ $batch->yield() !== null ? number_format($batch->yield(), 1) : '-' }}</span><span class="text-[13px] font-medium text-muted-foreground">% yield</span></p>
+                <p class="mt-1.5 text-[12px] text-muted-foreground tabular-nums">Baik {{ \App\Helpers\NumberHelper::formatQty($batch->qty_baik) }} · Rusak {{ \App\Helpers\NumberHelper::formatQty($batch->qty_rusak ?? 0) }}</p>
+            @else
+                <p class="text-[22px] leading-tight font-semibold text-muted-foreground">Belum ada</p>
+                <p class="mt-1.5 text-[12px] text-muted-foreground">Dicatat saat batch diselesaikan</p>
+            @endif
+        </x-info-tile>
     </div>
 
     <!-- Sleek Inline Alert Bar (Jika bahan fisik kurang pada status rencana) -->
@@ -137,7 +133,7 @@
         <div class="lg:col-span-2 space-y-5 min-w-0">
             <!-- Tabel Produk Jadi Luaran (Multi-Output Batch) -->
             @if($batch->outputs->isNotEmpty())
-            <x-card title="Produk Jadi Luaran Batch" subtitle="Daftar varian dan kuantitas produk jadi yang dihasilkan oleh batch ini" :noPadding="true">
+            <x-card class="tbl-modern" variant="elevated" title="Produk Jadi Luaran Batch" subtitle="Daftar varian dan kuantitas produk jadi yang dihasilkan oleh batch ini" :noPadding="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
                         <thead>
@@ -183,7 +179,7 @@
                     ? 'Realisasi bahan baku yang telah dilepas saat produksi & ringkasan hasil opname.'
                     : 'Formula resep × target kuantitas. Stok fisik dipotong saat Release & Issue.';
             @endphp
-            <x-card title="Alokasi Bahan Baku (BOM Explode)" :subtitle="$alokasiSubtitle" :noPadding="true">
+            <x-card class="tbl-modern" variant="elevated" title="Alokasi Bahan Baku (BOM Explode)" :subtitle="$alokasiSubtitle" :noPadding="true">
                 <x-slot:tools>
                     <span class="text-xs text-muted-foreground tabular-nums font-medium">{{ $batch->alokasi->count() }} komponen resep</span>
                 </x-slot:tools>
@@ -333,7 +329,7 @@
 
             <!-- Rekap Pemenuhan Bahan per Batch (FR-PRD-05, TC-41) -->
             @if($showProgresPemenuhan ?? !empty($rekapBahan))
-            <x-card title="Progres Pemenuhan Bahan Baku" subtitle="Perbandingan Kebutuhan BOM vs Total Diminta (Request) vs Total Diterima (Transfer) untuk batch ini." :noPadding="true">
+            <x-card class="tbl-modern" variant="elevated" title="Progres Pemenuhan Bahan Baku" subtitle="Perbandingan Kebutuhan BOM vs Total Diminta (Request) vs Total Diterima (Transfer) untuk batch ini." :noPadding="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
                         <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted">
@@ -392,7 +388,7 @@
                                   ($batch->modernTransfers && $batch->modernTransfers->isNotEmpty());
             @endphp
             @if($hasRelatedDocs)
-            <x-card title="Dokumen Request & Transfer Terkait" subtitle="Daftar permintaan bahan dan mutasi pengiriman yang terhubung dengan batch ini" :noPadding="true">
+            <x-card class="tbl-modern" variant="elevated" title="Dokumen Request & Transfer Terkait" subtitle="Daftar permintaan bahan dan mutasi pengiriman yang terhubung dengan batch ini" :noPadding="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
                         <thead>
@@ -448,7 +444,7 @@
             <!-- Form Selesaikan Batch (Khusus status release) -->
             @can('batch.complete')
             @if($batch->status === 'release')
-            <x-card title="Selesaikan Batch Produksi" subtitle="Input hasil QC produk jadi. Kuantitas baik otomatis masuk ke saldo stok gudang." variant="success" :noPadding="true">
+            <x-card variant="elevated" title="Selesaikan Batch Produksi" subtitle="Input hasil QC. Qty baik otomatis masuk stok gudang." :noPadding="true">
                 <form method="POST" action="{{ route('batches.complete', $batch) }}" class="p-3.5">
                     @csrf
                     <script>
@@ -616,7 +612,7 @@
 
             <!-- Stock Opname Pemakaian Bahan (Jika release atau selesai) -->
             @if(in_array($batch->status, ['release', 'selesai']))
-            <x-card title="Stock Opname Pemakaian Bahan" subtitle="Pemakaian teoritis (BOM) vs aktual di ruang produksi." :noPadding="true">
+            <x-card variant="elevated" title="Stock Opname Pemakaian Bahan" subtitle="Pemakaian teoritis (BOM) vs aktual di ruang produksi." :noPadding="true">
                 @can('batch.opname')
                 <form method="POST" action="{{ route('batches.opname', $batch) }}" class="p-3.5">
                     @csrf
@@ -693,7 +689,7 @@
         <div class="space-y-5 min-w-0">
             <!-- Hasil QC & Produksi (Jika selesai atau release) -->
             @if(in_array($batch->status, ['release', 'selesai']))
-            <x-card title="Hasil QC & Produksi" variant="primary">
+            <x-card variant="elevated" title="Hasil QC & Produksi">
                 <div class="grid grid-cols-2 gap-2.5">
                     <div class="bg-[#FBFBFB] dark:bg-gray-800/50 p-3 rounded-[8px] border border-[#e8e8e8] dark:border-border">
                         <p class="text-[11px] font-medium text-text-muted uppercase">Qty Baik</p>
@@ -724,7 +720,7 @@
             @endif
 
             <!-- Panel Aksi Utama -->
-            <x-card title="Kontrol Batch" variant="default">
+            <x-card variant="elevated" title="Kontrol Batch">
                 @if($batch->status === 'rencana')
                     @can('batch.release')
                     <form method="POST" action="{{ route('batches.release', $batch) }}">
@@ -880,7 +876,7 @@
             </x-card>
 
             <!-- Ringkasan Info Sistem -->
-            <x-card title="Informasi Sistem" variant="default">
+            <x-card variant="elevated" title="Informasi Sistem">
                 <div class="space-y-2 text-xs text-text-muted">
                     <div class="flex justify-between">
                         <span>No Batch</span>

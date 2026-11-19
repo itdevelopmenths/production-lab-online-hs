@@ -1,6 +1,6 @@
 {{-- Section: Produk Jadi Fulfillment --}}
 <div x-show="tab === 'fulfillment'">
-    <x-card 
+    <x-card class="tbl-modern" 
         title="Tabel Analisa Produk Jadi (Fulfillment)" 
         subtitle="Monitoring stok fisik produk jadi terhadap batas aman dan alokasi pesanan distributor" 
         :noPadding="true"

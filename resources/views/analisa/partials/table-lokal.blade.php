@@ -21,7 +21,7 @@
 
         {{-- TABEL 1: Rekomendasi Order Lokal (Working Data) --}}
         <div x-show="lokalSubTab === 'rekomendasi'">
-            <x-card 
+            <x-card class="tbl-modern" 
                 title="Tabel Rekomendasi Pemesanan Bahan Lokal (rekomendasi_order_lokal)" 
                 subtitle="Kalkulasi selisih stok, batas minimum, pembulatan kelipatan MOQ, dan rekomendasi order dalam satuan beli"
                 :noPadding="true"
@@ -159,7 +159,7 @@
 
         {{-- TABEL 2: Working Data Analisa (analisa_lokal — seluruh kombinasi supplier-produk) --}}
         <div x-show="lokalSubTab === 'analisa'">
-            <x-card 
+            <x-card class="tbl-modern" 
                 title="Tabel Working Data Analisa Stok — ADU Seluruh Supplier–Produk" 
                 subtitle="ADU dihitung murni per produk (tidak bergantung supplier); Lead Time, Safety Stock, Batas Minimum, & Target Stock mengikuti masing-masing supplier"
                 :noPadding="true"
@@ -288,7 +288,7 @@
 
         {{-- TABEL 3: Ringkasan Lead Time (lead_time_lokal) --}}
         <div x-show="lokalSubTab === 'lead_time'">
-            <x-card 
+            <x-card class="tbl-modern" 
                 title="Tabel Ringkasan Lead Time Lokal (lead_time_lokal)" 
                 subtitle="Ringkasan lead time average, lead time max, tambahan buffer, dan Safety Stock = (Max - Avg) + Buffer"
                 :noPadding="true"
@@ -404,7 +404,7 @@
             {{-- Highlight Summary: Lead Time Terlama (Average & Max) --}}
             <template x-if="longestAvgStage() || longestMaxStage()">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-card :noPadding="true">
+                    <x-card class="tbl-modern" :noPadding="true">
                         <div class="px-4 py-3 bg-[#f8fafb] dark:bg-gray-800/80 border-b border-[#E8E8E8] dark:border-gray-800 flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
                                 <svg class="size-4 text-[#101828] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -435,7 +435,7 @@
                         </div>
                     </x-card>
 
-                    <x-card :noPadding="true">
+                    <x-card class="tbl-modern" :noPadding="true">
                         <div class="px-4 py-3 bg-[#f8fafb] dark:bg-gray-800/80 border-b border-[#E8E8E8] dark:border-gray-800 flex items-center justify-between">
                             <div class="flex items-center gap-2.5">
                                 <svg class="size-4 text-[#101828] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -468,7 +468,7 @@
                 </div>
             </template>
 
-            <x-card 
+            <x-card class="tbl-modern" 
                 title="Tabel Rincian 8 Tahap Lead Time (lead_time_lokal_stage)" 
                 subtitle="Perencanaan, Persetujuan, Konfirmasi Supplier, Pembayaran, PO Terbit, Pengiriman, Unloading, dan Input Sistem"
                 :noPadding="true"

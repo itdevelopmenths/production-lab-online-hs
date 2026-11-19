@@ -1,12 +1,12 @@
 <x-app-layout title="Produk">
-    <div x-data="{ currentTab: 'all' }" class="space-y-4">
+    <div x-data="{ currentTab: 'all', createOpen: {{ (($errors->any() && old('_modal') === 'create') || request()->boolean('tambah')) ? 'true' : 'false' }} }" class="space-y-4">
         <x-page-header
             title="Master Produk"
             :breadcrumbs="['Master Data' => null, 'Produk' => null]"
         >
             <x-slot:actions>
                 @can('produk.create')
-                <x-button href="{{ route('produk.create') }}" variant="primary" size="xs">
+                <x-button type="button" @click="createOpen = true" variant="primary" size="xs">
                     <x-slot:icon>
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     </x-slot:icon>
@@ -16,7 +16,7 @@
             </x-slot:actions>
         </x-page-header>
 
-        <x-card title="Katalog Produk & Material" subtitle="Kelola SKU bahan baku, kemasan, dan produk jadi beserta parameter pengadaan" :noPadding="true">
+        <x-card class="tbl-modern" title="Katalog Produk & Material" subtitle="Kelola SKU bahan baku, kemasan, dan produk jadi beserta parameter pengadaan" :noPadding="true">
             <x-slot:icon>
                 <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             </x-slot:icon>
@@ -83,6 +83,10 @@
                 </table>
             </div>
         </x-card>
+
+        @can('produk.create')
+        @include('produk._create-modal')
+        @endcan
     </div>
 
     @push('scripts')

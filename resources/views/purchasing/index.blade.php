@@ -149,7 +149,7 @@
                 </div>
             </div>
 
-            <x-card title="Semua Dokumen Purchase Order" subtitle="Tracking status pengadaan 8 stage & SLA real-time" :noPadding="true">
+            <x-card class="tbl-modern" title="Semua Dokumen Purchase Order" subtitle="Tracking status pengadaan 8 stage & SLA real-time" :noPadding="true">
                 <x-slot:icon>
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </x-slot:icon>
@@ -208,7 +208,7 @@
                 </div>
             </div>
 
-            <x-card title="Buku Rekapitulasi Tagihan Vendor (Accounts Payable)" :noPadding="true">
+            <x-card class="tbl-modern" title="Buku Rekapitulasi Tagihan Vendor (Accounts Payable)" :noPadding="true">
                 <x-slot:icon>
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </x-slot:icon>
@@ -291,7 +291,7 @@
             @endif
 
             {{-- Antrean PO Menunggu Persetujuan --}}
-            <x-card title="Antrean Persetujuan Purchase Order" :noPadding="true">
+            <x-card class="tbl-modern" title="Antrean Persetujuan Purchase Order" :noPadding="true">
                 <x-slot:icon>
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </x-slot:icon>
@@ -511,50 +511,30 @@
     $(function(){
         const canSeePrice = {{ $canSeePrice ? 'true' : 'false' }};
 
+        // Status modern: titik warna + label (gaya tabel `tbl-modern`)
+        function tblStatus(label, tone) {
+            return `<span class="tbl-status"><i class="tbl-dot ${tone ? 'tbl-dot--' + tone : ''}" aria-hidden="true"></i>${label}</span>`;
+        }
+
         function renderStatusApPriorityBadge(data) {
             if (!data || data === '—') return '—';
             let norm = data.toLowerCase().replace(/_/g, ' ');
-            let badgeClass = 'bg-muted text-muted-foreground border-border';
-            let dotClass = 'bg-muted-foreground';
-            let label = data.replace(/_/g, ' ');
-
-            if (norm.includes('batal')) {
-                badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 font-medium';
-                dotClass = 'bg-rose-500';
-                label = 'Batal';
-            } else if (norm.includes('overdue')) {
-                badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 font-medium';
-                dotClass = 'bg-rose-600 animate-pulse';
-                label = 'Overdue';
-            } else if (norm.includes('belum')) {
-                badgeClass = 'bg-card text-foreground border-border font-medium';
-                dotClass = 'bg-gray-400';
-                label = 'Belum Lunas';
-            } else if (norm.includes('parsial')) {
-                badgeClass = 'bg-card text-foreground border-border font-medium';
-                dotClass = 'bg-gray-400';
-                label = 'Parsial';
-            } else if (norm.includes('lunas')) {
-                badgeClass = 'bg-card text-foreground border-border font-medium';
-                dotClass = 'bg-gray-400';
-                label = 'Lunas';
-            }
-
-            return `<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] border ${badgeClass}">
-                <span class="w-1.5 h-1.5 rounded-full ${dotClass}"></span>
-                ${label}
-            </span>`;
+            if (norm.includes('batal')) return tblStatus('Batal', 'bad');
+            if (norm.includes('overdue')) return tblStatus('Overdue', 'bad');
+            if (norm.includes('belum')) return tblStatus('Belum Lunas', 'warn');
+            if (norm.includes('parsial')) return tblStatus('Parsial', 'info');
+            if (norm.includes('lunas')) return tblStatus('Lunas', 'ok');
+            return tblStatus(data.replace(/_/g, ' '), '');
         }
 
         function renderStatusPoBadge(data) {
-            let color = 'bg-muted text-foreground border-border';
             let norm = (data || '').toLowerCase();
-            if (norm.includes('diajukan')) color = 'bg-card text-foreground border-border';
-            if (norm.includes('disetujui')) color = 'bg-primary/10 text-primary border-primary/20';
-            if (norm.includes('gudang')) color = 'bg-card text-foreground border-border';
-            if (norm.includes('selesai')) color = 'bg-card text-foreground border-border';
-            if (norm.includes('batal')) color = 'bg-rose-100 text-rose-800 border-rose-200';
-            return `<span class="px-2 py-0.5 rounded text-[10px] font-medium border ${color}">${data}</span>`;
+            let tone = '';
+            if (norm.includes('diajukan')) tone = 'warn';
+            else if (norm.includes('disetujui') || norm.includes('berjalan') || norm.includes('gudang')) tone = 'info';
+            else if (norm.includes('selesai')) tone = 'ok';
+            else if (norm.includes('batal')) tone = 'bad';
+            return tblStatus(data, tone);
         }
 
         // ==========================================
@@ -582,7 +562,7 @@
                     render: function(data, type, row) {
                         let invTitle = data && data !== '—' ? data : row.no_po;
                         let sub = row.no_po && row.no_po !== invTitle ? `<span class="block text-[10px] text-muted-foreground font-normal">PO: ${row.no_po}</span>` : '';
-                        let revisiBadge = row.has_pending_revisi ? `<span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-medium bg-card text-foreground border border-border">Revisi Menunggu</span>` : '';
+                        let revisiBadge = row.has_pending_revisi ? `<span class="tbl-status mt-1" style="font-size:11.5px"><i class="tbl-dot tbl-dot--warn" aria-hidden="true"></i>Revisi menunggu</span>` : '';
                         return `<span class="tabular-nums font-medium text-foreground">${invTitle}</span>${sub}${revisiBadge}`;
                     }
                 },
@@ -602,12 +582,8 @@
                     orderable: false,
                     render: function(data, type, row) {
                         let state = row.stage_badge_state || 'berjalan';
-                        let colorClass = 'bg-muted text-muted-foreground border-border';
-                        if (state === 'selesai') colorClass = 'bg-card text-foreground border-border font-medium';
-                        if (state === 'berjalan') colorClass = 'bg-card text-foreground border-border font-medium';
-                        if (state === 'terlambat') colorClass = 'bg-rose-50 text-rose-700 border-rose-300 font-medium';
-                        if (state === 'dikembalikan') colorClass = 'bg-card text-foreground border-border font-medium';
-                        return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] border ${colorClass}">${data}</span>`;
+                        const tones = { selesai: 'ok', berjalan: 'info', terlambat: 'bad', dikembalikan: 'warn' };
+                        return tblStatus(data, tones[state] || '');
                     }
                 },
                 {
@@ -756,7 +732,7 @@
                     data: 'status',
                     render: function(data, type, row) {
                         let label = row.stage_label || 'Menunggu Approval';
-                        return `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-card text-foreground border border-border">${label}</span>`;
+                        return tblStatus(label, 'warn');
                     }
                 },
                 {

@@ -39,7 +39,7 @@
     {{-- Live Preview Card --}}
     <div class="p-4 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div>
-            <span class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider block">Live Preview Tampilan Badge Divisi:</span>
+            <span class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider block">Pratinjau badge</span>
             <div class="mt-2 flex items-center gap-2.5">
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-all duration-150"
                       :class="getBadgeClass()">
@@ -52,30 +52,30 @@
             </div>
         </div>
         <p class="text-[11px] text-[#667085] dark:text-gray-400 max-w-xs leading-normal">
-            Aksen warna dan label badge ini akan langsung muncul di profil staf, filter pengguna, dan riwayat aktivitas sistem.
+            Tampil di profil staf, filter pengguna, dan riwayat.
         </p>
     </div>
 
-    <x-form-section card title="Identitas & Warna Divisi" subtitle="Nama resmi departemen, kode unik slug, dan tema warna badge">
+    <x-form-section card title="Identitas & Warna Divisi" subtitle="Nama, kode, dan warna badge">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-            <x-form-field name="nama" label="Nama Divisi / Departemen" :required="true" help="Nama resmi departemen atau unit kerja (misal: Riset & Pengembangan / R&D)">
+            <x-form-field name="nama" label="Nama Divisi" :required="true" help="Nama resmi departemen">
                 <input type="text" 
                        name="nama" 
                        x-model="nama" 
                        @input="onNamaChange()"
                        required
                        placeholder="misal: Research & Development"
-                       class="w-full h-9 text-xs border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0" />
+                       class="w-full h-9 text-[13px] border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0" />
             </x-form-field>
 
-            <x-form-field name="kode" label="Kode Unik Identifikasi (Slug)" :required="true" help="Kode identitas sistem (huruf kecil tanpa spasi, misal: rnd)">
+            <x-form-field name="kode" label="Kode Unik (Slug)" :required="true" help="Huruf kecil tanpa spasi, misal: rnd">
                 <input type="text" 
                        name="kode" 
                        x-model="kode" 
                        @input="isCustomSlug = true"
                        required
                        placeholder="misal: rnd"
-                       class="w-full h-9 text-xs tabular-nums border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0 lowercase" />
+                       class="w-full h-9 text-[13px] tabular-nums border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0 lowercase" />
             </x-form-field>
 
             {{-- Color Selection Palette --}}
@@ -84,10 +84,10 @@
                     Aksen Warna Badge Divisi <span class="text-rose-500">*</span>
                 </label>
                 <p class="text-xs text-[#667085] dark:text-gray-400 mb-3">
-                    Pilih tema warna visual untuk mempermudah identifikasi staf antar-divisi di berbagai tabel data.
+                    Membantu mengenali divisi di tabel dan filter.
                 </p>
 
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     @php
                         $colorStyles = [
                             'slate' => 'bg-slate-400',
@@ -112,7 +112,7 @@
                                    class="text-[#111111] dark:text-white focus:ring-0 h-3.5 w-3.5" />
                             <div class="ml-2 flex items-center gap-1.5 min-w-0">
                                 <span class="size-3 rounded-full {{ $colorStyles[$colKey] ?? 'bg-slate-400' }} shrink-0"></span>
-                                <span class="text-xs font-medium text-[#101828] dark:text-gray-200 truncate">{{ $colLabel }}</span>
+                                <span class="text-xs font-medium text-[#101828] dark:text-gray-200">{{ $colLabel }}</span>
                             </div>
                         </label>
                     @endforeach
@@ -123,13 +123,13 @@
             </div>
 
             <div class="md:col-span-2">
-                <x-form-field name="deskripsi" label="Deskripsi / Catatan Peran Divisi" help="Penjelasan tugas pokok atau cakupan tanggung jawab divisi dalam rantai pasok">
-                    <x-textarea name="deskripsi" rows="3" variant="seamless" placeholder="misal: Bertanggung jawab atas formulasi resep kimia baru, riset aroma, dan uji stabilitas produk..." :value="old('deskripsi', $divisi?->deskripsi)" />
+                <x-form-field name="deskripsi" label="Deskripsi" help="Opsional: tugas pokok divisi">
+                    <x-textarea name="deskripsi" rows="3" variant="seamless" placeholder="Tugas pokok divisi..." :value="old('deskripsi', $divisi?->deskripsi)" />
                 </x-form-field>
             </div>
 
             <div class="md:col-span-2 pt-2 border-t border-[#E8E8E8] dark:border-gray-800">
-                <x-checkbox name="is_active" label="Status Aktif Divisi" :checked="old('is_active', $divisi?->is_active ?? true)" help="Divisi aktif dapat dipilih saat mendaftarkan staf baru di User Management" />
+                <x-checkbox name="is_active" label="Status Aktif Divisi" :checked="old('is_active', $divisi?->is_active ?? true)" help="Hanya divisi aktif yang bisa dipilih saat mendaftarkan staf" />
             </div>
         </div>
     </x-form-section>

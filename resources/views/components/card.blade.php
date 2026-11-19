@@ -14,12 +14,13 @@
 @php
     $classAttr = $attributes->get('class', '');
     $hasExplicitOverflow = (bool) preg_match('/\boverflow-(visible|hidden|auto|scroll)\b/', $classAttr);
+    $elevated = $variant === 'elevated';
     $overflowClass = $overflow ? "overflow-{$overflow}" : ($hasExplicitOverflow ? '' : 'overflow-hidden');
 @endphp
 
-<div {{ $attributes->merge(['class' => 'bg-white dark:bg-gray-900 text-[#101828] dark:text-white rounded-[12px] border border-[#e8e8e8] dark:border-border shadow-theme-xs flex flex-col ' . $overflowClass . ' transition-all']) }}>
+<div {{ $attributes->merge(['class' => 'bg-white dark:bg-gray-900 text-[#101828] dark:text-white ' . ($elevated ? 'rounded-[14px] card-elevated' : 'rounded-[12px] shadow-theme-xs') . ' border border-[#e8e8e8] dark:border-border flex flex-col ' . $overflowClass . ' transition-all']) }}>
     @if ($title || isset($header) || isset($tools))
-        <div class="px-5 py-4 border-b border-[#e8e8e8] dark:border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-gray-900 rounded-t-[12px]">
+        <div class="px-5 py-4 border-b border-[#e8e8e8] dark:border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 {{ $elevated ? 'card-elevated-head rounded-t-[14px]' : 'bg-white dark:bg-gray-900 rounded-t-[12px]' }}">
             @if (isset($header))
                 {{ $header }}
             @else

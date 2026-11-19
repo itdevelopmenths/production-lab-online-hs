@@ -1,4 +1,5 @@
 <x-app-layout title="Varian Produk">
+    <div x-data="{ createOpen: {{ (($errors->any() && old('_modal') === 'create') || request()->boolean('tambah')) ? 'true' : 'false' }} }">
     <x-page-header
         title="Master Varian Produk"
         subtitle="Daftar variasi aroma, ukuran, atau warna yang terikat pada masing-masing kategori produk"
@@ -6,7 +7,7 @@
     >
         <x-slot:actions>
             @can('produk.create')
-            <x-button href="{{ route('varian.create') }}" variant="primary" size="sm">
+            <x-button type="button" @click="createOpen = true" variant="primary" size="sm">
                 <x-slot:icon>
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </x-slot:icon>
@@ -29,7 +30,7 @@
         </div>
     </div>
 
-    <x-card title="Daftar Master Varian Produk" subtitle="Kelola variasi ukuran kemasan, aroma parfum, dan spesifikasi sub-kategori" :noPadding="true">
+    <x-card class="tbl-modern" title="Daftar Master Varian Produk" subtitle="Kelola variasi ukuran kemasan, aroma parfum, dan spesifikasi sub-kategori" :noPadding="true">
         <x-slot:icon>
             <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
         </x-slot:icon>
@@ -46,6 +47,11 @@
             </table>
         </div>
     </x-card>
+
+    @can('produk.create')
+        @include('varian._create-modal')
+        @endcan
+    </div>
 
     @push('scripts')
     <script>
@@ -115,7 +121,7 @@
                 {
                     data: 'kategori_nama',
                     render: function(data) {
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border">' + (data || '-') + '</span>';
+                        return data || '-';
                     }
                 },
                 {
