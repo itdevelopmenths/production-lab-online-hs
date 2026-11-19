@@ -120,7 +120,7 @@ class DashboardRowPresenter
         return [
             'url' => route('purchasing.show', $po),
             'judul' => (string) $po->no_po,
-            'detail' => ($po->supplier?->nama ?? '-') . ' · ' . ($po->tanggal?->format('d M Y') ?? ''),
+            'detail' => ($po->supplier?->nama ?? '-').' · '.($po->tanggal?->format('d M Y') ?? ''),
             'badge' => $badge,
             'varian' => $varian,
         ];
@@ -132,7 +132,7 @@ class DashboardRowPresenter
         return [
             'url' => $url,
             'judul' => (string) $nomor,
-            'detail' => ($dok->gudangAsal?->nama ?? '-') . ' → ' . ($dok->gudangTujuan?->nama ?? '-'),
+            'detail' => ($dok->gudangAsal?->nama ?? '-').' → '.($dok->gudangTujuan?->nama ?? '-'),
             'badge' => $this->ucwords($dok->status),
             'varian' => $varianPerStatus[$dok->status] ?? 'neutral',
         ];
@@ -143,7 +143,7 @@ class DashboardRowPresenter
         return [
             'url' => route('batches.show', $batch),
             'judul' => (string) $batch->no_batch,
-            'detail' => ($batch->produk?->nama ?? '-') . ' · ' . number_format($batch->qty_rencana, 0) . ' ' . ($batch->produk?->satuan ?? 'pcs'),
+            'detail' => ($batch->produk?->nama ?? '-').' · '.number_format($batch->qty_rencana, 0).' '.($batch->produk?->satuan ?? 'pcs'),
             'badge' => $this->ucwords($batch->status),
             'varian' => match ($batch->status) {
                 'rencana' => 'warning',
@@ -158,9 +158,9 @@ class DashboardRowPresenter
     {
         return [
             'url' => route('stok.index'),
-            'judul' => $stok->produk?->nama ?? ('SKU #' . $stok->produk_id),
-            'detail' => ($stok->gudang?->nama ?? 'Gudang') . ' · ' . ($stok->produk?->sku ?? ''),
-            'badge' => number_format($stok->qty_saat_ini, 0) . ' ' . ($stok->produk?->satuan ?? ''),
+            'judul' => $stok->produk?->nama ?? ('SKU #'.$stok->produk_id),
+            'detail' => ($stok->gudang?->nama ?? 'Gudang').' · '.($stok->produk?->sku ?? ''),
+            'badge' => number_format($stok->qty_saat_ini, 0).' '.($stok->produk?->satuan ?? ''),
             'varian' => $stok->qty_saat_ini <= 10 ? 'danger' : 'warning',
         ];
     }
@@ -175,7 +175,7 @@ class DashboardRowPresenter
                 $item->transfer?->gudangTujuan?->nama ?? 'Gudang',
                 $item->keterangan_rusak ?: 'Kerusakan fisik',
             ])),
-            'badge' => NumberHelper::formatQty($item->qty_rusak) . ' ' . ($item->produk?->satuan ?? 'pcs') . ' Rusak',
+            'badge' => NumberHelper::formatQty($item->qty_rusak).' '.($item->produk?->satuan ?? 'pcs').' Rusak',
             'varian' => 'danger',
         ];
     }
@@ -190,7 +190,7 @@ class DashboardRowPresenter
                 $log->gudang_nama ?? 'Gudang',
                 $log->keterangan ?? 'Kerusakan fisik',
             ])),
-            'badge' => '[' . ($log->source_badge ?? 'Defect') . '] ' . NumberHelper::formatQty($log->qty_rusak ?? 0) . ' ' . ($log->satuan ?? 'pcs') . ' Rusak',
+            'badge' => '['.($log->source_badge ?? 'Defect').'] '.NumberHelper::formatQty($log->qty_rusak ?? 0).' '.($log->satuan ?? 'pcs').' Rusak',
             'varian' => 'danger',
         ];
     }

@@ -1,27 +1,14 @@
-@props(['stream', 'icon' => null])
+@props(['stream'])
 
 @php
     $presenter = app(\App\Support\Dashboard\DashboardRowPresenter::class);
     $rows = collect($stream['items'] ?? [])->map(fn ($item) => $presenter->present($item));
 @endphp
 
-<x-card :title="$stream['title']" :count="$stream['total'] ?? $rows->count()" :noPadding="true">
-    @if ($icon)
-        <x-slot:icon>{!! $icon !!}</x-slot:icon>
-    @endif
-
-    <x-slot:tools>
-        @if (! empty($stream['subtitle']))
-            <span tabindex="0" role="img" title="{{ $stream['subtitle'] }}" aria-label="{{ $stream['subtitle'] }}" class="text-[#9aa1b0] hover:text-[#101828] dark:text-gray-500 dark:hover:text-white cursor-help">
-                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </span>
-        @endif
-        @if (! empty($stream['viewAllUrl']))
-            <a href="{{ $stream['viewAllUrl'] }}" class="text-xs font-medium text-text-active hover:text-text-muted transition-colors inline-flex items-center gap-1">
-                Lihat Semua &rarr;
-            </a>
-        @endif
-    </x-slot:tools>
+<x-card :noPadding="true">
+    <x-slot:header>
+        <x-dashboard.card-head :title="$stream['title']" :count="$stream['total'] ?? $rows->count()" :subtitle="$stream['subtitle'] ?? null" :url="$stream['viewAllUrl'] ?? null" />
+    </x-slot:header>
 
     @if ($rows->isEmpty())
         <div class="py-10 text-center text-text-muted text-xs flex flex-col items-center justify-center">

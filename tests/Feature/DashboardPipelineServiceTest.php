@@ -6,6 +6,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\DashboardPipelineService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,7 +26,7 @@ class DashboardPipelineServiceTest extends TestCase
     {
         parent::setUp();
         $this->seed();
-        \Illuminate\Database\Eloquent\Model::preventLazyLoading(true);
+        Model::preventLazyLoading(true);
     }
 
     private function makePo(string $no, string $status, string $stage): void

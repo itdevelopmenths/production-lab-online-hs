@@ -24,11 +24,8 @@
                         $persen = $tahap['jumlah'] > 0 ? max(6, (int) round($tahap['jumlah'] / $maks * 100)) : 0;
                     @endphp
                     <li class="min-w-0">
-                        <a href="{{ $tahap['href'] }}" class="block px-4 py-3.5 transition-colors hover:bg-[#fafafa] dark:hover:bg-gray-800/40 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#111111] dark:focus-visible:outline-white">
-                            <p class="flex items-center gap-1.5 text-[12px] leading-[18px] font-medium text-[#6a7282] dark:text-gray-400">
-                                <span class="tabular-nums text-[#9aa1b0] dark:text-gray-500">{{ $i + 1 }}</span>
-                                <span class="truncate">{{ $tahap['label'] }}</span>
-                            </p>
+                        <a href="{{ $tahap['href'] }}" class="block px-3.5 py-3.5 transition-colors hover:bg-[#fafafa] dark:hover:bg-gray-800/40 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#111111] dark:focus-visible:outline-white">
+                            <p class="truncate text-[12px] leading-[18px] font-medium text-[#6a7282] dark:text-gray-400">{{ $tahap['label'] }}</p>
                             <p class="mt-1 text-[20px] leading-[1.3] font-medium tabular-nums {{ $angkaClass }}">
                                 {{ $tahap['jumlah'] }}
                                 @if ($status)

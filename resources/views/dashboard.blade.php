@@ -31,7 +31,7 @@
     {{-- Warna data dashboard: biru untuk bar/alur, merah dan amber hanya untuk masalah (lihat status KPI). --}}
     <div class="space-y-5 [--hs-data:#627EF2] dark:[--hs-data:#8EA2F7]">
         {{-- Tier 1: KPI strip --}}
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-5 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2">
             @foreach ($kpis as $kpi)
                 <x-dashboard.kpi :kpi="$kpi" />
             @endforeach
@@ -45,8 +45,8 @@
 
         {{-- Tier 4: aliran aktivitas --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <x-dashboard.stream :stream="$streamLeft" icon='<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>' />
-            <x-dashboard.stream :stream="$streamRight" icon='<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' />
+            <x-dashboard.stream :stream="$streamLeft" />
+            <x-dashboard.stream :stream="$streamRight" />
         </div>
 
         {{-- Dashboard Barang Rusak & Defect Mutasi --}}

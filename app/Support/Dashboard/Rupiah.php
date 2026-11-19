@@ -23,12 +23,12 @@ class Rupiah
             }
         }
 
-        return 'Rp ' . number_format($nilai, 0, ',', '.');
+        return 'Rp '.number_format($nilai, 0, ',', '.');
     }
 
     /** Format penuh dengan pemisah ribuan: Rp 1.234.567.890. */
     public static function penuh(float $nilai): string
     {
-        return 'Rp ' . number_format($nilai, 0, ',', '.');
+        return 'Rp '.number_format($nilai, 0, ',', '.');
     }
 }

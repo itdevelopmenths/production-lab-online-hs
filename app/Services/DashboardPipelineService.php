@@ -27,9 +27,7 @@ class DashboardPipelineService
         PoStage::STAGE_8 => 'Input Sistem',
     ];
 
-    public function __construct(private readonly LocationScopeService $locationScope)
-    {
-    }
+    public function __construct(private readonly LocationScopeService $locationScope) {}
 
     /**
      * @return array{judul: string, tahap: list<array{key: string, label: string, jumlah: int, href: string, status: ?string}>}|null

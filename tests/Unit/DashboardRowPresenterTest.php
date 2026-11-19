@@ -13,12 +13,12 @@ class DashboardRowPresenterTest extends TestCase
 {
     private function present(mixed $item): array
     {
-        return (new DashboardRowPresenter())->present($item);
+        return (new DashboardRowPresenter)->present($item);
     }
 
     public function test_presents_purchase_order_with_stage_label(): void
     {
-        $po = (new PurchaseOrder())->forceFill(['id' => 7, 'no_po' => 'PO-X', 'status' => 'berjalan', 'stage_aktif' => 'approval']);
+        $po = (new PurchaseOrder)->forceFill(['id' => 7, 'no_po' => 'PO-X', 'status' => 'berjalan', 'stage_aktif' => 'approval']);
         $po->setRelation('supplier', null);
 
         $row = $this->present($po);
@@ -31,7 +31,7 @@ class DashboardRowPresenterTest extends TestCase
 
     public function test_presents_late_po_as_danger(): void
     {
-        $po = (new PurchaseOrder())->forceFill(['id' => 8, 'no_po' => 'PO-L', 'status' => 'berjalan', 'stage_aktif' => 'approval']);
+        $po = (new PurchaseOrder)->forceFill(['id' => 8, 'no_po' => 'PO-L', 'status' => 'berjalan', 'stage_aktif' => 'approval']);
         $po->setRelation('supplier', null);
         $po->is_terlambat = true;
         $po->created_at = now();
@@ -79,9 +79,9 @@ class DashboardRowPresenterTest extends TestCase
 
     public function test_presents_stok_low_as_danger(): void
     {
-        $stok = (new Stok())->forceFill(['produk_id' => 3, 'qty_saat_ini' => 8]);
-        $stok->setRelation('produk', (new Produk())->forceFill(['nama' => 'Botol', 'sku' => 'B-1', 'satuan' => 'pcs']));
-        $stok->setRelation('gudang', (new Gudang())->forceFill(['nama' => 'FF Pusat']));
+        $stok = (new Stok)->forceFill(['produk_id' => 3, 'qty_saat_ini' => 8]);
+        $stok->setRelation('produk', (new Produk)->forceFill(['nama' => 'Botol', 'sku' => 'B-1', 'satuan' => 'pcs']));
+        $stok->setRelation('gudang', (new Gudang)->forceFill(['nama' => 'FF Pusat']));
 
         $row = $this->present($stok);
 
