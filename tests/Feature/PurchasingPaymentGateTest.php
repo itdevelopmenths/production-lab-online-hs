@@ -208,10 +208,64 @@ class PurchasingPaymentGateTest extends TestCase
         $po->stage_aktif = PoStage::STAGE_5;
         $this->assertFalse($po->isApprovedForPayment());
 
-        $po->status = 'berjalan';
-        $po->stage_aktif = null;
-        $this->assertFalse($po->isApprovedForPayment());
         $po->status = 'disetujui';
         $this->assertTrue($po->isApprovedForPayment());
+    }
+
+    public function test_stageless_berjalan_po_can_be_paid(): void
+    {
+        $po = $this->createPoWithoutStages('tempo', 'berjalan');
+        $this->assertTrue($po->isApprovedForPayment());
+
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.pay', $po), $this->payload())
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Payment::where('po_id', $po->id)->count());
+    }
+
+    public function test_stageless_draft_and_diajukan_po_stay_blocked(): void
+    {
+        foreach (['draft', 'diajukan'] as $status) {
+            $po = $this->createPoWithoutStages('tempo', $status);
+            $this->assertFalse($po->isApprovedForPayment(), $status);
+
+            $this->actingAs($this->purchasing)
+                ->post(route('purchasing.pay', $po), $this->payload())
+                ->assertSessionHasErrors('status');
+            $this->flushSession();
+
+            $this->assertSame(0, Payment::where('po_id', $po->id)->count(), $status);
+        }
+    }
+
+    public function test_staged_berjalan_po_at_perencanaan_is_still_blocked(): void
+    {
+        $po = $this->createStagedPo();
+        $po->update(['status' => 'berjalan']);
+
+        $this->assertSame(PoStage::STAGE_1, $po->fresh()->stage_aktif);
+        $this->assertFalse($po->fresh()->isApprovedForPayment());
+
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.pay', $po), $this->payload())
+            ->assertSessionHasErrors('status');
+        $this->assertSame(0, Payment::where('po_id', $po->id)->count());
+    }
+
+    public function test_ap_tab_shows_bayar_link_only_for_approved_po(): void
+    {
+        $unapproved = $this->createStagedPo();
+        $legacyBerjalan = $this->createPoWithoutStages('tempo', 'berjalan');
+
+        $rows = collect($this->actingAs($this->purchasing)
+            ->getJson(route('purchasing.data-ap'))
+            ->assertOk()
+            ->json('data'));
+
+        $actionFor = fn (PurchaseOrder $po) => $rows->first(fn ($r) => ($r['no_invoice'] ?? null) === $po->no_invoice)['action'] ?? '';
+
+        $this->assertStringNotContainsString('form-pembayaran', $actionFor($unapproved));
+        $this->assertStringContainsString('form-pembayaran', $actionFor($legacyBerjalan));
     }
 }

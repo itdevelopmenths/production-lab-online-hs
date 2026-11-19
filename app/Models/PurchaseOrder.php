@@ -72,6 +72,11 @@ class PurchaseOrder extends Model
      */
     public function usesStageFlow(): bool
     {
+        // Query daftar bisa menyertakan withExists('stages as has_stages') agar tanpa N+1.
+        if (array_key_exists('has_stages', $this->attributes)) {
+            return (bool) $this->attributes['has_stages'];
+        }
+
         return $this->relationLoaded('stages')
             ? $this->stages->isNotEmpty()
             : $this->stages()->exists();
@@ -94,14 +99,14 @@ class PurchaseOrder extends Model
     public const GUDANG_VISIBLE_STATUSES = ['dikirim_ke_gudang', 'diterima', 'selesai'];
 
     /**
-     * PO terlihat oleh gudang jika: PO legacy (tanpa baris tahap), ATAU status legacy gudang,
+     * PO terlihat oleh gudang jika: status legacy gudang (dikirim_ke_gudang/diterima/selesai),
      * ATAU tahap aktif sudah mencapai Tahap 5 (PO Terbit) atau setelahnya.
+     * PO legacy tanpa baris tahap yang masih draft/diajukan tidak terlihat.
      */
     public function scopeVisibleToGudang(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where(function ($q) {
-            $q->whereDoesntHave('stages')
-                ->orWhereIn('purchase_orders.status', self::GUDANG_VISIBLE_STATUSES)
+            $q->whereIn('purchase_orders.status', self::GUDANG_VISIBLE_STATUSES)
                 ->orWhereIn('purchase_orders.stage_aktif', self::GUDANG_VISIBLE_STAGES);
         });
     }
@@ -111,8 +116,7 @@ class PurchaseOrder extends Model
      */
     public function isVisibleToGudang(): bool
     {
-        return ! $this->usesStageFlow()
-            || in_array($this->status, self::GUDANG_VISIBLE_STATUSES, true)
+        return in_array($this->status, self::GUDANG_VISIBLE_STATUSES, true)
             || in_array($this->stage_aktif, self::GUDANG_VISIBLE_STAGES, true);
     }
 
@@ -263,7 +267,8 @@ class PurchaseOrder extends Model
      * persetujuan dibaca dari posisi stage_aktif (lewat Tahap 2). PO alur
      * legacy tidak memakai tahap (kolom stage_aktif di DB default 'perencanaan'
      * dan tidak pernah bergerak), sehingga persetujuannya dibaca dari status:
-     * status legacy tersebut tidak pernah dipakai PO bertahap.
+     * status legacy tersebut tidak pernah dipakai PO bertahap. PO tanpa baris
+     * tahap berstatus 'berjalan' (hasil backfill status legacy) dianggap disetujui.
      */
     public function isApprovedForPayment(): bool
     {
@@ -275,17 +280,19 @@ class PurchaseOrder extends Model
             return true;
         }
 
-        if ($this->stage_aktif === null) {
-            return false;
-        }
-
         if ($this->stage_aktif === PoStage::LEGACY_STAGE_PENGEMASAN) {
             return true;
         }
 
         $posisi = array_search($this->stage_aktif, PoStage::STAGES, true);
 
-        return $posisi !== false && $posisi >= 3;
+        if ($posisi !== false && $posisi >= 3) {
+            return true;
+        }
+
+        // PO legacy 'berjalan' tanpa baris tahap (hasil backfill migrasi): tidak ada
+        // jalur persetujuan lagi, dianggap sudah disetujui. Draft/diajukan legacy tetap diblokir.
+        return $this->status === 'berjalan' && ! $this->usesStageFlow();
     }
 
     /**

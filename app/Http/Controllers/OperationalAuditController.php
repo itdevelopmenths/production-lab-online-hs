@@ -3,12 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\OperationalAudit;
+use App\Models\PurchaseOrder;
+use App\Traits\ResolvesGudangOnlyUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class OperationalAuditController extends Controller
 {
+    use ResolvesGudangOnlyUser;
+
     public function data(Request $request): JsonResponse
     {
         $module = strtolower($request->get('module', 'all'));
@@ -29,7 +34,37 @@ class OperationalAuditController extends Controller
             }
         }
 
+        // Modul yang boleh dilihat user (berlaku untuk semua cabang, termasuk auditable_id).
+        $allowedModules = [];
+        $hasGlobal = (bool) $user?->can('audit.view');
+        if ($hasGlobal || $user?->can('purchasing.audit')) {
+            $allowedModules[] = 'purchasing';
+        }
+        if ($hasGlobal || $user?->can('batch.audit')) {
+            $allowedModules[] = 'produksi';
+        }
+        if ($hasGlobal || $user?->can('rt.audit')) {
+            $allowedModules[] = 'request';
+            $allowedModules[] = 'transfer';
+        }
+
+        // User gudang murni hanya boleh melihat audit PO yang terlihat oleh gudang.
+        if (! empty($auditableId) && $user && $this->isGudangOnly($user) && in_array('purchasing', $allowedModules, true)) {
+            $po = Str::isUuid((string) $auditableId) ? PurchaseOrder::find($auditableId) : null;
+            if ($po) {
+                abort_unless($po->isVisibleToGudang(), 403, 'Anda tidak memiliki akses ke audit PO ini pada tahap saat ini.');
+            } else {
+                $allowedModules = array_values(array_diff($allowedModules, ['purchasing']));
+            }
+        }
+
         $query = OperationalAudit::query()->latest('id');
+
+        if (! empty($allowedModules)) {
+            $query->whereIn('module', $allowedModules);
+        } else {
+            $query->whereRaw('1 = 0');
+        }
 
         if (! empty($auditableId)) {
             $query->where('auditable_id', $auditableId);
@@ -38,26 +73,6 @@ class OperationalAuditController extends Controller
                 $query->whereIn('module', ['request', 'transfer']);
             } else {
                 $query->where('module', $module);
-            }
-        } else {
-            // Filter modul yang diizinkan untuk user
-            $allowedModules = [];
-            $hasGlobal = $user?->can('audit.view');
-            if ($hasGlobal || $user?->can('purchasing.audit')) {
-                $allowedModules[] = 'purchasing';
-            }
-            if ($hasGlobal || $user?->can('batch.audit')) {
-                $allowedModules[] = 'produksi';
-            }
-            if ($hasGlobal || $user?->can('rt.audit')) {
-                $allowedModules[] = 'request';
-                $allowedModules[] = 'transfer';
-            }
-
-            if (! empty($allowedModules)) {
-                $query->whereIn('module', $allowedModules);
-            } else {
-                $query->whereRaw('1 = 0');
             }
         }
 

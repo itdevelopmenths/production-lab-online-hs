@@ -74,4 +74,13 @@ class LocationScopeServiceTest extends TestCase
         $ffPusat = Gudang::where('kode', 'FF-PUSAT')->firstOrFail();
         $this->assertContains($ffPusat->id, $ffIds);
     }
+
+    public function test_null_warehouse_is_denied_for_restricted_user_and_allowed_for_global(): void
+    {
+        $gudangUser = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $this->assertFalse($this->service->canAccessWarehouse($gudangUser, null));
+        $this->assertTrue($this->service->canAccessWarehouse($manager, null));
+    }
 }

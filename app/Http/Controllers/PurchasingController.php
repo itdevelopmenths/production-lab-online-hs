@@ -237,6 +237,7 @@ class PurchasingController extends Controller
             ->with(['supplier:id,nama', 'termins'])
             ->withSum('items as total_nilai', 'harga_total')
             ->withSum('payments as total_dibayar', 'nominal')
+            ->withExists('stages as has_stages')
             ->withExists(['revisis as has_pending_revisi' => fn ($q) => $q->where('status', PoRevisi::STATUS_MENUNGGU)]);
 
         if ($request->filled('status_bayar')) {
@@ -288,7 +289,7 @@ class PurchasingController extends Controller
                 $buttons = [
                     UiTableHelper::actionLink($showUrl, 'Detail', 'eye', 'default'),
                 ];
-                if (! $po->isLunas() && ! $po->isCancelled() && ! $po->hasPendingRevision()) {
+                if (! $po->isLunas() && ! $po->isCancelled() && ! $po->hasPendingRevision() && $po->isApprovedForPayment()) {
                     $buttons[] = UiTableHelper::actionLink($showUrl . '#form-pembayaran', 'Bayar', 'check', 'success');
                 }
 
@@ -735,7 +736,9 @@ class PurchasingController extends Controller
         abort_unless(
             app(LocationScopeService::class)->canAccessWarehouse(auth()->user(), $targetGudangId ? (int) $targetGudangId : null),
             403,
-            'Anda tidak memiliki akses ke gudang tujuan PO ini.'
+            $purchaseOrder->gudang_id
+                ? 'Anda tidak memiliki akses ke gudang tujuan PO ini.'
+                : 'PO belum memiliki gudang tujuan; minta Purchasing melengkapi.'
         );
 
         DB::transaction(function () use ($data, $purchaseOrder, $targetGudangId) {

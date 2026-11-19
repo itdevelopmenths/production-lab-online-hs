@@ -956,7 +956,8 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_sec_02_price_privacy_masks_financial_data_from_warehouse_role(): void
     {
-        $po = $this->createTestPo();
+        // PO legacy harus berstatus dikirim_ke_gudang agar terlihat oleh gudang (Ruling 8).
+        $po = $this->createTestPo(['status' => 'dikirim_ke_gudang']);
 
         $this->actingAs($this->gudangUser);
 

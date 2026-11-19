@@ -15,11 +15,14 @@ use App\Models\SupplierLtSummary;
 use App\Models\SupplierProdukLtSummary;
 use App\Services\Purchasing\SupplierLeadTimeService;
 use App\Services\TransferService;
+use App\Traits\ResolvesGudangOnlyUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
+    use ResolvesGudangOnlyUser;
+
     public function index()
     {
         $this->authorize('report.view');
@@ -109,8 +112,11 @@ class ReportController extends Controller
         $user = auth()->user();
         $canSeePrice = $user?->can('purchasing.price.view') ?? false;
 
-        $pos = PurchaseOrder::with(['supplier:id,nama', 'items', 'payments'])
-            ->latest('tanggal')->limit(500)->get();
+        $query = PurchaseOrder::with(['supplier:id,nama', 'items', 'payments']);
+        if ($user && $this->isGudangOnly($user)) {
+            $query->visibleToGudang();
+        }
+        $pos = $query->latest('tanggal')->limit(500)->get();
 
         return view('reports.purchasing', compact('pos', 'canSeePrice'));
     }

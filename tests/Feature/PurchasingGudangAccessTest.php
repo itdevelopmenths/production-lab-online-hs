@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BarangDatang;
 use App\Models\Gudang;
+use App\Models\OperationalAudit;
 use App\Models\PoStage;
 use App\Models\Produk;
 use App\Models\PurchaseOrder;
@@ -144,12 +145,84 @@ class PurchasingGudangAccessTest extends TestCase
     {
         $po = $this->poAtStage(PoStage::STAGE_1);
         $po->stages()->delete();
+        $po->update(['status' => 'dikirim_ke_gudang']);
 
         $this->actingAs($this->gudangUser)->get(route('purchasing.show', $po->fresh()))->assertOk();
 
         $ids = collect($this->actingAs($this->gudangUser)->getJson(route('purchasing.data'))->json('data'))
             ->pluck('id');
         $this->assertTrue($ids->contains($po->id));
+    }
+
+    public function test_legacy_draft_po_without_stage_rows_is_hidden_from_gudang(): void
+    {
+        $po = $this->poAtStage(PoStage::STAGE_1);
+        $po->stages()->delete();
+        $po->update(['status' => 'draft']);
+
+        $this->actingAs($this->gudangUser)->get(route('purchasing.show', $po->fresh()))->assertForbidden();
+
+        $ids = collect($this->actingAs($this->gudangUser)->getJson(route('purchasing.data'))->json('data'))
+            ->pluck('id');
+        $this->assertFalse($ids->contains($po->id));
+    }
+
+    public function test_purchasing_report_hides_invisible_pos_from_gudang(): void
+    {
+        $hidden = $this->poAtStage(PoStage::STAGE_1);
+        $visible = $this->poAtStage(PoStage::STAGE_5);
+
+        $content = $this->actingAs($this->gudangUser)->get(route('reports.purchasing'))
+            ->assertOk()->getContent();
+        $this->assertStringNotContainsString($hidden->no_po, $content);
+        $this->assertStringContainsString($visible->no_po, $content);
+
+        foreach ([$this->purchasing, $this->manager] as $user) {
+            $content = $this->actingAs($user)->get(route('reports.purchasing'))->assertOk()->getContent();
+            $this->assertStringContainsString($hidden->no_po, $content);
+            $this->assertStringContainsString($visible->no_po, $content);
+        }
+    }
+
+    public function test_audit_by_auditable_id_is_forbidden_for_gudang_on_invisible_po(): void
+    {
+        $hidden = $this->poAtStage(PoStage::STAGE_1);
+        $visible = $this->poAtStage(PoStage::STAGE_5);
+        $this->gudangUser->givePermissionTo('purchasing.audit');
+
+        $this->actingAs($this->gudangUser)
+            ->getJson(route('operational-audit.data', ['auditable_id' => $hidden->id]))
+            ->assertForbidden();
+
+        $this->actingAs($this->gudangUser)
+            ->getJson(route('operational-audit.data', ['auditable_id' => $visible->id]))
+            ->assertOk();
+
+        // PO yang tidak ada: tidak ada baris purchasing yang bocor.
+        $json = $this->actingAs($this->gudangUser)
+            ->getJson(route('operational-audit.data', ['auditable_id' => (string) \Illuminate\Support\Str::uuid()]))
+            ->assertOk()->json();
+        $this->assertCount(0, $json['data']);
+    }
+
+    public function test_audit_by_auditable_id_respects_module_permission(): void
+    {
+        $po = $this->poAtStage(PoStage::STAGE_5);
+        $this->assertGreaterThan(0, OperationalAudit::where('auditable_id', $po->id)->count());
+
+        $operasional = User::where('email', 'operasional@heavenscent.id')->firstOrFail();
+        $this->assertFalse($operasional->can('purchasing.audit'));
+        $this->assertFalse($operasional->can('audit.view'));
+
+        $json = $this->actingAs($operasional)
+            ->getJson(route('operational-audit.data', ['auditable_id' => $po->id]))
+            ->assertOk()->json();
+        $this->assertCount(0, $json['data']);
+
+        $json = $this->actingAs($this->manager)
+            ->getJson(route('operational-audit.data', ['auditable_id' => $po->id]))
+            ->assertOk()->json();
+        $this->assertGreaterThan(0, count($json['data']));
     }
 
     public function test_restricted_gudang_cannot_receive_po_for_other_warehouse(): void
@@ -218,6 +291,20 @@ class PurchasingGudangAccessTest extends TestCase
             ])
             ->assertSessionHasNoErrors()
             ->assertSessionHas('success');
+    }
+
+    public function test_restricted_gudang_gets_specific_message_for_po_without_warehouse(): void
+    {
+        $this->gudangUser->gudangs()->attach($this->gudang->id, ['is_primary' => true]);
+        $po = $this->poAtStage(PoStage::STAGE_7);
+        $po->update(['gudang_id' => null]);
+
+        $this->actingAs($this->gudangUser)
+            ->post(route('purchasing.stages.complete', [$po, PoStage::STAGE_7]), [
+                'physical_check' => ['kondisi' => 'baik'],
+            ])
+            ->assertForbidden()
+            ->assertSee('PO belum memiliki gudang tujuan; minta Purchasing melengkapi.');
     }
 
     public function test_gudang_list_and_show_use_same_rule(): void

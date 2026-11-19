@@ -303,7 +303,9 @@ class PurchasingStageController extends Controller
         abort_unless(
             app(LocationScopeService::class)->canAccessWarehouse($user, $po->gudang_id),
             403,
-            'Anda tidak memiliki akses ke gudang tujuan PO ini.'
+            $po->gudang_id
+                ? 'Anda tidak memiliki akses ke gudang tujuan PO ini.'
+                : 'PO belum memiliki gudang tujuan; minta Purchasing melengkapi.'
         );
     }
 }
