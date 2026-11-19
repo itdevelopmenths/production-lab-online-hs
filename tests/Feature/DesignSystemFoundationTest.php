@@ -79,4 +79,26 @@ class DesignSystemFoundationTest extends TestCase
         $produk->assertOk();
         $produk->assertSee('#627EF2', false);
     }
+
+    public function test_login_and_dashboard_match_blueprint_visual_contracts(): void
+    {
+        $login = $this->get(route('login'));
+        $login->assertOk();
+        $login->assertDontSee('hs-app-shell');
+        $login->assertSee('from-[#292929]', false);
+        $login->assertSee('to-[#0a0a0a]', false);
+        $login->assertSee('border-[#212121]', false);
+        $login->assertSee('Logo HS - black.png', false);
+        $login->assertSee('dark:bg-gray-950', false);
+
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $dashboard = $this->get(route('dashboard'));
+        $dashboard->assertOk();
+        $dashboard->assertSee('text-[28px]', false);
+        $dashboard->assertSee('rounded-[12px]', false);
+        $dashboard->assertSee('lg:grid-cols-5', false);
+        $dashboard->assertSee('defect-dashboard', false);
+    }
 }
