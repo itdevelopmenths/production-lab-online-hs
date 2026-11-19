@@ -591,7 +591,7 @@
                                         <button type="button"
                                                 @click="closeRejectDialog()"
                                                 aria-label="Tutup dialog penolakan revisi"
-                                                class="size-7 rounded-[6px] text-text-muted hover:text-text-active hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition cursor-pointer">
+                                                class="size-7 text-text-muted hover:text-text-active hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition cursor-pointer rounded-[6px]">
                                             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                             </svg>
@@ -932,15 +932,15 @@
                                     $targetGudang = $po->gudang ?? $gudang->firstWhere('id', $po->gudang_id) ?? $gudang->first();
                                 @endphp
                                 <input type="hidden" name="gudang_id" value="{{ $targetGudang?->id }}">
-                                <input type="text" value="{{ $targetGudang?->nama ?? '—' }}" class="w-full rounded-lg border border-border bg-muted text-xs py-1.5 px-2.5 text-muted-foreground cursor-not-allowed focus:outline-none" readonly>
+                                <input type="text" value="{{ $targetGudang?->nama ?? '—' }}" class="w-full border border-border bg-muted text-xs py-1.5 px-2.5 text-muted-foreground cursor-not-allowed focus:outline-none rounded-[6px]" readonly>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-foreground mb-1">Tanggal Terima <span class="text-destructive">*</span></label>
-                                <input type="date" name="tanggal_terima" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-1.5 px-2.5 focus:border-ring focus:ring-1 focus:ring-ring outline-none" required>
+                                <input type="date" name="tanggal_terima" value="{{ date('Y-m-d') }}" class="w-full border border-input bg-background text-xs py-1.5 px-2.5 focus:border-ring focus:ring-1 focus:ring-ring outline-none rounded-[6px]" required>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-foreground mb-1">Kondisi Fisik <span class="text-destructive">*</span></label>
-                                <select name="kondisi" class="w-full rounded-lg border border-input bg-background text-xs py-1.5 px-2.5 focus:border-ring focus:ring-1 focus:ring-ring outline-none">
+                                <select name="kondisi" class="w-full border border-input bg-background text-xs py-1.5 px-2.5 focus:border-ring focus:ring-1 focus:ring-ring outline-none rounded-[6px]">
                                     <option value="baik">Baik (Sesuai Standar)</option>
                                     <option value="rusak_sebagian">Rusak Sebagian</option>
                                 </select>
@@ -974,7 +974,7 @@
                                         <input type="number" step="0.01" min="0"
                                             name="items[{{ $i }}][qty_diterima]"
                                             x-model.number="receiptItems[{{ $i }}].qty_terima"
-                                            class="w-24 text-right rounded-lg border border-input bg-card text-xs py-1 px-2 focus:border-ring focus:ring-1 focus:ring-ring tabular-nums font-medium outline-none"
+                                            class="w-24 text-right border border-input bg-card text-xs py-1 px-2 focus:border-ring focus:ring-1 focus:ring-ring tabular-nums font-medium outline-none rounded-[6px]"
                                             required>
                                         <span class="text-muted-foreground">{{ $it->produk->satuan }}</span>
 
@@ -998,7 +998,7 @@
                                         name="items[{{ $i }}][keterangan_selisih]"
                                         :required="getDiff({{ $i }}) !== 0"
                                         placeholder="Contoh: Bocor saat pengiriman / Stok supplier tidak lengkap"
-                                        class="w-full rounded-lg border border-destructive/40 text-xs py-1.5 px-2.5 focus:border-destructive focus:ring-1 focus:ring-destructive bg-card outline-none">
+                                        class="w-full border border-destructive/40 text-xs py-1.5 px-2.5 focus:border-destructive focus:ring-1 focus:ring-destructive bg-card outline-none rounded-[6px]">
                                 </div>
                             </div>
                             @endforeach
@@ -1025,11 +1025,11 @@
                                     $targetGudang = $po->gudang ?? $gudang->firstWhere('id', $po->gudang_id) ?? $gudang->first();
                                 @endphp
                                 <input type="hidden" name="physical_check[gudang_id]" value="{{ $targetGudang?->id }}">
-                                <input type="text" value="{{ $targetGudang?->nama ?? '—' }}" class="w-full rounded-lg border border-border bg-muted text-xs p-2 text-muted-foreground cursor-not-allowed" readonly>
+                                <input type="text" value="{{ $targetGudang?->nama ?? '—' }}" class="w-full border border-border bg-muted text-xs p-2 text-muted-foreground cursor-not-allowed rounded-[6px]" readonly>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-foreground mb-1">Kondisi Fisik Muatan <span class="text-destructive">*</span></label>
-                                <select name="physical_check[kondisi]" x-model="kondisiMuatan" class="w-full rounded-lg border border-input bg-background text-xs p-2 focus:border-ring focus:ring-1 focus:ring-ring outline-none">
+                                <select name="physical_check[kondisi]" x-model="kondisiMuatan" class="w-full border border-input bg-background text-xs p-2 focus:border-ring focus:ring-1 focus:ring-ring outline-none rounded-[6px]">
                                     <option value="baik">Baik (Sesuai Standar)</option>
                                     <option value="rusak_sebagian">Rusak Sebagian</option>
                                 </select>
@@ -1059,7 +1059,7 @@
                                         <input type="number" step="0.01" min="0"
                                             name="physical_check[items][{{ $it->id }}][qty_fisik]"
                                             x-model.number="receiptItems[{{ $i }}].qty_terima"
-                                            class="w-24 text-right rounded-lg border border-input bg-card text-xs p-1.5 tabular-nums font-medium focus:border-ring focus:ring-1 focus:ring-ring outline-none"
+                                            class="w-24 text-right border border-input bg-card text-xs p-1.5 tabular-nums font-medium focus:border-ring focus:ring-1 focus:ring-ring outline-none rounded-[6px]"
                                             required>
                                         <span class="text-muted-foreground">{{ $it->produk->satuan }}</span>
 
@@ -1083,7 +1083,7 @@
                                         name="physical_check[items][{{ $it->id }}][keterangan_selisih]"
                                         :required="isDiscrepancyRequired({{ $i }})"
                                         placeholder="Contoh: 2 botol pecah saat unloading / vendor mengirim kurang"
-                                        class="w-full rounded-lg border border-destructive/40 text-xs p-1.5 bg-card text-foreground focus:border-destructive focus:ring-1 focus:ring-destructive outline-none">
+                                        class="w-full border border-destructive/40 text-xs p-1.5 bg-card text-foreground focus:border-destructive focus:ring-1 focus:ring-destructive outline-none rounded-[6px]">
                                 </div>
                             </div>
                             @endforeach
@@ -1185,7 +1185,7 @@
                                                 <label class="block text-[11px] text-muted-foreground mb-1">
                                                     Perbarui No. Resi <span class="font-normal">(Opsional)</span>:
                                                 </label>
-                                                <input type="text" name="no_resi" value="{{ old('no_resi', $existingResi) }}" placeholder="Ketik nomor resi baru jika ada revisi..." class="w-full sm:w-72 rounded-lg border border-input bg-card text-xs py-1.5 px-2.5 tabular-nums text-foreground focus:border-ring focus:ring-1 focus:ring-ring outline-none">
+                                                <input type="text" name="no_resi" value="{{ old('no_resi', $existingResi) }}" placeholder="Ketik nomor resi baru jika ada revisi..." class="w-full sm:w-72 border border-input bg-card text-xs py-1.5 px-2.5 tabular-nums text-foreground focus:border-ring focus:ring-1 focus:ring-ring outline-none rounded-[6px]">
                                             </div>
                                         </div>
                                     @else
@@ -1193,7 +1193,7 @@
                                             <label class="block font-medium text-foreground text-xs mb-1">
                                                 No. Resi / AWB <span class="text-rose-500 font-medium">* (Wajib diisi)</span>
                                             </label>
-                                            <input type="text" name="no_resi" required value="{{ old('no_resi') }}" placeholder="Masukkan nomor resi pengiriman..." class="w-full sm:w-72 rounded-lg border border-rose-300 dark:border-rose-800 bg-card text-xs py-1.5 px-2.5 tabular-nums text-foreground focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none">
+                                            <input type="text" name="no_resi" required value="{{ old('no_resi') }}" placeholder="Masukkan nomor resi pengiriman..." class="w-full sm:w-72 border border-rose-300 dark:border-rose-800 bg-card text-xs py-1.5 px-2.5 tabular-nums text-foreground focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none rounded-[6px]">
                                             <p class="text-[10px] text-foreground dark:text-foreground font-medium mt-1">
                                                 Nomor resi belum dicatat pada tahap pengiriman, wajib diisi sebelum posting stok.
                                             </p>
@@ -1237,7 +1237,7 @@
                                 @csrf
                                 <div>
                                     <label class="block font-medium mb-1 text-foreground">Catatan Pengajuan (Opsional)</label>
-                                    <textarea name="catatan" rows="2" placeholder="Catatan pengajuan untuk Manager..." class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"></textarea>
+                                    <textarea name="catatan" rows="2" placeholder="Catatan pengajuan untuk Manager..." class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]"></textarea>
                                 </div>
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
                                     Ajukan PO ke Manager (Selesaikan Tahap 1)
@@ -1266,7 +1266,7 @@
                                     <form method="POST" action="{{ route('purchasing.stages.reject-stage2', $po) }}" class="space-y-2">
                                         @csrf
                                         <label class="block font-medium text-foreground text-[11px]">Alasan Penolakan / Pengembalian <span class="text-destructive">*</span></label>
-                                        <textarea name="alasan" x-model="rejectAlasan" required minlength="3" rows="2" placeholder="Tuliskan alasan penolakan..." class="w-full text-xs p-2 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"></textarea>
+                                        <textarea name="alasan" x-model="rejectAlasan" required minlength="3" rows="2" placeholder="Tuliskan alasan penolakan..." class="w-full text-xs p-2 border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]"></textarea>
                                         <div class="flex justify-end gap-2">
                                             <x-button type="button" variant="outline" size="xs" @click="openRejectStage2 = false">Batal</x-button>
                                             <x-button type="submit" variant="danger" size="xs" x-bind:disabled="isRejectDisabled()">Konfirmasi Tolak</x-button>
@@ -1285,11 +1285,11 @@
                                 @csrf
                                 <div>
                                     <label class="block font-medium mb-1 text-foreground">No. Referensi / Sales Order Supplier</label>
-                                    <input type="text" name="confirmation[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" placeholder="Contoh: SO-SUPPLIER-1234" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
+                                    <input type="text" name="confirmation[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" placeholder="Contoh: SO-SUPPLIER-1234" class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]">
                                 </div>
                                 <div>
                                     <label class="block font-medium mb-1 text-foreground">Catatan Konfirmasi</label>
-                                    <textarea name="catatan" rows="2" placeholder="Catatan konfirmasi kesiapan barang..." class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"></textarea>
+                                    <textarea name="catatan" rows="2" placeholder="Catatan konfirmasi kesiapan barang..." class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]"></textarea>
                                 </div>
                                 @foreach($po->items as $it)
                                     <input type="hidden" name="confirmation[items][{{ $it->id }}][qty_konfirmasi]" value="{{ $it->qty }}">
@@ -1363,16 +1363,16 @@
                                 @csrf
                                 <div>
                                     <label class="block font-medium mb-1 text-foreground">Nama Ekspedisi / Kurir <span class="text-destructive">*</span></label>
-                                    <input type="text" name="shipping[ekspedisi]" value="{{ $po->pengiriman?->ekspedisi ?? '' }}" required placeholder="Cth: JNE Cargo / Truk Vendor" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
+                                    <input type="text" name="shipping[ekspedisi]" value="{{ $po->pengiriman?->ekspedisi ?? '' }}" required placeholder="Cth: JNE Cargo / Truk Vendor" class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]">
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
                                         <label class="block font-medium mb-1 text-foreground">No. Resi / AWB <span class="text-muted-foreground font-normal">(Opsional)</span></label>
-                                        <input type="text" name="shipping[no_resi]" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="Dapat diisi saat input sistem..." class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
+                                        <input type="text" name="shipping[no_resi]" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="Dapat diisi saat input sistem..." class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]">
                                     </div>
                                     <div>
                                         <label class="block font-medium mb-1 text-foreground">Tanggal Kirim</label>
-                                        <input type="date" name="shipping[tgl_kirim]" value="{{ $po->pengiriman?->tgl_kirim ? $po->pengiriman->tgl_kirim->format('Y-m-d') : date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
+                                        <input type="date" name="shipping[tgl_kirim]" value="{{ $po->pengiriman?->tgl_kirim ? $po->pengiriman->tgl_kirim->format('Y-m-d') : date('Y-m-d') }}" class="w-full border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]">
                                     </div>
                                 </div>
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
@@ -1503,7 +1503,7 @@
                                         <p class="text-xs text-muted-foreground truncate">{{ $po->no_po }} &middot; {{ $po->supplier->nama }}</p>
                                     </div>
                                 </div>
-                                <button type="button" @click="openCancelModal = false" class="text-muted-foreground hover:text-foreground transition cursor-pointer p-1.5 rounded-lg hover:bg-accent shrink-0">
+                                <button type="button" @click="openCancelModal = false" class="text-muted-foreground hover:text-foreground transition cursor-pointer p-1.5 hover:bg-accent shrink-0 rounded-[6px]">
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
@@ -1538,7 +1538,7 @@
                                     minlength="5"
                                     maxlength="500"
                                     placeholder="Contoh: Supplier kehabisan stok bahan baku, revisi kuantiti dari manajemen, atau salah input data..."
-                                    class="w-full rounded-xl border border-input bg-card p-3 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-destructive focus:ring-2 focus:ring-destructive/20 outline-none transition"
+                                    class="w-full border border-input bg-card p-3 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-destructive focus:ring-2 focus:ring-destructive/20 outline-none transition rounded-[6px]"
                                 ></textarea>
                                 <div class="flex items-center justify-between mt-1 text-[11px]">
                                     <span class="text-muted-foreground">Minimal 5 karakter</span>
@@ -1682,7 +1682,7 @@
 
                             <div>
                                 <label for="pay_tanggal_cash" class="block text-xs font-medium text-foreground mb-1.5">Tanggal Bayar</label>
-                                <input id="pay_tanggal_cash" type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition" required>
+                                <input id="pay_tanggal_cash" type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition rounded-[6px]" required>
                             </div>
 
                             <div class="rounded-xl border border-border bg-card p-3.5 space-y-1.5">
@@ -1722,7 +1722,7 @@
                             @csrf
                             <div>
                                 <label for="pay_skema" class="block text-xs font-medium text-foreground mb-1.5">Skema Pembayaran</label>
-                                <select id="pay_skema" name="skema" x-model="skema" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition">
+                                <select id="pay_skema" name="skema" x-model="skema" class="w-full border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition rounded-[6px]">
                                     @if($po->skema_bayar === 'tempo')
                                         <option value="tempo">Tempo (Pembayaran Cicilan / Parsial)</option>
                                         <option value="pelunasan">Pelunasan Penuh (Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }})</option>
@@ -1736,7 +1736,7 @@
                             @if($po->skema_bayar === 'termin' && $po->termins->where('status', '!=', 'lunas')->count())
                             <div x-show="skema === 'termin'">
                                 <label for="pay_termin_id" class="block text-xs font-medium text-foreground mb-1.5">Target Termin (Opsional)</label>
-                                <select id="pay_termin_id" name="termin_id" @change="onTerminChange($event)" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition">
+                                <select id="pay_termin_id" name="termin_id" @change="onTerminChange($event)" class="w-full border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition rounded-[6px]">
                                     <option value="">— Alokasikan Otomatis (FIFO) —</option>
                                     @foreach($po->termins->where('status', '!=', 'lunas') as $tOpt)
                                         <option value="{{ $tOpt->id }}" data-sisa="{{ $tOpt->sisaNominal() }}">
@@ -1749,7 +1749,7 @@
 
                             <div>
                                 <label for="pay_tanggal_tempo" class="block text-xs font-medium text-foreground mb-1.5">Tanggal Bayar</label>
-                                <input id="pay_tanggal_tempo" type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition" required>
+                                <input id="pay_tanggal_tempo" type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition rounded-[6px]" required>
                             </div>
 
                             <!-- Kolom Nominal Bayar Custom (Termin / Tempo) -->
@@ -1781,7 +1781,7 @@
                                         x-show="nominal > 0"
                                         @click="clearNominal()"
                                         aria-label="Kosongkan nominal"
-                                        class="mr-2 text-muted-foreground hover:text-foreground p-1 rounded transition cursor-pointer"
+                                        class="mr-2 text-muted-foreground hover:text-foreground p-1 transition cursor-pointer rounded-[6px]"
                                         title="Kosongkan nominal">
                                         <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                     </button>
@@ -1791,14 +1791,14 @@
                                     <button type="button"
                                         @click="setNominal(sisa, 'pelunasan')"
                                         :class="nominal === sisa ? 'bg-primary text-primary-foreground font-medium' : 'bg-card border border-border hover:bg-gray-50 text-foreground'"
-                                        class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
+                                        class="px-2.5 py-1 text-[11px] transition cursor-pointer rounded-[6px]">
                                         100% Lunas (Rp <span x-text="formatThousand(sisa)"></span>)
                                     </button>
                                     @if($po->sisaTagihan() > 1000)
                                     <button type="button"
                                         @click="setNominal(Math.round(sisa / 2), '{{ $po->skema_bayar === 'termin' ? 'termin' : 'tempo' }}')"
                                         :class="nominal === Math.round(sisa / 2) ? 'bg-primary text-primary-foreground font-medium' : 'bg-card border border-border hover:bg-gray-50 text-foreground'"
-                                        class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
+                                        class="px-2.5 py-1 text-[11px] transition cursor-pointer rounded-[6px]">
                                         50% (Rp <span x-text="formatThousand(Math.round(sisa / 2))"></span>)
                                     </button>
                                     @endif
@@ -1806,7 +1806,7 @@
                                     <button type="button"
                                         @click="setNominal(Math.round(sisa / 4), 'tempo')"
                                         :class="nominal === Math.round(sisa / 4) ? 'bg-primary text-primary-foreground font-medium' : 'bg-card border border-border hover:bg-gray-50 text-foreground'"
-                                        class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
+                                        class="px-2.5 py-1 text-[11px] transition cursor-pointer rounded-[6px]">
                                         25% (Rp <span x-text="formatThousand(Math.round(sisa / 4))"></span>)
                                     </button>
                                     @endif
@@ -1814,7 +1814,7 @@
                                     <button type="button"
                                         @click="setNominal({{ (float)$nextUnpaidTermin->sisaNominal() }}, 'termin', '{{ $nextUnpaidTermin->id }}')"
                                         :class="nominal === {{ (float)$nextUnpaidTermin->sisaNominal() }} ? 'bg-primary text-primary-foreground font-medium' : 'bg-card border border-border hover:bg-gray-50 text-foreground'"
-                                        class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
+                                        class="px-2.5 py-1 text-[11px] transition cursor-pointer rounded-[6px]">
                                         Termin {{ $nextUnpaidTermin->termin_ke }} (Rp {{ number_format($nextUnpaidTermin->sisaNominal(), 0, ',', '.') }})
                                     </button>
                                     @endif
@@ -1866,7 +1866,7 @@
                                         name="tanggal_tempo_baru"
                                         value="{{ $po->tanggal_tempo ? $po->tanggal_tempo->format('Y-m-d') : date('Y-m-d', strtotime('+30 days')) }}"
                                         min="{{ date('Y-m-d') }}"
-                                        class="w-full rounded-lg border border-input bg-card text-xs py-1.5 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none">
+                                        class="w-full border border-input bg-card text-xs py-1.5 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none rounded-[6px]">
                                     <p class="text-[10px] text-muted-foreground leading-tight">
                                         Tanggal jatuh tempo PO akan diperbarui otomatis di sistem untuk sisa tagihan tempo berikutnya.
                                     </p>
@@ -2199,7 +2199,7 @@
                         <h3 class="font-semibold text-base text-text-active tracking-tight">Direct Edit Field Operasional</h3>
                         <p class="text-xs text-text-muted">Perubahan langsung tercatat di PO_LOG_PERUBAHAN tanpa memerlukan approval</p>
                     </div>
-                    <button type="button" @click="openDirectEditModal = false" class="text-text-muted hover:text-text-active cursor-pointer p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
+                    <button type="button" @click="openDirectEditModal = false" class="text-text-muted hover:text-text-active cursor-pointer p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px]">✕</button>
                 </div>
 
                 <form method="POST" action="{{ route('purchasing.direct-edit', $po) }}" class="text-xs">
@@ -2242,7 +2242,7 @@
                             Sesuaikan kuantitas beli, harga, diskon, PPN, dan ongkos kirim. Jenis bahan baku terkunci sesuai PO asli.
                         </p>
                     </div>
-                    <button type="button" @click="openRevisiModal = false" class="size-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-gray-50 transition cursor-pointer">✕</button>
+                    <button type="button" @click="openRevisiModal = false" class="size-8 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-gray-50 transition cursor-pointer rounded-[6px]">✕</button>
                 </div>
 
                 <form method="POST" action="{{ route('purchasing.revisi.submit', $po) }}" class="space-y-4 text-xs" @submit="handleSubmit($event)">
@@ -2254,7 +2254,7 @@
                         </label>
                         <textarea name="alasan" x-model="alasan" required minlength="5" rows="2"
                                   placeholder="Jelaskan alasan perubahan kuantitas, harga bahan baku, diskon, atau ongkir untuk ditinjau dan disetujui Manager..."
-                                  class="w-full rounded-lg border border-input bg-background p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"></textarea>
+                                  class="w-full border border-input bg-background p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]"></textarea>
                     </div>
 
                     <x-card title="Daftar Bahan Baku" subtitle="Input kuantitas dan total harga per bahan. Diskon, PPN, ongkir, dan adjustment diatur pada formulir Global di bawah dan dialokasikan ke HPP secara realtime." :noPadding="true" class="relative z-10" overflow="visible">
@@ -2304,7 +2304,7 @@
                                                                 @paste="handleQtyPaste(row, $event)"
                                                                 placeholder="0"
                                                                 required
-                                                                class="w-24 rounded-lg border border-input bg-background text-xs py-1.5 pl-9 pr-2 tabular-nums font-medium text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                                class="w-24 border border-input bg-background text-xs py-1.5 pl-9 pr-2 tabular-nums font-medium text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]"
                                                             />
                                                         </div>
 
@@ -2312,7 +2312,7 @@
                                                             :name="`data_usulan[items][${i}][satuan_beli]`"
                                                             x-model="row.satuan_beli"
                                                             @change="onSatuanBeliChange(row)"
-                                                            class="flex-1 rounded-lg border border-input bg-background text-xs py-1.5 px-2 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                            class="flex-1 border border-input bg-background text-xs py-1.5 px-2 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]"
                                                         >
                                                             <template x-for="opt in getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi)" :key="opt.code">
                                                                 <option :value="opt.code" x-text="opt.label" :selected="opt.code === row.satuan_beli || opt.code.toLowerCase() === (row.satuan_beli || '').toLowerCase()"></option>
@@ -2341,7 +2341,7 @@
                                                         @keydown="handleKeyDown($event)"
                                                         placeholder="0"
                                                         required
-                                                        class="w-full rounded-lg border border-input bg-background text-xs py-1.5 px-2 tabular-nums text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs font-medium"
+                                                        class="w-full border border-input bg-background text-xs py-1.5 px-2 tabular-nums text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs font-medium rounded-[6px]"
                                                     />
                                                 </div>
                                             </td>
@@ -2384,20 +2384,20 @@
                                     <div class="flex items-center gap-2 shrink-0">
                                         <input type="hidden" name="data_usulan[diskon_total]" :value="headerDiskon">
                                         <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none">
-                                            <button type="button" @click="setHeaderDiskonMode('nominal')" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer" :class="headerDiskonMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
-                                            <button type="button" @click="setHeaderDiskonMode('persen')" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer" :class="headerDiskonMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
+                                            <button type="button" @click="setHeaderDiskonMode('nominal')" class="px-2 py-0.5 text-xs font-medium transition cursor-pointer rounded-[6px]" :class="headerDiskonMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
+                                            <button type="button" @click="setHeaderDiskonMode('persen')" class="px-2 py-0.5 text-xs font-medium transition cursor-pointer rounded-[6px]" :class="headerDiskonMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
                                         </div>
                                         <div class="relative w-36">
                                             <template x-if="headerDiskonMode === 'persen'">
                                                 <div class="relative flex items-center">
-                                                    <input type="number" step="any" min="0" max="100" x-model.number="headerDiskonVal" @input="recalcHeaderDiskon()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 rounded-lg border border-input bg-background tabular-nums text-destructive font-medium focus:ring-1 focus:ring-ring shadow-xs" />
+                                                    <input type="number" step="any" min="0" max="100" x-model.number="headerDiskonVal" @input="recalcHeaderDiskon()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 border border-input bg-background tabular-nums text-destructive font-medium focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]" />
                                                     <span class="absolute right-2 text-xs text-destructive tabular-nums font-medium pointer-events-none">%</span>
                                                 </div>
                                             </template>
                                             <template x-if="headerDiskonMode !== 'persen'">
                                                 <div class="relative flex items-center">
                                                     <span class="absolute left-2.5 text-[10px] text-muted-foreground tabular-nums pointer-events-none">Rp</span>
-                                                    <input type="text" inputmode="numeric" :value="formatThousand(headerDiskon)" @input="updateHeaderField('headerDiskon', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background tabular-nums text-destructive font-medium focus:ring-1 focus:ring-ring shadow-xs" />
+                                                    <input type="text" inputmode="numeric" :value="formatThousand(headerDiskon)" @input="updateHeaderField('headerDiskon', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 border border-input bg-background tabular-nums text-destructive font-medium focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]" />
                                                 </div>
                                             </template>
                                         </div>
@@ -2412,20 +2412,20 @@
                                     <div class="flex items-center gap-2 shrink-0">
                                         <input type="hidden" name="data_usulan[ppn_nominal]" :value="headerPpn">
                                         <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none">
-                                            <button type="button" @click="setHeaderPpnMode('nominal')" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer" :class="headerPpnMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
-                                            <button type="button" @click="setHeaderPpnMode('persen')" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer" :class="headerPpnMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
+                                            <button type="button" @click="setHeaderPpnMode('nominal')" class="px-2 py-0.5 text-xs font-medium transition cursor-pointer rounded-[6px]" :class="headerPpnMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
+                                            <button type="button" @click="setHeaderPpnMode('persen')" class="px-2 py-0.5 text-xs font-medium transition cursor-pointer rounded-[6px]" :class="headerPpnMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
                                         </div>
                                         <div class="relative w-36">
                                             <template x-if="headerPpnMode === 'persen'">
                                                 <div class="relative flex items-center">
-                                                    <input type="number" step="any" min="0" max="100" x-model.number="headerPpnVal" @input="recalcHeaderPpn()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 rounded-lg border border-input bg-background tabular-nums text-foreground font-medium focus:ring-1 focus:ring-ring shadow-xs" />
+                                                    <input type="number" step="any" min="0" max="100" x-model.number="headerPpnVal" @input="recalcHeaderPpn()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 border border-input bg-background tabular-nums text-foreground font-medium focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]" />
                                                     <span class="absolute right-2 text-xs text-muted-foreground tabular-nums font-medium pointer-events-none">%</span>
                                                 </div>
                                             </template>
                                             <template x-if="headerPpnMode !== 'persen'">
                                                 <div class="relative flex items-center">
                                                     <span class="absolute left-2.5 text-[10px] text-muted-foreground tabular-nums pointer-events-none">Rp</span>
-                                                    <input type="text" inputmode="numeric" :value="formatThousand(headerPpn)" @input="updateHeaderField('headerPpn', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background tabular-nums text-foreground font-medium focus:ring-1 focus:ring-ring shadow-xs" />
+                                                    <input type="text" inputmode="numeric" :value="formatThousand(headerPpn)" @input="updateHeaderField('headerPpn', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 border border-input bg-background tabular-nums text-foreground font-medium focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]" />
                                                 </div>
                                             </template>
                                         </div>
@@ -2438,7 +2438,7 @@
                                         <input type="hidden" name="data_usulan[ongkos_kirim]" :value="headerOngkir">
                                         <div class="relative flex items-center">
                                             <span class="absolute left-2.5 text-[10px] text-muted-foreground tabular-nums pointer-events-none">Rp</span>
-                                            <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background text-foreground tabular-nums font-medium focus:ring-1 focus:ring-ring shadow-xs" />
+                                            <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 border border-input bg-background text-foreground tabular-nums font-medium focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]" />
                                         </div>
                                     </div>
                                 </div>
@@ -2448,17 +2448,17 @@
                                     <div class="flex items-center gap-2 shrink-0">
                                         <input type="hidden" name="data_usulan[adjustment]" :value="headerAdj">
                                         <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none">
-                                            <button type="button" @click="setHeaderAdjSign(1)" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer flex items-center gap-1" :class="headerAdj >= 0 ? 'bg-background text-foreground font-medium shadow-xs' : 'text-muted-foreground hover:text-foreground'">
+                                            <button type="button" @click="setHeaderAdjSign(1)" class="px-2 py-0.5 text-xs font-medium transition cursor-pointer flex items-center gap-1 rounded-[6px]" :class="headerAdj >= 0 ? 'bg-background text-foreground font-medium shadow-xs' : 'text-muted-foreground hover:text-foreground'">
                                                 <span class="font-medium">+</span> Tambah
                                             </button>
-                                            <button type="button" @click="setHeaderAdjSign(-1)" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer flex items-center gap-1" :class="headerAdj < 0 ? 'bg-background text-destructive font-medium shadow-xs' : 'text-muted-foreground hover:text-foreground'">
+                                            <button type="button" @click="setHeaderAdjSign(-1)" class="px-2 py-0.5 text-xs font-medium transition cursor-pointer flex items-center gap-1 rounded-[6px]" :class="headerAdj < 0 ? 'bg-background text-destructive font-medium shadow-xs' : 'text-muted-foreground hover:text-foreground'">
                                                 <span class="font-medium">−</span> Kurang
                                             </button>
                                         </div>
                                         <div class="relative w-36">
                                             <div class="relative flex items-center">
                                                 <span class="absolute left-2.5 text-[10px] tabular-nums font-medium pointer-events-none" :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-foreground' : 'text-muted-foreground')" x-text="headerAdj < 0 ? '- Rp' : (headerAdj > 0 ? '+ Rp' : 'Rp')"></span>
-                                                <input type="text" inputmode="numeric" :value="formatThousand(Math.abs(headerAdj))" @input="updateHeaderAdj($event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-10 pr-2.5 rounded-lg border border-input bg-background tabular-nums font-medium focus:ring-1 focus:ring-ring shadow-xs" :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-foreground' : 'text-foreground')" />
+                                                <input type="text" inputmode="numeric" :value="formatThousand(Math.abs(headerAdj))" @input="updateHeaderAdj($event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-10 pr-2.5 border border-input bg-background tabular-nums font-medium focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]" :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-foreground' : 'text-foreground')" />
                                             </div>
                                         </div>
                                     </div>
@@ -2532,7 +2532,7 @@
             <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-border max-w-sm w-full shadow-2xl overflow-hidden">
                 <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#E8E8E8] dark:border-border flex items-center justify-between">
                     <h3 class="font-semibold text-base text-text-active tracking-tight">Invalidasi Transaksi Lead Time</h3>
-                    <button type="button" @click="openInvalidateModal = false" class="text-text-muted hover:text-text-active cursor-pointer p-1 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
+                    <button type="button" @click="openInvalidateModal = false" class="text-text-muted hover:text-text-active cursor-pointer p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px]">✕</button>
                 </div>
                 <form method="POST" action="{{ route('purchasing.lead-time.invalidate', $po->leadTime) }}" class="text-xs">
                     @csrf

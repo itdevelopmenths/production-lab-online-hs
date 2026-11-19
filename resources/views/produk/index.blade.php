@@ -28,25 +28,25 @@
                     <button type="button"
                             @click="currentTab = 'all'; filterTab('all')"
                             :class="currentTab === 'all' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                            class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
+                            class="px-3 py-1.5 text-xs font-medium transition-all cursor-pointer select-none rounded-[6px]">
                         Semua Produk
                     </button>
                     <button type="button"
                             @click="currentTab = 'bahan'; filterTab('bahan')"
                             :class="currentTab === 'bahan' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                            class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
+                            class="px-3 py-1.5 text-xs font-medium transition-all cursor-pointer select-none rounded-[6px]">
                         Bahan Baku
                     </button>
                     <button type="button"
                             @click="currentTab = 'kemas'; filterTab('kemas')"
                             :class="currentTab === 'kemas' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                            class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
+                            class="px-3 py-1.5 text-xs font-medium transition-all cursor-pointer select-none rounded-[6px]">
                         Kemasan
                     </button>
                     <button type="button"
                             @click="currentTab = 'produk_jadi'; filterTab('produk_jadi')"
                             :class="currentTab === 'produk_jadi' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                            class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
+                            class="px-3 py-1.5 text-xs font-medium transition-all cursor-pointer select-none rounded-[6px]">
                         Produk Jadi
                     </button>
                 </div>
@@ -54,7 +54,7 @@
                 {{-- Additional Filter --}}
                 <div class="flex items-center gap-2">
                     <label for="filter-kategori" class="text-xs font-medium text-[#667085] dark:text-gray-400">Kategori:</label>
-                    <select id="filter-kategori" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-xs text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white cursor-pointer">
+                    <select id="filter-kategori" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-xs text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white cursor-pointer rounded-[6px]">
                         <option value="">Semua Kategori</option>
                         @foreach($kategoriList as $k)
                             <option value="{{ $k->id }}">{{ $k->nama }}</option>

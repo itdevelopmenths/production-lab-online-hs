@@ -589,4 +589,47 @@ class ProdukMultiSupplierTest extends TestCase
         $this->assertSame(1, (int) $row['active_produks_count']);
         $this->assertStringContainsString('1 Produk', $row['produk_count']);
     }
+
+    public function test_unrelated_product_save_does_not_reactivate_or_resurrect_supplier_links(): void
+    {
+        $this->produkA->supplier_id = $this->supplierA->id;
+        $this->produkA->save();
+        $this->assertSame(1, $this->produkA->activeSuppliers()->count());
+
+        // Nonaktifkan relasi lalu simpan ulang produk tanpa mengubah supplier
+        ProdukSupplier::where('produk_id', $this->produkA->id)->update(['status' => 'nonaktif']);
+        $this->produkA->fresh()->save();
+        $this->assertSame(0, $this->produkA->activeSuppliers()->count());
+
+        // Hapus relasi lalu simpan ulang produk: tidak boleh muncul lagi
+        ProdukSupplier::where('produk_id', $this->produkA->id)->delete();
+        $this->produkA->fresh()->save();
+        $this->assertSame(0, ProdukSupplier::where('produk_id', $this->produkA->id)->count());
+    }
+
+    public function test_produk_index_supplier_count_matches_active_pivot_rows(): void
+    {
+        ProdukSupplier::create(['produk_id' => $this->produkA->id, 'supplier_id' => $this->supplierA->id, 'status' => 'aktif']);
+        ProdukSupplier::create(['produk_id' => $this->produkA->id, 'supplier_id' => $this->supplierB->id, 'status' => 'nonaktif']);
+
+        $res = $this->actingAs($this->adminUser)->getJson(route('produk.data', ['length' => 100]));
+        $res->assertOk();
+        $rows = collect($res->json('data'));
+
+        $this->assertStringContainsString('1 Supplier', $rows->firstWhere('id', $this->produkA->id)['supplier_count']);
+        $this->assertStringContainsString('0 Supplier', $rows->firstWhere('id', $this->produkB->id)['supplier_count']);
+    }
+
+    public function test_inactive_master_supplier_is_not_counted_as_active_supplier(): void
+    {
+        ProdukSupplier::create(['produk_id' => $this->produkA->id, 'supplier_id' => $this->supplierA->id, 'status' => 'aktif']);
+        ProdukSupplier::create(['produk_id' => $this->produkA->id, 'supplier_id' => $this->supplierB->id, 'status' => 'aktif']);
+        $this->supplierB->update(['is_active' => false]);
+
+        $this->assertSame(1, $this->produkA->activeSuppliers()->count());
+
+        $res = $this->actingAs($this->adminUser)->getJson(route('produk.data', ['length' => 100]));
+        $row = collect($res->json('data'))->firstWhere('id', $this->produkA->id);
+        $this->assertStringContainsString('1 Supplier', $row['supplier_count']);
+    }
 }

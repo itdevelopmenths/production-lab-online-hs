@@ -577,7 +577,7 @@
                                                             x-show="selectedItem"
                                                             x-cloak
                                                             @click.stop="clear()"
-                                                            class="p-0.5 text-muted-foreground hover:text-destructive rounded transition cursor-pointer"
+                                                            class="p-0.5 text-muted-foreground hover:text-destructive transition cursor-pointer rounded-[6px]"
                                                             aria-label="Hapus pilihan produk"
                                                             title="Hapus pilihan"
                                                         >
@@ -605,7 +605,7 @@
                                                             autocapitalize="none"
                                                             spellcheck="false"
                                                             placeholder="Cari nama / SKU produk..."
-                                                            class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                                                            class="w-full bg-background border border-input px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]"
                                                         />
                                                     </div>
 
@@ -684,7 +684,7 @@
                                                 x-model="item.qty_dikirim"
                                                 :aria-invalid="isExceedingStock(item) ? 'true' : 'false'"
                                                 :class="isExceedingStock(item) ? 'border-destructive focus:ring-destructive/20' : 'border-border focus:ring-primary/20'"
-                                                class="w-full h-9 rounded-lg border bg-card pl-2.5 pr-16 text-xs text-right tabular-nums font-medium focus:ring-2"
+                                                class="w-full h-9 border bg-card pl-2.5 pr-16 text-xs text-right tabular-nums font-medium focus:ring-2 rounded-[6px]"
                                                 required
                                             >
                                             <span class="absolute right-2 px-1.5 py-0.5 text-[10px] tabular-nums font-medium text-muted-foreground bg-muted border border-border rounded pointer-events-none max-w-[54px] truncate"
@@ -698,7 +698,7 @@
                                         </template>
                                     </td>
                                     <td class="px-4 py-3 align-top">
-                                        <input type="text" :name="`items[${index}][keterangan]`" x-model="item.keterangan" placeholder="Keterangan opsional" class="w-full h-9 rounded-lg border border-border bg-card px-2.5 text-xs">
+                                        <input type="text" :name="`items[${index}][keterangan]`" x-model="item.keterangan" placeholder="Keterangan opsional" class="w-full h-9 border border-border bg-card px-2.5 text-xs rounded-[6px]">
                                     </td>
                                     @if(!$stockRequest)
                                     <td class="px-4 py-3 text-center align-top pt-3.5">
@@ -716,17 +716,17 @@
                 <div class="p-4 bg-muted/20 border-t border-border flex items-center justify-between gap-3">
                     <div>
                         @if(!$stockRequest)
-                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition cursor-pointer">
+                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 transition cursor-pointer rounded-[6px]">
                             <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             Tambah Baris
                         </button>
                         @endif
                     </div>
                     <div class="flex items-center gap-3">
-                        <button type="submit" name="action" value="save_draft" @click="submitAction = 'save_draft'" :disabled="submitting" class="px-4 py-2 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted text-foreground transition cursor-pointer disabled:opacity-50">
+                        <button type="submit" name="action" value="save_draft" @click="submitAction = 'save_draft'" :disabled="submitting" class="px-4 py-2 text-xs font-medium border border-border bg-card hover:bg-muted text-foreground transition cursor-pointer disabled:opacity-50 rounded-[6px]">
                             Simpan Sebagai Draft
                         </button>
-                        <button type="submit" name="action" value="ship" @click="submitAction = 'ship'" :disabled="submitting" class="px-4 py-2 text-xs font-medium rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs cursor-pointer disabled:opacity-50">
+                        <button type="submit" name="action" value="ship" @click="submitAction = 'ship'" :disabled="submitting" class="px-4 py-2 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs cursor-pointer disabled:opacity-50 rounded-[6px]">
                             Kirim Sekarang (In Transit - Potong Stok)
                         </button>
                     </div>

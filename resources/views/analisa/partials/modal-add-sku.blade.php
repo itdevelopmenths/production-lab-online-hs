@@ -11,7 +11,7 @@
                     <p class="text-xs text-[#667085] dark:text-gray-400 mt-0.5">Pilih SKU Bahan Baku / Kemasan, tentukan masuk ke Analisa Impor atau Lokal, serta Klasifikasi ABC-nya.</p>
                 </div>
             </div>
-            <button type="button" @click="showAddSkuModal = false" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button type="button" @click="showAddSkuModal = false" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px]">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
@@ -28,7 +28,7 @@
                         x-model.debounce.250ms="addSkuSearch"
                         @input="fetchAvailableAnalisaSkus()"
                         placeholder="Cari kode SKU atau nama..."
-                        class="px-3 py-1.5 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-[#101828] dark:text-white w-56 focus:border-[#111111] dark:focus:border-white outline-none"
+                        class="px-3 py-1.5 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-[#101828] dark:text-white w-56 focus:border-[#111111] dark:focus:border-white outline-none rounded-[6px]"
                     >
                 </div>
 
@@ -100,7 +100,7 @@
                         <input type="radio" name="add_sku_target_profil" value="lokal" x-model="addSkuForm.target_profil" class="mt-0.5 text-[#111111] dark:text-white focus:ring-0">
                         <div>
                             <div class="font-medium text-[#101828] dark:text-white">Bahan Baku Lokal</div>
-                            <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-0.5">Menggunakan 9 tahap Lead Time Lokal, ADU 4 bulan, dan buffer manual tanpa Klasifikasi ABC.</p>
+                            <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-0.5">Menggunakan 8 tahap Lead Time Lokal, ADU 4 bulan, dan buffer manual tanpa Klasifikasi ABC.</p>
                         </div>
                     </label>
                 </div>
@@ -117,7 +117,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="sm:col-span-2">
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Klasifikasi ABC <span class="text-rose-500">*</span></label>
-                        <select x-model="addSkuForm.klasifikasi_abc_id" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#101828] dark:text-white font-medium focus:border-[#111111] dark:focus:border-white outline-none">
+                        <select x-model="addSkuForm.klasifikasi_abc_id" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#101828] dark:text-white font-medium focus:border-[#111111] dark:focus:border-white outline-none rounded-[6px]">
                             <option value="">— Pilih Klasifikasi ABC —</option>
                             <template x-for="abc in klasifikasiAbcList" :key="abc.id">
                                 <option :value="abc.id" x-text="abc.nama + ' (+' + abc.tambahan_buffer_hari + ' Hari)'"></option>
@@ -126,23 +126,23 @@
                     </div>
                     <div>
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Total OUT (Opsional)</label>
-                        <input type="number" step="0.01" min="0" x-model.number="addSkuForm.out" placeholder="0" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white">
+                        <input type="number" step="0.01" min="0" x-model.number="addSkuForm.out" placeholder="0" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                     </div>
                     <div>
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Review Period (Hari)</label>
-                        <input type="number" min="1" x-model.number="addSkuForm.review_period_impor" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white">
+                        <input type="number" min="1" x-model.number="addSkuForm.review_period_impor" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                     </div>
                     <div>
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Lead Time Avg (Hari, Opsional)</label>
-                        <input type="number" step="0.1" min="0" x-model.number="addSkuForm.lead_time_average" placeholder="Otomatis / 45" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white">
+                        <input type="number" step="0.1" min="0" x-model.number="addSkuForm.lead_time_average" placeholder="Otomatis / 45" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                     </div>
                     <div>
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Lead Time Max (Hari, Opsional)</label>
-                        <input type="number" step="0.1" min="0" x-model.number="addSkuForm.lead_time_max" placeholder="Otomatis / 60" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white">
+                        <input type="number" step="0.1" min="0" x-model.number="addSkuForm.lead_time_max" placeholder="Otomatis / 60" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                     </div>
                     <div class="sm:col-span-2">
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Harga per Satuan (Rp, Opsional)</label>
-                        <input type="number" step="0.01" min="0" x-model.number="addSkuForm.harga_per_satuan" placeholder="Ikut harga HPP produk" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white">
+                        <input type="number" step="0.01" min="0" x-model.number="addSkuForm.harga_per_satuan" placeholder="Ikut harga HPP produk" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                         <div class="mt-1.5 flex items-center justify-between text-xs text-[#667085] dark:text-gray-400" x-show="addSkuForm.current_hpp !== null && addSkuForm.current_hpp !== undefined">
                             <span class="inline-flex items-center gap-1 tabular-nums text-[11px]">
                                 <span>HPP Sistem:</span>
@@ -163,19 +163,19 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Terjual 4 Bulan (Opsional)</label>
-                        <input type="number" step="0.01" min="0" x-model.number="addSkuForm.terjual_rata_rata_4bulan" placeholder="0" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white">
+                        <input type="number" step="0.01" min="0" x-model.number="addSkuForm.terjual_rata_rata_4bulan" placeholder="0" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                     </div>
                     <div>
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Review Period (Hari)</label>
-                        <input type="number" min="1" x-model.number="addSkuForm.review_period_lokal" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white">
+                        <input type="number" min="1" x-model.number="addSkuForm.review_period_lokal" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                     </div>
                     <div>
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Tambahan Buffer (Hari, Opsional)</label>
-                        <input type="number" step="0.1" min="0" x-model.number="addSkuForm.tambahan_buffer_hari" placeholder="0" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white">
+                        <input type="number" step="0.1" min="0" x-model.number="addSkuForm.tambahan_buffer_hari" placeholder="0" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                     </div>
                     <div>
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">Harga Satuan (Rp, Opsional)</label>
-                        <input type="number" step="0.01" min="0" x-model.number="addSkuForm.harga_per_satuan" placeholder="Ikut harga HPP produk" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white">
+                        <input type="number" step="0.01" min="0" x-model.number="addSkuForm.harga_per_satuan" placeholder="Ikut harga HPP produk" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 tabular-nums text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                         <div class="mt-1.5 flex items-center justify-between text-xs text-[#667085] dark:text-gray-400" x-show="addSkuForm.current_hpp !== null && addSkuForm.current_hpp !== undefined">
                             <span class="inline-flex items-center gap-1 tabular-nums text-[11px]">
                                 <span>HPP Sistem:</span>

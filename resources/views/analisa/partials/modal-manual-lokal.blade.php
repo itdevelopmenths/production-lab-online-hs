@@ -17,7 +17,7 @@
                     </p>
                 </div>
             </div>
-            <button type="button" @click="showManualLokalModal = false" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button type="button" @click="showManualLokalModal = false" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px]">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
@@ -33,7 +33,7 @@
                     </label>
                     <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Rata-rata penjualan 4 bulan untuk kalkulasi ADU = Terjual / 30 hari.</p>
                     <div class="relative flex items-center">
-                        <input type="number" step="0.01" min="0" x-model.number="manualLokalForm.terjual_rata_rata_4bulan" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-14 outline-none">
+                        <input type="number" step="0.01" min="0" x-model.number="manualLokalForm.terjual_rata_rata_4bulan" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-14 outline-none rounded-[6px]">
                         <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none" x-text="manualLokalForm.satuan"></span>
                     </div>
                     <div class="mt-2 flex items-center justify-between text-xs text-[#667085] dark:text-gray-400" x-show="manualLokalForm.current_terjual_sistem !== null && manualLokalForm.current_terjual_sistem !== undefined">
@@ -56,7 +56,7 @@
                     </label>
                     <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Interval siklus peninjauan pesanan kembali (default 15 hari).</p>
                     <div class="relative flex items-center">
-                        <input type="number" min="1" x-model.number="manualLokalForm.review_period" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none">
+                        <input type="number" min="1" x-model.number="manualLokalForm.review_period" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none rounded-[6px]">
                         <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">Hari</span>
                     </div>
                 </div>
@@ -68,7 +68,7 @@
                     </label>
                     <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Buffer hari pengaman tak terduga: Safety Stock = (Max - Avg) + Buffer.</p>
                     <div class="relative flex items-center">
-                        <input type="number" step="0.1" min="0" x-model.number="manualLokalForm.tambahan_buffer_hari" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none">
+                        <input type="number" step="0.1" min="0" x-model.number="manualLokalForm.tambahan_buffer_hari" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none rounded-[6px]">
                         <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">Hari</span>
                     </div>
                 </div>
@@ -81,7 +81,7 @@
                     <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Harga per satuan dasar (misal Rp/ml) untuk kalkulasi total nominal.</p>
                     <div class="relative flex items-center">
                         <span class="absolute left-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">Rp</span>
-                        <input type="number" step="0.01" min="0" x-model.number="manualLokalForm.harga_ml_pcs" class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none">
+                        <input type="number" step="0.01" min="0" x-model.number="manualLokalForm.harga_ml_pcs" class="w-full pl-9 pr-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none rounded-[6px]">
                     </div>
                     <div class="mt-2 flex items-center justify-between text-xs text-[#667085] dark:text-gray-400" x-show="manualLokalForm.current_hpp !== null && manualLokalForm.current_hpp !== undefined">
                         <span class="inline-flex items-center gap-1 tabular-nums text-[11px]">
@@ -103,7 +103,7 @@
                     </label>
                     <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Gunakan input ini jika ingin menyesuaikan saldo stok fisik untuk analisa ini.</p>
                     <div class="relative flex items-center">
-                        <input type="number" step="0.01" min="0" x-model.number="manualLokalForm.stok_saat_ini" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-14 outline-none">
+                        <input type="number" step="0.01" min="0" x-model.number="manualLokalForm.stok_saat_ini" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-14 outline-none rounded-[6px]">
                         <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none" x-text="manualLokalForm.satuan"></span>
                     </div>
                     <div class="mt-2 flex items-center justify-between text-xs text-[#667085] dark:text-gray-400" x-show="manualLokalForm.current_stok_aktual !== null && manualLokalForm.current_stok_aktual !== undefined">

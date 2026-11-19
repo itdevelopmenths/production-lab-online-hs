@@ -282,8 +282,7 @@ class AnalisaSupplierRelationTest extends TestCase
                         'supplier_confirm' => 2,
                         'payment' => 1,
                         'po' => 1,
-                        'pengemasan' => 4,
-                        'pengiriman' => 3,
+                        'pengiriman' => 7,
                         'unloading' => 1,
                         'input' => 1,
                     ],
@@ -295,8 +294,7 @@ class AnalisaSupplierRelationTest extends TestCase
                         'supplier_confirm' => 4,
                         'payment' => 2,
                         'po' => 2,
-                        'pengemasan' => 7,
-                        'pengiriman' => 5,
+                        'pengiriman' => 12,
                         'unloading' => 2,
                         'input' => 2,
                     ]
@@ -311,7 +309,7 @@ class AnalisaSupplierRelationTest extends TestCase
         $updatedAvg = $avgStage->fresh();
         $this->assertEquals(2, $updatedAvg->supplier_confirm);
         $this->assertEquals(1, $updatedAvg->po);
-        $this->assertEquals(4, $updatedAvg->pengemasan);
+        $this->assertEquals(7, $updatedAvg->pengiriman);
         $this->assertEquals(1, $updatedAvg->unloading);
 
         $lt = \App\Models\LeadTimeLokal::where('produk_id', $this->alkohol->id)->first();

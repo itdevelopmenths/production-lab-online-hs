@@ -12,7 +12,7 @@
         <div class="flex flex-wrap items-center gap-3">
             <div>
                 <label for="filter-gudang" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Lokasi Gudang</label>
-                <select id="filter-gudang" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                <select id="filter-gudang" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer rounded-[6px]">
                     <option value="">— Semua Gudang —</option>
                     @foreach($gudang as $g)
                         <option value="{{ $g->id }}">{{ $g->nama }}</option>
@@ -22,7 +22,7 @@
 
             <div>
                 <label for="filter-tipe" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Tipe Mutasi</label>
-                <select id="filter-tipe" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
+                <select id="filter-tipe" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer rounded-[6px]">
                     <option value="">— Semua Tipe —</option>
                     <option value="in">Masuk (IN)</option>
                     <option value="out">Keluar (OUT)</option>
@@ -31,12 +31,12 @@
 
             <div>
                 <label for="filter-tgl-mulai" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Dari Tanggal</label>
-                <input type="date" id="filter-tgl-mulai" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none">
+                <input type="date" id="filter-tgl-mulai" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none rounded-[6px]">
             </div>
 
             <div>
                 <label for="filter-tgl-selesai" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Sampai Tanggal</label>
-                <input type="date" id="filter-tgl-selesai" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none">
+                <input type="date" id="filter-tgl-selesai" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none rounded-[6px]">
             </div>
         </div>
 

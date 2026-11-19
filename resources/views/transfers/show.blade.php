@@ -94,18 +94,18 @@
                 @endif
 
                 @if($canReceive)
-                    <button type="button" @click="openReceiveModal = true" class="px-3.5 py-2 text-xs font-medium rounded-xl bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                    <button type="button" @click="openReceiveModal = true" class="px-3.5 py-2 text-xs font-medium bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition flex items-center gap-1.5 shadow-xs cursor-pointer rounded-[6px]">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Konfirmasi Penerimaan Barang
                     </button>
-                @elseif($transfer->status === 'dikirim')
+                @elseif($receiveBlockReason)
                     <span class="text-[11px] text-[#667085] dark:text-gray-400 italic px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg border border-[#E8E8E8] dark:border-gray-700">
-                        Penerimaan memerlukan petugas gudang yang berbeda (Segregation of Duties).
+                        {{ $receiveBlockReason }}
                     </span>
                 @endif
 
                 @if($canCancel)
-                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-medium rounded-xl border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer">
+                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-medium border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer rounded-[6px]">
                         Batalkan Transfer
                     </button>
                 @endif
@@ -270,13 +270,13 @@
                                     </td>
                                     <td class="px-3 py-3 text-right font-medium tabular-nums text-[#101828] dark:text-white" x-text="item.qty_dikirim"></td>
                                     <td class="px-3 py-3">
-                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_baik]`" x-model.number="item.qty_baik" class="w-full h-8 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-right font-medium text-foreground dark:text-foreground text-xs outline-none focus:border-[#111111] dark:focus:border-white" required>
+                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_baik]`" x-model.number="item.qty_baik" class="w-full h-8 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-right font-medium text-foreground dark:text-foreground text-xs outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]" required>
                                     </td>
                                     <td class="px-3 py-3">
-                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_rusak]`" x-model.number="item.qty_rusak" class="w-full h-8 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-right font-medium text-rose-700 dark:text-rose-400 text-xs outline-none focus:border-[#111111] dark:focus:border-white" required>
+                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_rusak]`" x-model.number="item.qty_rusak" class="w-full h-8 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-right font-medium text-rose-700 dark:text-rose-400 text-xs outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]" required>
                                     </td>
                                     <td class="px-3 py-3">
-                                        <input type="text" :name="`items[${idx}][keterangan_rusak]`" x-model="item.keterangan_rusak" :required="item.qty_rusak > 0" placeholder="Pecah, bocor, kadaluarsa..." class="w-full h-8 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 text-xs outline-none focus:border-[#111111] dark:focus:border-white">
+                                        <input type="text" :name="`items[${idx}][keterangan_rusak]`" x-model="item.keterangan_rusak" :required="item.qty_rusak > 0" placeholder="Pecah, bocor, kadaluarsa..." class="w-full h-8 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 text-xs outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                                         <template x-for="diff in [parseFloat(item.qty_dikirim) - (parseFloat(item.qty_baik || 0) + parseFloat(item.qty_rusak || 0))]">
                                             <div x-show="Math.abs(diff) > 0.0001" class="text-[10px] text-rose-600 dark:text-rose-400 font-medium mt-1">
                                                 Selisih: <span x-text="diff.toFixed(2)"></span> (Wajib 0)
@@ -291,7 +291,7 @@
 
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <x-button type="button" variant="secondary" @click="openReceiveModal = false">Batal</x-button>
-                    <button type="submit" :disabled="!isReceiveValid()" class="px-5 py-2 text-xs font-medium rounded-xl bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                    <button type="submit" :disabled="!isReceiveValid()" class="px-5 py-2 text-xs font-medium bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer rounded-[6px]">
                         Konfirmasi & Terima Stok
                     </button>
                 </div>
@@ -330,7 +330,7 @@
                 </x-form-field>
                 <div class="flex justify-end gap-2 pt-2">
                     <x-button type="button" variant="secondary" @click="openCancelModal = false">Tutup</x-button>
-                    <button type="submit" class="px-4 py-2 text-xs font-medium rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer">
+                    <button type="submit" class="px-4 py-2 text-xs font-medium bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer rounded-[6px]">
                         {{ $isInTransitCancel ? 'Konfirmasi Batalkan Transfer' : 'Batalkan Transfer' }}
                     </button>
                 </div>

@@ -511,7 +511,7 @@
                                         x-model.number="baik"
                                         @input="syncFromBaik()"
                                         onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                        class="w-full text-right rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums"
+                                        class="w-full text-right border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums rounded-[6px]"
                                         required
                                     >
                                 </td>
@@ -525,7 +525,7 @@
                                         x-model.number="rusak"
                                         @input="syncFromRusak()"
                                         onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                        class="w-full text-right rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums"
+                                        class="w-full text-right border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums rounded-[6px]"
                                         required
                                     >
                                 </td>
@@ -565,7 +565,7 @@
                                     x-model.number="baik"
                                     @input="syncFromBaik()"
                                     onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                    class="w-full rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums text-right"
+                                    class="w-full border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums text-right rounded-[6px]"
                                     required
                                 >
                             </div>
@@ -582,7 +582,7 @@
                                     x-model.number="rusak"
                                     @input="syncFromRusak()"
                                     onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                    class="w-full rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums text-right"
+                                    class="w-full border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums text-right rounded-[6px]"
                                     required
                                 >
                             </div>
@@ -644,10 +644,10 @@
                                     {{ rtrim(rtrim(number_format($a->qty_dialokasikan, 2, ',', '.'), '0'), ',') }} {{ $a->bahan->satuan }}
                                 </td>
                                 <td class="py-2.5 px-3 text-right">
-                                    <input type="number" step="0.01" min="0" name="items[{{ $index }}][pemakaian_aktual]" value="{{ $valAktual }}" class="w-full text-right rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none" required>
+                                    <input type="number" step="0.01" min="0" name="items[{{ $index }}][pemakaian_aktual]" value="{{ $valAktual }}" class="w-full text-right border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none rounded-[6px]" required>
                                 </td>
                                 <td class="py-2.5 px-3">
-                                    <input type="text" name="items[{{ $index }}][keterangan]" value="{{ $op?->keterangan }}" placeholder="Catatan opname" class="w-full rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none">
+                                    <input type="text" name="items[{{ $index }}][keterangan]" value="{{ $op?->keterangan }}" placeholder="Catatan opname" class="w-full border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none rounded-[6px]">
                                 </td>
                             </tr>
                             @endforeach
@@ -795,10 +795,10 @@
 
                                     <x-slot:footer>
                                         <div class="w-full grid grid-cols-2 gap-2">
-                                        <button type="button" id="batch-cancel-keep" @click="cancelOpen = false" class="px-3.5 py-2 text-sm font-medium rounded-lg border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-text-active hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20 dark:focus-visible:ring-white/30">
+                                        <button type="button" id="batch-cancel-keep" @click="cancelOpen = false" class="px-3.5 py-2 text-sm font-medium border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-text-active hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20 dark:focus-visible:ring-white/30 rounded-[6px]">
                                             Jangan batalkan
                                         </button>
-                                        <button type="submit" form="batch-cancel-form" :disabled="submitting" class="px-3.5 py-2 text-sm font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
+                                        <button type="submit" form="batch-cancel-form" :disabled="submitting" class="px-3.5 py-2 text-sm font-medium bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 rounded-[6px]">
                                             <span x-text="submitting ? 'Membatalkan…' : 'Batalkan batch'">Batalkan batch</span>
                                         </button>
                                         </div>

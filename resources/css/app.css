@@ -340,7 +340,7 @@
 }
 
 .dataTables_wrapper .dataTables_length select {
-  @apply h-8 sm:h-9 min-w-[54px] rounded-[4px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 px-2 py-1 text-xs text-[#101828] dark:text-white outline-none transition cursor-pointer focus:border-black dark:focus:border-white shadow-theme-xs;
+  @apply h-8 sm:h-9 min-w-[54px] rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 pl-3 pr-2 py-1 text-xs text-[#101828] dark:text-white outline-none transition cursor-pointer focus:border-black dark:focus:border-white shadow-theme-xs;
 }
 
 .dataTables_wrapper .dataTables_filter {
@@ -353,7 +353,7 @@
 }
 
 .dataTables_wrapper .dataTables_filter input {
-  @apply h-[32px] w-full sm:w-64 min-w-0 bg-white dark:bg-gray-900 border border-[#e8e8e8] dark:border-border rounded-[8px] px-3 py-1.5 text-xs text-[#101828] dark:text-white placeholder:text-text-placeholder outline-none transition focus:border-brand-500 dark:focus:border-white shadow-theme-xs;
+  @apply h-[32px] w-full sm:w-64 min-w-0 bg-white dark:bg-gray-900 border border-[#e8e8e8] dark:border-border rounded-[6px] px-3 py-1.5 text-xs text-[#101828] dark:text-white placeholder:text-text-placeholder outline-none transition focus:border-brand-500 dark:focus:border-white shadow-theme-xs;
 }
 
 /* Fallback when dt-layout-header is not used */
@@ -433,7 +433,7 @@ table.dataTable tbody td.dataTables_empty {
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button {
-  @apply inline-flex items-center justify-center w-8 h-8 sm:min-w-[36px] sm:h-9 px-2 rounded-[4px] border border-[#e8e8e8] dark:border-border text-xs font-medium text-[#101828] dark:text-white bg-white dark:bg-gray-900 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition leading-tight select-none shadow-theme-xs;
+  @apply inline-flex items-center justify-center w-8 h-8 sm:min-w-[36px] sm:h-9 px-2 rounded-[6px] border border-[#e8e8e8] dark:border-border text-xs font-medium text-[#101828] dark:text-white bg-white dark:bg-gray-900 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition leading-tight select-none shadow-theme-xs;
   margin: 0 !important;
 }
 
@@ -602,4 +602,60 @@ dialog::backdrop {
 @layer base {
   th { font-weight: 500; }
   strong, b { font-weight: 600; }
+}
+
+/* ── Controls: pill radius, glossy primary, soft secondary ── */
+@layer components {
+  .btn-glossy {
+    color: #fff;
+    border: 1px solid #000;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0 50%, rgba(255, 255, 255, 0) 50% 100%),
+      linear-gradient(180deg, #474747 0%, #1d1d1d 55%, #0c0c0c 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+      0 1px 2px rgba(16, 24, 40, 0.22),
+      0 3px 8px -2px rgba(16, 24, 40, 0.18);
+    transition: filter 150ms ease-out, box-shadow 150ms ease-out, transform 100ms ease-out;
+  }
+  .btn-glossy:hover:not(:disabled) { filter: brightness(1.15); }
+  .btn-glossy:active:not(:disabled) {
+    transform: translateY(0.5px);
+    box-shadow:
+      inset 0 1px 2px rgba(0, 0, 0, 0.4),
+      0 1px 1px rgba(16, 24, 40, 0.15);
+  }
+  .dark .btn-glossy {
+    color: #111;
+    border-color: #b9b9b9;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0 50%, rgba(255, 255, 255, 0) 50% 100%),
+      linear-gradient(180deg, #ffffff 0%, #ececec 55%, #d4d4d4 100%);
+    box-shadow:
+      inset 0 1px 0 #fff,
+      inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+      0 1px 2px rgba(0, 0, 0, 0.5),
+      0 3px 8px -2px rgba(0, 0, 0, 0.45);
+  }
+  .dark .btn-glossy:hover:not(:disabled) { filter: brightness(0.96); }
+  .dark .btn-glossy:active:not(:disabled) {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px 1px rgba(0, 0, 0, 0.4);
+  }
+
+  .btn-soft {
+    color: #101828;
+    background-color: #fff;
+    border: 1px solid #e8e8e8;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(16, 24, 40, 0.05);
+    transition: background-color 150ms ease-out, border-color 150ms ease-out;
+  }
+  .btn-soft:hover:not(:disabled) { background-color: #f9fafb; border-color: #d5d7da; }
+  .dark .btn-soft {
+    color: #e5e7eb;
+    background-color: #111827;
+    border-color: #374151;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+  .dark .btn-soft:hover:not(:disabled) { background-color: #1f2937; border-color: #4b5563; }
 }

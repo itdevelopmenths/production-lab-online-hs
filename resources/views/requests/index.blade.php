@@ -36,13 +36,13 @@
 
         <div class="mb-3.5 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-gray-900 px-4 py-3 rounded-[12px] border border-[#E8E8E8] dark:border-border shadow-theme-xs">
             <div class="flex flex-wrap items-center gap-2.5">
-                <select id="filterJenis" class="h-8 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none cursor-pointer">
+                <select id="filterJenis" class="h-8 border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none cursor-pointer rounded-[6px]">
                     <option value="">Semua Jenis Permintaan</option>
                     <option value="request_bahan">Bahan Baku (Operasional)</option>
                     <option value="request_produk_jadi">Produk Jadi (Fulfillment)</option>
                 </select>
 
-                <select id="filterStatus" class="h-8 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none cursor-pointer">
+                <select id="filterStatus" class="h-8 border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none cursor-pointer rounded-[6px]">
                     <option value="">Semua Status</option>
                     <option value="draft">Draft</option>
                     <option value="diajukan">Diajukan</option>
@@ -60,7 +60,7 @@
                     <button type="button"
                             @click="statusFilter = '{{ $sVal }}'; $('#filterStatus').val('{{ $sVal }}').trigger('change');"
                             :class="statusFilter === '{{ $sVal }}' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-theme-xs font-medium' : 'bg-transparent text-text-muted border border-transparent hover:text-text-active font-medium'"
-                            class="px-2.5 py-1 rounded-[6px] h-full text-xs whitespace-nowrap transition cursor-pointer">
+                            class="px-2.5 py-1 h-full text-xs whitespace-nowrap transition cursor-pointer rounded-[6px]">
                         {{ $sLabel }}
                     </button>
                 @endforeach

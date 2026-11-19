@@ -104,8 +104,7 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
             'supplier_confirm' => 1.0,
             'payment' => 1.0,
             'po' => 1.0,
-            'pengemasan' => 2.0,
-            'pengiriman' => 3.0,
+            'pengiriman' => 5.0,
             'unloading' => 1.0,
             'input' => 1.0, // total = 13.0 hari
         ]);
@@ -118,8 +117,7 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
             'supplier_confirm' => 2.0,
             'payment' => 2.0,
             'po' => 2.0,
-            'pengemasan' => 4.0,
-            'pengiriman' => 5.0,
+            'pengiriman' => 9.0,
             'unloading' => 2.0,
             'input' => 2.0, // total = 23.0 hari
         ]);
@@ -214,8 +212,7 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
             'supplier_confirm' => 1.0,
             'payment' => 1.0,
             'po' => 1.0,
-            'pengemasan' => 2.0,
-            'pengiriman' => 3.0,
+            'pengiriman' => 5.0,
             'unloading' => 1.0,
             'input' => 1.0, // total = 12.0
         ]);
@@ -228,15 +225,14 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
             'supplier_confirm' => 2.0,
             'payment' => 2.0,
             'po' => 2.0,
-            'pengemasan' => 4.0,
-            'pengiriman' => 5.0,
+            'pengiriman' => 9.0,
             'unloading' => 2.0,
             'input' => 2.0, // total = 23.0
         ]);
 
         $this->analisaService->generateLokal($this->produkLokal->id, $this->manager->id);
 
-        // Catat ringkasan empiris 9 tahap dari Purchasing untuk Supplier A
+        // Catat ringkasan empiris 8 tahap dari Purchasing untuk Supplier A
         $stageValues = [
             \App\Models\PoStage::STAGE_1 => [1.0, 1.5],
             \App\Models\PoStage::STAGE_2 => [0.5, 1.0],
@@ -273,8 +269,8 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
         $this->assertEquals(2.0, $rowA['average']['supplier_confirm']);
         $this->assertEquals(1.0, $rowA['average']['payment']);
         $this->assertEquals(0.5, $rowA['average']['po']);
-        $this->assertEquals(3.0, $rowA['average']['pengemasan']);
-        $this->assertEquals(2.0, $rowA['average']['pengiriman']);
+        // Tahap pengemasan arsip (3.0) dilebur ke pengiriman (2.0)
+        $this->assertEquals(5.0, $rowA['average']['pengiriman']);
         $this->assertEquals(0.5, $rowA['average']['unloading']);
         $this->assertEquals(0.5, $rowA['average']['input']);
         $this->assertEquals(11.0, $rowA['average']['total']);
@@ -300,7 +296,7 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
 
     /**
      * Penyelesaian Stage 9 pada Purchasing (completeStage9) dan invalidasi PO oleh Manager
-     * harus otomatis memperbarui working analisa yang sudah ada termasuk rincian 9 tahap di Tab 4.
+     * harus otomatis memperbarui working analisa yang sudah ada termasuk rincian 8 tahap di Tab 4.
      */
     public function test_purchasing_stage9_completion_and_invalidation_refresh_analisa_stages(): void
     {
@@ -381,7 +377,6 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
         $this->assertEquals(1.0, $afterRow['average']['supplier_confirm']);
         $this->assertEquals(0.5, $afterRow['average']['payment']);
         $this->assertEquals(0.5, $afterRow['average']['po']);
-        $this->assertEquals(0.0, $afterRow['average']['pengemasan']);
         $this->assertEquals(3.0, $afterRow['average']['pengiriman']);
         $this->assertEquals(0.5, $afterRow['average']['unloading']);
         $this->assertEquals(0.5, $afterRow['average']['input']);

@@ -59,7 +59,7 @@
                             Pilih atau keluarkan SKU Bahan Baku / Kemasan pada klasifikasi ini.
                         </p>
                     </div>
-                    <button type="button" @click="closeSkuModal()" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <button type="button" @click="closeSkuModal()" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px]">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
@@ -76,12 +76,12 @@
                                     x-model.debounce.250ms="skuSearch"
                                     @input="fetchAvailableSkus()"
                                     placeholder="Cari kode SKU atau nama..."
-                                    class="px-3 py-1.5 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 text-[#101828] dark:text-white w-48 focus:outline-none focus:border-[#111111] dark:focus:border-white"
+                                    class="px-3 py-1.5 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 text-[#101828] dark:text-white w-48 focus:outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]"
                                 >
                                 <select
                                     x-model="skuProfilFilter"
                                     @change="fetchAvailableSkus()"
-                                    class="px-2.5 py-1.5 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 text-[#101828] dark:text-white focus:outline-none focus:border-[#111111] dark:focus:border-white"
+                                    class="px-2.5 py-1.5 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 text-[#101828] dark:text-white focus:outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]"
                                 >
                                     <option value="">Semua Profil</option>
                                     <option value="impor">Hanya Impor</option>
@@ -129,7 +129,7 @@
                                 type="button"
                                 @click="assignSelectedSkus()"
                                 :disabled="selectedSkuIds.length === 0 || assigningSkus"
-                                class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white dark:text-[#111111] bg-[#111111] dark:bg-white hover:bg-[#292929] dark:hover:bg-gray-100 rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white dark:text-[#111111] bg-[#111111] dark:bg-white hover:bg-[#292929] dark:hover:bg-gray-100 shadow-xs transition disabled:opacity-50 cursor-pointer rounded-[6px]"
                             >
                                 <span x-text="assigningSkus ? 'Menyimpan...' : 'Tambahkan SKU Terpilih (' + selectedSkuIds.length + ')'"></span>
                             </button>
@@ -172,7 +172,7 @@
                                             <td class="px-3 py-2.5 uppercase text-[10px] font-medium text-[#101828] dark:text-white" x-text="skuItem.profil_analisa || 'impor'"></td>
                                             @can('analisa.manage')
                                             <td class="px-3 py-2.5 text-center">
-                                                <button type="button" @click="unassignSku(skuItem)" class="px-2 py-1 rounded-md text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer">
+                                                <button type="button" @click="unassignSku(skuItem)" class="px-2 py-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer rounded-[6px]">
                                                     Keluarkan
                                                 </button>
                                             </td>
@@ -200,7 +200,7 @@
             >
                 <div class="px-6 py-4 border-b border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight" x-text="isEdit ? 'Edit Klasifikasi ABC' : 'Tambah Klasifikasi ABC'"></h3>
-                    <button type="button" @click="closeModal()" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <button type="button" @click="closeModal()" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px]">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
@@ -214,7 +214,7 @@
                                     type="text"
                                     x-model="form.kode"
                                     placeholder="misal: a, b, c, wajib_a"
-                                    class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white tabular-nums lowercase text-[#101828] dark:text-white"
+                                    class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white tabular-nums lowercase text-[#101828] dark:text-white rounded-[6px]"
                                     required
                                 >
                                 <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-1">Gunakan huruf kecil atau underscore (contoh: wajib_a, a, b, c).</p>
@@ -226,7 +226,7 @@
                                     type="text"
                                     x-model="form.nama"
                                     placeholder="misal: A - Fast Moving"
-                                    class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white"
+                                    class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white rounded-[6px]"
                                     required
                                 >
                             </div>
@@ -239,7 +239,7 @@
                                         min="0"
                                         max="365"
                                         x-model.number="form.tambahan_buffer_hari"
-                                        class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white tabular-nums text-[#101828] dark:text-white"
+                                        class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white tabular-nums text-[#101828] dark:text-white rounded-[6px]"
                                         required
                                     >
                                     <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-1">Ditambahkan ke Buffer Days.</p>
@@ -249,7 +249,7 @@
                                     <label class="block text-xs font-medium text-[#101828] dark:text-white mb-1">Warna Badge <span class="text-rose-500">*</span></label>
                                     <select
                                         x-model="form.warna_badge"
-                                        class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white"
+                                        class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white rounded-[6px]"
                                     >
                                         <option value="red">Merah (Wajib / Vital)</option>
                                         <option value="amber">Amber (Fast Moving)</option>
@@ -266,7 +266,7 @@
                                     x-model="form.deskripsi"
                                     rows="2"
                                     placeholder="Keterangan kategori prioritas pengadaan..."
-                                    class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white"
+                                    class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white rounded-[6px]"
                                 ></textarea>
                             </div>
 

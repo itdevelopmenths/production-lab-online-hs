@@ -404,7 +404,15 @@ class TransferController extends Controller
 
         $canCancel = $this->authz->canCancelTransfer($user, $transfer);
 
-        return view('transfers.show', compact('transfer', 'canShip', 'canReceive', 'canCancel', 'isManager'));
+        // Alasan tombol terima tidak tampil, supaya pesan di UI sesuai penyebab sebenarnya.
+        $receiveBlockReason = null;
+        if ($transfer->status === 'dikirim' && ! $canReceive) {
+            $receiveBlockReason = $this->authz->canReceiveTransfer($user, $transfer)
+                ? 'Penerimaan memerlukan petugas gudang yang berbeda (Segregation of Duties).'
+                : 'Akun Anda tidak memiliki izin menerima transfer kategori ini. Hubungi manager untuk pengaturan izin.';
+        }
+
+        return view('transfers.show', compact('transfer', 'canShip', 'canReceive', 'canCancel', 'isManager', 'receiveBlockReason'));
     }
 
     public function ship(Request $request, Transfer $transfer): RedirectResponse

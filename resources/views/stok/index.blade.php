@@ -25,7 +25,7 @@
             <div class="flex flex-wrap items-center gap-3">
                 <div>
                     <label for="filter-gudang" class="block text-[11px] font-medium text-[#667085] dark:text-gray-400 mb-1">Lokasi Gudang</label>
-                    <select id="filter-gudang" autocomplete="off" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-44 max-w-full outline-none cursor-pointer">
+                    <select id="filter-gudang" autocomplete="off" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-44 max-w-full outline-none cursor-pointer rounded-[6px]">
                         @if($isGlobal)
                             <option value="">All Gudang</option>
                         @elseif(($gudangTypeOptions ?? collect())->count() > 1)
@@ -47,7 +47,7 @@
                 </div>
                 <div>
                     <label for="filter-kategori" class="block text-[11px] font-medium text-[#667085] dark:text-gray-400 mb-1">Kategori Barang</label>
-                    <select id="filter-kategori" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
+                    <select id="filter-kategori" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer rounded-[6px]">
                         <option value="">— Semua Kategori —</option>
                         <option value="bahan">Bahan Baku & Kemas</option>
                         <option value="produk_jadi">Produk Jadi</option>
@@ -208,7 +208,7 @@
                     </x-form-field>
                     <x-form-field name="qty" label="Qty" :required="true">
                         <div class="relative flex items-center">
-                            <input type="number" step="0.01" min="0.01" name="qty" x-model="qty" class="w-full h-9 rounded-lg border-0 bg-transparent text-xs py-1.5 pr-14 tabular-nums text-[#101828] dark:text-white outline-none focus:ring-0" placeholder="0.00" required>
+                            <input type="number" step="0.01" min="0.01" name="qty" x-model="qty" class="w-full h-9 border-0 bg-transparent text-xs py-1.5 pr-14 tabular-nums text-[#101828] dark:text-white outline-none focus:ring-0 rounded-[6px]" placeholder="0.00" required>
                             <span class="absolute right-0 px-1.5 py-0.5 text-[10px] tabular-nums font-medium text-[#101828] dark:text-white bg-gray-100 dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700 rounded-md uppercase tracking-wider pointer-events-none" x-text="mutasiUom || 'Unit'"></span>
                         </div>
                     </x-form-field>

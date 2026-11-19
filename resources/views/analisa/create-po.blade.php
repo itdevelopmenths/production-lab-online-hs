@@ -263,7 +263,7 @@
                                                 >
                                                     <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
                                                         <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                        <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU bahan..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                                                        <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU bahan..." class="w-full bg-background border border-input px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]" />
                                                     </div>
 
                                                     <div class="max-h-48 overflow-y-auto divide-y divide-border">
@@ -299,7 +299,7 @@
                                                         @input="updateRowQty(row)"
                                                         placeholder="Qty"
                                                         required
-                                                        class="w-24 rounded-lg border border-input bg-background text-xs py-2 px-2.5 tabular-nums text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                        class="w-24 border border-input bg-background text-xs py-2 px-2.5 tabular-nums text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]"
                                                     />
 
                                                     {{-- Dropdown Satuan Beli --}}
@@ -307,7 +307,7 @@
                                                         :name="`items[${i}][satuan_beli]`"
                                                         x-model="row.satuan_beli"
                                                         @change="onSatuanBeliChange(row)"
-                                                        class="flex-1 rounded-lg border border-input bg-background text-xs py-2 px-2 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                        class="flex-1 border border-input bg-background text-xs py-2 px-2 text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]"
                                                     >
                                                         <template x-for="opt in getUomOptions(row.satuan, row.satuan_beli, row.faktor_konversi)" :key="opt.code">
                                                             <option :value="opt.code" x-text="opt.label" :selected="opt.code === row.satuan_beli || opt.code.toLowerCase() === (row.satuan_beli || '').toLowerCase()"></option>
@@ -326,7 +326,7 @@
                                                             :name="`items[${i}][faktor_konversi]`"
                                                             x-model.number="row.faktor_konversi"
                                                             @input="updateRowQty(row)"
-                                                            class="w-16 text-right py-0.5 px-1.5 text-xs rounded-md border border-input bg-background tabular-nums text-foreground"
+                                                            class="w-16 text-right py-0.5 px-1.5 text-xs border border-input bg-background tabular-nums text-foreground rounded-[6px]"
                                                             placeholder="Faktor"
                                                             required
                                                         />
@@ -360,7 +360,7 @@
                                                     @keydown="handleKeyDown($event)"
                                                     placeholder="0"
                                                     required
-                                                    class="w-full rounded-lg border border-input bg-background text-xs py-2 px-2.5 tabular-nums text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs font-medium"
+                                                    class="w-full border border-input bg-background text-xs py-2 px-2.5 tabular-nums text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs font-medium rounded-[6px]"
                                                 />
                                             </div>
                                         </td>
@@ -381,7 +381,7 @@
                                         {{-- Kolom 5: Hapus --}}
                                         <td class="px-3 py-3 text-center">
                                             <button type="button" @click="if(rows.length > 1) { rows.splice(i,1); recalcAll(); }" :disabled="rows.length <= 1"
-                                                    class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed transition rounded-lg"
+                                                    class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed transition rounded-[6px]"
                                                     title="Hapus baris">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                             </button>
@@ -502,14 +502,14 @@
                                 <label class="text-xs text-foreground font-medium">Ongkos Kirim Global (Rp)</label>
                                 <div class="w-48">
                                     <input type="hidden" name="ongkos_kirim" :value="headerOngkir">
-                                    <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background text-foreground tabular-nums focus:border-ring focus:ring-1 focus:ring-ring shadow-xs">
+                                    <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 border border-input bg-background text-foreground tabular-nums focus:border-ring focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]">
                                 </div>
                             </div>
                             <div class="flex items-center justify-between gap-4">
                                 <label class="text-xs text-foreground font-medium">Adjustment / Pembulatan (Rp)</label>
                                 <div class="w-48">
                                     <input type="hidden" name="adjustment" :value="headerAdj">
-                                    <input type="text" inputmode="numeric" :value="(headerAdj < 0 ? '-' : '') + formatThousand(Math.abs(headerAdj))" @input="updateHeaderAdj($event)" @keydown="handleKeyDown($event, true)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 rounded-lg border border-input bg-background tabular-nums focus:border-ring focus:ring-1 focus:ring-ring shadow-xs" :class="headerAdj < 0 ? 'text-destructive' : 'text-foreground'">
+                                    <input type="text" inputmode="numeric" :value="(headerAdj < 0 ? '-' : '') + formatThousand(Math.abs(headerAdj))" @input="updateHeaderAdj($event)" @keydown="handleKeyDown($event, true)" placeholder="0" class="w-full text-right text-xs py-1.5 px-2.5 border border-input bg-background tabular-nums focus:border-ring focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]" :class="headerAdj < 0 ? 'text-destructive' : 'text-foreground'">
                                 </div>
                             </div>
                         </div>
@@ -552,9 +552,9 @@
                             <div class="p-4 border-b border-border flex items-center justify-between">
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs text-muted-foreground font-medium">Bagi Cepat:</span>
-                                    <button type="button" @click="generateEqualTermins(2)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 rounded-md text-xs text-foreground transition font-medium">2 Termin (50:50)</button>
-                                    <button type="button" @click="generateEqualTermins(3)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 rounded-md text-xs text-foreground transition font-medium">3 Termin</button>
-                                    <button type="button" @click="generateEqualTermins(4)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 rounded-md text-xs text-foreground transition font-medium">4 Termin</button>
+                                    <button type="button" @click="generateEqualTermins(2)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 text-xs text-foreground transition font-medium rounded-[6px]">2 Termin (50:50)</button>
+                                    <button type="button" @click="generateEqualTermins(3)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 text-xs text-foreground transition font-medium rounded-[6px]">3 Termin</button>
+                                    <button type="button" @click="generateEqualTermins(4)" class="px-2.5 py-1 bg-muted hover:bg-muted/80 text-xs text-foreground transition font-medium rounded-[6px]">4 Termin</button>
                                 </div>
 
                                 <button type="button" @click="termins.push({tanggal_tempo:'',nominal_tagihan:0,keterangan:''})" class="text-xs font-medium text-foreground hover:underline">
@@ -578,17 +578,17 @@
                                             <tr class="hover:bg-muted/40 transition">
                                                 <td class="px-4 py-2.5 text-center tabular-nums font-medium text-foreground" x-text="idx + 1"></td>
                                                 <td class="px-4 py-2.5">
-                                                    <input type="date" :name="`termins[${idx}][tanggal_tempo]`" x-model="tm.tanggal_tempo" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" class="w-full text-xs py-2 px-2.5 rounded-lg border border-input bg-background text-foreground focus:border-ring focus:ring-1 focus:ring-ring">
+                                                    <input type="date" :name="`termins[${idx}][tanggal_tempo]`" x-model="tm.tanggal_tempo" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" class="w-full text-xs py-2 px-2.5 border border-input bg-background text-foreground focus:border-ring focus:ring-1 focus:ring-ring rounded-[6px]">
                                                 </td>
                                                 <td class="px-4 py-2.5">
                                                     <input type="hidden" :name="`termins[${idx}][nominal_tagihan]`" :value="tm.nominal_tagihan" :disabled="skemaBayar !== 'termin'">
-                                                    <input type="text" inputmode="numeric" :value="formatThousand(tm.nominal_tagihan)" @input="updateTerminNominal(tm, $event)" @keydown="handleKeyDown($event)" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" placeholder="0" class="w-full text-right tabular-nums text-xs py-2 px-2.5 rounded-lg border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-medium text-foreground">
+                                                    <input type="text" inputmode="numeric" :value="formatThousand(tm.nominal_tagihan)" @input="updateTerminNominal(tm, $event)" @keydown="handleKeyDown($event)" :required="skemaBayar === 'termin'" :disabled="skemaBayar !== 'termin'" placeholder="0" class="w-full text-right tabular-nums text-xs py-2 px-2.5 border border-input bg-background focus:border-ring focus:ring-1 focus:ring-ring font-medium text-foreground rounded-[6px]">
                                                 </td>
                                                 <td class="px-4 py-2.5">
-                                                    <input type="text" :name="`termins[${idx}][keterangan]`" x-model="tm.keterangan" :disabled="skemaBayar !== 'termin'" placeholder="Contoh: DP 30% / Pelunasan" class="w-full text-xs py-2 px-2.5 rounded-lg border border-input bg-background text-foreground focus:border-ring focus:ring-1 focus:ring-ring">
+                                                    <input type="text" :name="`termins[${idx}][keterangan]`" x-model="tm.keterangan" :disabled="skemaBayar !== 'termin'" placeholder="Contoh: DP 30% / Pelunasan" class="w-full text-xs py-2 px-2.5 border border-input bg-background text-foreground focus:border-ring focus:ring-1 focus:ring-ring rounded-[6px]">
                                                 </td>
                                                 <td class="px-4 py-2.5 text-center">
-                                                    <button type="button" @click="if(termins.length > 1) termins.splice(idx,1)" :disabled="termins.length <= 1" class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition disabled:opacity-30">
+                                                    <button type="button" @click="if(termins.length > 1) termins.splice(idx,1)" :disabled="termins.length <= 1" class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition disabled:opacity-30 rounded-[6px]">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                     </button>
                                                 </td>

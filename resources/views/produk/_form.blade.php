@@ -295,13 +295,13 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
             
             {{-- Dropdown tambah supplier --}}
             <div class="flex items-center gap-2">
-                <select x-model="selectedSupplierToAdd" class="h-9 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none">
+                <select x-model="selectedSupplierToAdd" class="h-9 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none rounded-[6px]">
                     <option value="">— Pilih Supplier —</option>
                     <template x-for="s in allSuppliers" :key="s.id">
                         <option :value="s.id" x-text="s.nama + ' (' + (s.kategori || 'lokal').toUpperCase() + ')'" :disabled="assignedSuppliers.some(item => parseInt(item.supplier_id, 10) === parseInt(s.id, 10))"></option>
                     </template>
                 </select>
-                <button type="button" @click="addSupplier()" :disabled="!selectedSupplierToAdd" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-[#111111] dark:bg-white text-white dark:text-[#111111] hover:bg-[#292929] dark:hover:bg-gray-100 disabled:opacity-50 transition-colors cursor-pointer">
+                <button type="button" @click="addSupplier()" :disabled="!selectedSupplierToAdd" class="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium bg-[#111111] dark:bg-white text-white dark:text-[#111111] hover:bg-[#292929] dark:hover:bg-gray-100 disabled:opacity-50 transition-colors cursor-pointer rounded-[6px]">
                     <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Tambah
                 </button>
@@ -337,14 +337,14 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
                                 </span>
                             </td>
                             <td class="px-3 py-2.5 text-center">
-                                <button type="button" @click="toggleSupplierStatus(idx)" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors cursor-pointer"
+                                <button type="button" @click="toggleSupplierStatus(idx)" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium border transition-colors cursor-pointer rounded-[6px]"
                                         :class="item.status === 'aktif' ? 'bg-card dark:bg-card text-foreground dark:text-foreground border-border dark:border-border' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'">
                                     <span class="size-1.5 rounded-full" :class="item.status === 'aktif' ? 'bg-gray-400' : 'bg-gray-400'"></span>
                                     <span x-text="item.status === 'aktif' ? 'Aktif' : 'Nonaktif'"></span>
                                 </button>
                             </td>
                             <td class="px-3 py-2.5 text-center">
-                                <button type="button" @click="removeSupplier(idx)" class="p-1 rounded text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer" title="Hapus supplier">
+                                <button type="button" @click="removeSupplier(idx)" class="p-1 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer rounded-[6px]" title="Hapus supplier">
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                             </td>

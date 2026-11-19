@@ -16,7 +16,7 @@
                     </p>
                 </div>
             </div>
-            <button type="button" @click="showCompareSupplierModal = false" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button type="button" @click="showCompareSupplierModal = false" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px]">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
@@ -91,7 +91,7 @@
                                             type="button" 
                                             @click="selectSupplier(s.supplier_id)" 
                                             :disabled="savingSelectSupplier"
-                                            class="px-3 py-1.5 bg-[#111111] hover:bg-[#292929] dark:bg-white dark:hover:bg-gray-100 text-white dark:text-[#111111] disabled:opacity-50 text-xs font-medium rounded-lg shadow-xs transition cursor-pointer"
+                                            class="px-3 py-1.5 disabled:opacity-50 text-xs font-medium transition cursor-pointer btn-glossy rounded-[6px]"
                                         >
                                             <span x-show="!savingSelectSupplier">Gunakan Supplier</span>
                                             <span x-show="savingSelectSupplier">Menyimpan...</span>

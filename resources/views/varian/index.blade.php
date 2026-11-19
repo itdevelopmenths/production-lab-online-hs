@@ -20,7 +20,7 @@
     <div class="mb-4 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-wrap items-center justify-between gap-3 text-xs">
         <div class="flex items-center gap-2.5">
             <label for="filter-kategori" class="font-medium text-[#667085] dark:text-gray-400">Filter Kategori:</label>
-            <select id="filter-kategori" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-1.5 text-xs text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none transition cursor-pointer">
+            <select id="filter-kategori" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-1.5 text-xs text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none transition cursor-pointer rounded-[6px]">
                 <option value="">Semua Kategori</option>
                 @foreach($kategoriList as $k)
                     <option value="{{ $k->id }}">{{ $k->nama }}</option>

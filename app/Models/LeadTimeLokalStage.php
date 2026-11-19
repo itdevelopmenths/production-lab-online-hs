@@ -17,7 +17,6 @@ class LeadTimeLokalStage extends Model
         'supplier_confirm',
         'payment',
         'po',
-        'pengemasan',
         'pengiriman',
         'unloading',
         'input',
@@ -29,7 +28,6 @@ class LeadTimeLokalStage extends Model
         'supplier_confirm' => 'float',
         'payment' => 'float',
         'po' => 'float',
-        'pengemasan' => 'float',
         'pengiriman' => 'float',
         'unloading' => 'float',
         'input' => 'float',
@@ -41,7 +39,6 @@ class LeadTimeLokalStage extends Model
         'supplier_confirm',
         'payment',
         'po',
-        'pengemasan',
         'pengiriman',
         'unloading',
         'input',
@@ -53,7 +50,7 @@ class LeadTimeLokalStage extends Model
     }
 
     /**
-     * Hitung total hari dari 9 tahap (toleransi 1 angka desimal half-up)
+     * Hitung total hari dari 8 tahap (toleransi 1 angka desimal half-up)
      */
     public function totalHari(): float
     {
@@ -62,7 +59,6 @@ class LeadTimeLokalStage extends Model
             (float) $this->supplier_confirm +
             (float) $this->payment +
             (float) $this->po +
-            (float) $this->pengemasan +
             (float) $this->pengiriman +
             (float) $this->unloading +
             (float) $this->input;

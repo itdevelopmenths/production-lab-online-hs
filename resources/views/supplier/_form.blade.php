@@ -185,14 +185,14 @@ function supplierProdukChecklist(allProducts, initialSelectedIds) {
                 <button type="button"
                         @click="selectAllFiltered()"
                         :disabled="filteredProducts.length === 0 || allFilteredSelected"
-                        class="text-[11px] font-medium text-[#111111] dark:text-white hover:underline cursor-pointer rounded focus-visible:outline-none disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed">
+                        class="text-[11px] font-medium text-[#111111] dark:text-white hover:underline cursor-pointer focus-visible:outline-none disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed rounded-[6px]">
                     <span x-text="search.trim() ? ('Pilih Semua Hasil (' + filteredProducts.length + ')') : 'Pilih Semua'"></span>
                 </button>
                 <span class="text-[#667085]/60 text-xs" aria-hidden="true">&bull;</span>
                 <button type="button"
                         @click="deselectAllFiltered()"
                         :disabled="filteredSelectedCount === 0"
-                        class="text-[11px] font-medium text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white cursor-pointer rounded focus-visible:outline-none disabled:opacity-40 disabled:cursor-not-allowed">
+                        class="text-[11px] font-medium text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white cursor-pointer focus-visible:outline-none disabled:opacity-40 disabled:cursor-not-allowed rounded-[6px]">
                     <span x-text="(search.trim() || filterMode === 'selected') ? 'Batalkan Hasil Ini' : 'Batalkan Semua'"></span>
                 </button>
             </div>
@@ -215,13 +215,13 @@ function supplierProdukChecklist(allProducts, initialSelectedIds) {
                            autocapitalize="none"
                            spellcheck="false"
                            placeholder="Cari nama atau SKU (pisahkan koma untuk multi-keyword, mis: alkohol, botol)..."
-                           class="w-full text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 pl-9 pr-8 py-2 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none transition [&::-webkit-search-cancel-button]:hidden">
+                           class="w-full text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 pl-9 pr-8 py-2 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none transition [&::-webkit-search-cancel-button]:hidden rounded-[6px]">
                     <button type="button"
                             x-show="search.length > 0"
                             x-cloak
                             @click="clearSearch()"
                             aria-label="Hapus kata kunci pencarian"
-                            class="absolute right-2 top-1.5 p-1 rounded-md text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
+                            class="absolute right-2 top-1.5 p-1 text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer rounded-[6px]">
                         <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </search>
@@ -231,14 +231,14 @@ function supplierProdukChecklist(allProducts, initialSelectedIds) {
                             @click="filterMode = 'all'"
                             :aria-pressed="filterMode === 'all'"
                             :class="filterMode === 'all' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                            class="px-2.5 py-1 text-[11px] font-medium rounded-[7px] transition cursor-pointer">
+                            class="px-2.5 py-1 text-[11px] font-medium transition cursor-pointer rounded-[6px]">
                         Semua (<span class="tabular-nums" x-text="allProducts.length"></span>)
                     </button>
                     <button type="button"
                             @click="filterMode = 'selected'"
                             :aria-pressed="filterMode === 'selected'"
                             :class="filterMode === 'selected' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                            class="px-2.5 py-1 text-[11px] font-medium rounded-[7px] transition cursor-pointer">
+                            class="px-2.5 py-1 text-[11px] font-medium transition cursor-pointer rounded-[6px]">
                         Terpilih (<span class="tabular-nums" x-text="selectedIds.length"></span>)
                     </button>
                 </div>

@@ -53,7 +53,7 @@
                 role="tab"
                 @click="activeTab = 'po'; $nextTick(() => { if (dtTable) dtTable.columns.adjust(); })"
                 :class="activeTab === 'po' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
-                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
+                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none rounded-[6px]"
             >
                 <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Daftar Purchase Order
@@ -66,7 +66,7 @@
                 role="tab"
                 @click="activeTab = 'ap'; $nextTick(() => { if (dtApTable) dtApTable.columns.adjust(); })"
                 :class="activeTab === 'ap' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
-                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
+                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none rounded-[6px]"
             >
                 <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 Buku Tagihan (AP)
@@ -80,7 +80,7 @@
                 role="tab"
                 @click="activeTab = 'approval'; $nextTick(() => { if (dtApprovalTable) dtApprovalTable.columns.adjust(); })"
                 :class="activeTab === 'approval' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
-                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
+                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none rounded-[6px]"
             >
                 <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Antrean Approval
@@ -98,7 +98,7 @@
                 role="tab"
                 @click="activeTab = 'lead_time'; if (!leadTimeLoaded) { leadTimeLoaded = true; loadLeadTimeData(); }"
                 :class="activeTab === 'lead_time' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
-                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
+                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none rounded-[6px]"
             >
                 <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Lead Time Supplier
@@ -112,7 +112,7 @@
                 <div class="flex flex-wrap items-center gap-2.5">
                     <div>
                         <label for="filter-status-po" class="block text-[11px] font-medium text-text-muted mb-1">Status PO</label>
-                        <select id="filter-status-po" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                        <select id="filter-status-po" class="h-8 border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer rounded-[6px]">
                             <option value="">— Semua Status PO —</option>
                             <option value="draft">Draft</option>
                             <option value="diajukan">Diajukan (Menunggu Approval)</option>
@@ -124,7 +124,7 @@
                     </div>
                     <div>
                         <label for="filter-stage-po" class="block text-[11px] font-medium text-text-muted mb-1">Stage Aktif</label>
-                        <select id="filter-stage-po" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                        <select id="filter-stage-po" class="h-8 border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer rounded-[6px]">
                             <option value="">— Semua Stage —</option>
                             @foreach (\App\Models\PoStage::STAGES as $urutan => $stageKey)
                                 <option value="{{ $stageKey }}">{{ $urutan }}. {{ \App\Models\PoStage::STAGE_LABELS[$stageKey] }}</option>
@@ -133,7 +133,7 @@
                     </div>
                     <div>
                         <label for="filter-kategori-supplier" class="block text-[11px] font-medium text-text-muted mb-1">Kategori Supplier</label>
-                        <select id="filter-kategori-supplier" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
+                        <select id="filter-kategori-supplier" class="h-8 border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer rounded-[6px]">
                             <option value="">— Semua Kategori —</option>
                             <option value="lokal">Lokal</option>
                             <option value="impor">Impor</option>
@@ -182,7 +182,7 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <div>
                         <label for="filter-status-bayar-ap" class="block text-[11px] font-medium text-text-muted mb-1">Filter Status Bayar / AP</label>
-                        <select id="filter-status-bayar-ap" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                        <select id="filter-status-bayar-ap" class="h-8 border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer rounded-[6px]">
                             <option value="">— Semua Status Bayar —</option>
                             <option value="overdue">🔴 Overdue (Jatuh Tempo - Prioritas)</option>
                             <option value="belum_lunas">🟡 Belum Lunas</option>
@@ -193,7 +193,7 @@
                     </div>
                     <div>
                         <label for="filter-skema-bayar-ap" class="block text-[11px] font-medium text-text-muted mb-1">Filter Skema Transaksi</label>
-                        <select id="filter-skema-bayar-ap" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
+                        <select id="filter-skema-bayar-ap" class="h-8 border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer rounded-[6px]">
                             <option value="">— Semua Skema —</option>
                             <option value="cash">Tunai (Cash)</option>
                             <option value="tempo">Tempo</option>
@@ -415,7 +415,7 @@
                     <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Breakdown Performa Stage</h3>
                     <p class="text-xs text-text-muted" id="modalStageSupplierName">Supplier: —</p>
                 </div>
-                <button type="button" onclick="closeStageBreakdownModal()" class="text-text-muted hover:text-text-active p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">✕</button>
+                <button type="button" onclick="closeStageBreakdownModal()" class="text-text-muted hover:text-text-active p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer rounded-[6px]">✕</button>
             </div>
             <div class="p-4 sm:p-5 max-h-[75vh] overflow-y-auto custom-scrollbar bg-[#F5F5F5] dark:bg-gray-950">
                 <div class="bg-white dark:bg-gray-900 rounded-[8px] border border-[#e8e8e8] dark:border-border overflow-hidden">
@@ -452,7 +452,7 @@
                     </h3>
                     <p class="text-xs text-text-muted" id="modalInvPoNo">PO: —</p>
                 </div>
-                <button type="button" onclick="closeInvalidateLtModal()" class="text-text-muted hover:text-text-active p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">✕</button>
+                <button type="button" onclick="closeInvalidateLtModal()" class="text-text-muted hover:text-text-active p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer rounded-[6px]">✕</button>
             </div>
             <form id="formInvalidateLt" onsubmit="submitInvalidateLt(event)" class="text-xs">
                 <input type="hidden" id="invPoId">
@@ -480,7 +480,7 @@
                     <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Ubah Tanggal PO & ETA</h3>
                     <p class="text-xs text-text-muted" id="modalPoNumber">PO-XXXX</p>
                 </div>
-                <button type="button" onclick="closeQuickDateModal()" class="text-text-muted hover:text-text-active p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">✕</button>
+                <button type="button" onclick="closeQuickDateModal()" class="text-text-muted hover:text-text-active p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer rounded-[6px]">✕</button>
             </div>
             <form id="quickDateForm" onsubmit="submitQuickDate(event)" class="text-xs">
                 <input type="hidden" id="editPoId">

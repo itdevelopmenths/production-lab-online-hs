@@ -184,8 +184,7 @@ class AnalisaLokalEngineTest extends TestCase
                     'supplier_confirm' => 2,
                     'payment' => 1,
                     'po' => 1,
-                    'pengemasan' => 2,
-                    'pengiriman' => 3,
+                    'pengiriman' => 5,
                     'unloading' => 1,
                     'input' => 1,
                 ], // total = 14
@@ -196,8 +195,7 @@ class AnalisaLokalEngineTest extends TestCase
                     'supplier_confirm' => 3,
                     'payment' => 2,
                     'po' => 1,
-                    'pengemasan' => 4,
-                    'pengiriman' => 6,
+                    'pengiriman' => 10,
                     'unloading' => 1,
                     'input' => 1,
                 ], // total = 23

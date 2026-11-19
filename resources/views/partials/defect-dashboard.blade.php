@@ -155,14 +155,14 @@
                     <button type="button"
                             @click="setViewMode('matrix')"
                             :class="viewMode === 'matrix' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white font-medium'"
-                            class="px-3 py-1 rounded-[6px] h-full text-xs sm:text-[13px] transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
+                            class="px-3 py-1 h-full text-xs sm:text-[13px] transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-[6px]">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         <span>Matriks Tren Bulanan</span>
                     </button>
                     <button type="button"
                             @click="setViewMode('sku')"
                             :class="viewMode === 'sku' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white font-medium'"
-                            class="px-3 py-1 rounded-[6px] h-full text-xs sm:text-[13px] transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
+                            class="px-3 py-1 h-full text-xs sm:text-[13px] transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap rounded-[6px]">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                         <span>Rincian SKU per Fasilitas</span>
                         <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[11px] font-medium tabular-nums">

@@ -69,7 +69,7 @@
                 @endif
 
                 @if($canCancel)
-                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-medium rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition">
+                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-medium border border-destructive/30 text-destructive hover:bg-destructive/10 transition rounded-[6px]">
                         Batalkan
                     </button>
                 @endif

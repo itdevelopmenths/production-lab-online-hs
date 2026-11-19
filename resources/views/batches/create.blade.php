@@ -189,7 +189,7 @@
                                                     >
                                                         <div class="p-2.5 border-b border-[#e8e8e8] dark:border-gray-800 bg-[#FBFBFB] dark:bg-gray-950 flex items-center gap-2">
                                                             <svg class="w-3.5 h-3.5 text-text-muted shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                            <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Ketik SKU atau nama produk jadi..." class="w-full bg-white dark:bg-gray-900 border border-[#e8e8e8] dark:border-gray-700 rounded-[8px] px-2.5 py-1.5 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white" />
+                                                            <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Ketik SKU atau nama produk jadi..." class="w-full bg-white dark:bg-gray-900 border border-[#e8e8e8] dark:border-gray-700 px-2.5 py-1.5 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]" />
                                                         </div>
 
                                                         <div class="max-h-52 overflow-y-auto custom-scrollbar divide-y divide-[#e8e8e8]/70 dark:divide-gray-800">
@@ -216,7 +216,7 @@
 
                                                         <div class="p-2 border-t border-[#e8e8e8] dark:border-gray-800 bg-[#FBFBFB] dark:bg-gray-950 flex items-center justify-between text-[11px] text-text-muted">
                                                             <span x-text="`Data: ${items.length}/${total}`"></span>
-                                                            <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 rounded-[6px] bg-white dark:bg-gray-900 border border-[#e8e8e8] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-active font-medium transition disabled:opacity-50 cursor-pointer shadow-theme-xs">
+                                                            <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 bg-white dark:bg-gray-900 border border-[#e8e8e8] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-active font-medium transition disabled:opacity-50 cursor-pointer shadow-theme-xs rounded-[6px]">
                                                                 <span x-text="loading ? '...' : '+10 Lagi'"></span>
                                                             </button>
                                                         </div>
@@ -233,14 +233,14 @@
                                                         x-model="row.qty_rencana"
                                                         placeholder="misal: 100"
                                                         required
-                                                        class="w-full rounded-lg border-input bg-background text-xs py-2 pr-16 tabular-nums text-right focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                        class="w-full border-input bg-background text-xs py-2 pr-16 tabular-nums text-right focus:border-ring focus:ring-1 focus:ring-ring shadow-xs rounded-[6px]"
                                                     />
                                                     <span class="absolute right-2.5 px-2 py-0.5 text-[10px] tabular-nums font-medium text-muted-foreground bg-muted border border-border rounded-md uppercase tracking-wider pointer-events-none" x-text="row.satuan || 'Pcs'"></span>
                                                 </div>
                                             </td>
                                             <td class="px-4 py-3 text-center align-top">
                                                 <button type="button" @click="removeRow(i)" :disabled="rows.length <= 1"
-                                                        class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed transition rounded-lg"
+                                                        class="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:cursor-not-allowed transition rounded-[6px]"
                                                         title="Hapus baris">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                 </button>

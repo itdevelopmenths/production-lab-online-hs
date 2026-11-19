@@ -62,18 +62,26 @@ class Produk extends Model
         });
 
         static::saved(function ($produk) {
-            if (!empty($produk->supplier_id)) {
-                \Illuminate\Support\Facades\DB::table('produk_supplier')->updateOrInsert(
-                    [
-                        'produk_id' => $produk->id,
-                        'supplier_id' => $produk->supplier_id,
-                    ],
-                    [
-                        'status' => 'aktif',
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]
-                );
+            // Backfill pivot dari kolom legacy supplier_id hanya saat produk baru dibuat atau
+            // supplier_id berubah. Jangan menimpa status / menghidupkan kembali relasi yang
+            // sudah dinonaktifkan atau dihapus lewat produk_supplier.
+            if (empty($produk->supplier_id) || ! ($produk->wasRecentlyCreated || $produk->wasChanged('supplier_id'))) {
+                return;
+            }
+
+            $exists = \Illuminate\Support\Facades\DB::table('produk_supplier')
+                ->where('produk_id', $produk->id)
+                ->where('supplier_id', $produk->supplier_id)
+                ->exists();
+
+            if (! $exists) {
+                \Illuminate\Support\Facades\DB::table('produk_supplier')->insert([
+                    'produk_id' => $produk->id,
+                    'supplier_id' => $produk->supplier_id,
+                    'status' => 'aktif',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
         });
     }
@@ -127,7 +135,10 @@ class Produk extends Model
 
     public function activeSuppliers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->suppliers()->wherePivot('status', 'aktif');
+        // Aktif = relasi produk_supplier berstatus aktif DAN supplier di master masih aktif
+        return $this->suppliers()
+            ->wherePivot('status', 'aktif')
+            ->where('supplier.is_active', true);
     }
 
     public function produkSuppliers(): HasMany

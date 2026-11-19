@@ -6,7 +6,7 @@
                 <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Detail Snapshot Riwayat</h3>
                 <p class="text-xs text-[#667085] dark:text-gray-400 tabular-nums mt-0.5" x-text="activeSnapshot ? activeSnapshot.session_id + ' · ' + activeSnapshot.item_label : ''"></p>
             </div>
-            <button type="button" @click="showSnapshotModal = false" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button type="button" @click="showSnapshotModal = false" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-[6px]">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>

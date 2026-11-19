@@ -297,7 +297,28 @@ class InventoryTransferAuthorizationService
 
     public function canReceiveTransfer(User $user, Transfer $transfer): bool
     {
-        return $this->checkAllCategories($user, $this->resolveCategoriesForTransfer($transfer), 'transfer', 'receive');
+        if ($this->checkAllCategories($user, $this->resolveCategoriesForTransfer($transfer), 'transfer', 'receive')) {
+            return true;
+        }
+
+        return $this->canReceiveProdukJadiReturn($user, $transfer);
+    }
+
+    /**
+     * Pengecualian sempit: retur produk jadi dari fulfillment ke gudang operasional boleh diterima
+     * staf yang berhak menerima transfer bahan dan punya akses ke gudang tujuan tersebut,
+     * walau tidak memiliki izin transfer.produk_jadi.receive.
+     */
+    private function canReceiveProdukJadiReturn(User $user, Transfer $transfer): bool
+    {
+        if ($transfer->jenis !== 'retur_produk_jadi' || ! $user->can('transfer.bahan.receive')) {
+            return false;
+        }
+
+        $transfer->loadMissing('gudangTujuan');
+
+        return $transfer->gudangTujuan?->tipe === 'operasional'
+            && app(LocationScopeService::class)->canAccessWarehouse($user, (int) $transfer->gudang_tujuan_id);
     }
 
     public function canCancelTransfer(User $user, Transfer $transfer): bool

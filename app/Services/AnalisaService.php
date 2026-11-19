@@ -48,7 +48,6 @@ class AnalisaService
         PoStage::STAGE_6 => 'pengiriman',
         PoStage::STAGE_7 => 'unloading',
         PoStage::STAGE_8 => 'input',
-        PoStage::LEGACY_STAGE_PENGEMASAN => 'pengemasan',
     ];
 
     /** @var array<int, string> */
@@ -153,7 +152,7 @@ class AnalisaService
     }
 
     /**
-     * Format satu skenario (average_hari / max_hari) dari ringkasan 9 stage Purchasing.
+     * Format satu skenario (average_hari / max_hari) dari ringkasan 8 stage Purchasing.
      *
      * @param  Collection<int, SupplierProdukLtStageSummary>  $empiricalRows
      * @return array<string, float|null>
@@ -170,13 +169,20 @@ class AnalisaService
             $sum += $val;
         }
 
+        // PO arsip yang masih tercatat di tahap pengemasan dilebur ke pengiriman.
+        $legacyPengemasan = self::roundLeadTimeDays((float) ($byStage->get(PoStage::LEGACY_STAGE_PENGEMASAN)?->{$metricColumn} ?? 0));
+        if ($legacyPengemasan > 0) {
+            $row['pengiriman'] = self::roundLeadTimeDays((float) $row['pengiriman'] + $legacyPengemasan);
+            $sum += $legacyPengemasan;
+        }
+
         $row['total'] = self::roundLeadTimeDays($sum);
 
         return $row;
     }
 
     /**
-     * Resolusi rincian 9 tahap Lead Time untuk Tab 4 Analisa Lokal:
+     * Resolusi rincian 8 tahap Lead Time untuk Tab 4 Analisa Lokal:
      * Prioritaskan ringkasan empiris PO (jumlah_transaksi >= 1) per supplier-produk,
      * dan fallback ke konfigurasi manual LeadTimeLokalStage tanpa menimpa baseline manual.
      *
@@ -911,8 +917,7 @@ class AnalisaService
                         'supplier_confirm' => (int) ($oldAvg['supplier_confirm']->jumlah_hari ?? 0),
                         'payment' => (int) ($oldAvg['payment']->jumlah_hari ?? 0),
                         'po' => (int) ($oldAvg['po']->jumlah_hari ?? 0),
-                        'pengemasan' => (int) ($oldAvg['pengemasan']->jumlah_hari ?? 0),
-                        'pengiriman' => (int) ($oldAvg['pengiriman']->jumlah_hari ?? 0),
+                        'pengiriman' => (int) (($oldAvg['pengiriman']->jumlah_hari ?? 0) + ($oldAvg['pengemasan']->jumlah_hari ?? 0)),
                         'unloading' => (int) ($oldAvg['unloading']->jumlah_hari ?? 0),
                         'input' => (int) ($oldAvg['input']->jumlah_hari ?? 0),
                     ]);
@@ -924,8 +929,7 @@ class AnalisaService
                         'supplier_confirm' => (int) ($oldMax['supplier_confirm']->jumlah_hari ?? 0),
                         'payment' => (int) ($oldMax['payment']->jumlah_hari ?? 0),
                         'po' => (int) ($oldMax['po']->jumlah_hari ?? 0),
-                        'pengemasan' => (int) ($oldMax['pengemasan']->jumlah_hari ?? 0),
-                        'pengiriman' => (int) ($oldMax['pengiriman']->jumlah_hari ?? 0),
+                        'pengiriman' => (int) (($oldMax['pengiriman']->jumlah_hari ?? 0) + ($oldMax['pengemasan']->jumlah_hari ?? 0)),
                         'unloading' => (int) ($oldMax['unloading']->jumlah_hari ?? 0),
                         'input' => (int) ($oldMax['input']->jumlah_hari ?? 0),
                     ]);

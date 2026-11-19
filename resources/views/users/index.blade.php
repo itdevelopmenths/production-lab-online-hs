@@ -28,7 +28,7 @@
                 <div class="flex flex-wrap items-center gap-2.5">
                     {{-- Filter Divisi --}}
                     <div class="w-full sm:w-auto min-w-40 max-w-full">
-                        <select id="filterDivisi" class="w-full h-9 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#101828] dark:text-white px-3 py-1.5 focus:outline-none focus:border-[#111111] dark:focus:border-white cursor-pointer">
+                        <select id="filterDivisi" class="w-full h-9 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#101828] dark:text-white px-3 py-1.5 focus:outline-none focus:border-[#111111] dark:focus:border-white cursor-pointer rounded-[6px]">
                             <option value="">-- Semua Divisi --</option>
                             @if(isset($divisis) && $divisis->isNotEmpty())
                                 @foreach($divisis as $d)
@@ -44,7 +44,7 @@
 
                     {{-- Filter Role --}}
                     <div class="w-full sm:w-auto min-w-40 max-w-full">
-                        <select id="filterRole" class="w-full h-9 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#101828] dark:text-white px-3 py-1.5 focus:outline-none focus:border-[#111111] dark:focus:border-white cursor-pointer">
+                        <select id="filterRole" class="w-full h-9 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#101828] dark:text-white px-3 py-1.5 focus:outline-none focus:border-[#111111] dark:focus:border-white cursor-pointer rounded-[6px]">
                             <option value="">-- Semua Peran / Role --</option>
                             @foreach($roles as $r)
                                 <option value="{{ $r->name }}">{{ $r->display_name ?: $r->name }}</option>

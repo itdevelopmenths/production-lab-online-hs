@@ -19,9 +19,9 @@
 
         $sizeClasses = match($size) {
             'xs' => 'text-xs px-2.5 py-1 rounded-[6px] h-7',
-            'sm' => 'text-xs px-3 py-1.5 rounded-[8px] h-8.5',
-            'lg' => 'text-sm px-3.5 py-2.5 rounded-[8px] h-11',
-            default => 'text-[13px] px-3 py-2 rounded-[8px] h-9.5',
+            'sm' => 'text-xs pl-3.5 py-1.5 rounded-[6px] h-8.5',
+            'lg' => 'text-sm pl-4 py-2.5 rounded-[6px] h-11',
+            default => 'text-[13px] pl-3.5 py-2 rounded-[6px] h-9.5',
         };
 
         $baseSelectClass = "w-full border shadow-theme-xs outline-none transition disabled:bg-gray-50 dark:disabled:bg-gray-800/50 disabled:text-text-muted disabled:cursor-not-allowed cursor-pointer pr-8 $borderClass $sizeClasses";

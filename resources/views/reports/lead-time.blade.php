@@ -11,7 +11,7 @@
         <div class="flex flex-wrap items-center gap-3">
             <div>
                 <label for="filter-supplier" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Mitra Supplier</label>
-                <select name="supplier_id" id="filter-supplier" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                <select name="supplier_id" id="filter-supplier" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer rounded-[6px]">
                     <option value="">— Semua Supplier —</option>
                     @foreach($suppliers as $sup)
                         <option value="{{ $sup->id }}" @selected($supplierId == $sup->id)>
@@ -23,7 +23,7 @@
 
             <div>
                 <label for="filter-kategori" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Kategori Supplier</label>
-                <select name="kategori" id="filter-kategori" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
+                <select name="kategori" id="filter-kategori" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer rounded-[6px]">
                     <option value="">— Semua Kategori —</option>
                     <option value="lokal" @selected($kategori === 'lokal')>Supplier Lokal</option>
                     <option value="impor" @selected($kategori === 'impor')>Supplier Impor</option>

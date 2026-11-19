@@ -38,9 +38,10 @@ class ProdukController extends Controller
         $canDelete = $request->user()->can('produk.delete');
 
         $query = Produk::query()
-            ->with(['kategori', 'varian', 'uom', 'klasifikasiAbc'])
-            ->withCount('activeSuppliers')
             ->select('produk.*')
+            ->with(['kategori', 'varian', 'uom', 'klasifikasiAbc'])
+            // withCount harus setelah select(): select() menimpa kolom subquery count
+            ->withCount('activeSuppliers')
             ->when($request->filled('tipe') && $request->tipe !== 'all', function ($q) use ($request) {
                 $q->where('tipe', $request->tipe);
             })
@@ -373,10 +374,13 @@ class ProdukController extends Controller
 
         $produk->suppliers()->sync($syncData);
 
-        if ($firstActiveSupplierId && empty($produk->supplier_id)) {
-            $produk->supplier_id = $firstActiveSupplierId;
-            $produk->saveQuietly();
+        // Jaga kolom legacy supplier_id tetap konsisten dengan relasi aktif di produk_supplier
+        $activeIds = collect($syncData)->filter(fn ($d) => ($d['status'] ?? 'aktif') === 'aktif')->keys()->map(fn ($k) => (int) $k);
+        if (! empty($produk->supplier_id) && $activeIds->contains((int) $produk->supplier_id)) {
+            return;
         }
+        $produk->supplier_id = $firstActiveSupplierId;
+        $produk->saveQuietly();
     }
 
     private function validated(Request $request, ?int $id = null): array

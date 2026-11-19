@@ -178,7 +178,7 @@
                     <label class="block text-xs font-medium text-foreground dark:text-foreground">
                         Batch Produksi Terkait (Opsional):
                     </label>
-                    <select name="batch_id" x-model="batchId" class="w-full h-9 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 px-3 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white">
+                    <select name="batch_id" x-model="batchId" class="w-full h-9 border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 px-3 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                         <option value="">-- Tanpa Batch (Permintaan Bebas) --</option>
                         @foreach($activeBatches as $ab)
                             <option value="{{ $ab->id }}" @selected(old('batch_id', $stockRequest->referensi_batch_id) == $ab->id)>
@@ -203,7 +203,7 @@
                             <h2 class="text-lg font-medium text-foreground tracking-tight">Rincian Barang</h2>
                             <p class="text-xs text-muted-foreground mt-0.5">Ubah item dan jumlah kuantitas yang diminta</p>
                         </div>
-                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition">
+                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 transition rounded-[6px]">
                             <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             Tambah Baris
                         </button>
@@ -285,7 +285,7 @@
                                             >
                                                 <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
                                                     <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                    <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU produk..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                                                    <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU produk..." class="w-full bg-background border border-input px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]" />
                                                 </div>
 
                                                 <div class="max-h-48 overflow-y-auto divide-y divide-border">
@@ -325,10 +325,10 @@
                                         <span class="inline-block px-2.5 py-1 bg-muted rounded font-medium text-foreground" x-text="item.satuan"></span>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input type="number" step="0.001" min="0.001" :name="`items[${index}][qty_diminta]`" x-model="item.qty_diminta" class="w-full h-9 rounded-lg border border-border bg-card px-2.5 text-xs text-right font-medium focus:ring-2 focus:ring-primary/20" required>
+                                        <input type="number" step="0.001" min="0.001" :name="`items[${index}][qty_diminta]`" x-model="item.qty_diminta" class="w-full h-9 border border-border bg-card px-2.5 text-xs text-right font-medium focus:ring-2 focus:ring-primary/20 rounded-[6px]" required>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input type="text" :name="`items[${index}][keterangan]`" x-model="item.keterangan" placeholder="Keterangan opsional" class="w-full h-9 rounded-lg border border-border bg-card px-2.5 text-xs focus:ring-2 focus:ring-primary/20">
+                                        <input type="text" :name="`items[${index}][keterangan]`" x-model="item.keterangan" placeholder="Keterangan opsional" class="w-full h-9 border border-border bg-card px-2.5 text-xs focus:ring-2 focus:ring-primary/20 rounded-[6px]">
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         <button type="button" @click="removeItem(index)" :disabled="items.length <= 1" class="text-destructive hover:opacity-80 disabled:opacity-30 transition p-1" title="Hapus Baris">
@@ -343,7 +343,7 @@
 
                 <div class="p-4 bg-muted/20 border-t border-border flex items-center justify-between">
                     <x-button href="{{ route('requests.show', $stockRequest) }}" variant="outline">Batal</x-button>
-                    <button type="submit" class="px-4 py-2 text-xs font-medium rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs">
+                    <button type="submit" class="px-4 py-2 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs rounded-[6px]">
                         Simpan Perubahan
                     </button>
                 </div>

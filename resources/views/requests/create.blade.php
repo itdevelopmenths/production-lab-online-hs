@@ -186,7 +186,7 @@
         <form method="POST" action="{{ route('requests.store') }}" class="space-y-4">
             @csrf
 
-            <x-card title="Formulir Permintaan Barang" subtitle="Lengkapi data gudang pemohon, gudang penyedia, serta rincian item yang diminta" bodyClass="bg-gray-50 dark:bg-gray-950 p-3 sm:p-4 space-y-4">
+            <x-card title="Formulir Permintaan Barang" subtitle="Lengkapi data gudang penerima, gudang pengirim, serta rincian item yang diminta" bodyClass="bg-gray-50 dark:bg-gray-950 p-3 sm:p-4 space-y-4">
                 @if($errors->any())
                 <div class="p-4 rounded-[10px] bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-300 text-xs">
                     <div class="font-medium mb-1">Terdapat kesalahan input:</div>
@@ -210,16 +210,16 @@
                         </x-select>
                     </x-form-field>
 
-                    <x-form-field label="Gudang Pemohon" name="gudang_pemohon_id" :required="true">
-                        <x-select name="gudang_pemohon_id" variant="seamless" x-model="gudangPemohonId" placeholder="-- Pilih Gudang Pemohon --" :required="true">
+                    <x-form-field label="Gudang Penerima" name="gudang_pemohon_id" :required="true">
+                        <x-select name="gudang_pemohon_id" variant="seamless" x-model="gudangPemohonId" placeholder="-- Pilih Gudang Penerima --" :required="true">
                             @foreach($gudang as $g)
                                 <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $g->nama }} ({{ $g->kode }})</option>
                             @endforeach
                         </x-select>
                     </x-form-field>
 
-                    <x-form-field label="Gudang Penyedia" name="gudang_tujuan_id" :required="true">
-                        <x-select name="gudang_tujuan_id" variant="seamless" x-model="gudangTujuanId" placeholder="-- Pilih Gudang Penyedia --" :required="true">
+                    <x-form-field label="Gudang Pengirim" name="gudang_tujuan_id" :required="true">
+                        <x-select name="gudang_tujuan_id" variant="seamless" x-model="gudangTujuanId" placeholder="-- Pilih Gudang Pengirim --" :required="true">
                             @foreach($gudang as $g)
                                 <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $g->nama }} ({{ $g->kode }})</option>
                             @endforeach
@@ -232,7 +232,7 @@
                     <label for="request-batch-id" class="block text-xs font-medium text-foreground dark:text-foreground">
                         Pilih Batch Produksi (Opsional):
                     </label>
-                    <select id="request-batch-id" name="batch_id" x-model="batchId" @change="onBatchChange()" class="w-full h-9 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 px-3 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white">
+                    <select id="request-batch-id" name="batch_id" x-model="batchId" @change="onBatchChange()" class="w-full h-9 border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 px-3 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                         <option value="">-- Tanpa Batch (Permintaan Bebas) --</option>
                         @foreach($activeBatches as $ab)
                             <option value="{{ $ab->id }}" @selected(old('batch_id', $batch?->id) == $ab->id)>
@@ -247,7 +247,7 @@
 
                 <x-form-section card title="Catatan Tambahan" :cols="1">
                     <x-form-field label="Catatan / Keperluan" name="catatan" align="top">
-                        <x-textarea name="catatan" variant="seamless" rows="2" placeholder="Catatan tambahan untuk manajer / gudang penyedia...">{{ old('catatan') }}</x-textarea>
+                        <x-textarea name="catatan" variant="seamless" rows="2" placeholder="Catatan tambahan untuk manajer / gudang pengirim...">{{ old('catatan') }}</x-textarea>
                     </x-form-field>
                 </x-form-section>
             </x-card>
@@ -337,7 +337,7 @@
                                             >
                                                 <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
                                                     <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                    <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU produk..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                                                    <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Cari nama / SKU produk..." class="w-full bg-background border border-input px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]" />
                                                 </div>
 
                                                 <div class="max-h-48 overflow-y-auto divide-y divide-border">
@@ -377,10 +377,10 @@
                                         <span class="inline-block px-2.5 py-1 bg-muted rounded font-medium text-foreground" x-text="item.satuan"></span>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input type="number" step="0.001" min="0.001" :name="`items[${index}][qty_diminta]`" x-model="item.qty_diminta" class="w-full h-9 rounded-lg border border-border bg-card px-2.5 text-xs text-right font-medium focus:ring-2 focus:ring-primary/20" required>
+                                        <input type="number" step="0.001" min="0.001" :name="`items[${index}][qty_diminta]`" x-model="item.qty_diminta" class="w-full h-9 border border-border bg-card px-2.5 text-xs text-right font-medium focus:ring-2 focus:ring-primary/20 rounded-[6px]" required>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <input type="text" :name="`items[${index}][keterangan]`" x-model="item.keterangan" placeholder="Keterangan opsional" class="w-full h-9 rounded-lg border border-border bg-card px-2.5 text-xs focus:ring-2 focus:ring-primary/20">
+                                        <input type="text" :name="`items[${index}][keterangan]`" x-model="item.keterangan" placeholder="Keterangan opsional" class="w-full h-9 border border-border bg-card px-2.5 text-xs focus:ring-2 focus:ring-primary/20 rounded-[6px]">
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         <button type="button" @click="removeItem(index)" :disabled="items.length <= 1" class="text-destructive hover:opacity-80 disabled:opacity-30 transition p-1" title="Hapus Baris">
@@ -394,15 +394,15 @@
                 </div>
 
                 <div class="p-4 bg-muted/20 border-t border-border flex items-center justify-between gap-3">
-                    <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition cursor-pointer">
+                    <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 transition cursor-pointer rounded-[6px]">
                         <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         Tambah Baris
                     </button>
                     <div class="flex items-center gap-3">
-                        <button type="submit" name="action" value="save_draft" class="px-4 py-2 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted text-foreground transition">
+                        <button type="submit" name="action" value="save_draft" class="px-4 py-2 text-xs font-medium border border-border bg-card hover:bg-muted text-foreground transition rounded-[6px]">
                             Simpan Sebagai Draft
                         </button>
-                        <button type="submit" name="action" value="submit" class="px-4 py-2 text-xs font-medium rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs">
+                        <button type="submit" name="action" value="submit" class="px-4 py-2 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs rounded-[6px]">
                             Simpan & Langsung Ajukan
                         </button>
                     </div>

@@ -103,7 +103,7 @@
                                                     >
                                                         <div class="p-2 border-b border-border bg-muted/40 flex items-center gap-1.5">
                                                             <svg class="size-3.5 text-muted-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                            <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Ketik SKU atau nama bahan..." class="w-full bg-background border border-border rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                                                            <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" placeholder="Ketik SKU atau nama bahan..." class="w-full bg-background border border-border px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-[6px]" />
                                                         </div>
 
                                                         <div class="max-h-52 overflow-y-auto divide-y divide-border">
@@ -121,7 +121,7 @@
 
                                                         <div class="p-2 border-t border-border bg-muted/40 flex items-center justify-between text-[11px] text-muted-foreground">
                                                             <span x-text="`Data: ${items.length}/${total}`"></span>
-                                                            <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2 py-0.5 rounded-md bg-card border border-border hover:bg-muted text-foreground font-medium transition disabled:opacity-50 cursor-pointer">
+                                                            <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2 py-0.5 bg-card border border-border hover:bg-muted text-foreground font-medium transition disabled:opacity-50 cursor-pointer rounded-[6px]">
                                                                 <span x-text="loading ? '...' : '+10 Lagi'"></span>
                                                             </button>
                                                         </div>
@@ -137,14 +137,14 @@
                                                         :name="`items[${i}][qty_per_unit]`"
                                                         x-model="row.qty"
                                                         placeholder="0.0000"
-                                                        class="w-full rounded-lg border border-border bg-background text-xs py-1.5 pr-16 tabular-nums text-right text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
+                                                        class="w-full border border-border bg-background text-xs py-1.5 pr-16 tabular-nums text-right text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs rounded-[6px]"
                                                         required
                                                     >
                                                     <span class="absolute right-2 px-1.5 py-0.5 text-[10px] tabular-nums font-medium text-foreground bg-muted border border-border rounded uppercase tracking-wider pointer-events-none" x-text="row.satuan || 'Unit'"></span>
                                                 </div>
                                             </td>
                                             <td class="px-4 py-2.5 text-center">
-                                                <button type="button" @click="if(rows.length > 1) rows.splice(i,1)" :disabled="rows.length <= 1" class="p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-30 disabled:cursor-not-allowed transition rounded cursor-pointer" title="Hapus baris">
+                                                <button type="button" @click="if(rows.length > 1) rows.splice(i,1)" :disabled="rows.length <= 1" class="p-1.5 text-muted-foreground hover:text-destructive disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer rounded-[6px]" title="Hapus baris">
                                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                 </button>
                                             </td>

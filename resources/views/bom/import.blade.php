@@ -91,7 +91,7 @@
                     <button
                         type="button"
                         @click="downloadExcelTemplate()"
-                        class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-medium shadow-xs transition cursor-pointer"
+                        class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 text-xs font-medium shadow-xs transition cursor-pointer rounded-[6px]"
                         title="Unduh format spreadsheet resmi Microsoft Excel (.xlsx)"
                     >
                         <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -150,7 +150,7 @@
                         type="button"
                         @click="removeExisting()"
                         x-show="alreadyExistsCount > 0"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-card hover:bg-gray-50 text-foreground dark:text-foreground border border-border rounded-lg text-xs font-medium cursor-pointer transition"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-card hover:bg-gray-50 text-foreground dark:text-foreground border border-border text-xs font-medium cursor-pointer transition rounded-[6px]"
                         title="Hapus baris bahan yang sudah terdaftar sebelumnya dari tabel"
                     >
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -160,7 +160,7 @@
                         type="button"
                         @click="removeDuplicates()"
                         x-show="duplicateRowsCount > 0"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-card hover:bg-gray-50 text-foreground dark:text-foreground border border-border rounded-lg text-xs font-medium cursor-pointer transition"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-card hover:bg-gray-50 text-foreground dark:text-foreground border border-border text-xs font-medium cursor-pointer transition rounded-[6px]"
                         title="Hapus baris duplikat secara otomatis dan pertahankan baris pertama"
                     >
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -169,7 +169,7 @@
                     <button
                         type="button"
                         @click="addRow()"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-background hover:bg-muted text-foreground border border-border rounded-lg text-xs font-medium transition cursor-pointer"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-background hover:bg-muted text-foreground border border-border text-xs font-medium transition cursor-pointer rounded-[6px]"
                     >
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         + Tambah Baris
@@ -279,7 +279,7 @@
                                         >
                                             <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
                                                 <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Cari SKU / nama produk jadi..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                                                <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Cari SKU / nama produk jadi..." class="w-full bg-background border border-input px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]" />
                                             </div>
 
                                             <div class="max-h-48 overflow-y-auto divide-y divide-border">
@@ -303,7 +303,7 @@
 
                                             <div class="p-2 border-t border-border bg-muted/40 flex items-center justify-between text-[11px] text-muted-foreground">
                                                 <span x-text="`Data: ${items.length}/${total}`"></span>
-                                                <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 rounded-md bg-background border border-border hover:bg-muted text-foreground font-medium transition disabled:opacity-50 cursor-pointer shadow-xs">
+                                                <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 bg-background border border-border hover:bg-muted text-foreground font-medium transition disabled:opacity-50 cursor-pointer shadow-xs rounded-[6px]">
                                                     <span x-text="loading ? '...' : '+10 Lagi'"></span>
                                                 </button>
                                             </div>
@@ -372,7 +372,7 @@
                                         >
                                             <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
                                                 <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Cari nama / SKU bahan..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                                                <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Cari nama / SKU bahan..." class="w-full bg-background border border-input px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring rounded-[6px]" />
                                             </div>
 
                                             <div class="max-h-48 overflow-y-auto divide-y divide-border">
@@ -402,7 +402,7 @@
 
                                             <div class="p-2 border-t border-border bg-muted/40 flex items-center justify-between text-[11px] text-muted-foreground">
                                                 <span x-text="`Data: ${items.length}/${total}`"></span>
-                                                <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 rounded-md bg-background border border-border hover:bg-muted text-foreground font-medium transition disabled:opacity-50 cursor-pointer shadow-xs">
+                                                <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 bg-background border border-border hover:bg-muted text-foreground font-medium transition disabled:opacity-50 cursor-pointer shadow-xs rounded-[6px]">
                                                     <span x-text="loading ? '...' : '+10 Lagi'"></span>
                                                 </button>
                                             </div>
@@ -419,7 +419,7 @@
                                             min="0.0001"
                                             x-model="row.qty_per_unit"
                                             @input="validateRow(row)"
-                                            class="w-36 text-xs py-2 pl-2.5 pr-14 text-right rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring tabular-nums shadow-xs"
+                                            class="w-36 text-xs py-2 pl-2.5 pr-14 text-right border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring tabular-nums shadow-xs rounded-[6px]"
                                         >
                                         <span class="absolute right-2 px-1.5 py-0.5 text-[9px] tabular-nums font-medium text-muted-foreground bg-muted border border-border rounded pointer-events-none" x-text="row.bahan_item?.satuan || '-'"></span>
                                     </div>
@@ -469,7 +469,7 @@
                                 <button
                                     type="button"
                                     @click="addRow()"
-                                    class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition cursor-pointer shadow-xs"
+                                    class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition cursor-pointer shadow-xs rounded-[6px]"
                                 >
                                     + Tambah Baris Pertama
                                 </button>
@@ -492,7 +492,7 @@
                     <button
                         type="button"
                         @click="addRow()"
-                        class="px-3 py-1.5 bg-background hover:bg-muted text-foreground border border-border rounded-lg text-xs font-medium transition cursor-pointer"
+                        class="px-3 py-1.5 bg-background hover:bg-muted text-foreground border border-border text-xs font-medium transition cursor-pointer rounded-[6px]"
                     >
                         + Tambah Baris
                     </button>
@@ -500,7 +500,7 @@
                         type="button"
                         @click="submitBulk()"
                         :disabled="rows.length === 0 || invalidRowsCount > 0 || isSubmitting"
-                        class="px-4 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-lg text-xs font-medium shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                        class="px-4 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground text-xs font-medium shadow-xs transition cursor-pointer flex items-center gap-1.5 rounded-[6px]"
                     >
                         <svg x-show="isSubmitting" class="animate-spin -ml-1 mr-1.5 size-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         <span x-text="isSubmitting ? 'Menyimpan...' : 'Simpan Semua Formula BOM (' + validRowsCount + ' Baris)'"></span>

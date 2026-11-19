@@ -11,7 +11,7 @@
         <div class="flex flex-wrap items-center gap-3">
             <div>
                 <label for="filter-tahun" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Tahun Evaluasi</label>
-                <select name="tahun" id="filter-tahun" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-28 max-w-full outline-none cursor-pointer">
+                <select name="tahun" id="filter-tahun" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-28 max-w-full outline-none cursor-pointer rounded-[6px]">
                     @for($y = now()->year + 1; $y >= now()->year - 2; $y--)
                         <option value="{{ $y }}" @selected($year == $y)>{{ $y }}</option>
                     @endfor
@@ -20,7 +20,7 @@
 
             <div>
                 <label for="filter-bulan" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Bulan</label>
-                <select name="bulan" id="filter-bulan" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
+                <select name="bulan" id="filter-bulan" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer rounded-[6px]">
                     <option value="">— Semua Bulan —</option>
                     @php
                         $namaBulan = [
@@ -37,7 +37,7 @@
 
             <div>
                 <label for="filter-gudang" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Gudang / Lokasi</label>
-                <select name="gudang_id" id="filter-gudang" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                <select name="gudang_id" id="filter-gudang" class="h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer rounded-[6px]">
                     <option value="">— Semua Gudang —</option>
                     @foreach($gudangs as $g)
                         <option value="{{ $g->id }}" @selected($gudangId == $g->id)>{{ $g->nama }}</option>

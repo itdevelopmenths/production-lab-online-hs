@@ -10,7 +10,7 @@ class DesignSystemComponentsTest extends TestCase
     public function test_core_primitives_match_blueprint_markup_and_dark_mode_parity(): void
     {
         $btn = Blade::render('<x-button variant="primary" size="sm">Simpan</x-button>');
-        $this->assertStringContainsString('from-[#1e1e1e] to-[#0a0a0a]', $btn);
+        $this->assertStringContainsString('btn-glossy', $btn);
         $this->assertStringContainsString('rounded-[6px]', $btn);
         $this->assertStringContainsString('active:scale-[0.98]', $btn);
 

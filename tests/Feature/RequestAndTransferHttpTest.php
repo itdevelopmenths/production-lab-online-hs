@@ -549,4 +549,52 @@ class RequestAndTransferHttpTest extends TestCase
         $afterShow->assertDontSee('Batalkan Transfer');
         $afterShow->assertDontSee('Konfirmasi Penerimaan Barang');
     }
+
+    private function makeDikirimTransfer(string $jenis, Gudang $asal, Gudang $tujuan): Transfer
+    {
+        $svc = app(StokService::class);
+        $svc->masuk($this->produkJadi->id, $asal->id, 10, 'Saldo Awal Tes', null, null);
+
+        $this->actingAs($this->fulfillment)->post(route('transfers.store'), [
+            'jenis' => $jenis,
+            'gudang_asal_id' => $asal->id,
+            'gudang_tujuan_id' => $tujuan->id,
+            'action' => 'save_draft',
+            'items' => [['produk_id' => $this->produkJadi->id, 'qty_dikirim' => 10]],
+        ])->assertRedirect();
+
+        $transfer = Transfer::latest('id')->firstOrFail();
+        $this->actingAs($this->fulfillment)->post(route('transfers.ship', $transfer))->assertRedirect();
+
+        return $transfer->fresh();
+    }
+
+    public function test_operasional_can_receive_retur_produk_jadi_into_operasional_warehouse(): void
+    {
+        $ff = Gudang::create(['nama' => 'FF Pusat', 'tipe' => 'fulfillment', 'kode' => 'FF-T', 'is_pusat' => true, 'is_active' => true]);
+        $transfer = $this->makeDikirimTransfer('retur_produk_jadi', $ff, $this->gudangLab);
+        $this->assertEquals('dikirim', $transfer->status);
+
+        $this->actingAs($this->operasional)->get(route('transfers.show', $transfer))
+            ->assertOk()->assertSee('Konfirmasi Penerimaan Barang');
+
+        $this->actingAs($this->operasional)->post(route('transfers.receive', $transfer), [
+            'items' => [['id' => $transfer->items->first()->id, 'qty_baik' => 10, 'qty_rusak' => 0]],
+        ])->assertRedirect();
+
+        $this->assertEquals('selesai', $transfer->fresh()->status);
+    }
+
+    public function test_operasional_cannot_receive_kirim_produk_jadi_even_into_operasional_warehouse(): void
+    {
+        $ff = Gudang::create(['nama' => 'FF Pusat', 'tipe' => 'fulfillment', 'kode' => 'FF-T', 'is_pusat' => true, 'is_active' => true]);
+        $transfer = $this->makeDikirimTransfer('kirim_produk_jadi', $ff, $this->gudangLab);
+
+        $this->actingAs($this->operasional)->get(route('transfers.show', $transfer))
+            ->assertOk()->assertSee('tidak memiliki izin menerima transfer');
+
+        $this->actingAs($this->operasional)->post(route('transfers.receive', $transfer), [
+            'items' => [['id' => $transfer->items->first()->id, 'qty_baik' => 10, 'qty_rusak' => 0]],
+        ])->assertForbidden();
+    }
 }
