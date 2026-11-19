@@ -14,6 +14,7 @@ use App\Models\Transfer;
 use App\Models\User;
 use App\Services\AnalisaService;
 use App\Services\Authorization\LocationScopeService;
+use App\Services\DashboardChartService;
 use App\Services\DashboardPipelineService;
 use App\Services\StokService;
 use App\Services\TransferService;
@@ -30,7 +31,8 @@ class DashboardController extends Controller
         private readonly StokService $stokService,
         private readonly LocationScopeService $locationScope,
         private readonly TransferService $transferService,
-        private readonly DashboardPipelineService $pipeline
+        private readonly DashboardPipelineService $pipeline,
+        private readonly DashboardChartService $charts
     ) {
     }
 
@@ -78,6 +80,7 @@ class DashboardController extends Controller
         return view('dashboard', array_merge([
             'generatedAt' => now(),
             'alur' => $this->pipeline->forRole($role, $user),
+            'grafik' => $this->charts->forRole($role, $user),
             'user' => $user,
             'role' => $role,
             'defectAnalytics' => $defectAnalytics,

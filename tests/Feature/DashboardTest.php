@@ -692,4 +692,42 @@ class DashboardTest extends TestCase
             ->assertSee('Diperbarui')
             ->assertSee(route('purchasing.index', ['tab' => 'approval']));
     }
+
+    public function test_manager_sees_both_chart_cards_with_accessible_data_table(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        PurchaseOrder::create([
+            'no_po' => 'PO-CH-1', 'supplier_id' => Supplier::firstOrFail()->id, 'tanggal' => now(),
+            'status' => 'berjalan', 'stage_aktif' => 'approval', 'grand_total' => 2_500_000, 'created_by' => $manager->id,
+        ]);
+
+        $this->actingAs($manager)->get('/')
+            ->assertOk()
+            ->assertSee('Nilai PO 6 Bulan')
+            ->assertSee('Defect Rate 6 Bulan')
+            ->assertSee('role="img"', false)
+            ->assertSee('Rp 2,5 jt');
+    }
+
+    public function test_gudang_sees_only_defect_chart_and_fulfillment_none(): void
+    {
+        $this->actingAs(User::where('email', 'gudang@heavenscent.id')->firstOrFail())->get('/')
+            ->assertSee('Defect Rate 6 Bulan')
+            ->assertSee('Tidak ada barang rusak')
+            ->assertDontSee('Nilai PO 6 Bulan');
+
+        $this->actingAs(User::where('email', 'fulfillment@heavenscent.id')->firstOrFail())->get('/')
+            ->assertDontSee('Defect Rate 6 Bulan')
+            ->assertDontSee('Nilai PO 6 Bulan');
+    }
+
+    public function test_chart_cards_render_for_all_zero_data_without_error(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($purchasing)->get('/')
+            ->assertOk()
+            ->assertSee('Nilai PO 6 Bulan')
+            ->assertSee('Rp 0');
+    }
 }

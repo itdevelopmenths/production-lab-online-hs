@@ -40,10 +40,19 @@
         {{-- Tier 2: alur / pipeline (hanya untuk lima role sistem) --}}
         <x-dashboard.pipeline :alur="$alur ?? null" />
 
-        {{-- Tier 3: antrean tindakan --}}
+        {{-- Tier 3: grafik tren (hanya untuk role yang relevan) --}}
+        @if (! empty($grafik))
+            <div class="grid grid-cols-1 gap-4 {{ count($grafik) > 1 ? 'lg:grid-cols-2' : '' }}">
+                @foreach ($grafik as $chart)
+                    <x-dashboard.chart-bars :chart="$chart" />
+                @endforeach
+            </div>
+        @endif
+
+        {{-- Tier 4: antrean tindakan --}}
         <x-dashboard.queue :queue="$actionQueue" />
 
-        {{-- Tier 4: aliran aktivitas --}}
+        {{-- Tier 5: aliran aktivitas --}}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <x-dashboard.stream :stream="$streamLeft" />
             <x-dashboard.stream :stream="$streamRight" />
