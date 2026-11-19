@@ -456,4 +456,278 @@ class DashboardTest extends TestCase
         $response->assertSee(route('batches.show', $batch));
         $response->assertSee(route('transfers.show', $trf));
     }
+
+    private function kpiValue(\Illuminate\Testing\TestResponse $response, string $title): mixed
+    {
+        return collect($response->viewData('kpis'))->firstWhere('title', $title)['value'] ?? null;
+    }
+
+    public function test_purchasing_overdue_kpi_counts_beyond_list_limit(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+
+        SupplierLtStageSummary::updateOrCreate(
+            ['supplier_id' => $supplier->id, 'stage' => 'konfirmasi_supplier'],
+            ['jumlah_transaksi' => 5, 'total_menit' => 300, 'average_hari' => 0.1, 'max_hari' => 0.2]
+        );
+
+        foreach (range(1, 10) as $i) {
+            $po = PurchaseOrder::create([
+                'no_po' => "PO-OVR-{$i}",
+                'supplier_id' => $supplier->id,
+                'tanggal' => now()->subDays(2),
+                'status' => 'berjalan',
+                'stage_aktif' => 'konfirmasi_supplier',
+                'created_by' => $purchasing->id,
+            ]);
+            $po->stages()->create([
+                'stage' => 'konfirmasi_supplier',
+                'urutan' => 3,
+                'putaran' => 1,
+                'status' => 'berjalan',
+                'waktu_mulai' => now()->subMinutes(300),
+            ]);
+        }
+
+        $response = $this->actingAs($purchasing)->get('/');
+        $response->assertOk();
+        $this->assertSame(10, $this->kpiValue($response, 'PO Terlambat SLA'));
+    }
+
+    public function test_fulfillment_total_saldo_only_counts_produk_jadi(): void
+    {
+        $ff = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
+        $gudang = Gudang::fulfillment()->firstOrFail();
+        $jadi = \App\Models\Produk::create(['sku' => 'PJ-T1', 'nama' => 'Parfum T1', 'tipe' => 'produk_jadi', 'satuan' => 'pcs']);
+        $kemas = \App\Models\Produk::create(['sku' => 'PRD-BOX-T1', 'nama' => 'Box T1', 'tipe' => 'kemas', 'satuan' => 'pcs']);
+        app(\App\Services\StokService::class)->masuk($jadi->id, $gudang->id, 100, 'test');
+        app(\App\Services\StokService::class)->masuk($kemas->id, $gudang->id, 500, 'test');
+
+        $response = $this->actingAs($ff)->get('/');
+        $value = (string) $this->kpiValue($response, 'Total Saldo Produk Jadi');
+
+        $this->assertStringContainsString('100', $value);
+        $this->assertStringNotContainsString('600', $value);
+    }
+
+    public function test_fulfillment_transfer_masuk_kpi_counts_beyond_list_limit(): void
+    {
+        $ff = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
+        $asal = Gudang::where('tipe', 'operasional')->firstOrFail();
+        $tujuan = Gudang::fulfillment()->firstOrFail();
+
+        foreach (range(1, 7) as $i) {
+            Transfer::create([
+                'no_transaksi' => "TRF-FF-{$i}",
+                'jenis' => 'kirim_produk_jadi',
+                'gudang_asal_id' => $asal->id,
+                'gudang_tujuan_id' => $tujuan->id,
+                'status' => 'dikirim',
+                'created_by' => $ff->id,
+            ]);
+        }
+
+        $response = $this->actingAs($ff)->get('/');
+        $this->assertSame(7, $this->kpiValue($response, 'Transfer Masuk dari Lab'));
+    }
+
+    public function test_manager_queue_count_reflects_total_not_page(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+
+        foreach (range(1, 12) as $i) {
+            PurchaseOrder::create([
+                'no_po' => "PO-Q-{$i}",
+                'supplier_id' => $supplier->id,
+                'tanggal' => now(),
+                'status' => 'berjalan',
+                'stage_aktif' => 'approval',
+                'created_by' => $manager->id,
+            ]);
+        }
+
+        $response = $this->actingAs($manager)->get('/');
+        $queue = $response->viewData('actionQueue');
+
+        $this->assertGreaterThanOrEqual(12, $queue['total']);
+        $this->assertLessThanOrEqual(10, count($queue['items']));
+    }
+
+    private function kpi(\Illuminate\Testing\TestResponse $response, string $title): array
+    {
+        return collect($response->viewData('kpis'))->firstWhere('title', $title);
+    }
+
+    public function test_kpi_status_flags_problems(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        PurchaseOrder::create([
+            'no_po' => 'PO-STAT-1',
+            'supplier_id' => Supplier::firstOrFail()->id,
+            'tanggal' => now(),
+            'status' => 'berjalan',
+            'stage_aktif' => 'approval',
+            'created_by' => $manager->id,
+        ]);
+
+        $response = $this->actingAs($manager)->get('/');
+
+        $this->assertSame('warn', $this->kpi($response, 'PO Menunggu Approval')['status']);
+        $this->assertNull($this->kpi($response, 'Batch Produksi Aktif')['status']);
+        $this->assertNotNull($this->kpi($response, 'PO Menunggu Approval')['baseline']);
+    }
+
+    public function test_kpi_without_problem_has_no_status_and_hint_keeps_old_subtitle(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $response = $this->actingAs($manager)->get('/');
+
+        $kpi = $this->kpi($response, 'PO Menunggu Approval');
+        $this->assertNull($kpi['status']);
+        $this->assertNull($kpi['baseline']);
+        $this->assertSame('Otorisasi & Revisi Pimpinan', $kpi['hint']);
+    }
+
+    public function test_defect_rate_baseline_compares_previous_month(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $response = $this->actingAs($manager)->get('/');
+
+        $baseline = $this->kpi($response, 'Defect Rate Bulan Ini')['baseline'];
+        $this->assertStringStartsWith('vs ', $baseline);
+        $this->assertStringEndsWith('% bln lalu', $baseline);
+    }
+
+    public function test_purchasing_tagihan_kpi_uses_compact_rupiah_with_full_value_title(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        PurchaseOrder::create([
+            'no_po' => 'PO-RP-1',
+            'supplier_id' => Supplier::firstOrFail()->id,
+            'tanggal' => now(),
+            'status' => 'berjalan',
+            'stage_aktif' => 'pembayaran',
+            'status_pembayaran' => 'belum_bayar',
+            'grand_total' => 1234567890,
+            'created_by' => $purchasing->id,
+        ]);
+
+        $response = $this->actingAs($purchasing)->get('/');
+        $kpi = $this->kpi($response, 'Total Komitmen Tagihan');
+
+        $this->assertSame('Rp 1,2 M', $kpi['value']);
+        $this->assertSame('Rp 1.234.567.890', $kpi['valueTitle']);
+    }
+
+    public function test_dashboard_shows_pipeline_for_manager(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($manager)->get('/')
+            ->assertOk()
+            ->assertSee('Alur Purchase Order')
+            ->assertSee('role="region"', false);
+    }
+
+    public function test_pipeline_region_is_scrollable_and_labelled(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($manager)->get('/')
+            ->assertSee('tabindex="0" role="region" aria-label="Alur Purchase Order"', false);
+    }
+
+    public function test_kpi_problem_has_text_marker_not_only_color(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        PurchaseOrder::create([
+            'no_po' => 'PO-MARK-1',
+            'supplier_id' => Supplier::firstOrFail()->id,
+            'tanggal' => now(),
+            'status' => 'berjalan',
+            'stage_aktif' => 'approval',
+            'created_by' => $manager->id,
+        ]);
+
+        $this->actingAs($manager)->get('/')->assertSee('perhatian');
+    }
+
+    public function test_dashboard_renders_empty_state_for_fresh_role(): void
+    {
+        $ff = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($ff)->get('/')
+            ->assertOk()
+            ->assertSee('Antrean bersih.');
+    }
+
+    public function test_dashboard_renders_for_custom_role_without_pipeline(): void
+    {
+        $role = \App\Models\Role::firstOrCreate(['name' => 'qa_viewer', 'guard_name' => 'web']);
+        $role->givePermissionTo('produk.view');
+        $user = User::factory()->create();
+        $user->assignRole('qa_viewer');
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertDontSee('aria-label="Alur', false);
+    }
+
+    public function test_long_subtitles_live_in_tooltips_only(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($manager)->get('/')
+            ->assertSee('title="Purchase Order dan mutasi logistik yang memerlukan tindakan otorisasi manajerial"', false)
+            ->assertDontSee('<p class="text-[12px] leading-[18px] tracking-[-0.132px] text-[#6a7282] dark:text-gray-400 mt-0.5">Purchase Order dan mutasi', false);
+    }
+
+    public function test_dashboard_shows_updated_pill_and_kpi_links(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($manager)->get('/')
+            ->assertSee('Diperbarui')
+            ->assertSee(route('purchasing.index', ['tab' => 'approval']));
+    }
+
+    public function test_manager_sees_both_chart_cards_with_accessible_data_table(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        PurchaseOrder::create([
+            'no_po' => 'PO-CH-1', 'supplier_id' => Supplier::firstOrFail()->id, 'tanggal' => now(),
+            'status' => 'berjalan', 'stage_aktif' => 'approval', 'grand_total' => 2_500_000, 'created_by' => $manager->id,
+        ]);
+
+        $this->actingAs($manager)->get('/')
+            ->assertOk()
+            ->assertSee('Nilai PO 6 Bulan')
+            ->assertSee('Defect Rate 6 Bulan')
+            ->assertSee('role="img"', false)
+            ->assertSee('Rp 2,5 jt');
+    }
+
+    public function test_gudang_sees_only_defect_chart_and_fulfillment_none(): void
+    {
+        $this->actingAs(User::where('email', 'gudang@heavenscent.id')->firstOrFail())->get('/')
+            ->assertSee('Defect Rate 6 Bulan')
+            ->assertSee('Tidak ada barang rusak')
+            ->assertDontSee('Nilai PO 6 Bulan');
+
+        $this->actingAs(User::where('email', 'fulfillment@heavenscent.id')->firstOrFail())->get('/')
+            ->assertDontSee('Defect Rate 6 Bulan')
+            ->assertDontSee('Nilai PO 6 Bulan');
+    }
+
+    public function test_chart_cards_render_for_all_zero_data_without_error(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($purchasing)->get('/')
+            ->assertOk()
+            ->assertSee('Nilai PO 6 Bulan')
+            ->assertSee('Rp 0');
+    }
 }

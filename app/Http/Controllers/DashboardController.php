@@ -14,8 +14,12 @@ use App\Models\Transfer;
 use App\Models\User;
 use App\Services\AnalisaService;
 use App\Services\Authorization\LocationScopeService;
+use App\Services\DashboardChartService;
+use App\Services\DashboardPipelineService;
 use App\Services\StokService;
 use App\Services\TransferService;
+use App\Support\Dashboard\Rupiah;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +30,9 @@ class DashboardController extends Controller
         private readonly AnalisaService $analisa,
         private readonly StokService $stokService,
         private readonly LocationScopeService $locationScope,
-        private readonly TransferService $transferService
+        private readonly TransferService $transferService,
+        private readonly DashboardPipelineService $pipeline,
+        private readonly DashboardChartService $charts
     ) {
     }
 
@@ -63,7 +69,18 @@ class DashboardController extends Controller
             default => $this->buildDefaultData($user),
         };
 
+        foreach (['actionQueue', 'streamLeft', 'streamRight'] as $key) {
+            if (isset($roleData[$key]) && ! isset($roleData[$key]['total'])) {
+                $roleData[$key]['total'] = count($roleData[$key]['items'] ?? []);
+            }
+        }
+
+        $roleData['kpis'] = $this->decorateKpis($roleData['kpis'] ?? []);
+
         return view('dashboard', array_merge([
+            'generatedAt' => now(),
+            'alur' => $this->pipeline->forRole($role, $user),
+            'grafik' => $this->charts->forRole($role, $user),
             'user' => $user,
             'role' => $role,
             'defectAnalytics' => $defectAnalytics,
@@ -110,6 +127,8 @@ class DashboardController extends Controller
         $requestPendingCount = StockRequest::where('status', 'diajukan')->count()
             + RequestTransfer::where('status', 'diajukan')->count();
 
+        $stockRequestPendingCount = StockRequest::where('status', 'diajukan')->count();
+
         $requestPendingItems = StockRequest::with(['gudangAsal:id,nama', 'gudangTujuan:id,nama'])
             ->where('status', 'diajukan')
             ->latest('created_at')
@@ -125,15 +144,25 @@ class DashboardController extends Controller
         $totalRusak = (float) ($monthDefectSummary['total_qty_rusak'] ?? 0);
         $defectRate = (float) ($monthDefectSummary['defect_rate_percent'] ?? 0.0);
 
+        $bulanLalu = now()->subMonthNoOverflow();
+        $prevDefectSummary = $this->transferService
+            ->getCombinedMonthlyWarehouseDefectAnalytics((int) $bulanLalu->year, (int) $bulanLalu->month)['summary'];
+        $prevDefectRate = (float) ($prevDefectSummary['defect_rate_percent'] ?? 0.0);
+        $defectMemburuk = $defectRate > $prevDefectRate && $totalRusak >= 5;
+
         // 5. Komitmen Pembayaran PO Belum Lunas
-        $poKomitmenBayar = PurchaseOrder::with(['supplier:id,nama'])
+        $poKomitmenQuery = PurchaseOrder::query()
             ->whereNotIn('status', ['selesai', 'dibatalkan'])
-            ->where('status_pembayaran', '!=', 'lunas')
+            ->where('status_pembayaran', '!=', 'lunas');
+        $poKomitmenCount = (clone $poKomitmenQuery)->count();
+        $poKomitmenBayar = (clone $poKomitmenQuery)
+            ->with(['supplier:id,nama'])
             ->latest('tanggal')
             ->limit(5)
             ->get();
 
         // 6. Peringatan Stok Menipis
+        $lowStockCount = Stok::where('qty_saat_ini', '<=', 10)->count();
         $lowStockItems = Stok::with(['produk:id,sku,nama,satuan', 'gudang:id,nama,kode'])
             ->where('qty_saat_ini', '<=', 10)
             ->limit(5)
@@ -172,6 +201,7 @@ class DashboardController extends Controller
         $kpis = [
             [
                 'title' => 'PO Menunggu Approval',
+                'baseline' => $this->tertuaLabel((clone $poApprovalQuery)->min('created_at')),
                 'value' => $poApprovalCount,
                 'subtitle' => 'Otorisasi & Revisi Pimpinan',
                 'href' => route('purchasing.index', ['tab' => 'approval']),
@@ -196,7 +226,9 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Defect Rate Bulan Ini',
-                'value' => $defectRate . '%',
+                'status' => $defectMemburuk ? 'bad' : null,
+                'baseline' => 'vs ' . number_format($prevDefectRate, 1, ',', '.') . '% bln lalu',
+                'value' => number_format($defectRate, 1, ',', '.') . '%',
                 'subtitle' => number_format($totalRusak, 1) . ' unit rusak (Transfer, PO & Batch)',
                 'href' => route('transfers.index', ['year' => now()->year, 'month' => now()->month]),
                 'footerText' => 'Audit Defect',
@@ -204,6 +236,7 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Item Perlu Order Kritis',
+                'baseline' => 'Lokal ' . $orderSummary['lokal'] . ' · Impor ' . $orderSummary['impor'],
                 'value' => $orderSummary['total'],
                 'subtitle' => 'Lokal: ' . $orderSummary['lokal'] . ' · Impor: ' . $orderSummary['impor'],
                 'href' => route('analisa.index'),
@@ -218,18 +251,21 @@ class DashboardController extends Controller
                 'title' => 'Antrean Otorisasi & Persetujuan Tertunda',
                 'subtitle' => 'Purchase Order dan mutasi logistik yang memerlukan tindakan otorisasi manajerial',
                 'items' => $actionQueueItems->sortByDesc('created_at')->values(),
+                'total' => $poApprovalCount + $stockRequestPendingCount,
                 'viewAllUrl' => route('purchasing.index', ['tab' => 'approval']),
             ],
             'streamLeft' => [
                 'title' => 'Komitmen Pembayaran PO Terbit',
                 'subtitle' => 'Pesanan aktif yang memerlukan realisasi pembayaran termin / DP',
                 'items' => $poKomitmenBayar,
+                'total' => $poKomitmenCount,
                 'viewAllUrl' => route('purchasing.index', ['tab' => 'ap']),
             ],
             'streamRight' => [
                 'title' => 'Peringatan Stok di Bawah Minimum',
                 'subtitle' => 'Bahan baku dan produk dengan stok fisik rendah',
                 'items' => $lowStockItems,
+                'total' => $lowStockCount,
                 'viewAllUrl' => route('stok.index'),
             ],
             // Backwards compatibility legacy vars
@@ -276,7 +312,12 @@ class DashboardController extends Controller
 
         $this->markPoOverdueAndRevisi($poPurchasingItems);
 
-        $poOverdueCount = $poPurchasingItems->where('is_terlambat', true)->count();
+        $poOverdueCount = (clone $poPurchasingQuery)
+            ->with(['supplier:id,nama', 'supplier.stageSummaries', 'stages'])
+            ->get()
+            ->tap(fn (Collection $all) => $this->markPoOverdueAndRevisi($all))
+            ->where('is_terlambat', true)
+            ->count();
 
         // Total komitmen tagihan belum lunas
         $totalKomitmenTagihan = PurchaseOrder::whereNotIn('status', ['selesai', 'dibatalkan'])
@@ -286,7 +327,7 @@ class DashboardController extends Controller
         // Monitoring pengiriman vendor
         $poInTransit = PurchaseOrder::with(['supplier:id,nama'])
             ->whereNotIn('status', ['selesai', 'dibatalkan'])
-            ->whereIn('stage_aktif', ['pengemasan', 'pengiriman'])
+            ->where('stage_aktif', PoStage::STAGE_6)
             ->latest('tanggal')
             ->limit(5)
             ->get();
@@ -342,7 +383,8 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Total Komitmen Tagihan',
-                'value' => 'Rp ' . number_format($totalKomitmenTagihan, 0, ',', '.'),
+                'value' => Rupiah::ringkas((float) $totalKomitmenTagihan),
+                'valueTitle' => Rupiah::penuh((float) $totalKomitmenTagihan),
                 'subtitle' => 'Liabilitas PO Aktif Belum Lunas',
                 'href' => route('purchasing.index', ['tab' => 'ap']),
                 'footerText' => 'Buka Hutang AP',
@@ -356,6 +398,7 @@ class DashboardController extends Controller
                 'title' => 'Antrean Tindak Lanjut Pengadaan',
                 'subtitle' => 'Purchase Order yang memerlukan konfirmasi vendor, pembayaran termin/DP, atau rilis pesanan',
                 'items' => $actionQueueItems->values(),
+                'total' => $poPurchasingCount,
                 'viewAllUrl' => route('purchasing.index'),
             ],
             'streamLeft' => [
@@ -368,6 +411,7 @@ class DashboardController extends Controller
                 'title' => 'Daftar PO Aktif Berjalan',
                 'subtitle' => 'Purchase order aktif dalam pengawasan purchasing',
                 'items' => $poPurchasingItems->take(5),
+                'total' => $poPurchasingCount,
                 'viewAllUrl' => route('purchasing.index'),
             ],
             // Backwards compatibility legacy vars
@@ -491,6 +535,7 @@ class DashboardController extends Controller
         $kpis = [
             [
                 'title' => 'Kedatangan Siap Unloading',
+                'baseline' => $this->tertuaLabel((clone $poUnloadingQuery)->min('created_at')),
                 'value' => $poUnloadingCount,
                 'subtitle' => 'Ekspedisi Tiba di Gudang',
                 'href' => route('purchasing.index'),
@@ -507,6 +552,7 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Transfer Perlu Dikirim',
+                'baseline' => $this->tertuaLabel((clone $trfKirimQuery)->min('created_at')),
                 'value' => $trfKirimCount,
                 'subtitle' => 'Draft Muat & Surat Jalan',
                 'href' => route('transfers.index', ['status' => 'draft']),
@@ -537,12 +583,14 @@ class DashboardController extends Controller
                 'title' => 'Antrean Bongkar Muat & Dispatch Fisik',
                 'subtitle' => 'Penerimaan kedatangan barang ekspedisi dan penyiapan surat jalan keluar',
                 'items' => $actionQueueItems->values(),
+                'total' => $poUnloadingCount + $trfKirimCount + $trfMasukCount,
                 'viewAllUrl' => route('purchasing.index'),
             ],
             'streamLeft' => [
                 'title' => 'Pengiriman Logistik Keluar (Draft)',
                 'subtitle' => 'Dokumen transfer barang yang perlu diterbitkan fisik surat jalannya',
                 'items' => $trfKirimItems,
+                'total' => $trfKirimCount,
                 'viewAllUrl' => route('transfers.index'),
             ],
             'streamRight' => [
@@ -654,6 +702,7 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Kesiapan Bahan BOM',
+                'status' => $lackingBatchCount > 0 ? 'bad' : null,
                 'value' => "{$readyBatchCount} Batch Siap",
                 'subtitle' => "{$lackingBatchCount} Kurang Bahan",
                 'href' => route('batches.index'),
@@ -684,6 +733,7 @@ class DashboardController extends Controller
                 'title' => 'Antrean Kesiapan Batch & Alokasi Formula',
                 'subtitle' => 'Batch rencana yang bahan formulanya telah siap untuk dirilis ke pencampuran laboratorium',
                 'items' => $actionQueueItems->values(),
+                'total' => $batchRencana->count(),
                 'viewAllUrl' => route('batches.index'),
             ],
             'streamLeft' => [
@@ -720,20 +770,28 @@ class DashboardController extends Controller
         $ffGudangIds = Gudang::fulfillment()->pluck('id')->toArray();
 
         // 1. Total Saldo Produk Jadi
-        $totalProdukJadiStock = Stok::whereIn('gudang_id', $ffGudangIds)->sum('qty_saat_ini');
+        $totalProdukJadiStock = Stok::whereIn('gudang_id', $ffGudangIds)
+            ->whereHas('produk', fn ($q) => $q->where('tipe', 'produk_jadi'))
+            ->sum('qty_saat_ini');
 
         // 2. Transfer Masuk dari Lab
-        $trfMasukLab = Transfer::with(['gudangAsal:id,nama', 'gudangTujuan:id,nama'])
+        $trfMasukLabQuery = Transfer::query()
             ->where('status', 'dikirim')
-            ->where('jenis', 'kirim_produk_jadi')
+            ->where('jenis', 'kirim_produk_jadi');
+        $trfMasukLabCount = (clone $trfMasukLabQuery)->count();
+        $trfMasukLab = (clone $trfMasukLabQuery)
+            ->with(['gudangAsal:id,nama', 'gudangTujuan:id,nama'])
             ->latest('waktu_dikirim')
             ->limit(5)
             ->get();
 
         // 3. Transfer Antar Toko
-        $trfAntarToko = Transfer::with(['gudangAsal:id,nama', 'gudangTujuan:id,nama'])
+        $trfAntarTokoQuery = Transfer::query()
             ->where('jenis', 'antar_fulfillment')
-            ->whereIn('status', ['draft', 'dikirim'])
+            ->whereIn('status', ['draft', 'dikirim']);
+        $trfAntarTokoCount = (clone $trfAntarTokoQuery)->count();
+        $trfAntarToko = (clone $trfAntarTokoQuery)
+            ->with(['gudangAsal:id,nama', 'gudangTujuan:id,nama'])
             ->latest('created_at')
             ->limit(5)
             ->get();
@@ -787,7 +845,7 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Transfer Masuk dari Lab',
-                'value' => $trfMasukLab->count(),
+                'value' => $trfMasukLabCount,
                 'subtitle' => 'Pasokan Batch Selesai',
                 'href' => route('transfers.index', ['status' => 'dikirim']),
                 'footerText' => 'Penerimaan Toko',
@@ -795,7 +853,7 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Transfer Antar Toko',
-                'value' => $trfAntarToko->count(),
+                'value' => $trfAntarTokoCount,
                 'subtitle' => 'Mutasi Cabang & Hub',
                 'href' => route('transfers.index'),
                 'footerText' => 'Distribusi Hub',
@@ -825,6 +883,7 @@ class DashboardController extends Controller
                 'title' => 'Antrean Penerimaan Produk Jadi & Distribusi Toko',
                 'subtitle' => 'Pengiriman produk jadi tiba dari lab dan pemenuhan mutasi cabang',
                 'items' => $actionQueueItems->values(),
+                'total' => $trfMasukLabCount + $trfAntarTokoCount,
                 'viewAllUrl' => route('transfers.index'),
             ],
             'streamLeft' => [
@@ -844,7 +903,7 @@ class DashboardController extends Controller
             'stats' => [
                 'item_perlu_order' => 0,
                 'po_perlu_tindakan' => 0,
-                'rt_perlu_tindakan' => $trfMasukLab->count() + $trfAntarToko->count(),
+                'rt_perlu_tindakan' => $trfMasukLabCount + $trfAntarTokoCount,
                 'batch_aktif' => $batchSegeraSelesaiCount,
                 'batch_selesai' => BatchProduksi::where('status', 'selesai')->count(),
             ],
@@ -859,6 +918,69 @@ class DashboardController extends Controller
     private function buildDefaultData(User $user): array
     {
         return $this->buildOperasionalData($user);
+    }
+
+    /** KPI berstatus `warn` bila nilainya > 0 (butuh tindakan manusia). */
+    private const KPI_WARN_JIKA_ADA = [
+        'PO Menunggu Approval',
+        'Request Mutasi Pending',
+        'Kedatangan Siap Unloading',
+        'Menunggu Input Sistem',
+        'Transfer Perlu Dikirim',
+        'Batch Selesai Siap Kirim',
+        'Transfer Masuk dari Lab',
+    ];
+
+    /** KPI berstatus `bad` bila nilainya > 0 (masalah). */
+    private const KPI_BAD_JIKA_ADA = [
+        'Item Perlu Order Kritis',
+        'Item Perlu Order (Lokal)',
+        'Item Perlu Order (Impor)',
+        'PO Terlambat SLA',
+        'Stok Menipis Lokal',
+        'SKU Kritis Fast-Moving',
+    ];
+
+    /**
+     * Lengkapi setiap KPI dengan status, baseline, hint, dan valueTitle.
+     * Key lama (title, value, subtitle, href, footerText, icon) tidak diubah.
+     * Builder boleh mengisi status/baseline/valueTitle sendiri; yang kosong diisi di sini.
+     *
+     * @param  array<int, array<string, mixed>>  $kpis
+     * @return array<int, array<string, mixed>>
+     */
+    private function decorateKpis(array $kpis): array
+    {
+        return array_map(function (array $kpi) {
+            $title = (string) ($kpi['title'] ?? '');
+            $angka = is_numeric($kpi['value'] ?? null) ? (float) $kpi['value'] : 0.0;
+
+            if (! array_key_exists('status', $kpi)) {
+                $kpi['status'] = match (true) {
+                    $angka > 0 && in_array($title, self::KPI_BAD_JIKA_ADA, true) => 'bad',
+                    $angka > 0 && in_array($title, self::KPI_WARN_JIKA_ADA, true) => 'warn',
+                    default => null,
+                };
+            }
+
+            $kpi['baseline'] ??= null;
+            $kpi['valueTitle'] ??= null;
+            $kpi['hint'] = $kpi['subtitle'] ?? null;
+
+            return $kpi;
+        }, $kpis);
+    }
+
+    /** Teks "tertua N hari" untuk antrean, atau null bila antrean kosong. */
+    private function tertuaLabel(mixed $createdAt): ?string
+    {
+        if (! $createdAt) {
+            return null;
+        }
+
+        $hari = (int) Carbon::parse($createdAt)->diffInDays(now());
+
+        return $hari <= 0 ? 'tertua hari ini' : "tertua {$hari} hari";
     }
 
     /**
