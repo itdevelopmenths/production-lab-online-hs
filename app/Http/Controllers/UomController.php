@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Produk;
 use App\Models\Uom;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -41,19 +42,21 @@ class UomController extends Controller
                 return '1 ' . e($u->kode) . ' = ' . $fFormatted . ' ' . e($u->satuan_dasar);
             })
             ->addColumn('produk_count', fn ($u) => number_format($u->produk_count) . ' SKU')
-            ->editColumn('is_active', fn ($u) => $u->is_active ? 'Aktif' : 'Nonaktif')
+            ->editColumn('is_active', fn ($u) => $u->is_active
+                ? UiTableHelper::statusPill('Aktif', 'completed')
+                : UiTableHelper::statusPill('Nonaktif', 'cancelled'))
             ->addColumn('action', function ($u) use ($canEdit, $canDelete) {
-                $html = '<div class="flex items-center justify-center gap-3">';
+                $buttons = [];
                 if ($canEdit) {
-                    $html .= '<a href="' . e(route('uom.edit', $u)) . '" class="text-primary hover:text-primary/80 text-xs font-semibold">Edit</a>';
+                    $buttons[] = UiTableHelper::actionLink(route('uom.edit', $u), 'Edit', 'pencil', 'default');
                 }
                 if ($canDelete) {
-                    $html .= '<button type="button" onclick="hapus(\'' . e(route('uom.destroy', $u)) . '\')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold cursor-pointer">Hapus</button>';
+                    $buttons[] = UiTableHelper::actionButton("hapus('" . e(route('uom.destroy', $u)) . "')", 'Hapus', 'trash', 'danger');
                 }
 
-                return $html . '</div>';
+                return UiTableHelper::actionGroup($buttons);
             })
-            ->rawColumns(['action'])
+            ->rawColumns(['is_active', 'action'])
             ->toJson();
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bom;
 use App\Models\Produk;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,9 @@ class BomController extends Controller
 
         return DataTables::eloquent($query)
             ->addColumn('bom_count', fn ($p) => $p->bom_count)
-            ->addColumn('action', fn ($p) => '<a href="' . e(route('bom.edit', $p)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Kelola BOM</a>')
+            ->addColumn('action', fn ($p) => UiTableHelper::actionGroup([
+                UiTableHelper::actionLink(route('bom.edit', $p), 'Kelola BOM', 'layers', 'default'),
+            ]))
             ->rawColumns(['action'])
             ->toJson();
     }

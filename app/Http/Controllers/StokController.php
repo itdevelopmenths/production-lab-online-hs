@@ -9,6 +9,7 @@ use App\Models\Stok;
 use App\Services\AnalisaService;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\StokService;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -274,8 +275,8 @@ class StokController extends Controller
                 $isOrder = $batasMin > 0 && round($selisih, 4) <= 0;
 
                 return $isOrder
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-red-100 text-red-700">ORDER</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">AMAN</span>';
+                    ? UiTableHelper::statusPill('ORDER', 'cancelled')
+                    : UiTableHelper::statusPill('AMAN', 'completed');
             })
             ->addColumn('hpp', function ($s) use ($hppMap, $canSeePrice) {
                 if (! $canSeePrice) {
@@ -295,7 +296,9 @@ class StokController extends Controller
                 return $this->formatNilaiStok($nilai);
             })
             ->addColumn('action', function ($s) {
-                return '<a href="' . route('stok.ledger', ['produk' => $s->produk_id, 'gudang_id' => $s->gudang_id]) . '" class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition">Kartu Stok</a>';
+                return UiTableHelper::actionGroup([
+                    UiTableHelper::actionLink(route('stok.ledger', ['produk' => $s->produk_id, 'gudang_id' => $s->gudang_id]), 'Kartu Stok', 'book', 'default'),
+                ]);
             })
             ->rawColumns(['stok_berjalan', 'status_stok', 'action'])
             ->toJson();
@@ -557,26 +560,26 @@ class StokController extends Controller
             ->editColumn('tipe', function ($k) {
                 $isMasuk = strtolower($k->tipe) === 'in';
                 return $isMasuk
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">MASUK (IN)</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">KELUAR (OUT)</span>';
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">MASUK (IN)</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30">KELUAR (OUT)</span>';
             })
             ->addColumn('item', function ($k) {
                 $sku = e($k->produk?->sku ?? '—');
                 $nama = e($k->produk?->nama ?? '—');
                 $satuan = e($k->produk?->satuan ?? '');
-                return '<div class="font-medium text-gray-900">' . $nama . '</div><div class="text-[10px] font-mono text-gray-500">' . $sku . ' · ' . $satuan . '</div>';
+                return '<div class="font-medium text-[#101828] dark:text-white">' . $nama . '</div><div class="text-[10px] font-mono text-text-muted">' . $sku . ' · ' . $satuan . '</div>';
             })
             ->addColumn('lokasi_gudang', fn ($k) => e($k->gudang?->nama ?? '—'))
             ->addColumn('ref', function ($k) {
                 $refHtml = $this->formatReferenceLink($k->referensi_tipe, $k->referensi_id);
-                $catatan = $k->catatan ? '<div class="text-[10px] text-gray-400 truncate max-w-[200px]" title="' . e($k->catatan) . '">' . e($k->catatan) . '</div>' : '';
+                $catatan = $k->catatan ? '<div class="text-[10px] text-text-muted truncate max-w-[200px]" title="' . e($k->catatan) . '">' . e($k->catatan) . '</div>' : '';
 
                 return $refHtml . $catatan;
             })
             ->editColumn('qty', function ($k) {
                 $isMasuk = strtolower($k->tipe) === 'in';
                 $sign = $isMasuk ? '+' : '-';
-                $color = $isMasuk ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold';
+                $color = $isMasuk ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-rose-700 dark:text-rose-400 font-bold';
                 $formatted = $this->formatQty((float) $k->qty);
                 $satuan = e($k->produk?->satuan ?? '');
                 return '<span class="font-mono ' . $color . '">' . $sign . ' ' . $formatted . ' ' . $satuan . '</span>';
@@ -587,11 +590,11 @@ class StokController extends Controller
                 $saldoSesudah = (float) $k->saldo_setelah;
                 $saldoSebelum = $isMasuk ? ($saldoSesudah - $qty) : ($saldoSesudah + $qty);
                 $satuan = e($k->produk?->satuan ?? '');
-                return '<span class="font-mono text-gray-600">' . $this->formatQty($saldoSebelum) . '</span> <span class="text-gray-400">➔</span> <span class="font-mono font-bold text-gray-900">' . $this->formatQty($saldoSesudah) . ' ' . $satuan . '</span>';
+                return '<span class="font-mono text-text-muted">' . $this->formatQty($saldoSebelum) . '</span> <span class="text-text-muted">➔</span> <span class="font-mono font-bold text-[#101828] dark:text-white">' . $this->formatQty($saldoSesudah) . ' ' . $satuan . '</span>';
             })
-            ->editColumn('tanggal', fn ($k) => '<span class="font-mono text-xs text-gray-700">' . ($k->created_at ? $k->created_at->format('d/m/Y H:i') : $k->tanggal->format('d/m/Y')) . '</span>')
+            ->editColumn('tanggal', fn ($k) => '<span class="font-mono text-xs text-text-muted">' . ($k->created_at ? $k->created_at->format('d/m/Y H:i') : $k->tanggal->format('d/m/Y')) . '</span>')
             ->addColumn('oleh', function ($k) {
-                return '<span class="text-gray-800 font-medium text-xs">' . e($k->creator?->name ?? 'Sistem') . '</span>';
+                return '<span class="text-[#101828] dark:text-gray-200 font-medium text-xs">' . e($k->creator?->name ?? 'Sistem') . '</span>';
             })
             ->rawColumns(['tipe', 'item', 'ref', 'qty', 'sebelum_sesudah', 'tanggal', 'oleh'])
             ->toJson();
@@ -625,9 +628,9 @@ class StokController extends Controller
         }
 
         if ($url) {
-            return '<a href="' . e($url) . '" class="text-primary-600 hover:text-primary-800 hover:underline font-semibold inline-flex items-center gap-1">' . e($label) . '<span class="font-mono text-gray-500 text-[11px]">' . e($idShort) . '</span></a>';
+            return '<a href="' . e($url) . '" class="text-[#101828] dark:text-white hover:underline font-semibold inline-flex items-center gap-1">' . e($label) . '<span class="font-mono text-text-muted text-[11px]">' . e($idShort) . '</span></a>';
         }
 
-        return '<div class="font-semibold text-gray-700">' . e($label) . '<span class="font-mono text-gray-500 text-[11px]">' . e($idShort) . '</span></div>';
+        return '<div class="font-semibold text-text-active">' . e($label) . '<span class="font-mono text-text-muted text-[11px]">' . e($idShort) . '</span></div>';
     }
 }

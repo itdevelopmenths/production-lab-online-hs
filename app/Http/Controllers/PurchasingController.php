@@ -21,6 +21,7 @@ use App\Services\Purchasing\PurchasingPaymentService;
 use App\Services\Purchasing\PurchasingStageService;
 use App\Services\Purchasing\SupplierLeadTimeService;
 use App\Services\StokService;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -213,19 +214,22 @@ class PurchasingController extends Controller
             ->addColumn('total_nilai', fn ($po) => $canSeePrice ? number_format((float) $po->totalNilai(), 0, ',', '.') : '—')
             ->addColumn('sisa', fn ($po) => $canSeePrice ? number_format((float) $po->sisaTagihan(), 0, ',', '.') : '—')
             ->addColumn('action', function ($po) use ($canEditUser) {
-                $html = '<div class="flex items-center justify-center gap-2">'
-                    . '<a href="' . e(route('purchasing.show', $po)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Detail</a>';
+                $buttons = [
+                    UiTableHelper::actionLink(route('purchasing.show', $po), 'Detail', 'eye', 'default'),
+                ];
 
                 $canEdit = $canEditUser && in_array($po->status, ['draft', 'diajukan', 'disetujui'], true) && $po->barangDatang->isEmpty();
                 if ($canEdit) {
-                    $html .= '<a href="' . e(route('purchasing.edit', $po)) . '" class="text-blue-600 hover:text-blue-800 text-xs font-medium">Edit</a>'
-                        . '<button type="button"'
-                        . ' onclick="openQuickDateModal(\'' . e($po->id) . '\', \'' . e($po->no_po) . '\', \'' . e($po->tanggal?->format('Y-m-d') ?? '') . '\', \'' . e($po->eta?->format('Y-m-d') ?? '') . '\')"'
-                        . ' class="text-amber-600 hover:text-amber-800 text-xs font-medium cursor-pointer"'
-                        . ' title="Edit Tanggal PO &amp; ETA">Edit Tgl</button>';
+                    $buttons[] = UiTableHelper::actionLink(route('purchasing.edit', $po), 'Edit', 'pencil', 'default');
+                    $buttons[] = UiTableHelper::actionButton(
+                        "openQuickDateModal('" . e($po->id) . "', '" . e($po->no_po) . "', '" . e($po->tanggal?->format('Y-m-d') ?? '') . "', '" . e($po->eta?->format('Y-m-d') ?? '') . "')",
+                        'Edit Tanggal PO & ETA',
+                        'calendar',
+                        'warning'
+                    );
                 }
 
-                return $html . '</div>';
+                return UiTableHelper::actionGroup($buttons);
             })
             ->rawColumns(['action'])
             ->toJson();
@@ -286,14 +290,15 @@ class PurchasingController extends Controller
             })
             ->addColumn('status_pembayaran', fn ($po) => $this->resolveEffectivePaymentStatus($po))
             ->addColumn('action', function ($po) {
-                $showUrl = e(route('purchasing.show', $po));
-                $html = '<div class="flex items-center justify-center gap-2">'
-                    . '<a href="' . $showUrl . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Detail</a>';
+                $showUrl = route('purchasing.show', $po);
+                $buttons = [
+                    UiTableHelper::actionLink($showUrl, 'Detail', 'eye', 'default'),
+                ];
                 if (! $po->isLunas() && ! $po->isCancelled() && ! $po->hasPendingRevision()) {
-                    $html .= '<a href="' . $showUrl . '#form-pembayaran" class="text-emerald-600 hover:text-emerald-800 text-xs font-semibold">Bayar</a>';
+                    $buttons[] = UiTableHelper::actionLink($showUrl . '#form-pembayaran', 'Bayar', 'check', 'success');
                 }
 
-                return $html . '</div>';
+                return UiTableHelper::actionGroup($buttons);
             })
             ->rawColumns(['action'])
             ->toJson();

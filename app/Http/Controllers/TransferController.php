@@ -10,6 +10,7 @@ use App\Services\Authorization\InventoryTransferAuthorizationService;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\StokService;
 use App\Services\TransferService;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,12 +77,12 @@ class TransferController extends Controller
             ->orderColumn('no_transfer', fn ($q, $order) => $q->orderBy('no_transaksi', $order))
             ->addColumn('no_transfer', fn ($t) => $t->no_transaksi)
             ->editColumn('status', function ($t) {
-                $badge = match ($t->status) {
-                    'draft' => 'bg-gray-100 text-gray-700 border-gray-300',
-                    'dikirim' => 'bg-amber-100 text-amber-800 border-amber-300',
-                    'selesai' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
-                    'dibatalkan' => 'bg-rose-100 text-rose-800 border-rose-300',
-                    default => 'bg-gray-100 text-gray-700 border-gray-300',
+                $tone = match ($t->status) {
+                    'draft' => 'draft',
+                    'dikirim' => 'in_transit',
+                    'selesai' => 'completed',
+                    'dibatalkan' => 'cancelled',
+                    default => 'draft',
                 };
                 $label = match ($t->status) {
                     'draft' => 'Draft',
@@ -90,43 +91,42 @@ class TransferController extends Controller
                     'dibatalkan' => 'Dibatalkan',
                     default => ucfirst($t->status),
                 };
-                return "<span class=\"inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border {$badge}\">{$label}</span>";
+
+                return UiTableHelper::statusPill($label, $tone);
             })
             ->editColumn('jenis', fn ($t) => match ($t->jenis) {
-                'pemenuhan_request_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">Bahan Baku</span>',
-                'retur_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-50 text-orange-800 border border-orange-200">Retur Bahan</span>',
-                'kirim_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200">Produk Jadi</span>',
-                'antar_fulfillment' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-800 border border-indigo-200">Antar Fulfillment</span>',
-                'retur_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-50 text-rose-800 border border-rose-200">Retur Produk Jadi</span>',
-                'request_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">Bahan Baku</span>',
-                'request_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200">Produk Jadi</span>',
-                'distribusi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-800 border border-indigo-200">Distribusi</span>',
+                'pemenuhan_request_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">Bahan Baku</span>',
+                'retur_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-orange-50 dark:bg-orange-500/10 text-orange-800 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20">Retur Bahan</span>',
+                'kirim_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-sky-50 dark:bg-sky-500/10 text-sky-800 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20">Produk Jadi</span>',
+                'antar_fulfillment' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-indigo-50 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">Antar Fulfillment</span>',
+                'retur_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-rose-50 dark:bg-rose-500/10 text-rose-800 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20">Retur Produk Jadi</span>',
+                'request_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">Bahan Baku</span>',
+                'request_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-sky-50 dark:bg-sky-500/10 text-sky-800 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20">Produk Jadi</span>',
+                'distribusi' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-indigo-50 dark:bg-indigo-500/10 text-indigo-800 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">Distribusi</span>',
                 default => e(Transfer::JENIS_LABELS[$t->jenis] ?? $t->jenis),
             })
             ->editColumn('tanggal_transfer', fn ($t) => $t->tanggal_transfer ? $t->tanggal_transfer->format('d/m/Y') : ($t->created_at ? $t->created_at->format('d/m/Y') : '-'))
             ->addColumn('asal', fn ($t) => $t->gudangAsal?->nama ?? '-')
             ->addColumn('tujuan', fn ($t) => $t->gudangTujuan?->nama ?? '-')
-            ->addColumn('request_no', fn ($t) => $t->stockRequest ? '<a href="' . route('requests.show', $t->stockRequest) . '" class="text-blue-600 hover:underline font-mono text-xs">' . e($t->stockRequest->no_request) . '</a>' : '-')
+            ->addColumn('request_no', fn ($t) => $t->stockRequest ? '<a href="' . route('requests.show', $t->stockRequest) . '" class="text-blue-600 dark:text-blue-400 hover:underline font-mono text-xs">' . e($t->stockRequest->no_request) . '</a>' : '-')
             ->addColumn('qty_dikirim', fn ($t) => number_format($t->items->sum('qty_dikirim'), 2))
             ->addColumn('qty_rusak', function ($t) {
                 $rusak = (float) $t->items->sum('qty_rusak');
                 if ($rusak > 0) {
-                    return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">' . number_format($rusak, 2) . '</span>';
+                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-bold bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-400 border border-rose-300 dark:border-rose-500/30">' . number_format($rusak, 2) . '</span>';
                 }
-                return '<span class="text-slate-400">0</span>';
+                return '<span class="text-text-muted">0</span>';
             })
             ->addColumn('action', function ($t) {
-                $detailUrl = route('transfers.show', $t);
-                $html = '<div class="flex items-center justify-center gap-1.5 whitespace-nowrap">';
-                $html .= '<a href="' . e($detailUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground bg-card hover:bg-accent border border-border transition-colors shadow-2xs">Detail</a>';
+                $buttons = [
+                    UiTableHelper::actionLink(route('transfers.show', $t), 'Detail', 'eye', 'default'),
+                ];
 
                 if (in_array($t->status, ['dikirim', 'selesai'], true)) {
-                    $sjUrl = route('transfers.surat-jalan', $t);
-                    $html .= '<a href="' . e($sjUrl) . '" target="_blank" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground hover:bg-accent border border-border transition-colors" title="Cetak Surat Jalan">Surat Jalan</a>';
+                    $buttons[] = UiTableHelper::actionLink(route('transfers.surat-jalan', $t), 'Surat Jalan', 'printer', 'default', ['target' => '_blank']);
                 }
 
-                $html .= '</div>';
-                return $html;
+                return UiTableHelper::actionGroup($buttons);
             })
             ->rawColumns(['status', 'jenis', 'request_no', 'qty_rusak', 'action'])
             ->toJson();

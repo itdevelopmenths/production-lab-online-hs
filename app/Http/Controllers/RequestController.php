@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Authorization\InventoryTransferAuthorizationService;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\RequestService;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,23 +64,12 @@ class RequestController extends Controller
         return DataTables::eloquent($query)
             ->orderColumn('tanggal_request', fn ($q, $order) => $q->orderBy('created_at', $order))
             ->editColumn('jenis', fn ($r) => match ($r->jenis) {
-                'request_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">Bahan Baku (Operasional)</span>',
-                'request_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sky-50 text-sky-800 border border-sky-200">Produk Jadi (Fulfillment)</span>',
+                'request_bahan' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">Bahan Baku (Operasional)</span>',
+                'request_produk_jadi' => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-sky-50 dark:bg-sky-500/10 text-sky-800 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20">Produk Jadi (Fulfillment)</span>',
                 default => e($r->jenis),
             })
             ->editColumn('status', function ($r) {
-                $badge = match ($r->status) {
-                    'draft' => 'bg-gray-100 text-gray-700 border-gray-300',
-                    'diajukan' => 'bg-yellow-100 text-yellow-800 border-yellow-300',
-                    'disetujui' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
-                    'diproses' => 'bg-blue-100 text-blue-800 border-blue-300',
-                    'selesai' => 'bg-green-100 text-green-800 border-green-300',
-                    'ditolak' => 'bg-rose-100 text-rose-800 border-rose-300',
-                    'dibatalkan' => 'bg-red-100 text-red-700 border-red-300',
-                    default => 'bg-gray-100 text-gray-700 border-gray-300',
-                };
-                $label = ucfirst($r->status);
-                return "<span class=\"inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border {$badge}\">{$label}</span>";
+                return UiTableHelper::statusPill(ucfirst($r->status), (string) $r->status);
             })
             ->editColumn('tanggal_request', fn ($r) => $r->tanggal_request ? $r->tanggal_request->format('d/m/Y') : '-')
             ->addColumn('pemohon', fn ($r) => $r->gudangPemohon?->nama ?? '-')
@@ -87,50 +77,59 @@ class RequestController extends Controller
             ->addColumn('batch_no', fn ($r) => $r->batch?->no_batch ?? '-')
             ->addColumn('action', function ($r) use ($userId, $isManager, $user) {
                 $detailUrl = route('requests.show', $r);
-                $html = '<div class="flex items-center justify-center gap-1.5 whitespace-nowrap">';
+                $buttons = [
+                    UiTableHelper::actionLink($detailUrl, 'Detail', 'eye', 'default'),
+                ];
 
-                // 1. Aksi Utama: Detail (konsisten di setiap baris dengan gaya neutral outline)
-                $html .= '<a href="' . e($detailUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground bg-card hover:bg-accent border border-border transition-colors shadow-2xs">Detail</a>';
-
-                // 2. Status DRAFT: Pembuat atau Manager dapat Edit & Batalkan
+                // Status DRAFT: Pembuat atau Manager dapat Edit & Batalkan
                 if ($r->status === 'draft' && ((int) $r->created_by === $userId || $isManager)) {
                     if ($this->authz->canCreateRequestForType($user, $r->jenis)) {
-                        $editUrl = route('requests.edit', $r);
-                        $html .= '<a href="' . e($editUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground hover:bg-accent border border-border transition-colors">Edit</a>';
+                        $buttons[] = UiTableHelper::actionLink(route('requests.edit', $r), 'Edit', 'pencil', 'default');
                     }
                     if ($user->can('request.cancel')) {
-                        $html .= '<button type="button" class="btn-cancel-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.cancel', $r)) . '" data-no="' . e($r->no_request) . '">Batalkan</button>';
+                        $buttons[] = UiTableHelper::actionButton('', 'Batalkan', 'x', 'danger', [
+                            'class' => 'btn-cancel-req',
+                            'data-action' => route('requests.cancel', $r),
+                            'data-no' => $r->no_request,
+                        ]);
                     }
                 }
 
-                // 3. Status DIAJUKAN: Pihak berwenang approve dapat Setujui / Tolak
+                // Status DIAJUKAN: Pihak berwenang approve dapat Setujui / Tolak
                 if ($r->status === 'diajukan') {
                     if ($user->can('request.approve')) {
                         $csrf = csrf_field();
                         $approveUrl = route('requests.approve', $r);
-                        $html .= '<form method="POST" action="' . e($approveUrl) . '" class="inline" onsubmit="return confirm(\'Setujui request ' . e($r->no_request) . '?\')">' . $csrf . '<button type="submit" class="px-2.5 py-1 rounded-md text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors cursor-pointer">Setujui</button></form>';
-                        $html .= '<button type="button" class="btn-reject-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.reject', $r)) . '" data-no="' . e($r->no_request) . '">Tolak</button>';
+                        $buttons[] = '<form method="POST" action="' . e($approveUrl) . '" class="inline" onsubmit="return confirm(\'Setujui request ' . e($r->no_request) . '?\')">' . $csrf
+                            . UiTableHelper::actionButton('', 'Setujui', 'check', 'success', ['type' => 'submit'])
+                            . '</form>';
+                        $buttons[] = UiTableHelper::actionButton('', 'Tolak', 'x', 'danger', [
+                            'class' => 'btn-reject-req',
+                            'data-action' => route('requests.reject', $r),
+                            'data-no' => $r->no_request,
+                        ]);
                     } elseif ((int) $r->created_by === $userId && $user->can('request.cancel')) {
-                        $html .= '<button type="button" class="btn-cancel-req px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer" data-action="' . e(route('requests.cancel', $r)) . '" data-no="' . e($r->no_request) . '">Batalkan</button>';
+                        $buttons[] = UiTableHelper::actionButton('', 'Batalkan', 'x', 'danger', [
+                            'class' => 'btn-cancel-req',
+                            'data-action' => route('requests.cancel', $r),
+                            'data-no' => $r->no_request,
+                        ]);
                     }
                 }
 
-                // 4. Status DISETUJUI: Alur kerja utama Buat Transfer (sesuai izin kategori transfer) & opsi Revisi
+                // Status DISETUJUI: Buat Transfer & opsi Revisi
                 if ($r->status === 'disetujui') {
                     $hasActiveTransfer = $r->transfers->where('status', '!=', 'dibatalkan')->isNotEmpty();
                     if (! $hasActiveTransfer && $this->authz->canCreateTransferForRequest($user, $r)) {
-                        $trfUrl = route('transfers.create', ['request_id' => $r->id]);
-                        $html .= '<a href="' . e($trfUrl) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-primary-foreground bg-primary hover:bg-primary/90 transition-colors shadow-2xs cursor-pointer">Buat Transfer</a>';
+                        $buttons[] = UiTableHelper::actionLink(route('transfers.create', ['request_id' => $r->id]), 'Buat Transfer', 'send', 'info');
                     }
 
                     if (((int) $r->created_by === $userId || $isManager) && $this->authz->canCreateRequestForType($user, $r->jenis)) {
-                        $editUrl = route('requests.edit', $r);
-                        $html .= '<a href="' . e($editUrl) . '" class="px-2 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Revisi request disetujui (status akan kembali diajukan)">Revisi</a>';
+                        $buttons[] = UiTableHelper::actionLink(route('requests.edit', $r), 'Revisi', 'pencil', 'warning');
                     }
                 }
 
-                $html .= '</div>';
-                return $html;
+                return UiTableHelper::actionGroup($buttons);
             })
             ->rawColumns(['jenis', 'status', 'action'])
             ->toJson();

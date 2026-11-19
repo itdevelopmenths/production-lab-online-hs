@@ -385,7 +385,7 @@ table.dataTable {
 
 table.dataTable thead th,
 table.dataTable thead td {
-  @apply sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 backdrop-blur-md border-y border-[#e8e8e8] dark:border-border text-[#6a7282] dark:text-gray-400 font-normal px-3 py-2.5 text-left text-xs sm:text-[13px] select-none whitespace-nowrap;
+  @apply sticky top-0 z-30 bg-[#f8fafb] dark:bg-gray-800/95 backdrop-blur-md border-y border-border text-text-muted font-normal px-3 py-2.5 text-left text-xs sm:text-[13px] select-none whitespace-nowrap;
 }
 
 table.dataTable thead th.sorting,
@@ -401,7 +401,7 @@ table.dataTable thead th.sorting_desc {
 
 table.dataTable tbody th,
 table.dataTable tbody td {
-  @apply border-b border-[#e8e8e8]/70 dark:border-gray-800/60 px-3 py-3 align-middle bg-white dark:bg-gray-900 text-[14px] leading-[20px] font-normal tracking-[-0.154px] text-[#101828] dark:text-white transition-colors tabular-nums;
+  @apply border-b border-border dark:border-gray-800/50 px-3 py-3 align-middle bg-white dark:bg-gray-900 text-[14px] leading-[20px] font-normal tracking-[-0.154px] text-[#101828] dark:text-white transition-colors tabular-nums;
 }
 
 table.dataTable.no-footer {

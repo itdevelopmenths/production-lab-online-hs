@@ -81,19 +81,19 @@ class OperationalAuditController extends Controller
 
                 $ref = e($a->nomor_referensi ?: '—');
                 if ($link) {
-                    return "<a href=\"{$link}\" class=\"font-mono font-bold text-primary-700 hover:text-primary-900 hover:underline inline-flex items-center gap-1\">{$ref}</a>";
+                    return "<a href=\"{$link}\" class=\"font-mono font-bold text-[#101828] dark:text-white hover:underline inline-flex items-center gap-1\">{$ref}</a>";
                 }
-                return "<span class=\"font-mono font-semibold text-gray-800\">{$ref}</span>";
+                return "<span class=\"font-mono font-semibold text-[#101828] dark:text-white\">{$ref}</span>";
             })
             ->addColumn('module_badge', fn ($a) => $a->module_badge)
             ->addColumn('event_badge', fn ($a) => $a->event_badge)
             ->addColumn('rincian', fn ($a) => $a->formatted_diff)
             ->addColumn('pelaksana', function ($a) {
                 $name = e($a->user_name ?? 'Sistem');
-                $role = $a->user_role ? '<span class="text-[10px] text-gray-500 font-normal block leading-tight">' . e(ucfirst($a->user_role)) . '</span>' : '';
-                return "<div class=\"text-xs font-semibold text-gray-900\">{$name}{$role}</div>";
+                $role = $a->user_role ? '<span class="text-[10px] text-text-muted font-normal block leading-tight">' . e(ucfirst($a->user_role)) . '</span>' : '';
+                return "<div class=\"text-xs font-semibold text-[#101828] dark:text-white\">{$name}{$role}</div>";
             })
-            ->addColumn('ip_address', fn ($a) => '<span class="font-mono text-gray-500 text-[11px]">' . e($a->ip_address ?: '—') . '</span>')
+            ->addColumn('ip_address', fn ($a) => '<span class="font-mono text-text-muted text-[11px]">' . e($a->ip_address ?: '—') . '</span>')
             ->rawColumns(['nomor_referensi', 'module_badge', 'event_badge', 'rincian', 'pelaksana', 'ip_address'])
             ->toJson();
     }

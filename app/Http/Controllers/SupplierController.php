@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Produk;
 use App\Models\Supplier;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -33,26 +34,28 @@ class SupplierController extends Controller
         return DataTables::eloquent($query)
             ->editColumn('kategori', fn ($s) => ucfirst($s->kategori))
             ->editColumn('termin_default', fn ($s) => $s->termin_default ? ucfirst($s->termin_default) : '-')
-            ->editColumn('is_active', fn ($s) => $s->is_active ? 'Aktif' : 'Nonaktif')
+            ->editColumn('is_active', fn ($s) => $s->is_active
+                ? UiTableHelper::statusPill('Aktif', 'completed')
+                : UiTableHelper::statusPill('Nonaktif', 'cancelled'))
             ->addColumn('produk_count', function ($s) {
                 $count = (int) ($s->active_produks_count ?? 0);
                 if ($count > 0) {
-                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">' . $count . ' Produk</span>';
+                    return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">' . $count . ' Produk</span>';
                 }
-                return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20">0 Produk</span>';
+                return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold whitespace-nowrap bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">0 Produk</span>';
             })
             ->addColumn('action', function ($s) use ($canEdit, $canDelete) {
-                $html = '<div class="flex items-center gap-3">';
+                $buttons = [];
                 if ($canEdit) {
-                    $html .= '<a href="' . e(route('supplier.edit', $s)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Edit</a>';
+                    $buttons[] = UiTableHelper::actionLink(route('supplier.edit', $s), 'Edit', 'pencil', 'default');
                 }
                 if ($canDelete) {
-                    $html .= '<button onclick="hapus(\'' . e(route('supplier.destroy', $s)) . '\')" class="text-red-500 hover:text-red-700 text-xs font-medium">Hapus</button>';
+                    $buttons[] = UiTableHelper::actionButton("hapus('" . e(route('supplier.destroy', $s)) . "')", 'Hapus', 'trash', 'danger');
                 }
 
-                return $html . '</div>';
+                return UiTableHelper::actionGroup($buttons);
             })
-            ->rawColumns(['action', 'produk_count'])
+            ->rawColumns(['is_active', 'action', 'produk_count'])
             ->toJson();
     }
 

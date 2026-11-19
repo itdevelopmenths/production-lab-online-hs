@@ -649,8 +649,8 @@
                         search: '',
                         searchPlaceholder: 'Cari data...',
                         paginate: {
-                            previous: '‹',
-                            next: '›'
+                            previous: 'Back',
+                            next: 'Next'
                         },
                         info: 'Menampilkan _START_ &ndash; _END_ dari _TOTAL_ data',
                         infoEmpty: 'Menampilkan 0 data',

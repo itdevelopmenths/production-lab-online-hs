@@ -12,6 +12,7 @@ use App\Models\Uom;
 use App\Models\Varian;
 use App\Services\AnalisaService;
 use App\Services\StokService;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -68,70 +69,70 @@ class ProdukController extends Controller
                     }
                 }
             })
-            ->editColumn('sku', fn ($p) => '<span class="font-mono text-xs font-semibold text-foreground">' . e($p->sku) . '</span>')
-            ->editColumn('nama', fn ($p) => '<span class="font-medium text-foreground">' . e($p->nama) . '</span>')
+            ->editColumn('sku', fn ($p) => '<span class="font-mono text-xs font-semibold text-[#101828] dark:text-white">' . e($p->sku) . '</span>')
+            ->editColumn('nama', fn ($p) => '<span class="font-medium text-[#101828] dark:text-white">' . e($p->nama) . '</span>')
             ->editColumn('kategori_nama', fn ($p) => $p->kategori
-                ? '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-zinc-100 text-zinc-700 border border-zinc-200/60">' . e($p->kategori->nama) . '</span>'
-                : '<span class="text-muted-foreground">—</span>'
+                ? '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">' . e($p->kategori->nama) . '</span>'
+                : '<span class="text-text-muted">—</span>'
             )
             ->editColumn('varian_nama', fn ($p) => $p->varian
-                ? '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-indigo-50 text-indigo-700 border border-indigo-200/60">' . e($p->varian->nama) . '</span>'
-                : '<span class="text-muted-foreground">—</span>'
+                ? '<span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-500/20">' . e($p->varian->nama) . '</span>'
+                : '<span class="text-text-muted">—</span>'
             )
             ->editColumn('tipe', fn ($p) => match($p->tipe) {
-                'bahan' => '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-amber-50 text-amber-600 border border-amber-200/60">Bahan Baku</span>',
-                'kemas' => '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-sky-50 text-sky-700 border border-sky-200/60">Kemasan</span>',
-                'produk_jadi' => '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200/60">Produk Jadi</span>',
-                default => '<span class="text-muted-foreground">' . e(ucfirst(str_replace('_', ' ', $p->tipe))) . '</span>'
+                'bahan' => '<span class="inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">Bahan Baku</span>',
+                'kemas' => '<span class="inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20">Kemasan</span>',
+                'produk_jadi' => '<span class="inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">Produk Jadi</span>',
+                default => '<span class="text-text-muted">' . e(ucfirst(str_replace('_', ' ', $p->tipe))) . '</span>'
             })
             ->addColumn('supplier_count', function ($p) {
                 if ($p->tipe === 'produk_jadi') {
-                    return '<span class="text-xs text-muted-foreground font-mono">—</span>';
+                    return '<span class="text-xs text-text-muted font-mono">—</span>';
                 }
                 $count = (int) ($p->active_suppliers_count ?? 0);
                 if ($count > 0) {
-                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">' . $count . ' Supplier</span>';
+                    return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">' . $count . ' Supplier</span>';
                 }
-                return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">0 Supplier</span>';
+                return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">0 Supplier</span>';
             })
-            ->editColumn('satuan', fn ($p) => '<span class="font-mono text-xs text-muted-foreground font-medium">' . e($p->satuan) . '</span>')
+            ->editColumn('satuan', fn ($p) => '<span class="font-mono text-xs text-text-muted font-medium">' . e($p->satuan) . '</span>')
             ->addColumn('klasifikasi_abc_badge', function ($p) {
                 if ($p->tipe === 'produk_jadi') {
-                    return '<span class="text-xs text-muted-foreground font-mono">—</span>';
+                    return '<span class="text-xs text-text-muted font-mono">—</span>';
                 }
 
                 if (AnalisaService::isImporProfile($p->profil_analisa)) {
                     if ($p->klasifikasiAbc) {
                         $color = match ($p->klasifikasiAbc->warna_badge) {
-                            'red' => 'bg-rose-50 text-rose-700 border-rose-200',
-                            'amber' => 'bg-amber-50 text-amber-700 border-amber-200',
-                            'blue' => 'bg-sky-50 text-sky-700 border-sky-200',
-                            'emerald', 'green' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                            default => 'bg-zinc-100 text-zinc-700 border-zinc-200',
+                            'red' => 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20',
+                            'amber' => 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20',
+                            'blue' => 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-500/20',
+                            'emerald', 'green' => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
+                            default => 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700',
                         };
 
                         return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ' . $color . '" title="' . e($p->klasifikasiAbc->nama) . '">Impor · ' . e(strtoupper($p->klasifikasiAbc->kode)) . '</span>';
                     }
 
-                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-100 text-zinc-600 border border-zinc-200/60">Impor · Default C</span>';
+                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">Impor · Default C</span>';
                 }
 
-                return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-muted-foreground border border-border">Lokal</span>';
+                return '<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-text-muted border border-border">Lokal</span>';
             })
             ->editColumn('is_active', fn ($p) => $p->is_active
-                ? '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-emerald-50 text-emerald-700 border border-emerald-200/60">Aktif</span>'
-                : '<span class="inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase bg-zinc-100 text-zinc-500 border border-zinc-200/60">Nonaktif</span>'
+                ? UiTableHelper::statusPill('Aktif', 'completed')
+                : UiTableHelper::statusPill('Nonaktif', 'cancelled')
             )
             ->addColumn('action', function ($p) use ($canEdit, $canDelete) {
-                $html = '<div class="flex items-center justify-center gap-1.5">';
+                $buttons = [];
                 if ($canEdit) {
-                    $html .= '<a href="' . e(route('produk.edit', $p)) . '" class="px-2.5 py-1 rounded-md text-xs font-medium text-foreground hover:bg-accent border border-border transition-colors">Edit</a>';
+                    $buttons[] = UiTableHelper::actionLink(route('produk.edit', $p), 'Edit', 'pencil', 'default');
                 }
                 if ($canDelete) {
-                    $html .= '<button onclick="hapus(\'' . e(route('produk.destroy', $p)) . '\')" class="px-2.5 py-1 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors cursor-pointer">Hapus</button>';
+                    $buttons[] = UiTableHelper::actionButton("hapus('" . e(route('produk.destroy', $p)) . "')", 'Hapus', 'trash', 'danger');
                 }
 
-                return $html . '</div>';
+                return UiTableHelper::actionGroup($buttons);
             })
             ->rawColumns(['sku', 'nama', 'kategori_nama', 'varian_nama', 'tipe', 'supplier_count', 'satuan', 'klasifikasi_abc_badge', 'is_active', 'action'])
             ->toJson();

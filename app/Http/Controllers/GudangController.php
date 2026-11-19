@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Gudang;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,9 +31,9 @@ class GudangController extends Controller
 
         return DataTables::eloquent($query)
             ->editColumn('nama', function ($g) {
-                $html = '<span class="font-medium text-gray-900">' . e($g->nama) . '</span>';
+                $html = '<span class="font-medium text-[#101828] dark:text-white">' . e($g->nama) . '</span>';
                 if ($g->isPusat()) {
-                    $html .= ' <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 ml-1">Pusat</span>';
+                    $html .= ' <span class="inline-flex items-center px-1.5 py-0.5 rounded-[5px] text-[10px] font-bold bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-500/30 ml-1">Pusat</span>';
                 }
                 return $html;
             })
@@ -43,22 +44,22 @@ class GudangController extends Controller
                     'fulfillment', 'fulfillment_pusat', 'fulfillment_cabang' => 'Fulfillment',
                     default => ucwords(str_replace('_', ' ', $g->tipe)),
                 };
-                return '<span class="text-xs text-gray-700">' . e($label) . '</span>';
+                return '<span class="text-xs text-text-active">' . e($label) . '</span>';
             })
             ->addColumn('parent', fn ($g) => $g->parent?->nama ?? '-')
-            ->editColumn('status', fn ($g) => ucfirst($g->status))
+            ->editColumn('status', fn ($g) => UiTableHelper::statusPill(ucfirst($g->status), $g->status === 'aktif' ? 'completed' : 'draft'))
             ->addColumn('action', function ($g) use ($canEdit, $canDelete) {
-                $html = '<div class="flex items-center gap-3">';
+                $buttons = [];
                 if ($canEdit) {
-                    $html .= '<a href="' . e(route('gudang.edit', $g)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Edit</a>';
+                    $buttons[] = UiTableHelper::actionLink(route('gudang.edit', $g), 'Edit', 'pencil', 'default');
                 }
                 if ($canDelete) {
-                    $html .= '<button onclick="hapus(\'' . e(route('gudang.destroy', $g)) . '\')" class="text-red-500 hover:text-red-700 text-xs font-medium">Hapus</button>';
+                    $buttons[] = UiTableHelper::actionButton("hapus('" . e(route('gudang.destroy', $g)) . "')", 'Hapus', 'trash', 'danger');
                 }
 
-                return $html . '</div>';
+                return UiTableHelper::actionGroup($buttons);
             })
-            ->rawColumns(['nama', 'tipe', 'action'])
+            ->rawColumns(['nama', 'tipe', 'status', 'action'])
             ->toJson();
     }
 

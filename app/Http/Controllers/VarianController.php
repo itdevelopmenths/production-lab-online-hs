@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Kategori;
 use App\Models\Varian;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -36,18 +37,18 @@ class VarianController extends Controller
             });
 
         return DataTables::eloquent($query)
-            ->addColumn('kategori_nama', fn ($v) => '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">' . e($v->kategori?->nama ?? '—') . '</span>')
-            ->addColumn('produk_count', fn ($v) => '<span class="font-mono text-xs text-primary-700 bg-primary-50 px-2 py-0.5 rounded-sm border border-primary-200">' . number_format($v->produk_count) . ' SKU</span>')
+            ->addColumn('kategori_nama', fn ($v) => '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">' . e($v->kategori?->nama ?? '—') . '</span>')
+            ->addColumn('produk_count', fn ($v) => '<span class="font-mono text-xs text-[#101828] dark:text-white bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-[5px] border border-[#E8E8E8] dark:border-border">' . number_format($v->produk_count) . ' SKU</span>')
             ->addColumn('action', function ($v) use ($canEdit, $canDelete) {
-                $html = '<div class="flex items-center justify-center gap-3">';
+                $buttons = [];
                 if ($canEdit) {
-                    $html .= '<a href="' . e(route('varian.edit', $v)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-semibold">Edit</a>';
+                    $buttons[] = UiTableHelper::actionLink(route('varian.edit', $v), 'Edit', 'pencil', 'default');
                 }
                 if ($canDelete) {
-                    $html .= '<button type="button" onclick="hapus(\'' . e(route('varian.destroy', $v)) . '\')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold">Hapus</button>';
+                    $buttons[] = UiTableHelper::actionButton("hapus('" . e(route('varian.destroy', $v)) . "')", 'Hapus', 'trash', 'danger');
                 }
 
-                return $html . '</div>';
+                return UiTableHelper::actionGroup($buttons);
             })
             ->rawColumns(['kategori_nama', 'produk_count', 'action'])
             ->toJson();

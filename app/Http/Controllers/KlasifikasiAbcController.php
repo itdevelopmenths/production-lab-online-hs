@@ -6,6 +6,7 @@ use App\Models\AnalisaImpor;
 use App\Models\KlasifikasiAbc;
 use App\Models\Produk;
 use App\Services\AnalisaService;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -61,43 +62,42 @@ class KlasifikasiAbcController extends Controller
         return DataTables::eloquent($query)
             ->addColumn('badge', function ($item) {
                 $color = match ($item->warna_badge) {
-                    'red' => 'bg-rose-50 text-rose-700 border-rose-200',
-                    'amber' => 'bg-amber-50 text-amber-700 border-amber-200',
-                    'blue' => 'bg-sky-50 text-sky-700 border-sky-200',
-                    'emerald', 'green' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                    default => 'bg-gray-50 text-gray-700 border-gray-200',
+                    'red' => 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20',
+                    'amber' => 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20',
+                    'blue' => 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-500/20',
+                    'emerald', 'green' => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
+                    default => 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700',
                 };
 
-                return '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-bold border ' . $color . '">' . e(strtoupper($item->kode)) . '</span>';
+                return '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-bold border ' . $color . '">' . e(strtoupper($item->kode)) . '</span>';
             })
             ->addColumn('tambahan_buffer_label', function ($item) {
-                return '<span class="font-mono text-xs font-semibold text-gray-900">+' . $item->tambahan_buffer_hari . ' Hari</span>';
+                return '<span class="font-mono text-xs font-semibold text-[#101828] dark:text-white">+' . $item->tambahan_buffer_hari . ' Hari</span>';
             })
             ->addColumn('penggunaan_count', function ($item) use ($produkCounts, $legacyImporCounts) {
                 $total = (int) ($produkCounts[$item->id] ?? 0) + (int) ($legacyImporCounts[$item->id] ?? 0);
                 $json = $this->encodeItemPayload($item);
 
-                return '<button type="button" @click="openSkuModal(' . $json . ')" class="inline-flex items-center gap-1 font-mono text-xs text-primary-700 bg-primary-50 hover:bg-primary-100 px-2.5 py-0.5 rounded-sm border border-primary-200 transition cursor-pointer" title="Lihat & Kelola Daftar SKU">' . number_format($total) . ' SKU</button>';
+                return '<button type="button" @click="openSkuModal(' . $json . ')" class="inline-flex items-center gap-1 font-mono text-xs text-[#101828] dark:text-white bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 px-2.5 py-0.5 rounded-full border border-[#E8E8E8] dark:border-border transition cursor-pointer" title="Lihat & Kelola Daftar SKU">' . number_format($total) . ' SKU</button>';
             })
             ->addColumn('status_badge', function ($item) {
                 return $item->is_active
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">Non-Aktif</span>';
+                    ? UiTableHelper::statusPill('Aktif', 'completed')
+                    : UiTableHelper::statusPill('Non-Aktif', 'cancelled');
             })
             ->addColumn('action', function ($item) use ($canManage) {
-                $json = $this->encodeItemPayload($item);
+                $rawJson = $this->rawItemPayload($item);
 
-                $html = '<div class="flex items-center justify-center gap-2">';
-                $html .= '<button type="button" @click="openSkuModal(' . $json . ')" class="px-2 py-1 rounded-md text-xs font-medium text-foreground hover:bg-accent border border-border transition-colors cursor-pointer">Kelola SKU</button>';
+                $buttons = [
+                    UiTableHelper::actionButton('', 'Kelola SKU', 'layers', 'default', ['@click' => 'openSkuModal(' . $rawJson . ')']),
+                ];
 
                 if ($canManage) {
-                    $html .= '<button type="button" @click="editItem(' . $json . ')" class="text-primary-600 hover:text-primary-800 text-xs font-semibold cursor-pointer">Edit</button>';
-                    $html .= '<button type="button" onclick="hapusAbc(' . $item->id . ', \'' . e($item->kode) . '\')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold cursor-pointer">Hapus</button>';
+                    $buttons[] = UiTableHelper::actionButton('', 'Edit', 'pencil', 'default', ['@click' => 'editItem(' . $rawJson . ')']);
+                    $buttons[] = UiTableHelper::actionButton("hapusAbc(" . $item->id . ", '" . e($item->kode) . "')", 'Hapus', 'trash', 'danger');
                 }
 
-                $html .= '</div>';
-
-                return $html;
+                return UiTableHelper::actionGroup($buttons);
             })
             ->rawColumns(['badge', 'tambahan_buffer_label', 'penggunaan_count', 'status_badge', 'action'])
             ->toJson();
@@ -381,7 +381,12 @@ class KlasifikasiAbcController extends Controller
 
     private function encodeItemPayload(KlasifikasiAbc $item): string
     {
-        return htmlspecialchars(json_encode([
+        return htmlspecialchars($this->rawItemPayload($item), ENT_QUOTES, 'UTF-8');
+    }
+
+    private function rawItemPayload(KlasifikasiAbc $item): string
+    {
+        return (string) json_encode([
             'id' => $item->id,
             'kode' => $item->kode,
             'nama' => $item->nama,
@@ -389,6 +394,6 @@ class KlasifikasiAbcController extends Controller
             'warna_badge' => $item->warna_badge,
             'deskripsi' => $item->deskripsi,
             'is_active' => (bool) $item->is_active,
-        ]), ENT_QUOTES, 'UTF-8');
+        ]);
     }
 }

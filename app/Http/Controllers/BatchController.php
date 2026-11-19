@@ -11,6 +11,7 @@ use App\Models\Transfer;
 use App\Services\Authorization\InventoryTransferAuthorizationService;
 use App\Services\StokService;
 use App\Services\TransferService;
+use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -46,34 +47,37 @@ class BatchController extends Controller
                         $nama = e($out->produk?->nama ?? '-');
                         $qty = \App\Helpers\NumberHelper::formatQty($out->qty_rencana);
                         $satuan = e($out->produk?->satuan ?? 'pcs');
-                        return "<div class='py-0.5'><span class='font-medium text-gray-900'>{$nama}</span> <span class='text-gray-500 font-mono text-[11px]'>({$qty} {$satuan})</span></div>";
+                        return "<div class='py-0.5'><span class='font-medium text-[#101828] dark:text-white'>{$nama}</span> <span class='text-text-muted font-mono text-[11px]'>({$qty} {$satuan})</span></div>";
                     })->implode('');
                 }
                 $nama = e($b->produk?->nama ?? '-');
                 $satuan = e($b->produk?->satuan ?? 'pcs');
                 $qty = \App\Helpers\NumberHelper::formatQty($b->qty_rencana);
-                return "<div><span class='font-medium text-gray-900'>{$nama}</span> <span class='text-gray-500 font-mono text-[11px]'>({$qty} {$satuan})</span></div>";
+                return "<div><span class='font-medium text-[#101828] dark:text-white'>{$nama}</span> <span class='text-text-muted font-mono text-[11px]'>({$qty} {$satuan})</span></div>";
             })
             ->editColumn('qty_rencana', fn ($b) => \App\Helpers\NumberHelper::formatQty($b->qty_rencana))
             ->addColumn('qty_baik', fn ($b) => $b->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($b->qty_baik) : '-')
             ->addColumn('qty_rusak', fn ($b) => $b->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($b->qty_rusak) : '-')
             ->editColumn('tanggal', fn ($b) => $b->tanggal?->format('d/m/Y'))
             ->editColumn('status', function ($b) {
-                $variant = match($b->status) {
-                    'rencana' => 'bg-amber-50 text-amber-700 border-amber-200',
-                    'release' => 'bg-sky-50 text-sky-700 border-sky-200',
-                    'selesai' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                    'dibatalkan' => 'bg-rose-50 text-rose-700 border-rose-200',
-                    default => 'bg-gray-50 text-gray-700 border-gray-200',
+                $tone = match ($b->status) {
+                    'rencana' => 'pending',
+                    'release' => 'in_transit',
+                    'selesai' => 'completed',
+                    'dibatalkan' => 'cancelled',
+                    default => 'draft',
                 };
                 $label = $b->status === 'release' ? 'Release' : ucfirst($b->status);
-                return "<span class='inline-flex items-center px-2 py-0.5 rounded-xs text-[11px] font-semibold border {$variant}'>{$label}</span>";
+
+                return UiTableHelper::statusPill($label, $tone);
             })
             ->addColumn('yield', function ($b) {
                 $y = $b->yield();
                 return $y !== null ? number_format($y, 1) . '%' : '-';
             })
-            ->addColumn('action', fn ($b) => '<a href="' . e(route('batches.show', $b)) . '" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Detail</a>')
+            ->addColumn('action', fn ($b) => UiTableHelper::actionGroup([
+                UiTableHelper::actionLink(route('batches.show', $b), 'Detail', 'eye', 'default'),
+            ]))
             ->rawColumns(['action', 'produk_nama', 'status'])
             ->toJson();
     }
