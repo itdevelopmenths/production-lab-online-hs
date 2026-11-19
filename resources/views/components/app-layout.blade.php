@@ -6,28 +6,35 @@
     'actions' => null,
 ])
 <!DOCTYPE html>
-<html lang="id" class="h-full hs-app-shell bg-[oklch(0.985_0_0)]">
+<html lang="id" class="h-full hs-app-shell">
 <head>
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('hs.theme');
+                var isDark = t === 'dark' || (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                document.documentElement.classList.toggle('dark', isDark);
+                document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+            } catch (e) {}
+        })();
+    </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#ffffff">
-    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#F9FAFB">
     <title>{{ $title }} — Heaven Scent</title>
-    
+
     <style>
-        :root {
-            background-color: oklch(0.985 0 0) !important;
-            color-scheme: light;
-        }
         html, body {
-            background-color: oklch(0.985 0 0) !important;
+            background-color: #F9FAFB;
+        }
+        html.dark, html.dark body {
+            background-color: #030712;
         }
         [x-cloak] {
             display: none !important;
         }
-        /* Sembunyikan halaman sampai Alpine siap supaya sidebar tidak tampil tanpa class lalu
-           beranimasi (kesan "render ulang"). Browser menahan tampilan halaman lama selama itu.
+        /* Sembunyikan halaman sampai Alpine siap agar sidebar tidak flicker saat boot.
            Fallback: tetap tampil setelah 1.5 detik bila JS gagal. */
         html.hs-booting body {
             visibility: hidden;
@@ -43,8 +50,6 @@
     <script>
         document.documentElement.classList.add('hs-booting');
         document.addEventListener('alpine:initialized', function() {
-            // Satu frame setelah Alpine menerapkan class, agar perubahan awal tidak ikut beranimasi.
-            // setTimeout sebagai cadangan untuk tab latar belakang (rAF tertunda).
             var reveal = function() { document.documentElement.classList.remove('hs-booting'); };
             requestAnimationFrame(reveal);
             setTimeout(reveal, 100);
@@ -67,6 +72,13 @@
                 })(),
                 mobileOpen: false,
                 menuQuery: '',
+                isDark: document.documentElement.classList.contains('dark'),
+                init() {
+                    var self = this;
+                    window.addEventListener('hs-theme-changed', function(e) {
+                        self.isDark = (e.detail && e.detail.theme === 'dark') || document.documentElement.classList.contains('dark');
+                    });
+                },
                 toggleCollapsed() {
                     this.collapsed = !this.collapsed;
                     try {
@@ -85,10 +97,10 @@
         }
     </script>
 </head>
-<body class="min-h-screen font-sans antialiased text-foreground bg-background flex flex-col"
+<body class="min-h-screen font-sans antialiased text-text-base bg-gray-50 dark:bg-gray-950 flex flex-col"
       x-data="appSidebarState()">
-    
-    <div class="flex min-h-screen w-full min-w-0">
+
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-950 lg:flex w-full min-w-0 overflow-x-hidden">
         {{-- Mobile Overlay --}}
         <div x-show="mobileOpen" x-cloak
              x-transition:enter="transition-opacity ease-linear duration-200"
@@ -96,37 +108,36 @@
              x-transition:leave="transition-opacity ease-linear duration-200"
              x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
              @click="mobileOpen = false"
-             class="fixed inset-0 z-40 bg-black/40 lg:hidden"></div>
+             class="fixed inset-0 z-[90] bg-black/50 backdrop-blur-xs lg:hidden"></div>
 
-        {{-- DevScore Style Sidebar --}}
-        <div class="fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-40"
+        {{-- Heaven Scent Blueprint Sidebar --}}
+        <div class="fixed inset-y-0 left-0 z-[100] transition-all duration-300 ease-out lg:sticky lg:top-0 lg:h-screen lg:z-40 shrink-0"
              :class="[
-                 mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0',
-                 collapsed ? 'lg:w-16' : 'lg:w-56'
+                 mobileOpen ? 'translate-x-0 w-[264px]' : '-translate-x-full lg:translate-x-0',
+                 collapsed ? 'lg:w-[80px]' : 'lg:w-[264px]'
              ]">
-            <aside class="bg-card flex h-full w-full flex-col border-r border-border overflow-hidden transition-all duration-300">
-                
+            <aside class="bg-white dark:bg-[#0A0A0A] flex h-full w-full flex-col border-r border-[#E8E8E8] dark:border-border shadow-theme-xs overflow-hidden transition-all duration-300">
+
                 {{-- Brand Header --}}
-                <div class="flex items-center pt-3.5 pb-3"
-                     :class="collapsed ? 'flex-col gap-3 px-2' : 'justify-between px-4'">
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2"
+                <div class="flex items-center pt-4 pb-3 shrink-0"
+                     :class="collapsed ? 'flex-col gap-3 px-3' : 'justify-between px-4'">
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5 min-w-0"
                        :class="collapsed ? 'justify-center' : ''">
-                        <span class="bg-primary text-primary-foreground flex size-7 items-center justify-center rounded-md text-xs font-bold shrink-0 shadow-2xs">
-                            HS
+                        <span class="relative overflow-hidden size-9 rounded-[8px] flex items-center justify-center shrink-0 border border-white/25 bg-gradient-to-b from-[#2c2c2c] to-[#0a0a0a] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.12)]">
+                            <img src="{{ asset('Logo HS - black.png') }}" alt="Heaven Scent" class="size-5 object-contain brightness-0 invert" />
                         </span>
-                        <div x-show="!collapsed" class="leading-tight">
-                            <span class="block text-xs font-bold tracking-wide text-foreground">HEAVEN SCENT</span>
-                            <span class="text-muted-foreground block text-[10px]">Production Lab</span>
+                        <div x-show="!collapsed" class="leading-tight min-w-0">
+                            <span class="block text-xs font-bold tracking-tight text-[#111111] dark:text-white truncate">HEAVEN SCENT</span>
+                            <span class="block text-[11px] font-medium text-text-muted truncate">Production Lab</span>
                         </div>
                     </a>
-                    
+
                     <button type="button"
                             @click="mobileOpen = false; toggleCollapsed()"
-                            :class="collapsed ? 'border border-border bg-muted/50 shadow-2xs' : ''"
-                            class="text-muted-foreground hover:bg-accent rounded-md p-1 transition-colors cursor-pointer"
+                            class="size-[40px] p-[8px] rounded-[8px] bg-[#FBFBFB] dark:bg-[#141414] border border-[#E1E1E1] dark:border-border text-text-muted hover:text-[#111111] dark:hover:text-white hover:border-[#DEDEDE] dark:hover:border-border-2 transition-colors cursor-pointer flex items-center justify-center shrink-0"
                             aria-label="Toggle sidebar">
                         <template x-if="collapsed">
-                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
                         </template>
                         <template x-if="!collapsed">
                             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
@@ -135,30 +146,33 @@
                 </div>
 
                 {{-- Search Bar --}}
-                <div x-show="!collapsed" class="border-b border-border px-3 pb-3">
-                    <label class="relative block">
-                        <svg class="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <div x-show="!collapsed" class="border-b border-[#E8E8E8] dark:border-border px-4 pb-3 shrink-0">
+                    <label class="flex items-center h-[44px] px-3 gap-2 bg-[#FBFBFB] dark:bg-[#141414] border border-[#E1E1E1] dark:border-border rounded-lg focus-within:border-border-focus transition-colors">
+                        <svg class="text-text-muted size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         <input type="search"
                                x-model="menuQuery"
-                               placeholder="Cari menu"
-                               class="bg-card placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/20 h-8 w-full rounded-md border border-border pr-2.5 pl-8 text-xs outline-none transition" />
+                               placeholder="Cari menu..."
+                               class="w-full min-w-0 bg-transparent text-[13px] text-[#111111] dark:text-white placeholder:text-text-placeholder outline-none" />
                     </label>
                 </div>
-                <div x-show="collapsed" class="border-b border-border pb-3 flex justify-center">
-                    <button type="button" @click="toggleCollapsed()" class="text-muted-foreground hover:text-foreground rounded-md p-1.5 hover:bg-accent transition-colors" title="Cari menu">
+                <div x-show="collapsed" class="border-b border-[#E8E8E8] dark:border-border pb-3 flex justify-center shrink-0">
+                    <button type="button"
+                            @click="toggleCollapsed()"
+                            class="size-[40px] p-[8px] rounded-[8px] bg-[#FBFBFB] dark:bg-[#141414] border border-[#E1E1E1] dark:border-border text-text-muted hover:text-[#111111] dark:hover:text-white transition-colors flex items-center justify-center"
+                            title="Cari menu">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
                 </div>
 
                 {{-- Navigation Items --}}
                 <nav id="app-sidebar-nav"
-                     :class="collapsed ? 'px-1.5 scrollbar-none' : 'px-2.5'"
-                     class="flex-1 space-y-4 overflow-y-auto py-3 sidebar-scroll">
-                    
+                     :class="collapsed ? 'px-2.5 no-scrollbar' : 'px-3.5 custom-scrollbar'"
+                     class="flex-1 space-y-5 overflow-y-auto py-4 sidebar-scroll">
+
                     {{-- Section: MENU --}}
                     <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
-                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
+                        <p :class="collapsed ? 'text-[10px] text-center' : 'text-[12px] px-3'"
+                           class="text-text-muted font-semibold uppercase tracking-[0.6px] mb-1.5 select-none">
                             Menu
                         </p>
                         <ul class="space-y-1 w-full">
@@ -175,8 +189,8 @@
 
                     {{-- Section: OPERASIONAL --}}
                     <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
-                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
+                        <p :class="collapsed ? 'text-[10px] text-center' : 'text-[12px] px-3'"
+                           class="text-text-muted font-semibold uppercase tracking-[0.6px] mb-1.5 select-none">
                             Operasional
                         </p>
                         <ul class="space-y-1 w-full">
@@ -237,211 +251,167 @@
                         </ul>
                     </div>
 
-                    {{-- Section: STOK & MUTASI --}}
-                    @can('stok.view')
-                    <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
-                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
-                            Stok & Mutasi
+                    {{-- Section: PENGELOLAAN & REFERENSI (Collapsible Groups with #627EF2 Timeline) --}}
+                    <div class="space-y-1.5" :class="collapsed && 'flex flex-col items-center'">
+                        <p :class="collapsed ? 'text-[10px] text-center' : 'text-[12px] px-3'"
+                           class="text-text-muted font-semibold uppercase tracking-[0.6px] mb-1.5 select-none">
+                            Inventori & Sistem
                         </p>
-                        <ul class="space-y-1 w-full">
-                            <li class="w-full" x-show="!menuQuery || 'stok mutasi opname ledger'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('stok.index') }}" :active="request()->routeIs('stok.index') || request()->routeIs('stok.ledger*') || request()->routeIs('stok.opname*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                                    </x-slot:icon>
+
+                        @can('stok.view')
+                        <x-nav-group
+                            title="Stok & Mutasi"
+                            :active="request()->routeIs('stok.*')"
+                            keywords="stok mutasi opname ledger log pergerakan riwayat kartu stok">
+                            <x-slot:icon>
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                            </x-slot:icon>
+                            <div x-show="!menuQuery || 'stok mutasi opname ledger'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('stok.index') }}" :active="request()->routeIs('stok.index') || request()->routeIs('stok.ledger*') || request()->routeIs('stok.opname*')" :isChild="true">
                                     Stok & Mutasi
                                 </x-nav-item>
-                            </li>
-                            <li class="w-full" x-show="!menuQuery || 'log pergerakan riwayat kartu stok'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('stok.log-pergerakan') }}" :active="request()->routeIs('stok.log-pergerakan*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    </x-slot:icon>
+                            </div>
+                            <div x-show="!menuQuery || 'log pergerakan riwayat kartu stok'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('stok.log-pergerakan') }}" :active="request()->routeIs('stok.log-pergerakan*')" :isChild="true">
                                     Log Pergerakan
                                 </x-nav-item>
-                            </li>
-                        </ul>
-                    </div>
-                    @endcan
+                            </div>
+                        </x-nav-group>
+                        @endcan
 
-                    {{-- Section: MASTER DATA --}}
-                    <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
-                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
-                            Master Data
-                        </p>
-                        <ul class="space-y-1 w-full">
+                        @canany(['produk.view', 'analisa.view', 'gudang.view', 'supplier.view', 'uom.view', 'bom.view', 'bom.import', 'divisi.view'])
+                        <x-nav-group
+                            title="Master Data"
+                            :active="request()->routeIs('produk.*') || request()->routeIs('kategori.*') || request()->routeIs('varian.*') || request()->routeIs('klasifikasi-abc.*') || request()->routeIs('gudang.*') || request()->routeIs('supplier.*') || request()->routeIs('uom.*') || request()->routeIs('bom.*') || request()->routeIs('divisi.*')"
+                            keywords="master data produk barang katalog sku kategori category varian variant klasifikasi abc analisa gudang warehouse supplier vendor pemasok satuan uom unit bom resep formula impor import csv divisi departemen">
+                            <x-slot:icon>
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                            </x-slot:icon>
                             @can('produk.view')
-                            <li class="w-full" x-show="!menuQuery || 'produk barang katalog sku'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('produk.index') }}" :active="request()->routeIs('produk.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'master data produk barang katalog sku'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('produk.index') }}" :active="request()->routeIs('produk.*')" :isChild="true">
                                     Produk
                                 </x-nav-item>
-                            </li>
-                            <li class="w-full" x-show="!menuQuery || 'kategori category'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('kategori.index') }}" :active="request()->routeIs('kategori.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-                                    </x-slot:icon>
+                            </div>
+                            <div x-show="!menuQuery || 'master data kategori category'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('kategori.index') }}" :active="request()->routeIs('kategori.*')" :isChild="true">
                                     Kategori
                                 </x-nav-item>
-                            </li>
-                            <li class="w-full" x-show="!menuQuery || 'varian variant'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('varian.index') }}" :active="request()->routeIs('varian.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                                    </x-slot:icon>
+                            </div>
+                            <div x-show="!menuQuery || 'master data varian variant'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('varian.index') }}" :active="request()->routeIs('varian.*')" :isChild="true">
                                     Varian
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
 
                             @can('analisa.view')
-                            <li class="w-full" x-show="!menuQuery || 'klasifikasi abc analisa'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('klasifikasi-abc.index') }}" :active="request()->routeIs('klasifikasi-abc.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'master data klasifikasi abc analisa'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('klasifikasi-abc.index') }}" :active="request()->routeIs('klasifikasi-abc.*')" :isChild="true">
                                     Klasifikasi ABC
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
 
                             @can('gudang.view')
-                            <li class="w-full" x-show="!menuQuery || 'gudang warehouse'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('gudang.index') }}" :active="request()->routeIs('gudang.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'master data gudang warehouse'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('gudang.index') }}" :active="request()->routeIs('gudang.*')" :isChild="true">
                                     Gudang
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
 
                             @can('supplier.view')
-                            <li class="w-full" x-show="!menuQuery || 'supplier vendor pemasok'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('supplier.index') }}" :active="request()->routeIs('supplier.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'master data supplier vendor pemasok'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('supplier.index') }}" :active="request()->routeIs('supplier.*')" :isChild="true">
                                     Supplier
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
 
                             @can('uom.view')
-                            <li class="w-full" x-show="!menuQuery || 'satuan uom unit'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('uom.index') }}" :active="request()->routeIs('uom.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'master data satuan uom unit'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('uom.index') }}" :active="request()->routeIs('uom.*')" :isChild="true">
                                     Satuan (UOM)
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
 
                             @can('bom.view')
-                            <li class="w-full" x-show="!menuQuery || 'bom resep formula'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('bom.index') }}" :active="request()->routeIs('bom.index') || request()->routeIs('bom.edit')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'master data bom resep formula'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('bom.index') }}" :active="request()->routeIs('bom.index') || request()->routeIs('bom.edit')" :isChild="true">
                                     BOM (Resep)
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
 
                             @can('bom.import')
-                            <li class="w-full" x-show="!menuQuery || 'impor bom import csv'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('bom.import-page') }}" :active="request()->routeIs('bom.import*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'master data impor bom import csv'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('bom.import-page') }}" :active="request()->routeIs('bom.import*')" :isChild="true">
                                     Impor BOM
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
 
                             @can('divisi.view')
-                            <li class="w-full" x-show="!menuQuery || 'divisi departemen'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('divisi.index') }}" :active="request()->routeIs('divisi.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'master data divisi departemen'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('divisi.index') }}" :active="request()->routeIs('divisi.*')" :isChild="true">
                                     Divisi
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
-                        </ul>
-                    </div>
+                        </x-nav-group>
+                        @endcanany
 
-                    {{-- Section: LAPORAN --}}
-                    @canany(['reports.view', 'report.view'])
-                    <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
-                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
-                            Laporan
-                        </p>
-                        <ul class="space-y-1 w-full">
-                            <li class="w-full" x-show="!menuQuery || 'laporan report rekapitulasi audit'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('reports.index') }}" :active="request()->routeIs('reports.index')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                    </x-slot:icon>
+                        @canany(['reports.view', 'report.view'])
+                        <x-nav-group
+                            title="Laporan"
+                            :active="request()->routeIs('reports.*')"
+                            keywords="laporan report rekapitulasi audit lead time supplier">
+                            <x-slot:icon>
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </x-slot:icon>
+                            <div x-show="!menuQuery || 'laporan report rekapitulasi audit'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('reports.index') }}" :active="request()->routeIs('reports.index') || (request()->routeIs('reports.*') && !request()->routeIs('reports.lead-time'))" :isChild="true">
                                     Laporan
                                 </x-nav-item>
-                            </li>
-                            @canany(['reports.view', 'report.view'])
-                            <li class="w-full" x-show="!menuQuery || 'lead time supplier laporan'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('reports.lead-time') }}" :active="request()->routeIs('reports.lead-time')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    </x-slot:icon>
+                            </div>
+                            <div x-show="!menuQuery || 'lead time supplier laporan'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('reports.lead-time') }}" :active="request()->routeIs('reports.lead-time')" :isChild="true">
                                     Lead Time Supplier
                                 </x-nav-item>
-                            </li>
-                            @endcanany
-                        </ul>
-                    </div>
-                    @endcanany
+                            </div>
+                        </x-nav-group>
+                        @endcanany
 
-                    {{-- Section: SISTEM --}}
-                    @if(auth()->user()->can('user.manage') || auth()->user()->can('role.manage'))
-                    <div :class="collapsed && 'flex flex-col items-center'">
-                        <p :class="collapsed ? 'text-[9px] text-center' : 'text-[10px] px-2.5'"
-                           class="text-muted-foreground/70 font-semibold uppercase tracking-wider mb-1 select-none">
-                            Sistem
-                        </p>
-                        <ul class="space-y-1 w-full">
+                        @if(auth()->user()->can('user.manage') || auth()->user()->can('role.manage'))
+                        <x-nav-group
+                            title="Sistem"
+                            :active="request()->routeIs('users.*') || request()->routeIs('roles.*')"
+                            keywords="sistem pengguna user akun peran wewenang role permission">
+                            <x-slot:icon>
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            </x-slot:icon>
                             @can('user.manage')
-                            <li class="w-full" x-show="!menuQuery || 'pengguna user akun'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('users.index') }}" :active="request()->routeIs('users.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'sistem pengguna user akun'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('users.index') }}" :active="request()->routeIs('users.*')" :isChild="true">
                                     Pengguna
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
-
                             @can('role.manage')
-                            <li class="w-full" x-show="!menuQuery || 'peran wewenang role permission'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('roles.index') }}" :active="request()->routeIs('roles.*')">
-                                    <x-slot:icon>
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                                    </x-slot:icon>
+                            <div x-show="!menuQuery || 'sistem peran wewenang role permission'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('roles.index') }}" :active="request()->routeIs('roles.*')" :isChild="true">
                                     Peran & Wewenang
                                 </x-nav-item>
-                            </li>
+                            </div>
                             @endcan
-                        </ul>
+                        </x-nav-group>
+                        @endif
                     </div>
-                    @endif
                 </nav>
-                {{-- Pulihkan posisi scroll sidebar sebelum paint agar tidak loncat ke atas saat pindah menu --}}
+
+                {{-- Pulihkan posisi scroll sidebar sebelum paint --}}
                 <script>
                     (function() {
                         var nav = document.getElementById('app-sidebar-nav');
@@ -464,7 +434,6 @@
                         }
 
                         restore();
-                        // Alpine mengubah padding (collapsed) setelah init; ulangi sekali
                         document.addEventListener('alpine:initialized', function() { requestAnimationFrame(restore); });
 
                         window.addEventListener('pagehide', function() {
@@ -473,32 +442,32 @@
                     })();
                 </script>
 
-                {{-- DevScore Bottom User Menu --}}
-                <div class="relative border-t border-border"
-                     :class="collapsed ? 'p-2 flex justify-center' : 'p-2.5'"
+                {{-- Sidebar Footer (User Menu & Dev Role Switcher) --}}
+                <div class="relative min-h-[72px] border-t border-[#E8E8E8] dark:border-border shrink-0 flex items-center"
+                     :class="collapsed ? 'p-2 justify-center' : 'p-3'"
                      x-data="{ userMenuOpen: false }">
-                    
+
                     {{-- Dropdown popover --}}
                     <div x-show="userMenuOpen"
                          x-cloak
                          @click.away="userMenuOpen = false"
                          :class="collapsed ? 'left-full ml-2 bottom-0' : 'right-2 bottom-full left-2 mb-2'"
-                         class="bg-card absolute rounded-xl border border-border p-1 shadow-lg z-50 min-w-52 text-sm">
-                        <div class="border-b border-border px-3 py-2.5">
-                            <p class="font-semibold text-foreground text-xs leading-snug break-words whitespace-normal">{{ auth()->user()->name }}</p>
-                            <p class="text-muted-foreground truncate text-[11px] mt-0.5">{{ auth()->user()->email }}</p>
-                            <span class="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-semibold bg-muted text-foreground uppercase rounded-md">
+                         class="bg-white dark:bg-[#141414] absolute rounded-[12px] border border-[#E8E8E8] dark:border-border p-1.5 shadow-theme-lg z-50 min-w-56 text-sm">
+                        <div class="border-b border-[#E8E8E8] dark:border-border px-3 py-2.5">
+                            <p class="font-semibold text-[#111111] dark:text-white text-xs leading-snug break-words whitespace-normal">{{ auth()->user()->name }}</p>
+                            <p class="text-text-muted truncate text-[11px] mt-0.5">{{ auth()->user()->email }}</p>
+                            <span class="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-semibold bg-[#F3F4F6] dark:bg-gray-800 text-[#101828] dark:text-gray-200 uppercase rounded-md">
                                 {{ auth()->user()->roleName() ?? 'User' }}
                             </span>
                         </div>
 
                         {{-- Quick role switch for dev --}}
                         @if(app()->environment('local', 'testing'))
-                        <div class="px-3 py-2 border-b border-border bg-muted/40">
-                            <label class="block text-[10px] font-semibold text-muted-foreground uppercase mb-1">Ganti Peran (Dev):</label>
+                        <div class="px-3 py-2.5 border-b border-[#E8E8E8] dark:border-border bg-[#FBFBFB] dark:bg-gray-900/50">
+                            <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Ganti Peran (Dev):</label>
                             <form method="POST" action="{{ route('switch-role') }}">
                                 @csrf
-                                <select name="role" onchange="this.form.submit()" class="w-full text-xs rounded-md border border-border bg-card px-2 py-1 outline-none">
+                                <select name="role" onchange="this.form.submit()" class="w-full text-xs rounded-[6px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2.5 py-1.5 outline-none">
                                     @php
                                         $currentRole = auth()->user()?->roleName() ?? 'manager';
                                         $availableRoles = [
@@ -521,7 +490,7 @@
 
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
-                            <button type="submit" class="hover:bg-destructive/10 text-destructive flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium cursor-pointer transition-colors">
+                            <button type="submit" class="hover:bg-red-50 dark:hover:bg-red-500/10 text-red-600 dark:text-red-400 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium cursor-pointer transition-colors">
                                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                                 <span>Keluar</span>
                             </button>
@@ -533,22 +502,22 @@
                             @click="userMenuOpen = !userMenuOpen"
                             :aria-expanded="userMenuOpen"
                             :class="collapsed ? 'justify-center p-1.5' : 'w-full gap-2.5 px-2.5 py-2'"
-                            class="hover:bg-accent flex items-center rounded-lg text-left transition-colors cursor-pointer w-full group">
-                        <span class="bg-primary text-primary-foreground relative flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-2xs">
+                            class="hover:bg-[#FBFBFB] dark:hover:bg-white/[0.04] flex items-center rounded-lg text-left transition-colors cursor-pointer w-full group">
+                        <span class="bg-[#111111] dark:bg-white text-white dark:text-[#111111] relative flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-theme-xs">
                             {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
-                            <span class="border-card absolute right-0 bottom-0 size-2 rounded-full border-2 bg-emerald-500"></span>
+                            <span class="border-white dark:border-[#0A0A0A] absolute right-0 bottom-0 size-2.5 rounded-full border-2 bg-emerald-500"></span>
                         </span>
-                        
+
                         <div x-show="!collapsed" class="min-w-0 flex-1 flex items-center justify-between gap-1.5">
                             <div class="min-w-0 flex-1">
-                                <span class="block text-xs font-semibold text-foreground leading-snug break-words whitespace-normal" title="{{ auth()->user()->name }}">
+                                <span class="block text-xs font-semibold text-[#111111] dark:text-white leading-snug break-words whitespace-normal" title="{{ auth()->user()->name }}">
                                     {{ auth()->user()->name }}
                                 </span>
-                                <span class="text-muted-foreground block text-[11px] leading-tight mt-0.5 capitalize truncate">
+                                <span class="text-text-muted block text-[11px] leading-tight mt-0.5 capitalize truncate">
                                     {{ auth()->user()->roleName() ?? 'User' }}
                                 </span>
                             </div>
-                            <svg class="text-muted-foreground group-hover:text-foreground size-3.5 transition-transform shrink-0"
+                            <svg class="text-text-muted group-hover:text-[#111111] dark:group-hover:text-white size-3.5 transition-transform shrink-0"
                                  :class="userMenuOpen ? 'rotate-180' : ''"
                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -559,50 +528,64 @@
             </aside>
         </div>
 
-        {{-- Main Canvas & DevScore Top Header --}}
+        {{-- Main Canvas & Sticky Glass AppHeader --}}
         <div class="flex min-w-0 flex-1 flex-col transition-all duration-300">
-            <header class="bg-card sticky top-0 z-30 flex h-12 items-center gap-3 border-b border-border px-4 shadow-2xs sm:px-6">
-                <button type="button"
-                        @click="mobileOpen = true"
-                        class="text-muted-foreground hover:bg-accent rounded-md p-1 lg:hidden cursor-pointer"
-                        aria-label="Buka menu">
-                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                </button>
+            <header class="sticky top-0 z-[50] w-full h-16 px-4 sm:px-5 lg:px-8 backdrop-blur-md bg-white/80 dark:bg-gray-950/80 border-b border-gray-100 dark:border-gray-800/60 shadow-theme-xs flex items-center justify-between gap-3">
+                <div class="min-w-0 flex-1 flex items-center gap-2.5">
+                    <button type="button"
+                            @click="mobileOpen = true"
+                            class="lg:hidden size-10 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200 flex items-center justify-center shadow-sm cursor-pointer shrink-0"
+                            aria-label="Buka menu">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
 
-                <div class="min-w-0 flex-1 flex items-center gap-2">
                     @if ($backUrl)
                         <a href="{{ $backUrl }}"
-                           class="text-muted-foreground hover:bg-accent flex items-center justify-center rounded-md p-1 transition-colors cursor-pointer"
+                           class="size-10 rounded-full bg-white dark:bg-gray-900 border border-[#e5e7eb] dark:border-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center shadow-[0px_0px_0px_2px_rgba(43,127,255,0.2),0px_1px_3px_0px_rgba(0,0,0,0.1)] hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
                            aria-label="Kembali">
                             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                         </a>
                     @endif
-                    <div class="flex items-center gap-2 truncate">
-                        <h1 class="truncate text-sm font-semibold text-foreground tracking-tight leading-none">{!! $title !!}</h1>
+
+                    <div class="min-w-0 flex-1">
+                        <h1 class="text-sm md:text-base font-bold text-gray-900 dark:text-white tracking-tight leading-tight truncate">{!! $title !!}</h1>
                         @if ($subtitle)
-                            <span class="hidden md:inline text-xs text-muted-foreground truncate before:content-['·'] before:mr-2 leading-none">{!! $subtitle !!}</span>
+                            <p class="text-[10px] md:text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-medium truncate">{!! $subtitle !!}</p>
                         @endif
                     </div>
                 </div>
 
-                {{-- Header Actions --}}
+                {{-- Header Actions + Dual-Theme Toggle --}}
                 <div class="flex items-center gap-2 shrink-0">
                     {{ $actions ?? '' }}
+
+                    <button type="button"
+                            @click="hsTheme.toggle(); isDark = hsTheme.isDark()"
+                            :aria-label="isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'"
+                            :title="isDark ? 'Mode Terang' : 'Mode Gelap'"
+                            class="size-9 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors inline-flex items-center justify-center shrink-0 shadow-theme-xs">
+                        <svg x-show="isDark" x-cloak class="size-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <svg x-show="!isDark" class="size-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
                 </div>
             </header>
 
             {{-- Main Page Content --}}
-            <main class="flex-1 min-w-0 px-4 py-4 sm:px-5 lg:px-6 lg:py-4">
+            <main class="flex-1 min-w-0 px-4 py-4 sm:px-5 lg:px-8 lg:py-5">
                 <div class="w-full max-w-none">
                     {{-- Flash Alert Messages --}}
                     @if(session('success'))
                         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 4000)" x-transition class="mb-4">
-                            <div class="rounded-md border border-emerald-200 bg-emerald-50/80 px-3.5 py-2.5 text-xs text-emerald-900 flex items-center justify-between shadow-2xs">
+                            <div class="rounded-[8px] border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/80 dark:bg-emerald-500/10 px-4 py-3 text-xs text-emerald-900 dark:text-emerald-300 flex items-center justify-between shadow-theme-xs">
                                 <div class="flex items-center gap-2">
-                                    <svg class="size-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    <svg class="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span class="font-medium">{{ session('success') }}</span>
                                 </div>
-                                <button type="button" @click="show = false" class="text-emerald-700 hover:text-emerald-900">
+                                <button type="button" @click="show = false" class="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-white">
                                     <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
@@ -611,12 +594,12 @@
 
                     @if(session('error'))
                         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 6000)" x-transition class="mb-4">
-                            <div class="rounded-md border border-red-200 bg-red-50/80 px-3.5 py-2.5 text-xs text-red-900 flex items-center justify-between shadow-2xs">
+                            <div class="rounded-[8px] border border-red-200 dark:border-red-500/20 bg-red-50/80 dark:bg-red-500/10 px-4 py-3 text-xs text-red-900 dark:text-red-300 flex items-center justify-between shadow-theme-xs">
                                 <div class="flex items-center gap-2">
-                                    <svg class="size-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    <svg class="size-4 text-red-600 dark:text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                     <span class="font-medium">{{ session('error') }}</span>
                                 </div>
-                                <button type="button" @click="show = false" class="text-red-700 hover:text-red-900">
+                                <button type="button" @click="show = false" class="text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-white">
                                     <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
@@ -624,12 +607,12 @@
                     @endif
 
                     @if($errors->any())
-                        <div class="mb-4 rounded-md border border-red-200 bg-red-50/80 px-3.5 py-2.5 text-xs text-red-900 shadow-2xs">
+                        <div class="mb-4 rounded-[8px] border border-red-200 dark:border-red-500/20 bg-red-50/80 dark:bg-red-500/10 px-4 py-3 text-xs text-red-900 dark:text-red-300 shadow-theme-xs">
                             <div class="flex items-center gap-1.5 font-semibold mb-1">
-                                <svg class="size-3.5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <svg class="size-3.5 text-red-600 dark:text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                 <span>Terdapat Kesalahan Input:</span>
                             </div>
-                            <ul class="list-disc list-inside ml-5 space-y-0.5 text-xs text-red-800">
+                            <ul class="list-disc list-inside ml-5 space-y-0.5 text-xs text-red-800 dark:text-red-300">
                                 @foreach($errors->all() as $error)
                                     <li>{{ $error }}</li>
                                 @endforeach
@@ -642,7 +625,7 @@
             </main>
 
             {{-- Footer --}}
-            <footer class="py-2.5 px-4 sm:px-6 text-[11px] text-muted-foreground flex justify-between items-center border-t border-border bg-card">
+            <footer class="py-2.5 px-4 sm:px-6 text-[11px] text-text-muted flex justify-between items-center border-t border-[#E8E8E8] dark:border-border bg-white dark:bg-[#0A0A0A]">
                 <span>&copy; {{ date('Y') }} Heaven Scent Lab Enterprise. All rights reserved.</span>
             </footer>
         </div>
@@ -661,8 +644,8 @@
                     autoWidth: false,
                     searchDelay: 400,
                     language: {
-                        processing: '<div class="py-2 text-xs text-muted-foreground font-medium">Memuat data...</div>',
-                        lengthMenu: '<span class="text-xs text-muted-foreground font-normal">Tampilkan</span> _MENU_ <span class="text-xs text-muted-foreground font-normal">data</span>',
+                        processing: '<div class="py-2 text-xs text-text-muted font-medium">Memuat data...</div>',
+                        lengthMenu: '<span class="text-xs text-text-muted font-normal">Tampilkan</span> _MENU_ <span class="text-xs text-text-muted font-normal">data</span>',
                         search: '',
                         searchPlaceholder: 'Cari data...',
                         paginate: {
@@ -672,8 +655,8 @@
                         info: 'Menampilkan _START_ &ndash; _END_ dari _TOTAL_ data',
                         infoEmpty: 'Menampilkan 0 data',
                         infoFiltered: '(disaring dari _MAX_ total)',
-                        zeroRecords: '<div class="py-12 text-center text-muted-foreground text-sm">Tidak ditemukan data yang sesuai</div>',
-                        emptyTable: '<div class="py-12 text-center text-muted-foreground text-sm">Belum ada data tersedia</div>'
+                        zeroRecords: '<div class="py-12 text-center text-text-muted text-sm">Tidak ditemukan data yang sesuai</div>',
+                        emptyTable: '<div class="py-12 text-center text-text-muted text-sm">Belum ada data tersedia</div>'
                     }
                 });
             }

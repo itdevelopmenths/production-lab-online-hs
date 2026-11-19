@@ -493,7 +493,7 @@ class ViewRenderingSafetyTest extends TestCase
         $dashboardRes = $this->get(route('dashboard'));
         $dashboardRes->assertOk();
         $dashboardRes->assertSee('hs-app-shell');
-        $dashboardRes->assertSee('lg:w-56');
+        $dashboardRes->assertSee('lg:w-[264px]');
         $dashboardRes->assertDontSee('lg:w-64');
 
         // Dokumen cetak surat jalan tetap terisolasi tanpa hs-app-shell

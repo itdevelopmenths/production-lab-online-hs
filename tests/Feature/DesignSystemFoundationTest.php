@@ -2,10 +2,22 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class DesignSystemFoundationTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        $this->seed();
+        Model::preventLazyLoading(true);
+    }
     public function test_css_foundation_contains_blueprint_tokens_dark_variant_and_fluid_scaling(): void
     {
         $css = file_get_contents(resource_path('css/app.css'));
@@ -45,5 +57,26 @@ class DesignSystemFoundationTest extends TestCase
         // Theme controller di app.js
         $this->assertStringContainsString('window.hsTheme', $js);
         $this->assertStringContainsString('hs.theme', $js);
+    }
+
+    public function test_app_shell_renders_blueprint_sidebar_glass_header_and_theme_toggle(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $this->actingAs($manager);
+
+        $dashboard = $this->get(route('dashboard'));
+        $dashboard->assertOk();
+        $dashboard->assertSee('hs.theme', false);
+        $dashboard->assertSee('bg-gray-50 dark:bg-gray-950', false);
+        $dashboard->assertSee('lg:w-[264px]', false);
+        $dashboard->assertSee('sidebar-active-tab', false);
+        $dashboard->assertSee('h-16', false);
+        $dashboard->assertSee('backdrop-blur-md', false);
+        $dashboard->assertSee('hsTheme.toggle()', false);
+        $dashboard->assertSee('Logo HS - black.png', false);
+
+        $produk = $this->get(route('produk.index'));
+        $produk->assertOk();
+        $produk->assertSee('#627EF2', false);
     }
 }
