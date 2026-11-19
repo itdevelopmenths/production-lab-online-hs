@@ -16,6 +16,8 @@ use App\Services\AnalisaService;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\StokService;
 use App\Services\TransferService;
+use App\Support\Dashboard\Rupiah;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -69,7 +71,10 @@ class DashboardController extends Controller
             }
         }
 
+        $roleData['kpis'] = $this->decorateKpis($roleData['kpis'] ?? []);
+
         return view('dashboard', array_merge([
+            'generatedAt' => now(),
             'user' => $user,
             'role' => $role,
             'defectAnalytics' => $defectAnalytics,
@@ -133,6 +138,12 @@ class DashboardController extends Controller
         $totalRusak = (float) ($monthDefectSummary['total_qty_rusak'] ?? 0);
         $defectRate = (float) ($monthDefectSummary['defect_rate_percent'] ?? 0.0);
 
+        $bulanLalu = now()->subMonthNoOverflow();
+        $prevDefectSummary = $this->transferService
+            ->getCombinedMonthlyWarehouseDefectAnalytics((int) $bulanLalu->year, (int) $bulanLalu->month)['summary'];
+        $prevDefectRate = (float) ($prevDefectSummary['defect_rate_percent'] ?? 0.0);
+        $defectMemburuk = $defectRate > $prevDefectRate && $totalRusak >= 5;
+
         // 5. Komitmen Pembayaran PO Belum Lunas
         $poKomitmenQuery = PurchaseOrder::query()
             ->whereNotIn('status', ['selesai', 'dibatalkan'])
@@ -184,6 +195,7 @@ class DashboardController extends Controller
         $kpis = [
             [
                 'title' => 'PO Menunggu Approval',
+                'baseline' => $this->tertuaLabel((clone $poApprovalQuery)->min('created_at')),
                 'value' => $poApprovalCount,
                 'subtitle' => 'Otorisasi & Revisi Pimpinan',
                 'href' => route('purchasing.index', ['tab' => 'approval']),
@@ -208,6 +220,8 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Defect Rate Bulan Ini',
+                'status' => $defectMemburuk ? 'bad' : null,
+                'baseline' => 'vs ' . number_format($prevDefectRate, 1, ',', '.') . '% bln lalu',
                 'value' => number_format($defectRate, 1, ',', '.') . '%',
                 'subtitle' => number_format($totalRusak, 1) . ' unit rusak (Transfer, PO & Batch)',
                 'href' => route('transfers.index', ['year' => now()->year, 'month' => now()->month]),
@@ -216,6 +230,7 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Item Perlu Order Kritis',
+                'baseline' => 'Lokal ' . $orderSummary['lokal'] . ' · Impor ' . $orderSummary['impor'],
                 'value' => $orderSummary['total'],
                 'subtitle' => 'Lokal: ' . $orderSummary['lokal'] . ' · Impor: ' . $orderSummary['impor'],
                 'href' => route('analisa.index'),
@@ -362,7 +377,8 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Total Komitmen Tagihan',
-                'value' => 'Rp ' . number_format($totalKomitmenTagihan, 0, ',', '.'),
+                'value' => Rupiah::ringkas((float) $totalKomitmenTagihan),
+                'valueTitle' => Rupiah::penuh((float) $totalKomitmenTagihan),
                 'subtitle' => 'Liabilitas PO Aktif Belum Lunas',
                 'href' => route('purchasing.index', ['tab' => 'ap']),
                 'footerText' => 'Buka Hutang AP',
@@ -513,6 +529,7 @@ class DashboardController extends Controller
         $kpis = [
             [
                 'title' => 'Kedatangan Siap Unloading',
+                'baseline' => $this->tertuaLabel((clone $poUnloadingQuery)->min('created_at')),
                 'value' => $poUnloadingCount,
                 'subtitle' => 'Ekspedisi Tiba di Gudang',
                 'href' => route('purchasing.index'),
@@ -529,6 +546,7 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Transfer Perlu Dikirim',
+                'baseline' => $this->tertuaLabel((clone $trfKirimQuery)->min('created_at')),
                 'value' => $trfKirimCount,
                 'subtitle' => 'Draft Muat & Surat Jalan',
                 'href' => route('transfers.index', ['status' => 'draft']),
@@ -678,6 +696,7 @@ class DashboardController extends Controller
             ],
             [
                 'title' => 'Kesiapan Bahan BOM',
+                'status' => $lackingBatchCount > 0 ? 'bad' : null,
                 'value' => "{$readyBatchCount} Batch Siap",
                 'subtitle' => "{$lackingBatchCount} Kurang Bahan",
                 'href' => route('batches.index'),
@@ -893,6 +912,69 @@ class DashboardController extends Controller
     private function buildDefaultData(User $user): array
     {
         return $this->buildOperasionalData($user);
+    }
+
+    /** KPI berstatus `warn` bila nilainya > 0 (butuh tindakan manusia). */
+    private const KPI_WARN_JIKA_ADA = [
+        'PO Menunggu Approval',
+        'Request Mutasi Pending',
+        'Kedatangan Siap Unloading',
+        'Menunggu Input Sistem',
+        'Transfer Perlu Dikirim',
+        'Batch Selesai Siap Kirim',
+        'Transfer Masuk dari Lab',
+    ];
+
+    /** KPI berstatus `bad` bila nilainya > 0 (masalah). */
+    private const KPI_BAD_JIKA_ADA = [
+        'Item Perlu Order Kritis',
+        'Item Perlu Order (Lokal)',
+        'Item Perlu Order (Impor)',
+        'PO Terlambat SLA',
+        'Stok Menipis Lokal',
+        'SKU Kritis Fast-Moving',
+    ];
+
+    /**
+     * Lengkapi setiap KPI dengan status, baseline, hint, dan valueTitle.
+     * Key lama (title, value, subtitle, href, footerText, icon) tidak diubah.
+     * Builder boleh mengisi status/baseline/valueTitle sendiri; yang kosong diisi di sini.
+     *
+     * @param  array<int, array<string, mixed>>  $kpis
+     * @return array<int, array<string, mixed>>
+     */
+    private function decorateKpis(array $kpis): array
+    {
+        return array_map(function (array $kpi) {
+            $title = (string) ($kpi['title'] ?? '');
+            $angka = is_numeric($kpi['value'] ?? null) ? (float) $kpi['value'] : 0.0;
+
+            if (! array_key_exists('status', $kpi)) {
+                $kpi['status'] = match (true) {
+                    $angka > 0 && in_array($title, self::KPI_BAD_JIKA_ADA, true) => 'bad',
+                    $angka > 0 && in_array($title, self::KPI_WARN_JIKA_ADA, true) => 'warn',
+                    default => null,
+                };
+            }
+
+            $kpi['baseline'] ??= null;
+            $kpi['valueTitle'] ??= null;
+            $kpi['hint'] = $kpi['subtitle'] ?? null;
+
+            return $kpi;
+        }, $kpis);
+    }
+
+    /** Teks "tertua N hari" untuk antrean, atau null bila antrean kosong. */
+    private function tertuaLabel(mixed $createdAt): ?string
+    {
+        if (! $createdAt) {
+            return null;
+        }
+
+        $hari = (int) Carbon::parse($createdAt)->diffInDays(now());
+
+        return $hari <= 0 ? 'tertua hari ini' : "tertua {$hari} hari";
     }
 
     /**

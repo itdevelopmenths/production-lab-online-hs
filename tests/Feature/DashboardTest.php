@@ -554,4 +554,70 @@ class DashboardTest extends TestCase
         $this->assertGreaterThanOrEqual(12, $queue['total']);
         $this->assertLessThanOrEqual(10, count($queue['items']));
     }
+
+    private function kpi(\Illuminate\Testing\TestResponse $response, string $title): array
+    {
+        return collect($response->viewData('kpis'))->firstWhere('title', $title);
+    }
+
+    public function test_kpi_status_flags_problems(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        PurchaseOrder::create([
+            'no_po' => 'PO-STAT-1',
+            'supplier_id' => Supplier::firstOrFail()->id,
+            'tanggal' => now(),
+            'status' => 'berjalan',
+            'stage_aktif' => 'approval',
+            'created_by' => $manager->id,
+        ]);
+
+        $response = $this->actingAs($manager)->get('/');
+
+        $this->assertSame('warn', $this->kpi($response, 'PO Menunggu Approval')['status']);
+        $this->assertNull($this->kpi($response, 'Batch Produksi Aktif')['status']);
+        $this->assertNotNull($this->kpi($response, 'PO Menunggu Approval')['baseline']);
+    }
+
+    public function test_kpi_without_problem_has_no_status_and_hint_keeps_old_subtitle(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $response = $this->actingAs($manager)->get('/');
+
+        $kpi = $this->kpi($response, 'PO Menunggu Approval');
+        $this->assertNull($kpi['status']);
+        $this->assertNull($kpi['baseline']);
+        $this->assertSame('Otorisasi & Revisi Pimpinan', $kpi['hint']);
+    }
+
+    public function test_defect_rate_baseline_compares_previous_month(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        $response = $this->actingAs($manager)->get('/');
+
+        $baseline = $this->kpi($response, 'Defect Rate Bulan Ini')['baseline'];
+        $this->assertStringStartsWith('vs ', $baseline);
+        $this->assertStringEndsWith('% bln lalu', $baseline);
+    }
+
+    public function test_purchasing_tagihan_kpi_uses_compact_rupiah_with_full_value_title(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        PurchaseOrder::create([
+            'no_po' => 'PO-RP-1',
+            'supplier_id' => Supplier::firstOrFail()->id,
+            'tanggal' => now(),
+            'status' => 'berjalan',
+            'stage_aktif' => 'pembayaran',
+            'status_pembayaran' => 'belum_bayar',
+            'grand_total' => 1234567890,
+            'created_by' => $purchasing->id,
+        ]);
+
+        $response = $this->actingAs($purchasing)->get('/');
+        $kpi = $this->kpi($response, 'Total Komitmen Tagihan');
+
+        $this->assertSame('Rp 1,2 M', $kpi['value']);
+        $this->assertSame('Rp 1.234.567.890', $kpi['valueTitle']);
+    }
 }
