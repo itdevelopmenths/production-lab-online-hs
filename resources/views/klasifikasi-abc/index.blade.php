@@ -18,10 +18,13 @@
         </x-page-header>
 
         <x-card title="Daftar Klasifikasi ABC" subtitle="Pengaturan buffer lead time dan bobot prioritas pengadaan" :noPadding="true">
-            <div class="overflow-x-auto">
-                <table id="tbl-klasifikasi-abc" class="w-full text-xs">
-                    <thead>
-                        <tr>
+            <x-slot:icon>
+                <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+            </x-slot:icon>
+            <div tabindex="0" role="region" aria-label="Daftar Klasifikasi ABC" class="overflow-x-auto">
+                <table id="tbl-klasifikasi-abc" class="w-full text-sm">
+                    <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                        <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                             <th class="px-4 py-3 text-left">Kode</th>
                             <th class="px-4 py-3 text-left">Nama Klasifikasi</th>
                             <th class="px-4 py-3 text-left">Tambahan Buffer</th>
@@ -38,47 +41,47 @@
         <!-- Modal Kelola SKU Klasifikasi ABC -->
         <div
             x-show="showSkuModal"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs transition-opacity"
+            class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs transition-opacity"
             x-cloak
             @keydown.escape.window="closeSkuModal()"
         >
             <div
-                class="bg-card rounded-xl shadow-lg border border-border w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]"
+                class="bg-white dark:bg-gray-900 rounded-[12px] shadow-2xl border border-[#E8E8E8] dark:border-gray-800 w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]"
                 @click.away="closeSkuModal()"
             >
-                <div class="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
+                <div class="px-6 py-4 border-b border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between shrink-0">
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 class="text-sm font-semibold text-foreground">Kelola SKU Klasifikasi ABC</h3>
-                            <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-primary/10 text-primary border border-primary/20" x-text="activeAbc ? activeAbc.nama : ''"></span>
+                            <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Kelola SKU Klasifikasi ABC</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white border border-[#E8E8E8] dark:border-gray-700" x-text="activeAbc ? activeAbc.nama : ''"></span>
                         </div>
-                        <p class="text-[11px] text-muted-foreground mt-0.5">
+                        <p class="text-xs text-[#667085] dark:text-gray-400 mt-0.5">
                             Pilih atau keluarkan SKU Bahan Baku / Kemasan pada klasifikasi ini.
                         </p>
                     </div>
-                    <button type="button" @click="closeSkuModal()" class="text-muted-foreground hover:text-foreground transition cursor-pointer">
+                    <button type="button" @click="closeSkuModal()" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
 
-                <div class="p-5 space-y-5 overflow-y-auto">
+                <div class="p-5 sm:p-6 space-y-5 overflow-y-auto bg-[#F5F5F5] dark:bg-gray-950 custom-scrollbar">
                     @can('analisa.manage')
                     <!-- Bagian 1: Tambah SKU -->
-                    <div class="border border-border rounded-xl p-4 bg-muted/20 space-y-3">
+                    <div class="border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 bg-white dark:bg-gray-900 space-y-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider">Tambah SKU ke Klasifikasi Ini</h4>
+                            <h4 class="text-xs font-semibold text-[#101828] dark:text-white uppercase tracking-wider">Tambah SKU ke Klasifikasi Ini</h4>
                             <div class="flex items-center gap-2">
                                 <input
                                     type="text"
                                     x-model.debounce.250ms="skuSearch"
                                     @input="fetchAvailableSkus()"
                                     placeholder="Cari kode SKU atau nama..."
-                                    class="px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground w-48 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    class="px-3 py-1.5 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 text-[#101828] dark:text-white w-48 focus:outline-none focus:border-[#111111] dark:focus:border-white"
                                 >
                                 <select
                                     x-model="skuProfilFilter"
                                     @change="fetchAvailableSkus()"
-                                    class="px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                    class="px-2.5 py-1.5 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 text-[#101828] dark:text-white focus:outline-none focus:border-[#111111] dark:focus:border-white"
                                 >
                                     <option value="">Semua Profil</option>
                                     <option value="impor">Hanya Impor</option>
@@ -88,30 +91,30 @@
                             </div>
                         </div>
 
-                        <div x-show="hasNonImporSelected()" class="p-2.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-[11px]">
+                        <div x-show="hasNonImporSelected()" class="p-2.5 rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 text-[11px]">
                             Perhatian: SKU berprofil <strong>Lokal</strong> atau <strong>Belum Diset</strong> yang dipilih akan otomatis dipindahkan ke profil <strong>Impor</strong> (dan dihapus dari daftar Analisa Lokal agar tidak tampil ganda).
                         </div>
 
-                        <div class="max-h-48 overflow-y-auto border border-border rounded-lg bg-background divide-y divide-border/60">
+                        <div class="max-h-48 overflow-y-auto border border-[#E8E8E8] dark:border-gray-800 rounded-[10px] bg-[#F5F5F5]/60 dark:bg-gray-950 divide-y divide-[#E8E8E8]/60 dark:divide-gray-800 custom-scrollbar">
                             <template x-if="loadingAvailableSkus">
-                                <div class="py-6 text-center text-xs text-muted-foreground">Memuat daftar kandidat SKU...</div>
+                                <div class="py-6 text-center text-xs text-[#667085] dark:text-gray-400">Memuat daftar kandidat SKU...</div>
                             </template>
                             <template x-if="!loadingAvailableSkus && availableSkus.length === 0">
-                                <div class="py-6 text-center text-xs text-muted-foreground">Tidak ada kandidat SKU yang sesuai pencarian.</div>
+                                <div class="py-6 text-center text-xs text-[#667085] dark:text-gray-400">Tidak ada kandidat SKU yang sesuai pencarian.</div>
                             </template>
                             <template x-for="cand in availableSkus" :key="cand.id">
-                                <label class="flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/40 cursor-pointer text-xs">
+                                <label class="flex items-center justify-between gap-3 px-3 py-2 hover:bg-white dark:hover:bg-gray-900 cursor-pointer text-xs transition-colors">
                                     <div class="flex items-center gap-2.5 min-w-0">
-                                        <input type="checkbox" :value="cand.id" x-model="selectedSkuIds" class="rounded border-border text-primary focus:ring-primary/20 cursor-pointer">
-                                        <span class="font-mono font-semibold text-foreground shrink-0" x-text="cand.sku"></span>
-                                        <span class="text-foreground truncate" x-text="cand.nama"></span>
+                                        <input type="checkbox" :value="cand.id" x-model="selectedSkuIds" class="rounded border-[#E8E8E8] dark:border-gray-700 text-[#111111] dark:text-white focus:ring-0 cursor-pointer">
+                                        <span class="font-mono font-semibold text-[#101828] dark:text-white shrink-0" x-text="cand.sku"></span>
+                                        <span class="text-[#101828] dark:text-gray-200 truncate" x-text="cand.nama"></span>
                                     </div>
                                     <div class="flex items-center gap-1.5 shrink-0">
-                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium border"
-                                              :class="cand.is_impor ? 'bg-purple-50 text-purple-700 border-purple-200' : (cand.profil_analisa === 'lokal' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-zinc-100 text-zinc-600 border-zinc-200')"
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-medium border"
+                                              :class="cand.is_impor ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/50' : (cand.profil_analisa === 'lokal' ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700')"
                                               x-text="cand.is_impor ? 'Impor' : (cand.profil_analisa === 'lokal' ? 'Lokal' : 'Belum Diset')"></span>
                                         <template x-if="cand.klasifikasi_abc_kode">
-                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-muted text-foreground border border-border" x-text="'Saat ini: ' + cand.klasifikasi_abc_kode"></span>
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700" x-text="'Saat ini: ' + cand.klasifikasi_abc_kode"></span>
                                         </template>
                                     </div>
                                 </label>
@@ -119,14 +122,14 @@
                         </div>
 
                         <div class="flex items-center justify-between pt-1">
-                            <span class="text-[11px] text-muted-foreground">
-                                Terpilih: <strong class="text-foreground" x-text="selectedSkuIds.length"></strong> SKU
+                            <span class="text-[11px] text-[#667085] dark:text-gray-400">
+                                Terpilih: <strong class="text-[#101828] dark:text-white" x-text="selectedSkuIds.length"></strong> SKU
                             </span>
                             <button
                                 type="button"
                                 @click="assignSelectedSkus()"
                                 :disabled="selectedSkuIds.length === 0 || assigningSkus"
-                                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg shadow-xs transition disabled:opacity-50 cursor-pointer"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white dark:text-[#111111] bg-[#111111] dark:bg-white hover:bg-[#292929] dark:hover:bg-gray-100 rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
                             >
                                 <span x-text="assigningSkus ? 'Menyimpan...' : 'Tambahkan SKU Terpilih (' + selectedSkuIds.length + ')'"></span>
                             </button>
@@ -137,39 +140,39 @@
                     <!-- Bagian 2: Daftar SKU Terdaftar -->
                     <div class="space-y-2">
                         <div class="flex items-center justify-between">
-                            <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider">
+                            <h4 class="text-xs font-semibold text-[#101828] dark:text-white uppercase tracking-wider">
                                 Daftar SKU pada Klasifikasi Ini (<span x-text="assignedSkus.length"></span>)
                             </h4>
                         </div>
-                        <div class="overflow-x-auto border border-border rounded-lg">
+                        <div class="overflow-x-auto border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] bg-white dark:bg-gray-900">
                             <table class="w-full text-xs text-left">
-                                <thead class="bg-muted/60 text-muted-foreground text-[11px] uppercase border-b border-border">
+                                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 text-[12px] font-medium border-b border-[#E8E8E8] dark:border-gray-800">
                                     <tr>
-                                        <th class="px-3 py-2">SKU</th>
-                                        <th class="px-3 py-2">Nama Produk</th>
-                                        <th class="px-3 py-2">Tipe</th>
-                                        <th class="px-3 py-2">Profil</th>
+                                        <th class="px-3 py-2.5">SKU</th>
+                                        <th class="px-3 py-2.5">Nama Produk</th>
+                                        <th class="px-3 py-2.5">Tipe</th>
+                                        <th class="px-3 py-2.5">Profil</th>
                                         @can('analisa.manage')
-                                        <th class="px-3 py-2 text-center w-24">Aksi</th>
+                                        <th class="px-3 py-2.5 text-center w-24">Aksi</th>
                                         @endcan
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-border/60 bg-card">
+                                <tbody class="divide-y divide-[#E8E8E8]/60 dark:divide-gray-800 bg-white dark:bg-gray-900">
                                     <template x-if="loadingAssignedSkus">
-                                        <tr><td colspan="5" class="py-6 text-center text-muted-foreground">Memuat daftar SKU...</td></tr>
+                                        <tr><td colspan="5" class="py-6 text-center text-[#667085] dark:text-gray-400">Memuat daftar SKU...</td></tr>
                                     </template>
                                     <template x-if="!loadingAssignedSkus && assignedSkus.length === 0">
-                                        <tr><td colspan="5" class="py-6 text-center text-muted-foreground">Belum ada SKU yang ditetapkan ke klasifikasi ini.</td></tr>
+                                        <tr><td colspan="5" class="py-6 text-center text-[#667085] dark:text-gray-400">Belum ada SKU yang ditetapkan ke klasifikasi ini.</td></tr>
                                     </template>
                                     <template x-for="skuItem in assignedSkus" :key="skuItem.id">
-                                        <tr class="hover:bg-muted/30">
-                                            <td class="px-3 py-2 font-mono font-semibold text-foreground" x-text="skuItem.sku"></td>
-                                            <td class="px-3 py-2 text-foreground" x-text="skuItem.nama"></td>
-                                            <td class="px-3 py-2 uppercase text-[10px] font-semibold text-muted-foreground" x-text="skuItem.tipe"></td>
-                                            <td class="px-3 py-2 uppercase text-[10px] font-semibold" x-text="skuItem.profil_analisa || 'impor'"></td>
+                                        <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40">
+                                            <td class="px-3 py-2.5 font-mono font-semibold text-[#101828] dark:text-white" x-text="skuItem.sku"></td>
+                                            <td class="px-3 py-2.5 text-[#101828] dark:text-gray-200" x-text="skuItem.nama"></td>
+                                            <td class="px-3 py-2.5 uppercase text-[10px] font-semibold text-[#667085] dark:text-gray-400" x-text="skuItem.tipe"></td>
+                                            <td class="px-3 py-2.5 uppercase text-[10px] font-semibold text-[#101828] dark:text-white" x-text="skuItem.profil_analisa || 'impor'"></td>
                                             @can('analisa.manage')
-                                            <td class="px-3 py-2 text-center">
-                                                <button type="button" @click="unassignSku(skuItem)" class="px-2 py-1 rounded text-[11px] font-medium text-destructive hover:bg-destructive/10 transition cursor-pointer">
+                                            <td class="px-3 py-2.5 text-center">
+                                                <button type="button" @click="unassignSku(skuItem)" class="px-2 py-1 rounded-md text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer">
                                                     Keluarkan
                                                 </button>
                                             </td>
@@ -187,110 +190,106 @@
         <!-- Modal Form Tambah / Edit Klasifikasi ABC -->
         <div
             x-show="showModal"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs transition-opacity"
+            class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs transition-opacity"
             x-cloak
             @keydown.escape.window="closeModal()"
         >
             <div
-                class="bg-card rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                class="bg-white dark:bg-gray-900 rounded-[12px] shadow-2xl border border-[#E8E8E8] dark:border-gray-800 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150"
                 @click.away="closeModal()"
             >
-                <div class="px-5 py-4 border-b border-border flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-foreground" x-text="isEdit ? 'Edit Klasifikasi ABC' : 'Tambah Klasifikasi ABC'"></h3>
-                    <button type="button" @click="closeModal()" class="text-muted-foreground hover:text-foreground transition cursor-pointer">
+                <div class="px-6 py-4 border-b border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between">
+                    <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight" x-text="isEdit ? 'Edit Klasifikasi ABC' : 'Tambah Klasifikasi ABC'"></h3>
+                    <button type="button" @click="closeModal()" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
 
-                <form @submit.prevent="saveItem()" class="p-5 space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1">Kode Klasifikasi <span class="text-destructive">*</span></label>
-                        <input
-                            type="text"
-                            x-model="form.kode"
-                            placeholder="misal: a, b, c, wajib_a"
-                            class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono lowercase text-foreground"
-                            required
-                        >
-                        <p class="text-[11px] text-muted-foreground mt-1">Gunakan huruf kecil atau underscore (contoh: wajib_a, a, b, c).</p>
-                    </div>
+                <form @submit.prevent="saveItem()" class="bg-[#F5F5F5] dark:bg-gray-950">
+                    <div class="p-5 sm:p-6 space-y-4">
+                        <div class="bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 p-4 space-y-3.5">
+                            <div>
+                                <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Kode Klasifikasi <span class="text-rose-500">*</span></label>
+                                <input
+                                    type="text"
+                                    x-model="form.kode"
+                                    placeholder="misal: a, b, c, wajib_a"
+                                    class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white font-mono lowercase text-[#101828] dark:text-white"
+                                    required
+                                >
+                                <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-1">Gunakan huruf kecil atau underscore (contoh: wajib_a, a, b, c).</p>
+                            </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1">Nama Klasifikasi <span class="text-destructive">*</span></label>
-                        <input
-                            type="text"
-                            x-model="form.nama"
-                            placeholder="misal: A - Fast Moving"
-                            class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
-                            required
-                        >
-                    </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Nama Klasifikasi <span class="text-rose-500">*</span></label>
+                                <input
+                                    type="text"
+                                    x-model="form.nama"
+                                    placeholder="misal: A - Fast Moving"
+                                    class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white"
+                                    required
+                                >
+                            </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-foreground mb-1">Tambahan Buffer (Hari) <span class="text-destructive">*</span></label>
-                            <input
-                                type="number"
-                                min="0"
-                                max="365"
-                                x-model.number="form.tambahan_buffer_hari"
-                                class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono text-foreground"
-                                required
-                            >
-                            <p class="text-[11px] text-muted-foreground mt-1">Ditambahkan ke Buffer Days.</p>
+                            <div class="grid grid-cols-2 gap-3.5">
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Tambahan Buffer (Hari) <span class="text-rose-500">*</span></label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="365"
+                                        x-model.number="form.tambahan_buffer_hari"
+                                        class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white font-mono text-[#101828] dark:text-white"
+                                        required
+                                    >
+                                    <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-1">Ditambahkan ke Buffer Days.</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Warna Badge <span class="text-rose-500">*</span></label>
+                                    <select
+                                        x-model="form.warna_badge"
+                                        class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white"
+                                    >
+                                        <option value="red">Merah (Wajib / Vital)</option>
+                                        <option value="amber">Amber (Fast Moving)</option>
+                                        <option value="blue">Biru (Medium)</option>
+                                        <option value="gray">Abu-abu (Slow Moving)</option>
+                                        <option value="emerald">Hijau</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Deskripsi</label>
+                                <textarea
+                                    x-model="form.deskripsi"
+                                    rows="2"
+                                    placeholder="Keterangan kategori prioritas pengadaan..."
+                                    class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white"
+                                ></textarea>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1">
+                                <input
+                                    type="checkbox"
+                                    id="chk-active"
+                                    x-model="form.is_active"
+                                    class="rounded border-[#E8E8E8] dark:border-gray-700 text-[#111111] dark:text-white focus:ring-0"
+                                >
+                                <label for="chk-active" class="text-xs font-medium text-[#101828] dark:text-gray-200 cursor-pointer">Aktif digunakan dalam analisa stok</label>
+                            </div>
                         </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-foreground mb-1">Warna Badge <span class="text-destructive">*</span></label>
-                            <select
-                                x-model="form.warna_badge"
-                                class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
-                            >
-                                <option value="red">Merah (Wajib / Vital)</option>
-                                <option value="amber">Amber (Fast Moving)</option>
-                                <option value="blue">Biru (Medium)</option>
-                                <option value="gray">Abu-abu (Slow Moving)</option>
-                                <option value="emerald">Hijau</option>
-                            </select>
-                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1">Deskripsi</label>
-                        <textarea
-                            x-model="form.deskripsi"
-                            rows="2"
-                            placeholder="Keterangan kategori prioritas pengadaan..."
-                            class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground"
-                        ></textarea>
-                    </div>
-
-                    <div class="flex items-center gap-2 pt-2">
-                        <input
-                            type="checkbox"
-                            id="chk-active"
-                            x-model="form.is_active"
-                            class="rounded border-border text-primary focus:ring-primary/20"
-                        >
-                        <label for="chk-active" class="text-xs font-medium text-foreground cursor-pointer">Aktif digunakan dalam analisa stok</label>
-                    </div>
-
-                    <div class="flex items-center justify-end gap-2 pt-4 border-t border-border">
-                        <button
-                            type="button"
-                            @click="closeModal()"
-                            class="px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted border border-border rounded-lg transition cursor-pointer"
-                        >
+                    <div class="flex items-center justify-end gap-2 px-6 py-4 bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-gray-800">
+                        <x-button type="button" @click="closeModal()" variant="secondary" size="sm">
                             Batal
-                        </button>
-                        <button
-                            type="submit"
-                            :disabled="saving"
-                            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg shadow-xs transition disabled:opacity-50 cursor-pointer"
-                        >
-                            <svg x-show="saving" class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </x-button>
+                        <x-button type="submit" ::disabled="saving" variant="primary" size="sm">
+                            <svg x-show="saving" class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-current" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                             <span x-text="saving ? 'Menyimpan...' : 'Simpan Klasifikasi'"></span>
-                        </button>
+                        </x-button>
                     </div>
                 </form>
             </div>

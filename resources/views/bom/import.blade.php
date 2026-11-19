@@ -11,15 +11,76 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <div x-data="bomDualGridImporter()" x-init="init()" class="space-y-5">
+        <!-- Blueprint 3-Step BOM Wizard Stepper (#00bc7d Emerald Progress) -->
+        <div role="region" aria-label="Tahapan Impor Formula Resep BOM" class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-x-auto no-scrollbar">
+            <div class="flex items-center justify-between min-w-[480px] gap-4">
+                {{-- Step 1: Unggah / Isi Grid --}}
+                <div class="flex items-center gap-3 shrink-0">
+                    <div
+                        class="size-[28px] rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                        :class="rows.length > 0 ? 'bg-[#00bc7d] text-white shadow-[0px_0px_0px_4px_rgba(0,188,125,0.18)]' : 'bg-[#f3f4f6] dark:bg-gray-800 text-[#667085] dark:text-gray-400 border border-[#E8E8E8] dark:border-gray-700'"
+                    >
+                        <template x-if="validRowsCount > 0 || invalidRowsCount > 0">
+                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        </template>
+                        <template x-if="validRowsCount === 0 && invalidRowsCount === 0">
+                            <span>1</span>
+                        </template>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-[#101828] dark:text-white leading-tight">1. Unggah / Isi Grid</p>
+                        <p class="text-[11px] text-[#667085] dark:text-gray-400">Import Excel/CSV atau input manual</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 h-[2px] rounded-full transition-colors" :class="(validRowsCount > 0 && invalidRowsCount === 0) ? 'bg-[#00bc7d]' : 'bg-[#E8E8E8] dark:bg-gray-800'"></div>
+
+                {{-- Step 2: Validasi Formula --}}
+                <div class="flex items-center gap-3 shrink-0">
+                    <div
+                        class="size-[28px] rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                        :class="(validRowsCount > 0 && invalidRowsCount === 0) ? 'bg-[#00bc7d] text-white shadow-[0px_0px_0px_4px_rgba(0,188,125,0.18)]' : (rows.length > 0 ? 'bg-[#111111] dark:bg-white text-white dark:text-[#111111]' : 'bg-[#f3f4f6] dark:bg-gray-800 text-[#667085] dark:text-gray-400 border border-[#E8E8E8] dark:border-gray-700')"
+                    >
+                        <template x-if="validRowsCount > 0 && invalidRowsCount === 0">
+                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        </template>
+                        <template x-if="!(validRowsCount > 0 && invalidRowsCount === 0)">
+                            <span>2</span>
+                        </template>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-[#101828] dark:text-white leading-tight">2. Validasi Formula</p>
+                        <p class="text-[11px] text-[#667085] dark:text-gray-400" x-text="invalidRowsCount > 0 ? invalidRowsCount + ' baris perlu diperbaiki' : (validRowsCount > 0 ? validRowsCount + ' baris valid siap simpan' : 'Periksa SKU & takaran')"></p>
+                    </div>
+                </div>
+
+                <div class="flex-1 h-[2px] rounded-full transition-colors" :class="isSubmitting ? 'bg-[#00bc7d]' : 'bg-[#E8E8E8] dark:bg-gray-800'"></div>
+
+                {{-- Step 3: Simpan Resep BOM --}}
+                <div class="flex items-center gap-3 shrink-0">
+                    <div
+                        class="size-[28px] rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                        :class="isSubmitting ? 'bg-[#00bc7d] text-white shadow-[0px_0px_0px_4px_rgba(0,188,125,0.18)]' : ((validRowsCount > 0 && invalidRowsCount === 0) ? 'bg-[#111111] dark:bg-white text-white dark:text-[#111111]' : 'bg-[#f3f4f6] dark:bg-gray-800 text-[#667085] dark:text-gray-400 border border-[#E8E8E8] dark:border-gray-700')"
+                    >
+                        3
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-[#101828] dark:text-white leading-tight">3. Simpan Resep BOM</p>
+                        <p class="text-[11px] text-[#667085] dark:text-gray-400">Komit formula ke database produksi</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Panel Atas: Toolbar Dual-Format & Ringkasan -->
-        <div class="bg-card rounded-xl border border-border p-4 shadow-xs">
+        <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div class="min-w-0 flex-1">
-                    <h2 class="text-sm font-semibold text-foreground flex items-center gap-2">
-                        <svg class="size-4 text-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <h2 class="text-sm font-semibold text-[#101828] dark:text-white flex items-center gap-2">
+                        <svg class="size-4 text-[#111111] dark:text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Opsi Impor & Pengisian Data Dual-Format
                     </h2>
-                    <p class="text-xs text-muted-foreground mt-0.5 leading-normal">
+                    <p class="text-xs text-[#667085] dark:text-gray-400 mt-0.5 leading-normal">
                         Dukung berkas <strong>Microsoft Excel (.xlsx, .xls)</strong> dan <strong>CSV (.csv, .txt)</strong>, atau ketik & tempel langsung (Ctrl+V) pada tabel grid di bawah.
                     </p>
                 </div>
@@ -40,7 +101,7 @@
                     {{-- 2. Download Template CSV --}}
                     <a
                         href="{{ route('bom.template') }}"
-                        class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-background hover:bg-muted text-foreground border border-border rounded-lg text-xs font-medium transition cursor-pointer"
+                        class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700 rounded-lg text-xs font-medium transition cursor-pointer"
                         title="Unduh format teks standar CSV (.csv)"
                     >
                         <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -48,7 +109,7 @@
                     </a>
 
                     {{-- 3. Upload File Excel / CSV --}}
-                    <label class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer">
+                    <label class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 bg-[#111111] dark:bg-white hover:bg-[#292929] dark:hover:bg-gray-100 text-white dark:text-[#111111] rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer">
                         <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                         Unggah Berkas (Excel / CSV)
                         <input type="file" @change="handleFileUpload($event)" accept=".xlsx,.xls,.csv,.txt" class="hidden">
@@ -57,26 +118,26 @@
             </div>
 
             <!-- Kartu Status & Petunjuk Cepat -->
-            <div class="mt-4 pt-3 border-t border-border grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <div class="p-2.5 bg-muted/40 rounded-lg border border-border flex items-center justify-between">
-                    <span class="text-xs text-muted-foreground">Total Baris:</span>
-                    <span class="font-mono text-sm font-bold text-foreground" x-text="rows.length"></span>
+            <div class="mt-4 pt-3 border-t border-[#E8E8E8] dark:border-gray-800 grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div class="p-2.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-lg border border-[#E8E8E8] dark:border-gray-800 flex items-center justify-between">
+                    <span class="text-xs text-[#667085] dark:text-gray-400">Total Baris:</span>
+                    <span class="font-mono text-sm font-bold text-[#101828] dark:text-white" x-text="rows.length"></span>
                 </div>
-                <div class="p-2.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20 flex items-center justify-between">
+                <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-between">
                     <span class="text-xs text-emerald-700 dark:text-emerald-400">Baris Valid:</span>
                     <span class="font-mono text-sm font-bold text-emerald-700 dark:text-emerald-400" x-text="validRowsCount"></span>
                 </div>
-                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="duplicateRowsCount > 0 ? 'bg-purple-500/10 border-purple-500/30' : 'bg-muted/40 border-border'">
-                    <span class="text-xs" :class="duplicateRowsCount > 0 ? 'text-purple-700 dark:text-purple-400 font-semibold' : 'text-muted-foreground'">Duplikat di Grid:</span>
-                    <span class="font-mono text-sm font-bold" :class="duplicateRowsCount > 0 ? 'text-purple-700 dark:text-purple-400' : 'text-muted-foreground'" x-text="duplicateRowsCount"></span>
+                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="duplicateRowsCount > 0 ? 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800/50' : 'bg-[#F5F5F5] dark:bg-gray-950 border-[#E8E8E8] dark:border-gray-800'">
+                    <span class="text-xs" :class="duplicateRowsCount > 0 ? 'text-purple-700 dark:text-purple-400 font-semibold' : 'text-[#667085] dark:text-gray-400'">Duplikat di Grid:</span>
+                    <span class="font-mono text-sm font-bold" :class="duplicateRowsCount > 0 ? 'text-purple-700 dark:text-purple-400' : 'text-[#667085] dark:text-gray-400'" x-text="duplicateRowsCount"></span>
                 </div>
-                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="alreadyExistsCount > 0 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-muted/40 border-border'">
-                    <span class="text-xs" :class="alreadyExistsCount > 0 ? 'text-amber-700 dark:text-amber-400 font-semibold' : 'text-muted-foreground'">Sudah Terdaftar:</span>
-                    <span class="font-mono text-sm font-bold" :class="alreadyExistsCount > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'" x-text="alreadyExistsCount"></span>
+                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="alreadyExistsCount > 0 ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' : 'bg-[#F5F5F5] dark:bg-gray-950 border-[#E8E8E8] dark:border-gray-800'">
+                    <span class="text-xs" :class="alreadyExistsCount > 0 ? 'text-amber-700 dark:text-amber-400 font-semibold' : 'text-[#667085] dark:text-gray-400'">Sudah Terdaftar:</span>
+                    <span class="font-mono text-sm font-bold" :class="alreadyExistsCount > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-[#667085] dark:text-gray-400'" x-text="alreadyExistsCount"></span>
                 </div>
-                <div class="p-2.5 bg-destructive/10 rounded-lg border border-destructive/20 flex items-center justify-between">
-                    <span class="text-xs text-destructive">Perlu Diperiksa:</span>
-                    <span class="font-mono text-sm font-bold text-destructive" x-text="invalidRowsCount"></span>
+                <div class="p-2.5 bg-rose-50 dark:bg-rose-950/30 rounded-lg border border-rose-200 dark:border-rose-800/50 flex items-center justify-between">
+                    <span class="text-xs text-rose-700 dark:text-rose-400">Perlu Diperiksa:</span>
+                    <span class="font-mono text-sm font-bold text-rose-700 dark:text-rose-400" x-text="invalidRowsCount"></span>
                 </div>
             </div>
         </div>
@@ -589,7 +650,7 @@
                         icon: 'warning',
                         title: 'Kombinasi Sudah Ada di Tabel',
                         text: msg,
-                        confirmButtonColor: '#0284c7',
+                        confirmButtonColor: '#111111',
                         confirmButtonText: 'Mengerti'
                     });
                 } else {

@@ -16,41 +16,45 @@
             </x-slot:actions>
         </x-page-header>
 
-        <x-card :noPadding="true">
-            {{-- Filter Bar & Segmented Tabs --}}
-            <div class="px-3.5 py-2.5 border-b border-border bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <x-card title="Katalog Produk & Material" subtitle="Kelola SKU bahan baku, kemasan, dan produk jadi beserta parameter pengadaan" :noPadding="true">
+            <x-slot:icon>
+                <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </x-slot:icon>
+
+            {{-- Filter Bar & Segmented Tabs (Blueprint StatusTabs) --}}
+            <div class="px-4 py-3 border-b border-[#E8E8E8] dark:border-gray-800 bg-[#fafafa] dark:bg-gray-900/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 {{-- Segmented Pill Tabs --}}
-                <div class="inline-flex items-center gap-1 p-0.5 bg-muted/60 rounded-md border border-border/40">
+                <div class="inline-flex flex-wrap items-center gap-1 p-1 bg-[#f3f4f6] dark:bg-gray-950 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
                     <button type="button"
                             @click="currentTab = 'all'; filterTab('all')"
-                            :class="currentTab === 'all' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer select-none">
+                            :class="currentTab === 'all' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
                         Semua Produk
                     </button>
                     <button type="button"
                             @click="currentTab = 'bahan'; filterTab('bahan')"
-                            :class="currentTab === 'bahan' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer select-none">
+                            :class="currentTab === 'bahan' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
                         Bahan Baku
                     </button>
                     <button type="button"
                             @click="currentTab = 'kemas'; filterTab('kemas')"
-                            :class="currentTab === 'kemas' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer select-none">
+                            :class="currentTab === 'kemas' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
                         Kemasan
                     </button>
                     <button type="button"
                             @click="currentTab = 'produk_jadi'; filterTab('produk_jadi')"
-                            :class="currentTab === 'produk_jadi' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                            class="px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer select-none">
+                            :class="currentTab === 'produk_jadi' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
                         Produk Jadi
                     </button>
                 </div>
 
                 {{-- Additional Filter --}}
                 <div class="flex items-center gap-2">
-                    <label for="filter-kategori" class="text-xs font-medium text-muted-foreground">Kategori:</label>
-                    <select id="filter-kategori" class="h-8 rounded-md border border-input bg-background px-2.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary/20 cursor-pointer">
+                    <label for="filter-kategori" class="text-xs font-medium text-[#667085] dark:text-gray-400">Kategori:</label>
+                    <select id="filter-kategori" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-xs text-[#101828] dark:text-white outline-none focus:border-[#111111] dark:focus:border-white cursor-pointer">
                         <option value="">Semua Kategori</option>
                         @foreach($kategoriList as $k)
                             <option value="{{ $k->id }}">{{ $k->nama }}</option>
@@ -60,10 +64,10 @@
             </div>
 
             {{-- Table --}}
-            <div class="overflow-x-auto">
+            <div tabindex="0" role="region" aria-label="Tabel Katalog Produk" class="overflow-x-auto">
                 <table id="tbl" class="w-full text-sm">
-                    <thead>
-                        <tr>
+                    <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                        <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                             <th class="px-4 py-3 text-left w-28">SKU</th>
                             <th class="px-4 py-3 text-left">Nama Produk</th>
                             <th class="px-4 py-3 text-left w-32">Kategori</th>

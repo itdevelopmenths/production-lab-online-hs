@@ -18,32 +18,28 @@
             @method('PUT')
 
             <div class="space-y-6">
-                {{-- Form Metadata Peran --}}
-                <x-card title="Informasi Identitas Peran" subtitle="Perbarui nama tampilan atau deskripsi peran">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <x-form-group name="display_name" label="Nama Tampilan Peran" :required="true">
-                                <x-input name="display_name" value="{{ old('display_name', $role->display_name ?: $role->name) }}" placeholder="misal: Supervisor QC Lab" :required="true" />
-                            </x-form-group>
-                        </div>
+                {{-- Form Metadata Peran (AppForm Shell) --}}
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 sm:p-5 space-y-5">
+                    <x-form-section title="Informasi Identitas Peran" :cols="2">
+                        <x-form-field name="display_name" label="Nama Tampilan" :required="true">
+                            <x-input name="display_name" id="display_name" variant="seamless" value="{{ old('display_name', $role->display_name ?: $role->name) }}" placeholder="misal: Supervisor QC Lab" :required="true" />
+                        </x-form-field>
 
-                        <div>
-                            <x-form-group name="name" label="Kode Identifikasi Teknis (Key)" :required="!$role->is_system" help="{{ $role->is_system ? 'Terkunci (Peran Bawaan Sistem)' : 'Identifier unik peran' }}">
-                                @if ($role->is_system)
-                                    <x-input name="name" value="{{ $role->name }}" readonly="readonly" class="bg-muted text-muted-foreground cursor-not-allowed font-mono" />
-                                @else
-                                    <x-input name="name" value="{{ old('name', $role->name) }}" placeholder="misal: supervisor_qc" :required="true" />
-                                @endif
-                            </x-form-group>
-                        </div>
+                        <x-form-field name="name" label="Kode Identifikasi (Key)" :required="!$role->is_system" :disabled="$role->is_system" help="{{ $role->is_system ? 'Terkunci (Peran Bawaan Sistem)' : 'Identifier unik peran' }}">
+                            @if ($role->is_system)
+                                <x-input name="name" id="name" variant="seamless" value="{{ $role->name }}" readonly="readonly" class="text-text-muted cursor-not-allowed font-mono" />
+                            @else
+                                <x-input name="name" id="name" variant="seamless" value="{{ old('name', $role->name) }}" placeholder="misal: supervisor_qc" :required="true" class="font-mono" />
+                            @endif
+                        </x-form-field>
 
                         <div class="md:col-span-2">
-                            <x-form-group name="description" label="Deskripsi & Tanggung Jawab" help="Penjelasan tugas peran ini untuk panduan operasional">
-                                <x-textarea name="description" placeholder="Jelaskan cakupan tanggung jawab peran ini..." rows="2">{{ old('description', $role->description) }}</x-textarea>
-                            </x-form-group>
+                            <x-form-field name="description" label="Deskripsi &amp; Tugas" align="top" help="Penjelasan tugas peran ini untuk panduan operasional">
+                                <x-textarea name="description" id="description" variant="seamless" placeholder="Jelaskan cakupan tanggung jawab peran ini..." rows="2">{{ old('description', $role->description) }}</x-textarea>
+                            </x-form-field>
                         </div>
-                    </div>
-                </x-card>
+                    </x-form-section>
+                </div>
 
                 {{-- Permission Matrix Component --}}
                 <div>
@@ -51,8 +47,8 @@
                 </div>
 
                 {{-- Action Buttons --}}
-                <div class="bg-card border border-border rounded-xl p-4 flex items-center justify-end gap-2 shadow-xs">
-                    <x-button href="{{ route('roles.index') }}" variant="outline" size="sm">
+                <div class="bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 flex items-center justify-end gap-2 shadow-xs">
+                    <x-button href="{{ route('roles.index') }}" variant="secondary" size="sm">
                         Batal
                     </x-button>
                     <x-button type="submit" variant="primary" size="sm">

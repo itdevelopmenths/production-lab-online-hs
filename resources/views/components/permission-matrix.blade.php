@@ -60,12 +60,12 @@
             moduleBadgeClass(actions, total) {
                 const count = this.moduleSelectedCount(actions);
                 if (count === total) {
-                    return 'bg-primary text-primary-foreground border-primary';
+                    return 'bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-neutral-900 dark:border-white';
                 }
                 if (count > 0) {
-                    return 'bg-muted text-foreground border-border';
+                    return 'bg-neutral-100 dark:bg-gray-800 text-text-active border-[#E8E8E8] dark:border-gray-700';
                 }
-                return 'bg-muted/50 text-muted-foreground border-border';
+                return 'bg-[#fafafa] dark:bg-gray-900 text-text-muted border-[#E8E8E8] dark:border-gray-800';
             }
         };
     }
@@ -74,31 +74,31 @@
 <div x-data="permissionMatrixState({{ Js::from($normalizedActive) }}, {{ Js::from($allKeys) }})" class="space-y-6">
 
     {{-- Top Action & Filter Toolbar --}}
-    <div class="bg-card border border-border rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-            <div class="size-9 rounded-lg bg-muted flex items-center justify-center text-foreground">
-                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <div class="size-9 rounded-[8px] bg-[#fafafa] dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700 flex items-center justify-center text-text-active">
+                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                 </svg>
             </div>
             <div>
-                <div class="text-sm font-semibold text-foreground tracking-tight">Matriks Hak Akses & Wewenang</div>
-                <div class="text-xs text-muted-foreground mt-0.5">
-                    <span class="font-bold text-foreground font-mono" x-text="selected.length"></span> dari 
-                    <span class="font-bold text-foreground font-mono">{{ $totalCount }}</span> wewenang tercentang
+                <div class="text-sm font-semibold text-text-active tracking-tight">Matriks Hak Akses &amp; Wewenang</div>
+                <div class="text-xs text-text-muted mt-0.5">
+                    <span class="font-bold text-text-active font-mono" x-text="selected.length"></span> dari 
+                    <span class="font-bold text-text-active font-mono">{{ $totalCount }}</span> wewenang tercentang
                 </div>
             </div>
         </div>
 
         @if(!$readonly)
         <div class="flex items-center gap-2">
-            <button type="button" @click="selectAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card text-foreground hover:bg-accent border border-border transition-colors cursor-pointer shadow-xs">
+            <button type="button" @click="selectAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[8px] bg-white dark:bg-gray-900 text-text-active hover:bg-[#fafafa] dark:hover:bg-gray-800 border border-[#E8E8E8] dark:border-gray-800 transition-colors cursor-pointer">
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 Pilih Semua
             </button>
-            <button type="button" @click="deselectAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-card text-muted-foreground hover:text-foreground hover:bg-accent border border-border transition-colors cursor-pointer shadow-xs">
+            <button type="button" @click="deselectAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[8px] bg-white dark:bg-gray-900 text-text-muted hover:text-text-active hover:bg-[#fafafa] dark:hover:bg-gray-800 border border-[#E8E8E8] dark:border-gray-800 transition-colors cursor-pointer">
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -110,30 +110,30 @@
 
     {{-- Domain Categories Loop --}}
     @foreach ($catalog as $domain => $modules)
-        <div class="border border-border rounded-xl bg-card shadow-xs overflow-hidden">
+        <div class="border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] bg-white dark:bg-gray-900 shadow-xs overflow-hidden">
             {{-- Domain Header Banner --}}
-            <div class="bg-muted/40 px-5 py-3 border-b border-border flex items-center justify-between">
+            <div class="bg-[#fafafa] dark:bg-gray-800/60 px-5 py-3 border-b border-[#E8E8E8] dark:border-gray-800 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <span class="size-2 rounded-full bg-primary"></span>
-                    <h3 class="text-xs font-bold text-foreground uppercase tracking-wider">{{ $domain }}</h3>
+                    <span class="size-2 rounded-full bg-neutral-900 dark:bg-white"></span>
+                    <h3 class="text-xs font-bold text-text-active uppercase tracking-wider">{{ $domain }}</h3>
                 </div>
-                <span class="text-xs font-medium text-muted-foreground">
+                <span class="text-xs font-medium text-text-muted">
                     {{ count($modules) }} Modul
                 </span>
             </div>
 
             {{-- Modules Inside Domain --}}
-            <div class="divide-y divide-border">
+            <div class="divide-y divide-[#E8E8E8] dark:divide-gray-800">
                 @foreach ($modules as $moduleKey => $moduleData)
                     @php
                         $actionCount = count($moduleData['actions']);
                         $jsActions = json_encode($moduleData['actions']);
                     @endphp
-                    <div class="p-5 transition-colors hover:bg-muted/20">
+                    <div class="p-5 transition-colors hover:bg-[#fafafa]/50 dark:hover:bg-gray-800/30">
                         {{-- Module Subheader --}}
                         <div class="flex items-center justify-between gap-3 mb-3.5">
                             <div class="flex items-center gap-2.5">
-                                <span class="text-sm font-semibold text-foreground">{{ $moduleData['label'] }}</span>
+                                <span class="text-sm font-semibold text-text-active">{{ $moduleData['label'] }}</span>
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-tight border"
                                       :class="moduleBadgeClass({{ $jsActions }}, {{ $actionCount }})">
                                     <span x-text="moduleSelectedCount({{ $jsActions }})"></span>/{{ $actionCount }}
@@ -143,7 +143,7 @@
                             @if(!$readonly)
                             <button type="button" 
                                     @click="toggleModule({{ $jsActions }})"
-                                    class="inline-flex items-center gap-1 text-[11px] font-medium text-foreground hover:underline px-2 py-1 rounded-md transition cursor-pointer">
+                                    class="inline-flex items-center gap-1 text-[11px] font-medium text-text-active hover:underline px-2 py-1 rounded-[6px] transition cursor-pointer">
                                 <span x-text="isModuleAllSelected({{ $jsActions }}) ? 'Batal Pilih Semua' : 'Pilih Semua Modul Ini'"></span>
                             </button>
                             @endif
@@ -155,11 +155,11 @@
                                 @php
                                     $actionType = last(explode('.', $actionKey));
                                     $badgeClass = match($actionType) {
-                                        'view' => 'bg-muted text-muted-foreground border-border',
+                                        'view' => 'bg-neutral-100 dark:bg-gray-800 text-text-muted border-[#E8E8E8] dark:border-gray-700',
                                         'create' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
                                         'edit', 'manage' => 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
                                         'delete', 'cancel' => 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
-                                        default => 'bg-muted text-foreground border-border'
+                                        default => 'bg-neutral-100 dark:bg-gray-800 text-text-active border-[#E8E8E8] dark:border-gray-700'
                                     };
                                     $badgeLabel = match($actionType) {
                                         'view' => 'READ',
@@ -171,26 +171,26 @@
                                         default => strtoupper($actionType)
                                     };
                                 @endphp
-                                <label class="relative flex items-start gap-3 p-3 rounded-xl border transition-colors cursor-pointer select-none"
-                                       :class="selected.includes('{{ $actionKey }}') ? 'bg-muted/70 border-foreground/30 shadow-xs' : 'bg-card border-border hover:bg-muted/30'">
+                                <label class="relative flex items-start gap-3 p-3 rounded-[8px] border transition-colors cursor-pointer select-none"
+                                       :class="selected.includes('{{ $actionKey }}') ? 'bg-neutral-100/80 dark:bg-gray-800/80 border-neutral-900 dark:border-white' : 'bg-white dark:bg-gray-900 border-[#E8E8E8] dark:border-gray-800 hover:bg-[#fafafa] dark:hover:bg-gray-800/40'">
                                     <div class="flex items-center h-4 mt-0.5">
                                         <input type="checkbox" 
                                                name="permissions[]" 
                                                value="{{ $actionKey }}" 
                                                x-model="selected"
                                                @if($readonly) disabled @endif
-                                               class="size-4 rounded-md border-input text-foreground focus:ring-ring shadow-xs cursor-pointer disabled:cursor-not-allowed">
+                                               class="size-4 rounded border-gray-300 dark:border-gray-700 text-neutral-900 dark:text-white focus:ring-0 cursor-pointer disabled:cursor-not-allowed">
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-1.5 mb-1 flex-wrap">
-                                            <span class="inline-block px-1.5 py-0.25 text-[9px] font-bold rounded-md uppercase tracking-wider border {{ $badgeClass }}">
+                                            <span class="inline-block px-1.5 py-0.25 text-[9px] font-bold rounded-[6px] uppercase tracking-wider border {{ $badgeClass }}">
                                                 {{ $badgeLabel }}
                                             </span>
                                         </div>
-                                        <div class="text-xs font-semibold text-foreground leading-snug">
+                                        <div class="text-xs font-semibold text-text-active leading-snug">
                                             {{ $actionLabel }}
                                         </div>
-                                        <div class="text-[10px] text-muted-foreground font-mono tracking-tight mt-0.5 truncate">
+                                        <div class="text-[10px] text-text-muted font-mono tracking-tight mt-0.5 truncate">
                                             {{ $actionKey }}
                                         </div>
                                     </div>

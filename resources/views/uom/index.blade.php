@@ -17,10 +17,13 @@
     </x-page-header>
 
     <x-card title="Daftar Master Satuan Unit (Unit of Measure)" subtitle="Standar pengukuran unit untuk resep BOM, kartu stok, dan pemesanan" :noPadding="true">
-        <div class="overflow-x-auto">
-            <table id="tbl" class="w-full text-xs">
-                <thead>
-                    <tr>
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Daftar Master Satuan Unit" class="overflow-x-auto">
+            <table id="tbl" class="w-full text-sm">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                    <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                         <th class="px-4 py-3 text-left w-32">Kode Satuan</th>
                         <th class="px-4 py-3 text-left">Nama Satuan</th>
                         <th class="px-4 py-3 text-left w-36">Kategori Dimensi</th>
@@ -134,7 +137,7 @@
                         const isAktif = (data === true || data === 1 || data === '1' || val === 'aktif' || val === 'active' || val.includes('>aktif<'));
                         const cls = isAktif
                             ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
-                            : 'bg-muted text-muted-foreground border-border';
+                            : 'bg-zinc-100 dark:bg-gray-800 text-text-muted border-[#E8E8E8] dark:border-gray-700';
                         return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ' + cls + '">' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
                     }
                 },

@@ -18,10 +18,13 @@
         </x-page-header>
 
         <x-card title="Daftar Peran & Hak Akses" subtitle="Struktur peran sistem dan matriks wewenang laboratorium" :noPadding="true">
-            <div class="overflow-x-auto">
-                <table id="rolesTable" class="w-full text-xs">
-                    <thead>
-                        <tr>
+            <x-slot:icon>
+                <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+            </x-slot:icon>
+            <div tabindex="0" role="region" aria-label="Daftar Peran & Hak Akses" class="overflow-x-auto">
+                <table id="rolesTable" class="w-full text-sm">
+                    <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                        <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                             <th class="px-4 py-3 text-left">Nama Peran & Identifier</th>
                             <th class="px-4 py-3 text-left">Tipe</th>
                             <th class="px-4 py-3 text-left">Cakupan Izin</th>

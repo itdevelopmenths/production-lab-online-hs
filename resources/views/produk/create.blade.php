@@ -8,12 +8,17 @@
 
         <form method="POST" action="{{ route('produk.store') }}">
             @csrf
-            <x-card title="Informasi Master Produk" subtitle="Spesifikasi SKU, klasifikasi tipe, dan parameter pemesanan">
-                @include('produk._form')
+            <x-card title="Informasi Master Produk" subtitle="Spesifikasi SKU, klasifikasi tipe, dan parameter pemesanan" :noPadding="true">
+                <x-slot:icon>
+                    <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </x-slot:icon>
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5">
+                    @include('produk._form')
+                </div>
 
                 <x-slot:footer>
                     <div class="flex items-center justify-end gap-2">
-                        <x-button href="{{ route('produk.index') }}" variant="outline" size="sm">
+                        <x-button href="{{ route('produk.index') }}" variant="secondary" size="sm">
                             Batal
                         </x-button>
                         <x-button type="submit" variant="primary" size="sm">

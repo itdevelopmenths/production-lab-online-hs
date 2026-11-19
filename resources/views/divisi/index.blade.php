@@ -17,10 +17,13 @@
     </x-page-header>
 
     <x-card title="Daftar Master Divisi / Departemen Kerja" subtitle="Divisi yang aktif akan otomatis muncul sebagai opsi pemilihan saat membuat atau mengedit akun staf pengguna" :noPadding="true">
-        <div class="overflow-x-auto">
-            <table id="tbl" class="w-full text-xs">
-                <thead>
-                    <tr>
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Daftar Master Divisi Kerja" class="overflow-x-auto">
+            <table id="tbl" class="w-full text-sm">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                    <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                         <th class="px-4 py-3 text-left w-28">Kode Unik</th>
                         <th class="px-4 py-3 text-left">Nama Divisi & Deskripsi</th>
                         <th class="px-4 py-3 text-left w-48">Tampilan Badge</th>

@@ -125,7 +125,7 @@
                             </x-select>
                         </x-form-field>
 
-                        <x-form-field label="Gudang Tujuan" name="gudang_id" :required="true" help="Gudang penerima saat barang datang">
+                        <x-form-field label="Lokasi PO (Gudang Tujuan)" name="gudang_id" :required="true" labelWidth="190px" help="Gudang penerima saat barang datang">
                             <x-select name="gudang_id" variant="seamless" x-model="gudangId" placeholder="— Pilih Gudang Penerima —" :required="true">
                                 @foreach($gudang as $g)
                                     <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" @selected(old('gudang_id') == $g->id)>
@@ -973,7 +973,7 @@
                             icon: 'warning',
                             title: 'Bahan Baku Sudah Dipilih',
                             text: `Bahan baku "${nama}" sudah ada di daftar baris lain. Setiap bahan baku hanya boleh diinput 1 kali per Purchase Order.`,
-                            confirmButtonColor: '#0284c7',
+                            confirmButtonColor: '#111111',
                             confirmButtonText: 'Mengerti'
                         });
                     } else {

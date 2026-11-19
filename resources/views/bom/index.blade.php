@@ -26,10 +26,13 @@
     </div>
 
     <x-card title="Daftar Resep Produk Jadi (BOM)" subtitle="Komposisi bahan kimia dan botol per unit output produksi" :noPadding="true">
-        <div class="overflow-x-auto">
-            <table id="tbl" class="w-full text-xs">
-                <thead>
-                    <tr>
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Daftar Resep Produk Jadi" class="overflow-x-auto">
+            <table id="tbl" class="w-full text-sm">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                    <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                         <th class="px-4 py-3 text-left w-36">SKU Produk</th>
                         <th class="px-4 py-3 text-left">Nama Produk Jadi</th>
                         <th class="px-4 py-3 text-right w-52">Jumlah Komponen Bahan</th>

@@ -16,19 +16,19 @@
         </x-page-header>
 
         {{-- Filter Bar --}}
-        <div class="bg-card border border-border rounded-xl p-3.5 shadow-xs">
+        <div class="bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
-                    <svg class="size-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="size-4 text-[#667085] dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                     </svg>
-                    <span class="text-xs font-semibold text-foreground">Filter Data Pengguna:</span>
+                    <span class="text-xs font-semibold text-[#101828] dark:text-white">Filter Data Pengguna:</span>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2.5">
                     {{-- Filter Divisi --}}
                     <div class="w-full sm:w-auto min-w-40 max-w-full">
-                        <select id="filterDivisi" class="w-full text-xs rounded-lg border border-border bg-background text-foreground px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <select id="filterDivisi" class="w-full h-9 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#101828] dark:text-white px-3 py-1.5 focus:outline-none focus:border-[#111111] dark:focus:border-white cursor-pointer">
                             <option value="">-- Semua Divisi --</option>
                             @if(isset($divisis) && $divisis->isNotEmpty())
                                 @foreach($divisis as $d)
@@ -44,7 +44,7 @@
 
                     {{-- Filter Role --}}
                     <div class="w-full sm:w-auto min-w-40 max-w-full">
-                        <select id="filterRole" class="w-full text-xs rounded-lg border border-border bg-background text-foreground px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <select id="filterRole" class="w-full h-9 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 text-[#101828] dark:text-white px-3 py-1.5 focus:outline-none focus:border-[#111111] dark:focus:border-white cursor-pointer">
                             <option value="">-- Semua Peran / Role --</option>
                             @foreach($roles as $r)
                                 <option value="{{ $r->name }}">{{ $r->display_name ?: $r->name }}</option>
@@ -52,18 +52,21 @@
                         </select>
                     </div>
 
-                    <button type="button" id="btnResetFilter" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-background hover:bg-muted text-foreground border border-border transition cursor-pointer">
+                    <x-button type="button" id="btnResetFilter" variant="secondary" size="xs">
                         Reset Filter
-                    </button>
+                    </x-button>
                 </div>
             </div>
         </div>
 
         <x-card title="Daftar Pengguna Sistem" subtitle="Kelola identitas akun, akses gudang fisik, dan wewenang pengguna" :noPadding="true">
-            <div class="overflow-x-auto">
+            <x-slot:icon>
+                <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </x-slot:icon>
+            <div tabindex="0" role="region" aria-label="Daftar Pengguna Sistem" class="overflow-x-auto">
                 <table id="usersTable" class="w-full text-xs [&_thead_th]:!px-2.5 [&_tbody_td]:!px-2.5">
-                    <thead>
-                        <tr>
+                    <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                        <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400">
                             <th class="px-2.5 py-2.5 text-left">Nama Lengkap</th>
                             <th class="px-2.5 py-2.5 text-left">Email Akun</th>
                             <th class="px-2.5 py-2.5 text-left">Divisi / Dept</th>

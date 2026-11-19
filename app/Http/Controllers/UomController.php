@@ -42,9 +42,7 @@ class UomController extends Controller
                 return '1 ' . e($u->kode) . ' = ' . $fFormatted . ' ' . e($u->satuan_dasar);
             })
             ->addColumn('produk_count', fn ($u) => number_format($u->produk_count) . ' SKU')
-            ->editColumn('is_active', fn ($u) => $u->is_active
-                ? UiTableHelper::statusPill('Aktif', 'completed')
-                : UiTableHelper::statusPill('Nonaktif', 'cancelled'))
+            ->editColumn('is_active', fn ($u) => $u->is_active ? 'Aktif' : 'Nonaktif')
             ->addColumn('action', function ($u) use ($canEdit, $canDelete) {
                 $buttons = [];
                 if ($canEdit) {
@@ -56,7 +54,7 @@ class UomController extends Controller
 
                 return UiTableHelper::actionGroup($buttons);
             })
-            ->rawColumns(['is_active', 'action'])
+            ->rawColumns(['action'])
             ->toJson();
     }
 

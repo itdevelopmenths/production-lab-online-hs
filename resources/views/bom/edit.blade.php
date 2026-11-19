@@ -13,32 +13,35 @@
 
                 <div class="space-y-4">
                     <!-- Info Header Card -->
-                    <div class="bg-card rounded-xl border border-border p-4 shadow-xs flex items-center justify-between">
+                    <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="font-mono text-foreground font-semibold bg-muted px-2 py-0.5 rounded-md border border-border text-xs">{{ $produk->sku }}</span>
-                                <h3 class="text-sm font-semibold text-foreground">{{ $produk->nama }}</h3>
+                                <span class="font-mono text-[#101828] dark:text-white font-semibold bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md border border-[#E8E8E8] dark:border-gray-700 text-xs">{{ $produk->sku }}</span>
+                                <h3 class="text-sm font-semibold text-[#101828] dark:text-white">{{ $produk->nama }}</h3>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-1">Kalkulasi alokasi bahan otomatis: <span class="font-mono font-medium text-foreground">Kebutuhan Bahan = Formula &times; Qty Rencana Batch</span></p>
+                            <p class="text-xs text-[#667085] dark:text-gray-400 mt-1">Kalkulasi alokasi bahan otomatis: <span class="font-mono font-medium text-[#101828] dark:text-gray-200">Kebutuhan Bahan = Formula &times; Qty Rencana Batch</span></p>
                         </div>
-                        <div class="text-right">
-                            <span class="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Satuan Output</span>
-                            <p class="font-mono font-bold text-sm text-foreground">{{ $produk->satuan }}</p>
+                        <div class="text-right shrink-0">
+                            <span class="text-[11px] uppercase tracking-wider text-[#667085] dark:text-gray-400 font-semibold">Satuan Output</span>
+                            <p class="font-mono font-bold text-sm text-[#101828] dark:text-white">{{ $produk->satuan }}</p>
                         </div>
                     </div>
 
                     <!-- Table Card -->
-                    <x-card title="Komposisi Bahan Baku & Kemasan" subtitle="Gunakan dropdown search untuk memilih bahan dan tentukan kuantitas" :noPadding="true">
+                    <x-card title="Komposisi Bahan Baku & Kemasan" subtitle="Gunakan dropdown search untuk memilih bahan dan tentukan kuantitas" :noPadding="true" overflow="visible">
+                        <x-slot:icon>
+                            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        </x-slot:icon>
                         <div class="overflow-visible">
-                            <table class="w-full text-xs">
-                                <thead>
+                            <table class="w-full text-sm">
+                                <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                                     <tr>
-                                        <th class="px-4 py-3 text-left w-[62%]">Bahan Baku / Kemasan (Searchable) <span class="text-destructive">*</span></th>
-                                        <th class="px-4 py-3 text-right w-52">Qty per Unit <span class="text-destructive">*</span></th>
+                                        <th class="px-4 py-3 text-left w-[62%]">Bahan Baku / Kemasan (Searchable) <span class="text-rose-500">*</span></th>
+                                        <th class="px-4 py-3 text-right w-52">Qty per Unit <span class="text-rose-500">*</span></th>
                                         <th class="px-4 py-3 text-center w-14">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-border">
+                                <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800 bg-white dark:bg-gray-900">
                                     <template x-for="(row, i) in rows" :key="i">
                                         <tr
                                             class="hover:bg-muted/40 transition"
@@ -151,22 +154,22 @@
                             </table>
                         </div>
 
-                        <div class="px-4 py-3 bg-muted/30 border-t border-border flex items-center justify-between">
-                            <x-button type="button" @click="rows.push({bahan_id:'',qty:'',satuan:'',selectedItem:null})" variant="outline" size="sm">
+                        <div class="px-4 py-3 bg-[#fafafa] dark:bg-gray-800/40 border-t border-[#E8E8E8] dark:border-gray-800 flex items-center justify-between">
+                            <x-button type="button" @click="rows.push({bahan_id:'',qty:'',satuan:'',selectedItem:null})" variant="secondary" size="sm">
                                 <x-slot:icon>
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 </x-slot:icon>
                                 Tambah Baris Bahan
                             </x-button>
 
-                            <div class="text-xs text-muted-foreground font-mono">
-                                Total Komponen: <span class="font-bold text-foreground" x-text="rows.length"></span> Bahan
+                            <div class="text-xs text-text-muted font-mono">
+                                Total Komponen: <span class="font-bold text-text-active" x-text="rows.length"></span> Bahan
                             </div>
                         </div>
 
                         <x-slot:footer>
                             <div class="flex items-center justify-end gap-2">
-                                <x-button href="{{ route('bom.index') }}" variant="outline" size="sm">
+                                <x-button href="{{ route('bom.index') }}" variant="secondary" size="sm">
                                     Batal
                                 </x-button>
                                 <x-button type="submit" variant="primary" size="sm">

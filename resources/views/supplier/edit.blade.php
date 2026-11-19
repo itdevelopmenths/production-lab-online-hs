@@ -10,12 +10,17 @@
         <form method="POST" action="{{ route('supplier.update', $supplier) }}">
             @csrf
             @method('PUT')
-            <x-card title="Perbarui Data Supplier" subtitle="Mengubah rincian profil: {{ $supplier->nama }}">
-                @include('supplier._form')
+            <x-card title="Perbarui Data Supplier" subtitle="Mengubah rincian profil: {{ $supplier->nama }}" :noPadding="true">
+                <x-slot:icon>
+                    <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                </x-slot:icon>
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5">
+                    @include('supplier._form')
+                </div>
 
                 <x-slot:footer>
                     <div class="flex items-center justify-end gap-2">
-                        <x-button href="{{ route('supplier.index') }}" variant="outline" size="sm">
+                        <x-button href="{{ route('supplier.index') }}" variant="secondary" size="sm">
                             Batal
                         </x-button>
                         <x-button type="submit" variant="primary" size="sm">

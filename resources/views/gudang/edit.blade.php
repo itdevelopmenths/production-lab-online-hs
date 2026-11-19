@@ -9,12 +9,17 @@
         <form method="POST" action="{{ route('gudang.update', $gudang) }}">
             @csrf
             @method('PUT')
-            <x-card title="Perbarui Informasi Gudang" subtitle="Mengubah rincian fasilitas: {{ $gudang->nama }}">
-                @include('gudang._form')
+            <x-card title="Perbarui Informasi Gudang" subtitle="Mengubah rincian fasilitas: {{ $gudang->nama }}" :noPadding="true">
+                <x-slot:icon>
+                    <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+                </x-slot:icon>
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5">
+                    @include('gudang._form')
+                </div>
 
                 <x-slot:footer>
                     <div class="flex items-center justify-end gap-2">
-                        <x-button href="{{ route('gudang.index') }}" variant="outline" size="sm">
+                        <x-button href="{{ route('gudang.index') }}" variant="secondary" size="sm">
                             Batal
                         </x-button>
                         <x-button type="submit" variant="primary" size="sm">

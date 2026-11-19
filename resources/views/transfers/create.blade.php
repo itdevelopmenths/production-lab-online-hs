@@ -227,7 +227,7 @@
                             icon: 'warning',
                             title: 'Produk Sudah Dipilih',
                             text: `Produk "${nama}" sudah ada di baris lain. Setiap produk hanya boleh dipilih 1 kali.`,
-                            confirmButtonColor: '#0284c7',
+                            confirmButtonColor: '#111111',
                             confirmButtonText: 'Mengerti'
                         });
                     } else {

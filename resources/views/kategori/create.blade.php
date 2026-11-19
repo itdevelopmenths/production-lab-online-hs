@@ -8,12 +8,17 @@
 
         <form method="POST" action="{{ route('kategori.store') }}">
             @csrf
-            <x-card title="Data Kategori" subtitle="Nama grup atau kategori produk">
-                @include('kategori._form', ['kategori' => null])
+            <x-card title="Data Kategori" subtitle="Nama grup atau kategori produk" :noPadding="true">
+                <x-slot:icon>
+                    <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                </x-slot:icon>
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5">
+                    @include('kategori._form', ['kategori' => null])
+                </div>
 
                 <x-slot:footer>
                     <div class="flex items-center justify-end gap-2">
-                        <x-button href="{{ route('kategori.index') }}" variant="outline" size="sm">
+                        <x-button href="{{ route('kategori.index') }}" variant="secondary" size="sm">
                             Batal
                         </x-button>
                         <x-button type="submit" variant="primary" size="sm">

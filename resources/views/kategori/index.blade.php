@@ -17,10 +17,13 @@
     </x-page-header>
 
     <x-card title="Daftar Kategori Produk" subtitle="Kelola klasifikasi lini produk parfum, kemasan, dan bahan" :noPadding="true">
-        <div class="overflow-x-auto">
-            <table id="tbl-kategori" class="w-full text-xs">
-                <thead>
-                    <tr>
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Daftar Kategori Produk" class="overflow-x-auto">
+            <table id="tbl-kategori" class="w-full text-sm">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                    <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                         <th class="px-4 py-3 text-left">Nama Kategori</th>
                         <th class="px-4 py-3 text-left w-36">Jumlah Varian</th>
                         <th class="px-4 py-3 text-left w-36">Jumlah Produk</th>

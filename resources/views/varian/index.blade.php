@@ -17,10 +17,10 @@
     </x-page-header>
 
     <!-- Filter Bar -->
-    <div class="mb-4 rounded-xl border border-border bg-card p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div class="mb-4 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-wrap items-center justify-between gap-3 text-xs">
         <div class="flex items-center gap-2.5">
-            <label for="filter-kategori" class="font-medium text-foreground">Filter Kategori:</label>
-            <select id="filter-kategori" class="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition">
+            <label for="filter-kategori" class="font-medium text-[#667085] dark:text-gray-400">Filter Kategori:</label>
+            <select id="filter-kategori" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 px-3 py-1.5 text-xs text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none transition cursor-pointer">
                 <option value="">Semua Kategori</option>
                 @foreach($kategoriList as $k)
                     <option value="{{ $k->id }}">{{ $k->nama }}</option>
@@ -30,10 +30,13 @@
     </div>
 
     <x-card title="Daftar Master Varian Produk" subtitle="Kelola variasi ukuran kemasan, aroma parfum, dan spesifikasi sub-kategori" :noPadding="true">
-        <div class="overflow-x-auto">
-            <table id="tbl-varian" class="w-full text-xs">
-                <thead>
-                    <tr>
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Daftar Master Varian Produk" class="overflow-x-auto">
+            <table id="tbl-varian" class="w-full text-sm">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                    <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                         <th class="px-4 py-3 text-left w-48">Kategori Induk</th>
                         <th class="px-4 py-3 text-left">Nama Varian</th>
                         <th class="px-4 py-3 text-left w-36">Penggunaan Katalog</th>

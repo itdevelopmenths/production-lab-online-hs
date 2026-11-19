@@ -803,7 +803,7 @@
                             icon: 'warning',
                             title: 'Bahan Baku Sudah Dipilih',
                             text: `Bahan baku "${nama}" sudah ada di daftar baris lain. Setiap bahan baku hanya boleh diinput 1 kali per Purchase Order.`,
-                            confirmButtonColor: '#0284c7',
+                            confirmButtonColor: '#111111',
                             confirmButtonText: 'Mengerti'
                         });
                     } else {

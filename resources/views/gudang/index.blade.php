@@ -17,10 +17,13 @@
     </x-page-header>
 
     <x-card title="Daftar Lokasi Gudang" subtitle="Kelola seluruh fasilitas gudang fisik dan hierarki cabang" :noPadding="true">
-        <div class="overflow-x-auto">
-            <table id="tbl" class="w-full text-xs">
-                <thead>
-                    <tr>
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Daftar Lokasi Gudang" class="overflow-x-auto">
+            <table id="tbl" class="w-full text-sm">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                    <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                         <th class="px-4 py-3 text-left w-28">Kode</th>
                         <th class="px-4 py-3 text-left">Nama Gudang</th>
                         <th class="px-4 py-3 text-left w-44">Tipe Fasilitas</th>

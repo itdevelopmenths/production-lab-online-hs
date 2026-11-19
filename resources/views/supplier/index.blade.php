@@ -17,10 +17,13 @@
     </x-page-header>
 
     <x-card title="Daftar Rekanan Pemasok / Supplier" subtitle="Kelola seluruh data kontak, klasifikasi vendor, dan termin pembayaran" :noPadding="true">
-        <div class="overflow-x-auto">
-            <table id="tbl" class="w-full text-xs">
-                <thead>
-                    <tr>
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Daftar Rekanan Pemasok" class="overflow-x-auto">
+            <table id="tbl" class="w-full text-sm">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                    <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                         <th class="px-4 py-3 text-left">Nama Supplier</th>
                         <th class="px-4 py-3 text-left">Kategori</th>
                         <th class="px-4 py-3 text-left">Kontak</th>

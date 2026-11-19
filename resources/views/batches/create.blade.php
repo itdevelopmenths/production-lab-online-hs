@@ -95,7 +95,14 @@
                     </x-card>
 
                     {{-- Card 2: Multi-Output Produk Jadi Luaran --}}
-                    <x-card title="Produk Jadi Luaran (Multi-Output)" subtitle="Hanya produk jadi yang sudah memiliki formula BOM yang dapat dipilih dan diproduksi" :noPadding="true" class="relative z-20" overflow="visible">
+                    <div class="bg-card text-card-foreground rounded-lg border border-border shadow-2xs flex flex-col overflow-visible transition-all relative z-20">
+                        <div class="px-5 py-4 border-b border-[#e8e8e8] dark:border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-gray-900 rounded-t-lg">
+                            <div class="min-w-0 flex-1">
+                                <h3 class="text-[16px] leading-[1.4] font-semibold tracking-[-0.176px] text-[#101828] dark:text-white truncate">Produk Jadi Luaran (Multi-Output)</h3>
+                                <p class="text-[12px] leading-[18px] tracking-[-0.132px] text-[#6a7282] dark:text-gray-400 mt-0.5">Hanya produk jadi yang sudah memiliki formula BOM yang dapat dipilih dan diproduksi</p>
+                            </div>
+                        </div>
+                        <div class="p-0 flex-1">
                         <div class="overflow-visible relative z-20">
                             <table class="w-full text-xs">
                                 <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted font-normal text-xs sm:text-[13px]">
@@ -257,7 +264,7 @@
                             </div>
                         </div>
 
-                        <x-slot:footer>
+                        <div class="px-5 py-3.5 bg-[#fafafa] dark:bg-gray-900/60 border-t border-[#e8e8e8] dark:border-border rounded-b-lg">
                             <div class="flex items-center justify-end gap-2.5">
                                 <x-button href="{{ route('batches.index') }}" variant="secondary" size="sm">
                                     Batal
@@ -266,14 +273,22 @@
                                     <x-slot:icon>
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                     </x-slot:icon>
-                                    Simpan & Hitung Alokasi
+                                    Simpan &amp; Hitung Alokasi
                                 </x-button>
                             </div>
-                        </x-slot:footer>
-                    </x-card>
+                        </div>
+                        </div>
+                    </div>
 
                     {{-- Card 3: Pratinjau Agregasi Kebutuhan BOM --}}
-                    <x-card title="Pratinjau Agregasi Kebutuhan BOM" subtitle="Kalkulasi dinamis total kebutuhan bahan baku yang akan dialokasikan untuk seluruh produk jadi di atas" :noPadding="true" class="relative z-0">
+                    <div class="bg-card text-card-foreground rounded-lg border border-border shadow-2xs flex flex-col overflow-hidden transition-all relative z-0">
+                        <div class="px-5 py-4 border-b border-[#e8e8e8] dark:border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-gray-900 rounded-t-lg">
+                            <div class="min-w-0 flex-1">
+                                <h3 class="text-[16px] leading-[1.4] font-semibold tracking-[-0.176px] text-[#101828] dark:text-white truncate">Pratinjau Agregasi Kebutuhan BOM</h3>
+                                <p class="text-[12px] leading-[18px] tracking-[-0.132px] text-[#6a7282] dark:text-gray-400 mt-0.5">Kalkulasi dinamis total kebutuhan bahan baku yang akan dialokasikan untuk seluruh produk jadi di atas</p>
+                            </div>
+                        </div>
+                        <div class="p-0 flex-1">
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs">
                                 <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted font-normal text-xs sm:text-[13px]">
@@ -303,7 +318,8 @@
                                 </tbody>
                             </table>
                         </div>
-                    </x-card>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
