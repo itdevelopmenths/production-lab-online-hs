@@ -620,4 +620,76 @@ class DashboardTest extends TestCase
         $this->assertSame('Rp 1,2 M', $kpi['value']);
         $this->assertSame('Rp 1.234.567.890', $kpi['valueTitle']);
     }
+
+    public function test_dashboard_shows_pipeline_for_manager(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($manager)->get('/')
+            ->assertOk()
+            ->assertSee('Alur Purchase Order')
+            ->assertSee('role="region"', false);
+    }
+
+    public function test_pipeline_region_is_scrollable_and_labelled(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($manager)->get('/')
+            ->assertSee('tabindex="0" role="region" aria-label="Alur Purchase Order"', false);
+    }
+
+    public function test_kpi_problem_has_text_marker_not_only_color(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+        PurchaseOrder::create([
+            'no_po' => 'PO-MARK-1',
+            'supplier_id' => Supplier::firstOrFail()->id,
+            'tanggal' => now(),
+            'status' => 'berjalan',
+            'stage_aktif' => 'approval',
+            'created_by' => $manager->id,
+        ]);
+
+        $this->actingAs($manager)->get('/')->assertSee('perhatian');
+    }
+
+    public function test_dashboard_renders_empty_state_for_fresh_role(): void
+    {
+        $ff = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($ff)->get('/')
+            ->assertOk()
+            ->assertSee('Antrean bersih.');
+    }
+
+    public function test_dashboard_renders_for_custom_role_without_pipeline(): void
+    {
+        $role = \App\Models\Role::firstOrCreate(['name' => 'qa_viewer', 'guard_name' => 'web']);
+        $role->givePermissionTo('produk.view');
+        $user = User::factory()->create();
+        $user->assignRole('qa_viewer');
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertDontSee('aria-label="Alur', false);
+    }
+
+    public function test_long_subtitles_live_in_tooltips_only(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($manager)->get('/')
+            ->assertSee('title="Purchase Order dan mutasi logistik yang memerlukan tindakan otorisasi manajerial"', false)
+            ->assertDontSee('<p class="text-[12px] leading-[18px] tracking-[-0.132px] text-[#6a7282] dark:text-gray-400 mt-0.5">Purchase Order dan mutasi', false);
+    }
+
+    public function test_dashboard_shows_updated_pill_and_kpi_links(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        $this->actingAs($manager)->get('/')
+            ->assertSee('Diperbarui')
+            ->assertSee(route('purchasing.index', ['tab' => 'approval']));
+    }
 }
