@@ -165,98 +165,98 @@
 
                 <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Tabel Alokasi Bahan Baku">
                     <table class="w-full text-left text-xs">
-                        <thead>
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted">
                             @if($isBatchSelesai)
                             <tr>
-                                <th scope="col" class="py-2.5 px-3.5">Bahan Baku</th>
-                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap">Di-Issue (BOM)</th>
-                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap">Saldo Pasca-Issue</th>
-                                <th scope="col" class="py-2.5 px-3 whitespace-nowrap">Waktu Dilepas</th>
-                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap">Aktual Opname</th>
-                                <th scope="col" class="py-2.5 px-3 text-center">Status</th>
-                                <th scope="col" class="py-2.5 px-3.5 text-center">Aksi</th>
+                                <th scope="col" class="py-2.5 px-3.5 font-normal">Bahan Baku</th>
+                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap font-normal">Di-Issue (BOM)</th>
+                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap font-normal">Saldo Pasca-Issue</th>
+                                <th scope="col" class="py-2.5 px-3 whitespace-nowrap font-normal">Waktu Dilepas</th>
+                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap font-normal">Aktual Opname</th>
+                                <th scope="col" class="py-2.5 px-3 text-center font-normal">Status</th>
+                                <th scope="col" class="py-2.5 px-3.5 text-center font-normal">Aksi</th>
                             </tr>
                             @else
                             <tr>
-                                <th scope="col" class="py-2.5 px-3.5">Bahan Baku</th>
-                                <th scope="col" class="py-2.5 px-3 text-right">Kebutuhan</th>
-                                <th scope="col" class="py-2.5 px-3 text-right">Stok Fisik Ops</th>
-                                <th scope="col" class="py-2.5 px-3 text-right">Kolom Rencana</th>
-                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap" title="Stok fisik di {{ $gudangPusat?->nama ?? 'Gudang Bahan Baku Pusat' }}">Stok GD BB Pusat</th>
-                                <th scope="col" class="py-2.5 px-3 text-center">Status</th>
-                                <th scope="col" class="py-2.5 px-3.5 text-center">Aksi</th>
+                                <th scope="col" class="py-2.5 px-3.5 font-normal">Bahan Baku</th>
+                                <th scope="col" class="py-2.5 px-3 text-right font-normal">Kebutuhan</th>
+                                <th scope="col" class="py-2.5 px-3 text-right font-normal">Stok Fisik Ops</th>
+                                <th scope="col" class="py-2.5 px-3 text-right font-normal">Kolom Rencana</th>
+                                <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap font-normal" title="Stok fisik di {{ $gudangPusat?->nama ?? 'Gudang Bahan Baku Pusat' }}">Stok GD BB Pusat</th>
+                                <th scope="col" class="py-2.5 px-3 text-center font-normal">Status</th>
+                                <th scope="col" class="py-2.5 px-3.5 text-center font-normal">Aksi</th>
                             </tr>
                             @endif
                         </thead>
-                        <tbody class="divide-y divide-border">
+                        <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             @forelse($batch->alokasi as $a)
                             @php
                                 $w = $earlyWarnings[$a->id] ?? null;
                                 $audit = $selesaiAudits[$a->id] ?? null;
                                 $satuan = $a->bahan->satuan ?? '';
                             @endphp
-                            <tr class="hover:bg-gray-50/70 transition">
+                            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition">
                                 <td class="py-2.5 px-3.5">
-                                    <div class="font-bold text-gray-900">{{ $a->bahan->nama }}</div>
-                                    <div class="font-mono text-[11px] text-gray-400">{{ $a->bahan->sku }}</div>
+                                    <div class="font-bold text-[#101828] dark:text-white">{{ $a->bahan->nama }}</div>
+                                    <div class="font-mono text-[11px] text-text-muted">{{ $a->bahan->sku }}</div>
                                 </td>
                                 @if($isBatchSelesai)
-                                <td class="py-2.5 px-3 text-right font-semibold text-gray-900 whitespace-nowrap font-mono tabular-nums">
+                                <td class="py-2.5 px-3 text-right font-semibold text-[#101828] dark:text-white whitespace-nowrap font-mono tabular-nums">
                                     {{ \App\Helpers\NumberHelper::formatQty($audit['qty_issued'] ?? $a->qty_dialokasikan) }}
-                                    <span class="text-gray-400 font-sans font-normal">{{ $satuan }}</span>
+                                    <span class="text-text-muted font-sans font-normal">{{ $satuan }}</span>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium text-gray-700 whitespace-nowrap font-mono tabular-nums">
+                                <td class="py-2.5 px-3 text-right font-medium text-text-active whitespace-nowrap font-mono tabular-nums">
                                     @if($audit && $audit['saldo_pasca_issue'] !== null)
                                         {{ \App\Helpers\NumberHelper::formatQty($audit['saldo_pasca_issue']) }}
-                                        <span class="text-gray-400 font-sans font-normal">{{ $satuan }}</span>
+                                        <span class="text-text-muted font-sans font-normal">{{ $satuan }}</span>
                                     @else
-                                        <span class="text-gray-400 font-sans">-</span>
+                                        <span class="text-text-muted font-sans">-</span>
                                     @endif
                                 </td>
-                                <td class="py-2.5 px-3 text-gray-600 whitespace-nowrap font-mono text-[11px]">
+                                <td class="py-2.5 px-3 text-text-muted whitespace-nowrap font-mono text-[11px]">
                                     {{ $audit && $audit['released_at'] ? $audit['released_at']->format('d/m/Y H:i') : '-' }}
                                 </td>
                                 <td class="py-2.5 px-3 text-right whitespace-nowrap">
                                     @if($audit && $audit['has_opname'])
-                                        <div class="font-semibold text-gray-900 font-mono tabular-nums">
+                                        <div class="font-semibold text-[#101828] dark:text-white font-mono tabular-nums">
                                             {{ \App\Helpers\NumberHelper::formatQty($audit['opname_aktual']) }}
-                                            <span class="text-gray-400 font-sans font-normal">{{ $satuan }}</span>
+                                            <span class="text-text-muted font-sans font-normal">{{ $satuan }}</span>
                                         </div>
                                         @php
                                             $variance = (float) ($audit['opname_variance'] ?? 0);
                                         @endphp
                                         @if(abs($variance) < 0.0001)
-                                            <span class="text-[10px] font-semibold text-emerald-700">Sesuai BOM</span>
+                                            <span class="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">Sesuai BOM</span>
                                         @elseif($variance > 0)
-                                            <span class="text-[10px] font-semibold text-amber-700 font-mono">+{{ \App\Helpers\NumberHelper::formatQty($variance) }} {{ $satuan }}</span>
+                                            <span class="text-[10px] font-semibold text-amber-700 dark:text-amber-400 font-mono">+{{ \App\Helpers\NumberHelper::formatQty($variance) }} {{ $satuan }}</span>
                                         @else
-                                            <span class="text-[10px] font-semibold text-sky-700 font-mono">-{{ \App\Helpers\NumberHelper::formatQty(abs($variance)) }} {{ $satuan }}</span>
+                                            <span class="text-[10px] font-semibold text-sky-700 dark:text-sky-400 font-mono">-{{ \App\Helpers\NumberHelper::formatQty(abs($variance)) }} {{ $satuan }}</span>
                                         @endif
                                     @else
-                                        <span class="text-muted-foreground">Belum opname</span>
+                                        <span class="text-text-muted">Belum opname</span>
                                     @endif
                                 </td>
                                 <td class="py-2.5 px-3 text-center">
                                     @if($a->status === 'dilepas')
-                                        <x-badge variant="success" size="sm">Dilepas · Selesai</x-badge>
+                                        <x-badge variant="success" size="sm" :pill="true">Dilepas · Selesai</x-badge>
                                     @else
-                                        <x-badge variant="gray">{{ ucfirst($a->status) }}</x-badge>
+                                        <x-badge variant="neutral" :pill="true">{{ ucfirst($a->status) }}</x-badge>
                                     @endif
                                 </td>
                                 @else
-                                <td class="py-2.5 px-3 text-right font-semibold text-gray-900">
+                                <td class="py-2.5 px-3 text-right font-semibold text-[#101828] dark:text-white">
                                     {{ \App\Helpers\NumberHelper::formatQty($a->qty_dialokasikan) }}
-                                    <span class="text-gray-400 font-normal">{{ $satuan }}</span>
+                                    <span class="text-text-muted font-normal">{{ $satuan }}</span>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium text-gray-700">
+                                <td class="py-2.5 px-3 text-right font-medium text-text-active">
                                     @if($w)
                                         {{ \App\Helpers\NumberHelper::formatQty($w['stok_fisik_op']) }}
-                                        <span class="text-gray-400 font-normal">{{ $satuan }}</span>
+                                        <span class="text-text-muted font-normal">{{ $satuan }}</span>
                                     @else
                                         -
                                     @endif
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium {{ ($w['stok_rencana'] ?? 0) < 0 ? 'text-rose-600 font-bold' : 'text-gray-700' }}">
+                                <td class="py-2.5 px-3 text-right font-medium {{ ($w['stok_rencana'] ?? 0) < 0 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-text-active' }}">
                                     @if($w)
                                         {{ \App\Helpers\NumberHelper::formatQty($w['stok_rencana']) }}
                                         <span class="text-gray-400 font-normal">{{ $satuan }}</span>
@@ -311,37 +311,37 @@
             <x-card title="Progres Pemenuhan Bahan Baku" subtitle="Perbandingan Kebutuhan BOM vs Total Diminta (Request) vs Total Diterima (Transfer) untuk batch ini." :noPadding="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead>
-                            <tr class="bg-gray-50 border-b border-border">
-                                <th class="py-2.5 px-3.5">Bahan Baku</th>
-                                <th class="py-2.5 px-3 text-right">Kebutuhan BOM</th>
-                                <th class="py-2.5 px-3 text-right">Total Diminta</th>
-                                <th class="py-2.5 px-3 text-right">Total Diterima</th>
-                                <th class="py-2.5 px-3 text-right">Sisa Kekurangan</th>
-                                <th class="py-2.5 px-3 text-center">Status Pemenuhan</th>
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted">
+                            <tr>
+                                <th class="py-2.5 px-3.5 font-normal">Bahan Baku</th>
+                                <th class="py-2.5 px-3 text-right font-normal">Kebutuhan BOM</th>
+                                <th class="py-2.5 px-3 text-right font-normal">Total Diminta</th>
+                                <th class="py-2.5 px-3 text-right font-normal">Total Diterima</th>
+                                <th class="py-2.5 px-3 text-right font-normal">Sisa Kekurangan</th>
+                                <th class="py-2.5 px-3 text-center font-normal">Status Pemenuhan</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-border">
+                        <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             @foreach($rekapBahan as $rb)
                             @php
                                 $sisa = max(0, $rb['kebutuhan'] - $rb['diterima']);
                                 $persen = $rb['kebutuhan'] > 0 ? min(100, round(($rb['diterima'] / $rb['kebutuhan']) * 100)) : 100;
                             @endphp
-                            <tr class="hover:bg-gray-50/70 transition">
+                            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition">
                                 <td class="py-2.5 px-3.5">
-                                    <div class="font-bold text-gray-900">{{ $rb['nama'] }}</div>
-                                    <div class="font-mono text-[11px] text-gray-400">{{ $rb['sku'] }}</div>
+                                    <div class="font-bold text-[#101828] dark:text-white">{{ $rb['nama'] }}</div>
+                                    <div class="font-mono text-[11px] text-text-muted">{{ $rb['sku'] }}</div>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-semibold text-gray-900">
+                                <td class="py-2.5 px-3 text-right font-semibold text-[#101828] dark:text-white">
                                     {{ \App\Helpers\NumberHelper::formatQty($rb['kebutuhan']) }} {{ $rb['satuan'] }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium text-blue-700">
+                                <td class="py-2.5 px-3 text-right font-medium text-blue-700 dark:text-blue-400">
                                     {{ \App\Helpers\NumberHelper::formatQty($rb['diminta']) }} {{ $rb['satuan'] }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-bold text-emerald-700">
+                                <td class="py-2.5 px-3 text-right font-bold text-emerald-700 dark:text-emerald-400">
                                     {{ \App\Helpers\NumberHelper::formatQty($rb['diterima']) }} {{ $rb['satuan'] }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium {{ $sisa > 0 ? 'text-amber-700' : 'text-gray-400' }}">
+                                <td class="py-2.5 px-3 text-right font-medium {{ $sisa > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-text-muted' }}">
                                     {{ $sisa > 0 ? \App\Helpers\NumberHelper::formatQty($sisa) . ' ' . $rb['satuan'] : 'Terpenuhi' }}
                                 </td>
                                 <td class="py-2.5 px-3 text-center">
@@ -451,16 +451,16 @@
                     </script>
                     @if($batch->outputs->count() > 1)
                     <table class="w-full text-left text-xs mb-3">
-                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted font-normal">
                             <tr>
-                                <th class="py-2 px-3">Produk Jadi</th>
-                                <th class="py-2 px-3 text-right">Target</th>
-                                <th class="py-2 px-3 text-right w-36">Qty Baik <span class="text-rose-500">*</span></th>
-                                <th class="py-2 px-3 text-right w-36">Qty Rusak (Defect)</th>
-                                <th class="py-2 px-3 text-center w-28">Status Imbang</th>
+                                <th class="py-2.5 px-3 font-normal">Produk Jadi</th>
+                                <th class="py-2.5 px-3 text-right font-normal">Target</th>
+                                <th class="py-2.5 px-3 text-right w-36 font-normal">Qty Baik <span class="text-red-500">*</span></th>
+                                <th class="py-2.5 px-3 text-right w-36 font-normal">Qty Rusak (Defect)</th>
+                                <th class="py-2.5 px-3 text-center w-28 font-normal">Status Imbang</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             @foreach($batch->outputs as $index => $out)
                             @php
                                 $targetOut = (int) round((float) $out->qty_rencana);
@@ -468,15 +468,15 @@
                                 $defaultRusakOut = old("outputs.{$index}.qty_rusak", 0);
                             @endphp
                             <tr x-data="batchOutputSync({{ $targetOut }}, {{ (int) $defaultBaikOut }}, {{ (int) $defaultRusakOut }})">
-                                <td class="py-2 px-3 font-medium text-gray-800">
+                                <td class="py-2.5 px-3 font-medium text-[#101828] dark:text-white">
                                     <input type="hidden" name="outputs[{{ $index }}][id]" value="{{ $out->id }}">
                                     <div class="font-bold">{{ $out->produk?->nama }}</div>
-                                    <div class="font-mono text-[10px] text-gray-400">{{ $out->produk?->sku }}</div>
+                                    <div class="font-mono text-[10px] text-text-muted">{{ $out->produk?->sku }}</div>
                                 </td>
-                                <td class="py-2 px-3 text-right font-mono text-gray-600 whitespace-nowrap">
+                                <td class="py-2.5 px-3 text-right font-mono text-text-muted whitespace-nowrap">
                                     {{ \App\Helpers\NumberHelper::formatQty($out->qty_rencana) }} {{ $out->produk?->satuan }}
                                 </td>
-                                <td class="py-2 px-3 text-right">
+                                <td class="py-2.5 px-3 text-right">
                                     <input
                                         type="number"
                                         step="1"
@@ -486,7 +486,7 @@
                                         x-model.number="baik"
                                         @input="syncFromBaik()"
                                         onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                        class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono"
+                                        class="w-full text-right rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none font-mono"
                                         required
                                     >
                                 </td>
@@ -596,33 +596,33 @@
                 <form method="POST" action="{{ route('batches.opname', $batch) }}" class="p-3.5">
                     @csrf
                     <table class="w-full text-left text-xs mb-3">
-                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted font-normal">
                             <tr>
-                                <th class="py-2 px-3">Bahan</th>
-                                <th class="py-2 px-3 text-right">Teoritis (BOM)</th>
-                                <th class="py-2 px-3 text-right w-36">Pemakaian Aktual</th>
-                                <th class="py-2 px-3">Keterangan</th>
+                                <th class="py-2.5 px-3 font-normal">Bahan</th>
+                                <th class="py-2.5 px-3 text-right font-normal">Teoritis (BOM)</th>
+                                <th class="py-2.5 px-3 text-right w-36 font-normal">Pemakaian Aktual</th>
+                                <th class="py-2.5 px-3 font-normal">Keterangan</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             @foreach($batch->alokasi as $index => $a)
                             @php
                                 $op = $batch->opname->where('bahan_id', $a->bahan_id)->first();
                                 $valAktual = $op ? $op->pemakaian_aktual : (float) $a->qty_dialokasikan;
                             @endphp
                             <tr>
-                                <td class="py-2 px-3 font-medium text-gray-800">
+                                <td class="py-2.5 px-3 font-medium text-[#101828] dark:text-white">
                                     <input type="hidden" name="items[{{ $index }}][bahan_id]" value="{{ $a->bahan_id }}">
                                     {{ $a->bahan->nama }}
                                 </td>
-                                <td class="py-2 px-3 text-right font-mono text-gray-600">
+                                <td class="py-2.5 px-3 text-right font-mono text-text-muted">
                                     {{ rtrim(rtrim(number_format($a->qty_dialokasikan, 2, ',', '.'), '0'), ',') }} {{ $a->bahan->satuan }}
                                 </td>
-                                <td class="py-2 px-3 text-right">
-                                    <input type="number" step="0.01" min="0" name="items[{{ $index }}][pemakaian_aktual]" value="{{ $valAktual }}" class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500" required>
+                                <td class="py-2.5 px-3 text-right">
+                                    <input type="number" step="0.01" min="0" name="items[{{ $index }}][pemakaian_aktual]" value="{{ $valAktual }}" class="w-full text-right rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none" required>
                                 </td>
-                                <td class="py-2 px-3">
-                                    <input type="text" name="items[{{ $index }}][keterangan]" value="{{ $op?->keterangan }}" placeholder="Catatan opname" class="w-full rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                                <td class="py-2.5 px-3">
+                                    <input type="text" name="items[{{ $index }}][keterangan]" value="{{ $op?->keterangan }}" placeholder="Catatan opname" class="w-full rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none">
                                 </td>
                             </tr>
                             @endforeach
@@ -637,24 +637,24 @@
                 @else
                 <div class="p-3.5">
                     <table class="w-full text-left text-xs">
-                        <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-semibold">
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted font-normal">
                             <tr>
-                                <th class="py-2 px-3">Bahan</th>
-                                <th class="py-2 px-3 text-right">Teoritis</th>
-                                <th class="py-2 px-3 text-right">Aktual</th>
-                                <th class="py-2 px-3">Keterangan</th>
+                                <th class="py-2.5 px-3 font-normal">Bahan</th>
+                                <th class="py-2.5 px-3 text-right font-normal">Teoritis</th>
+                                <th class="py-2.5 px-3 text-right font-normal">Aktual</th>
+                                <th class="py-2.5 px-3 font-normal">Keterangan</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             @forelse($batch->opname as $op)
                             <tr>
-                                <td class="py-2 px-3 font-medium text-gray-800">{{ $op->bahan?->nama }}</td>
-                                <td class="py-2 px-3 text-right font-mono">{{ rtrim(rtrim(number_format($op->pemakaian_teoritis, 2, ',', '.'), '0'), ',') }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-semibold">{{ rtrim(rtrim(number_format($op->pemakaian_aktual, 2, ',', '.'), '0'), ',') }}</td>
-                                <td class="py-2 px-3 text-gray-500">{{ $op->keterangan ?? '-' }}</td>
+                                <td class="py-2.5 px-3 font-medium text-[#101828] dark:text-white">{{ $op->bahan?->nama }}</td>
+                                <td class="py-2.5 px-3 text-right font-mono text-text-muted">{{ rtrim(rtrim(number_format($op->pemakaian_teoritis, 2, ',', '.'), '0'), ',') }}</td>
+                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-[#101828] dark:text-white">{{ rtrim(rtrim(number_format($op->pemakaian_aktual, 2, ',', '.'), '0'), ',') }}</td>
+                                <td class="py-2.5 px-3 text-text-muted">{{ $op->keterangan ?? '-' }}</td>
                             </tr>
                             @empty
-                            <tr><td colspan="4" class="py-3 text-center text-gray-400">Belum ada data opname tercatat.</td></tr>
+                            <tr><td colspan="4" class="py-3 text-center text-text-muted">Belum ada data opname tercatat.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -670,28 +670,28 @@
             @if(in_array($batch->status, ['release', 'selesai']))
             <x-card title="Hasil QC & Produksi" variant="primary">
                 <div class="grid grid-cols-2 gap-2.5">
-                    <div class="bg-gray-50 p-2.5 rounded-sm border border-gray-200">
-                        <p class="text-[11px] font-semibold text-gray-500 uppercase">Qty Baik</p>
-                        <p class="text-xl font-bold text-emerald-700 mt-0.5">
+                    <div class="bg-[#FBFBFB] dark:bg-gray-800/50 p-3 rounded-[8px] border border-[#e8e8e8] dark:border-border">
+                        <p class="text-[11px] font-semibold text-text-muted uppercase">Qty Baik</p>
+                        <p class="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 tabular-nums">
                             {{ $batch->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($batch->qty_baik) : '-' }}
                         </p>
                     </div>
-                    <div class="bg-gray-50 p-2.5 rounded-sm border border-gray-200">
-                        <p class="text-[11px] font-semibold text-gray-500 uppercase">Qty Rusak</p>
-                        <p class="text-xl font-bold text-rose-700 mt-0.5">
+                    <div class="bg-[#FBFBFB] dark:bg-gray-800/50 p-3 rounded-[8px] border border-[#e8e8e8] dark:border-border">
+                        <p class="text-[11px] font-semibold text-text-muted uppercase">Qty Rusak</p>
+                        <p class="text-xl font-bold text-red-600 dark:text-red-400 mt-0.5 tabular-nums">
                             {{ $batch->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($batch->qty_rusak) : '-' }}
                         </p>
                     </div>
                 </div>
-                <div class="pt-2 mt-2 border-t border-gray-100 flex items-center justify-between text-xs">
-                    <span class="text-gray-500">Yield QC</span>
-                    <span class="font-bold text-gray-900 font-mono">
+                <div class="pt-2.5 mt-2.5 border-t border-[#e8e8e8] dark:border-border flex items-center justify-between text-xs">
+                    <span class="text-text-muted">Yield QC</span>
+                    <span class="font-bold text-[#101828] dark:text-white font-mono">
                         {{ $batch->yield() !== null ? number_format($batch->yield(), 1) . '%' : '-' }}
                     </span>
                 </div>
                 <div class="flex items-center justify-between text-xs pt-1">
-                    <span class="text-gray-500">Defect Rate</span>
-                    <span class="font-bold text-gray-900 font-mono">
+                    <span class="text-text-muted">Defect Rate</span>
+                    <span class="font-bold text-[#101828] dark:text-white font-mono">
                         {{ $batch->defectRate() !== null ? number_format($batch->defectRate(), 1) . '%' : '-' }}
                     </span>
                 </div>
@@ -799,17 +799,17 @@
                             </x-button>
                         </form>
                         <div class="mt-2 text-center">
-                            <a href="{{ route('transfers.create', ['jenis' => 'kirim_produk_jadi', 'batch_id' => $batch->id]) }}" class="inline-flex items-center justify-center w-full px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-300">
+                            <x-button href="{{ route('transfers.create', ['jenis' => 'kirim_produk_jadi', 'batch_id' => $batch->id]) }}" variant="info" size="sm" class="w-full">
                                 Buat Transfer Produk Jadi
-                            </a>
+                            </x-button>
                         </div>
-                        <p class="text-[11px] text-gray-500 text-center mt-1">Buat dokumen transfer produk jadi ke fulfillment hub.</p>
+                        <p class="text-[11px] text-text-muted text-center mt-1">Buat dokumen transfer produk jadi ke fulfillment hub.</p>
                         @endcan
                     @endif
                 @endif
 
                 @if($batch->status === 'dibatalkan')
-                    <div class="py-2 px-3 bg-gray-50 rounded-sm text-center text-xs text-gray-500 font-medium">
+                    <div class="py-2.5 px-3 bg-[#FBFBFB] dark:bg-gray-800/50 border border-[#e8e8e8] dark:border-border rounded-[8px] text-center text-xs text-text-muted font-medium">
                         Batch ini telah dibatalkan.
                     </div>
                 @endif
@@ -817,22 +817,22 @@
 
             <!-- Ringkasan Info Sistem -->
             <x-card title="Informasi Sistem" variant="default">
-                <div class="space-y-2 text-xs text-gray-600">
+                <div class="space-y-2 text-xs text-text-muted">
                     <div class="flex justify-between">
                         <span>No Batch</span>
-                        <span class="font-mono text-gray-900 font-semibold">{{ $batch->no_batch }}</span>
+                        <span class="font-mono text-[#101828] dark:text-white font-semibold">{{ $batch->no_batch }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Tipe Produk</span>
-                        <span class="capitalize text-gray-900 font-medium">{{ $batch->produk ? str_replace('_', ' ', $batch->produk->tipe) : 'Multi-Produk' }}</span>
+                        <span class="capitalize text-[#101828] dark:text-white font-medium">{{ $batch->produk ? str_replace('_', ' ', $batch->produk->tipe) : 'Multi-Produk' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Satuan Unit</span>
-                        <span class="text-gray-900 font-medium">{{ $batch->produk?->satuan ?? 'Unit' }}</span>
+                        <span class="text-[#101828] dark:text-white font-medium">{{ $batch->produk?->satuan ?? 'Unit' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Dibuat Pada</span>
-                        <span class="text-gray-900 font-medium">{{ $batch->created_at->format('d/m/Y H:i') }}</span>
+                        <span class="text-[#101828] dark:text-white font-medium">{{ $batch->created_at->format('d/m/Y H:i') }}</span>
                     </div>
                 </div>
             </x-card>

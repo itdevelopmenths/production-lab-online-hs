@@ -591,44 +591,43 @@
                                     aria-labelledby="reject-revisi-title-{{ $rev->id }}"
                                     closedby="closerequest"
                                     class="w-full max-w-md">
-                                <div class="bg-card rounded-2xl border border-border shadow-2xl overflow-hidden text-left">
-                                    <div class="px-5 py-4 border-b border-border bg-card flex items-center justify-between gap-3">
-                                        <h2 id="reject-revisi-title-{{ $rev->id }}" class="text-sm font-semibold text-foreground tracking-tight">
+                                <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-border shadow-2xl overflow-hidden text-left">
+                                    <div class="px-4 py-3 border-b border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 flex items-center justify-between gap-3">
+                                        <h2 id="reject-revisi-title-{{ $rev->id }}" class="font-bold text-base text-text-active tracking-tight leading-snug">
                                             Tolak Usulan Revisi ke-{{ $rev->revisi_ke }}
                                         </h2>
                                         <button type="button"
                                                 @click="closeRejectDialog()"
                                                 aria-label="Tutup dialog penolakan revisi"
-                                                class="size-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent flex items-center justify-center transition cursor-pointer">
+                                                class="size-7 rounded-[6px] text-text-muted hover:text-text-active hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition cursor-pointer">
                                             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                             </svg>
                                         </button>
                                     </div>
 
-                                    <form method="POST" action="{{ route('purchasing.revisi.reject', $rev) }}" class="p-5 space-y-4">
+                                    <form method="POST" action="{{ route('purchasing.revisi.reject', $rev) }}">
                                         @csrf
-                                        <div>
-                                            <label for="reject-alasan-{{ $rev->id }}" class="block text-xs font-semibold text-foreground mb-1">
-                                                Alasan Penolakan <span class="text-destructive">*</span>
-                                            </label>
-                                            <p id="reject-hint-{{ $rev->id }}" class="text-[11px] text-muted-foreground mb-2">
+                                        <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
+                                            <p id="reject-hint-{{ $rev->id }}" class="text-xs text-text-muted">
                                                 Nilai PO aktif tetap dipertahankan. Masukkan alasan penolakan minimal 3 karakter untuk tim Purchasing.
                                             </p>
-                                            <textarea id="reject-alasan-{{ $rev->id }}"
-                                                      name="alasan"
-                                                      x-model="alasanReject"
-                                                      autofocus
-                                                      required
-                                                      minlength="3"
-                                                      aria-describedby="reject-hint-{{ $rev->id }}"
-                                                      placeholder="Masukkan alasan penolakan usulan revisi..."
-                                                      class="w-full text-xs p-2.5 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                                                      rows="3"></textarea>
+                                            <x-form-field label="Alasan Penolakan" name="alasan" :required="true" align="top">
+                                                <textarea id="reject-alasan-{{ $rev->id }}"
+                                                          name="alasan"
+                                                          x-model="alasanReject"
+                                                          autofocus
+                                                          required
+                                                          minlength="3"
+                                                          aria-describedby="reject-hint-{{ $rev->id }}"
+                                                          placeholder="Masukkan alasan penolakan usulan revisi..."
+                                                          class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0"
+                                                          rows="3"></textarea>
+                                            </x-form-field>
                                         </div>
 
-                                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                                            <x-button type="button" variant="outline" size="sm" @click="closeRejectDialog()">Batal</x-button>
+                                        <div class="bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-border px-4 py-3 flex items-center justify-end gap-2">
+                                            <x-button type="button" variant="secondary" size="sm" @click="closeRejectDialog()">Batal</x-button>
                                             <x-button type="submit" variant="danger" size="sm" x-bind:disabled="isRejectDisabled()">Konfirmasi Tolak</x-button>
                                         </div>
                                     </form>
@@ -2189,36 +2188,34 @@
 
         {{-- MODAL DIRECT EDIT (purchasing.edit) --}}
         @can('purchasing.edit')
-        <div x-show="openDirectEditModal" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" x-cloak>
-            <div class="bg-card rounded-xl border border-border p-5 max-w-lg w-full space-y-4 shadow-xl">
-                <div class="flex justify-between items-center border-b border-border pb-2.5">
+        <div x-show="openDirectEditModal" class="fixed inset-0 z-[999] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
+            <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-border max-w-lg w-full shadow-2xl overflow-hidden">
+                <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#E8E8E8] dark:border-border flex justify-between items-center">
                     <div>
-                        <h3 class="font-bold text-sm text-foreground">Direct Edit Field Operasional</h3>
-                        <p class="text-[11px] text-muted-foreground">Perubahan langsung tercatat di PO_LOG_PERUBAHAN tanpa memerlukan approval</p>
+                        <h3 class="font-bold text-base text-text-active tracking-tight">Direct Edit Field Operasional</h3>
+                        <p class="text-xs text-text-muted">Perubahan langsung tercatat di PO_LOG_PERUBAHAN tanpa memerlukan approval</p>
                     </div>
-                    <button type="button" @click="openDirectEditModal = false" class="text-muted-foreground hover:text-foreground cursor-pointer p-1">✕</button>
+                    <button type="button" @click="openDirectEditModal = false" class="text-text-muted hover:text-text-active cursor-pointer p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                 </div>
 
-                <form method="POST" action="{{ route('purchasing.direct-edit', $po) }}" class="space-y-3 text-xs">
+                <form method="POST" action="{{ route('purchasing.direct-edit', $po) }}" class="text-xs">
                     @csrf
-                    <div>
-                        <label class="block font-semibold mb-1 text-foreground">No Invoice Vendor</label>
-                        <input type="text" name="fields[no_invoice]" value="{{ $po->no_invoice ?? '' }}" class="w-full rounded-lg border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring">
+                    <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-2.5">
+                        <x-form-field label="No Invoice" name="no_invoice">
+                            <input type="text" name="fields[no_invoice]" value="{{ $po->no_invoice ?? '' }}" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active focus:outline-none focus:ring-0">
+                        </x-form-field>
+                        <x-form-field label="Ref Supplier" name="no_referensi_supplier">
+                            <input type="text" name="fields[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active focus:outline-none focus:ring-0">
+                        </x-form-field>
+                        <x-form-field label="Estimasi (ETA)" name="eta">
+                            <input type="date" name="fields[eta]" value="{{ $po->eta ? $po->eta->format('Y-m-d') : '' }}" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active focus:outline-none focus:ring-0">
+                        </x-form-field>
+                        <x-form-field label="Catatan" name="catatan" align="top">
+                            <textarea name="fields[catatan]" rows="2" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active focus:outline-none focus:ring-0">{{ $po->catatan ?? '' }}</textarea>
+                        </x-form-field>
                     </div>
-                    <div>
-                        <label class="block font-semibold mb-1 text-foreground">No Referensi Supplier</label>
-                        <input type="text" name="fields[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" class="w-full rounded-lg border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring">
-                    </div>
-                    <div>
-                        <label class="block font-semibold mb-1 text-foreground">Estimasi Tiba (ETA)</label>
-                        <input type="date" name="fields[eta]" value="{{ $po->eta ? $po->eta->format('Y-m-d') : '' }}" class="w-full rounded-lg border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring">
-                    </div>
-                    <div>
-                        <label class="block font-semibold mb-1 text-foreground">Catatan Dokumen</label>
-                        <textarea name="fields[catatan]" rows="2" class="w-full rounded-lg border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring">{{ $po->catatan ?? '' }}</textarea>
-                    </div>
-                    <div class="flex justify-end gap-2 pt-2 border-t border-border">
-                        <x-button type="button" variant="outline" size="sm" @click="openDirectEditModal = false">Batal</x-button>
+                    <div class="bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-border px-4 py-3 flex justify-end gap-2">
+                        <x-button type="button" variant="secondary" size="sm" @click="openDirectEditModal = false">Batal</x-button>
                         <x-button type="submit" variant="primary" size="sm">Simpan Perubahan Langsung</x-button>
                     </div>
                 </form>
@@ -2226,8 +2223,8 @@
         </div>
 
         {{-- MODAL AJUKAN REVISI KOMITMEN (purchasing.edit) --}}
-        <div x-show="openRevisiModal" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-6" x-cloak>
-            <div class="bg-card rounded-2xl border border-border p-5 sm:p-6 max-w-5xl w-full space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto"
+        <div x-show="openRevisiModal" class="fixed inset-0 z-[999] bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6" x-cloak>
+            <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-border p-5 sm:p-6 max-w-5xl w-full space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar"
                  x-data="revisiForm({{ Js::from($initialRevisiData) }})"
                  x-init="init()">
 
@@ -2527,20 +2524,24 @@
         {{-- MODAL INVALIDATE LEAD TIME (Manager) --}}
         @if($po->leadTime)
         @can('purchasing.approve')
-        <div x-show="openInvalidateModal" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" x-cloak>
-            <div class="bg-card rounded-xl border border-border p-5 max-w-sm w-full space-y-3 shadow-xl">
-                <h3 class="font-bold text-sm text-foreground">Invalidasi Transaksi Lead Time</h3>
-                <p class="text-[11px] text-muted-foreground leading-relaxed">
-                    Tindakan ini akan mengeluarkan durasi transaksi ini dari perhitungan rata-rata Lead Time supplier.
-                </p>
-                <form method="POST" action="{{ route('purchasing.lead-time.invalidate', $po->leadTime) }}" class="space-y-3 text-xs">
+        <div x-show="openInvalidateModal" class="fixed inset-0 z-[999] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
+            <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-border max-w-sm w-full shadow-2xl overflow-hidden">
+                <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#E8E8E8] dark:border-border flex items-center justify-between">
+                    <h3 class="font-bold text-base text-text-active tracking-tight">Invalidasi Transaksi Lead Time</h3>
+                    <button type="button" @click="openInvalidateModal = false" class="text-text-muted hover:text-text-active cursor-pointer p-1 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
+                </div>
+                <form method="POST" action="{{ route('purchasing.lead-time.invalidate', $po->leadTime) }}" class="text-xs">
                     @csrf
-                    <div>
-                        <label class="block font-semibold mb-1 text-foreground">Alasan Invalidasi <span class="text-destructive">*</span></label>
-                        <textarea name="alasan" required minlength="5" rows="3" placeholder="Contoh: Ekspedisi mogok luar biasa (anomali force majeure)..." class="w-full rounded-lg border border-input bg-background p-2 focus:outline-none focus:ring-1 focus:ring-ring"></textarea>
+                    <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 space-y-3">
+                        <p class="text-xs text-text-muted leading-relaxed">
+                            Tindakan ini akan mengeluarkan durasi transaksi ini dari perhitungan rata-rata Lead Time supplier.
+                        </p>
+                        <x-form-field label="Alasan Invalidasi" name="alasan" :required="true" align="top">
+                            <textarea name="alasan" required minlength="5" rows="3" placeholder="Contoh: Ekspedisi mogok luar biasa (anomali force majeure)..." class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active focus:outline-none focus:ring-0"></textarea>
+                        </x-form-field>
                     </div>
-                    <div class="flex justify-end gap-2 pt-2 border-t border-border">
-                        <x-button type="button" variant="outline" size="xs" @click="openInvalidateModal = false">Batal</x-button>
+                    <div class="bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-border px-4 py-3 flex justify-end gap-2">
+                        <x-button type="button" variant="secondary" size="xs" @click="openInvalidateModal = false">Batal</x-button>
                         <x-button type="submit" variant="danger" size="xs">Invalidasi</x-button>
                     </div>
                 </form>

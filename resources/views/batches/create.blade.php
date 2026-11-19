@@ -69,43 +69,43 @@
                         <span class="font-medium" x-text="formError"></span>
                     </div>
 
-                    {{-- Card 1: Parameter & Lokasi Pabrik --}}
-                    <x-card title="Parameter Fasilitas & Jadwal" subtitle="Pilih fasilitas gudang operasional penarik bahan dan gudang tujuan produk jadi" class="relative z-0">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                            <x-form-group name="gudang_operasional_id" label="Gudang Operasional (Sumber Bahan)" help="Gudang asal pengambilan stok bahan baku saat batch dirilis">
-                                <x-select name="gudang_operasional_id" placeholder="— Pilih Gudang Bahan —">
+                    {{-- Card 1: Parameter & Lokasi Pabrik (AppForm Section + Inline White Cards) --}}
+                    <x-card title="Parameter Fasilitas & Jadwal" subtitle="Pilih fasilitas gudang operasional penarik bahan dan gudang tujuan produk jadi" class="relative z-0" bodyClass="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5">
+                        <x-form-section title="Fasilitas & Jadwal Produksi" :cols="3">
+                            <x-form-field label="Gudang Bahan" name="gudang_operasional_id" help="Gudang asal pengambilan stok bahan baku saat batch dirilis">
+                                <x-select name="gudang_operasional_id" variant="seamless" placeholder="— Pilih Gudang Bahan —">
                                     @foreach($gudangOp as $g)
-                                        <option value="{{ $g->id }}" @selected(old('gudang_operasional_id') == $g->id)>{{ $g->nama }}</option>
+                                        <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" @selected(old('gudang_operasional_id') == $g->id)>{{ $g->nama }}</option>
                                     @endforeach
                                 </x-select>
-                            </x-form-group>
+                            </x-form-field>
 
-                            <x-form-group name="gudang_tujuan_rencana_id" label="Gudang Tujuan (Produk Jadi)" help="Gudang penyimpanan setelah produk selesai diproduksi">
-                                <x-select name="gudang_tujuan_rencana_id" placeholder="— Pilih Gudang Output —">
+                            <x-form-field label="Gudang Output" name="gudang_tujuan_rencana_id" help="Gudang penyimpanan setelah produk selesai diproduksi">
+                                <x-select name="gudang_tujuan_rencana_id" variant="seamless" placeholder="— Pilih Gudang Output —">
                                     @foreach($gudangFf as $g)
-                                        <option value="{{ $g->id }}" @selected(old('gudang_tujuan_rencana_id') == $g->id)>{{ $g->nama }}</option>
+                                        <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" @selected(old('gudang_tujuan_rencana_id') == $g->id)>{{ $g->nama }}</option>
                                     @endforeach
                                 </x-select>
-                            </x-form-group>
+                            </x-form-field>
 
-                            <x-form-group name="tanggal" label="Tanggal Rencana" :required="true">
-                                <x-input type="date" name="tanggal" value="{{ old('tanggal', date('Y-m-d')) }}" :required="true" />
-                            </x-form-group>
-                        </div>
+                            <x-form-field label="Tanggal Rencana" name="tanggal" :required="true">
+                                <x-input type="date" name="tanggal" variant="seamless" value="{{ old('tanggal', date('Y-m-d')) }}" :required="true" />
+                            </x-form-field>
+                        </x-form-section>
                     </x-card>
 
                     {{-- Card 2: Multi-Output Produk Jadi Luaran --}}
                     <x-card title="Produk Jadi Luaran (Multi-Output)" subtitle="Hanya produk jadi yang sudah memiliki formula BOM yang dapat dipilih dan diproduksi" :noPadding="true" class="relative z-20" overflow="visible">
                         <div class="overflow-visible relative z-20">
                             <table class="w-full text-xs">
-                                <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                                <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted font-normal text-xs sm:text-[13px]">
                                     <tr>
-                                        <th class="px-4 py-3 text-left w-[65%]">Produk Jadi (BOM) <span class="text-destructive">*</span></th>
-                                        <th class="px-4 py-3 text-right w-52">Target Rencana <span class="text-destructive">*</span></th>
-                                        <th class="px-4 py-3 text-center w-14">Aksi</th>
+                                        <th class="px-4 py-2.5 text-left font-normal w-[65%]">Produk Jadi (BOM) <span class="text-red-500">*</span></th>
+                                        <th class="px-4 py-2.5 text-right font-normal w-52">Target Rencana <span class="text-red-500">*</span></th>
+                                        <th class="px-4 py-2.5 text-center font-normal w-14">Aksi</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-border bg-card">
+                                <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                                     <template x-for="(row, i) in rows" :key="row._uid">
                                         <tr
                                             class="hover:bg-muted/40 transition"
@@ -178,38 +178,38 @@
                                                         x-show="open"
                                                         x-cloak
                                                         style="display: none; position: absolute; left: 0; top: 100%; z-index: 9999; width: 100%; box-sizing: border-box;"
-                                                        class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-64 sm:min-w-80 max-w-[calc(100vw-2rem)] bg-card rounded-xl border border-border shadow-xl text-xs overflow-hidden"
+                                                        class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-64 sm:min-w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl text-xs overflow-hidden"
                                                     >
-                                                        <div class="p-2.5 border-b border-border bg-muted/50 flex items-center gap-2">
-                                                            <svg class="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                                            <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Ketik SKU atau nama produk jadi..." class="w-full bg-background border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
+                                                        <div class="p-2.5 border-b border-[#e8e8e8] dark:border-gray-800 bg-[#FBFBFB] dark:bg-gray-950 flex items-center gap-2">
+                                                            <svg class="w-3.5 h-3.5 text-text-muted shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                            <input type="text" x-model="search" @input="onSearch($event)" @keydown.enter.prevent="fetchItems(1, false)" x-ref="searchInput" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Ketik SKU atau nama produk jadi..." class="w-full bg-white dark:bg-gray-900 border border-[#e8e8e8] dark:border-gray-700 rounded-[8px] px-2.5 py-1.5 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white" />
                                                         </div>
 
-                                                        <div class="max-h-52 overflow-y-auto divide-y divide-border">
+                                                        <div class="max-h-52 overflow-y-auto custom-scrollbar divide-y divide-[#e8e8e8]/70 dark:divide-gray-800">
                                                             <template x-for="item in items" :key="item.id">
                                                                 <div
                                                                     @click="hasBom(item.id) ? select(item) : (clear(), rejectNoBom(row, item))"
-                                                                    :class="!hasBom(item.id) ? 'bg-rose-500/5 text-muted-foreground hover:bg-rose-500/10 cursor-not-allowed' : (selectedId == item.id ? 'bg-muted text-foreground font-semibold cursor-pointer' : 'text-foreground hover:bg-muted/50 cursor-pointer')"
+                                                                    :class="!hasBom(item.id) ? 'bg-red-50/40 dark:bg-red-500/5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 cursor-not-allowed' : (selectedId == item.id ? 'bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white font-semibold cursor-pointer' : 'text-text-active hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer')"
                                                                     class="px-3.5 py-2.5 transition flex items-center justify-between gap-2 select-none"
                                                                 >
                                                                     <div class="flex items-center gap-2 truncate pointer-events-none">
-                                                                        <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
-                                                                        <span class="truncate font-medium" :class="hasBom(item.id) ? 'text-foreground' : 'text-muted-foreground'" x-text="item.nama"></span>
+                                                                        <span class="font-mono text-text-active font-medium bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#e8e8e8] dark:border-gray-700 text-[10px]" x-text="item.sku"></span>
+                                                                        <span class="truncate font-medium" :class="hasBom(item.id) ? 'text-text-active' : 'text-text-muted'" x-text="item.nama"></span>
                                                                     </div>
                                                                     <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
                                                                         <template x-if="!hasBom(item.id)">
-                                                                            <span class="text-[9px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Belum Ada BOM</span>
+                                                                            <span class="text-[9px] font-semibold text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-500/20">Belum Ada BOM</span>
                                                                         </template>
-                                                                        <span class="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan"></span>
+                                                                        <span class="text-[10px] font-mono text-text-muted bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#e8e8e8] dark:border-gray-700" x-text="item.satuan"></span>
                                                                     </div>
                                                                 </div>
                                                             </template>
-                                                            <div x-show="!loading && items.length === 0" class="py-4 text-center text-muted-foreground">Tidak ada produk yang cocok.</div>
+                                                            <div x-show="!loading && items.length === 0" class="py-4 text-center text-text-muted">Tidak ada produk yang cocok.</div>
                                                         </div>
 
-                                                        <div class="p-2 border-t border-border bg-muted/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                                                        <div class="p-2 border-t border-[#e8e8e8] dark:border-gray-800 bg-[#FBFBFB] dark:bg-gray-950 flex items-center justify-between text-[11px] text-text-muted">
                                                             <span x-text="`Data: ${items.length}/${total}`"></span>
-                                                            <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 rounded-md bg-background border border-border hover:bg-muted text-foreground font-medium transition disabled:opacity-50 cursor-pointer shadow-xs">
+                                                            <button type="button" x-show="hasMore" @click="loadMore()" :disabled="loading" class="px-2.5 py-1 rounded-[6px] bg-white dark:bg-gray-900 border border-[#e8e8e8] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-active font-medium transition disabled:opacity-50 cursor-pointer shadow-theme-xs">
                                                                 <span x-text="loading ? '...' : '+10 Lagi'"></span>
                                                             </button>
                                                         </div>
@@ -244,22 +244,22 @@
                             </table>
                         </div>
 
-                        <div class="relative z-0 px-4 py-3 bg-muted/30 border-t border-border flex items-center justify-between">
-                            <x-button type="button" @click="addRow()" variant="outline" size="sm">
+                        <div class="relative z-0 px-4 py-3 bg-[#FBFBFB] dark:bg-gray-900/60 border-t border-[#e8e8e8] dark:border-border flex items-center justify-between">
+                            <x-button type="button" @click="addRow()" variant="secondary" size="sm">
                                 <x-slot:icon>
-                                    <svg class="w-3.5 h-3.5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 </x-slot:icon>
                                 + Tambah Produk Jadi Luaran
                             </x-button>
 
-                            <div class="text-xs text-muted-foreground font-mono">
-                                Total Varian: <span class="font-bold text-foreground" x-text="rows.length"></span>
+                            <div class="text-xs text-text-muted font-mono">
+                                Total Varian: <span class="font-bold text-text-active" x-text="rows.length"></span>
                             </div>
                         </div>
 
                         <x-slot:footer>
                             <div class="flex items-center justify-end gap-2.5">
-                                <x-button href="{{ route('batches.index') }}" variant="outline" size="sm">
+                                <x-button href="{{ route('batches.index') }}" variant="secondary" size="sm">
                                     Batal
                                 </x-button>
                                 <x-button type="submit" variant="primary" size="sm">
@@ -276,16 +276,16 @@
                     <x-card title="Pratinjau Agregasi Kebutuhan BOM" subtitle="Kalkulasi dinamis total kebutuhan bahan baku yang akan dialokasikan untuk seluruh produk jadi di atas" :noPadding="true" class="relative z-0">
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs">
-                                <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                                <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted font-normal text-xs sm:text-[13px]">
                                     <tr>
-                                        <th class="px-4 py-2.5 text-left w-12">No</th>
-                                        <th class="px-4 py-2.5 text-left w-28">SKU</th>
-                                        <th class="px-4 py-2.5 text-left">Nama Bahan Baku</th>
-                                        <th class="px-4 py-2.5 text-right w-36">Total Kebutuhan</th>
-                                        <th class="px-4 py-2.5 text-left w-24">Satuan</th>
+                                        <th class="px-4 py-2.5 text-left font-normal w-12">No</th>
+                                        <th class="px-4 py-2.5 text-left font-normal w-28">SKU</th>
+                                        <th class="px-4 py-2.5 text-left font-normal">Nama Bahan Baku</th>
+                                        <th class="px-4 py-2.5 text-right font-normal w-36">Total Kebutuhan</th>
+                                        <th class="px-4 py-2.5 text-left font-normal w-24">Satuan</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-border bg-card">
+                                <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                                     <template x-for="(bomItem, idx) in getBomPreview()" :key="bomItem.bahan_id">
                                         <tr class="hover:bg-muted/30">
                                             <td class="px-4 py-2.5 text-center text-muted-foreground" x-text="idx + 1"></td>

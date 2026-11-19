@@ -45,16 +45,17 @@
 
     <div x-data="{ activeTab: '{{ $defaultTab }}', leadTimeLoaded: {{ $defaultTab === 'lead_time' ? 'true' : 'false' }} }"
          x-init="{{ $defaultTab === 'lead_time' ? '$nextTick(() => { loadLeadTimeData(); })' : '' }}">
-        {{-- Segmented Tabs --}}
-        <div class="inline-flex flex-wrap items-center gap-1 p-1 bg-muted/40 rounded-lg border border-border mb-3.5">
+        {{-- Blueprint Segmented StatusTabs --}}
+        <div class="bg-[#f3f4f6] dark:bg-gray-900 dark:border dark:border-gray-800 p-[2px] gap-[2px] rounded-[8px] h-9 sm:h-10 inline-flex items-center w-fit max-w-full overflow-x-auto no-scrollbar mb-4" role="tablist">
             {{-- TAB 1: Daftar Purchase Order --}}
             <button
                 type="button"
+                role="tab"
                 @click="activeTab = 'po'; $nextTick(() => { if (dtTable) dtTable.columns.adjust(); })"
-                :class="activeTab === 'po' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-1.5"
+                :class="activeTab === 'po' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
+                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
             >
-                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Daftar Purchase Order
             </button>
 
@@ -62,11 +63,12 @@
             @if($canSeePrice)
             <button
                 type="button"
+                role="tab"
                 @click="activeTab = 'ap'; $nextTick(() => { if (dtApTable) dtApTable.columns.adjust(); })"
-                :class="activeTab === 'ap' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-1.5"
+                :class="activeTab === 'ap' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
+                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
             >
-                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 Buku Tagihan (AP)
             </button>
             @endif
@@ -75,14 +77,15 @@
             @if($canSeeApprovalTab)
             <button
                 type="button"
+                role="tab"
                 @click="activeTab = 'approval'; $nextTick(() => { if (dtApprovalTable) dtApprovalTable.columns.adjust(); })"
-                :class="activeTab === 'approval' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-1.5"
+                :class="activeTab === 'approval' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
+                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
             >
-                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Antrean Approval
                 @if($pendingApprovalCount > 0)
-                    <span :class="activeTab === 'approval' ? 'bg-primary-foreground text-primary' : 'bg-muted text-foreground'" class="px-1.5 py-0.5 text-[9px] font-bold rounded-full">
+                    <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[11px] font-semibold tabular-nums">
                         {{ $pendingApprovalCount }}
                     </span>
                 @endif
@@ -92,23 +95,24 @@
             {{-- TAB 4: Lead Time Supplier --}}
             <button
                 type="button"
+                role="tab"
                 @click="activeTab = 'lead_time'; if (!leadTimeLoaded) { leadTimeLoaded = true; loadLeadTimeData(); }"
-                :class="activeTab === 'lead_time' ? 'bg-primary text-primary-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'"
-                class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer select-none flex items-center gap-1.5"
+                :class="activeTab === 'lead_time' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
+                class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
             >
-                <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Lead Time Supplier
             </button>
         </div>
 
         <!-- TAB 1: Daftar Purchase Order -->
         <div x-show="activeTab === 'po'" class="min-h-[480px]">
-            <!-- Toolbar Filter PO (Menjaga filter-status-po & btn-reset-po) -->
-            <div class="flex flex-wrap items-center justify-between gap-2.5 bg-card px-3.5 py-2 rounded-lg border border-border mb-3 shadow-2xs">
+            <!-- Toolbar Filter PO -->
+            <div class="flex flex-wrap items-center justify-between gap-2.5 bg-white dark:bg-gray-900 px-4 py-3 rounded-[12px] border border-[#e8e8e8] dark:border-border mb-3.5 shadow-theme-xs">
                 <div class="flex flex-wrap items-center gap-2.5">
                     <div>
-                        <label for="filter-status-po" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Status PO</label>
-                        <select id="filter-status-po" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                        <label for="filter-status-po" class="block text-[11px] font-medium text-text-muted mb-1">Status PO</label>
+                        <select id="filter-status-po" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                             <option value="">— Semua Status PO —</option>
                             <option value="draft">Draft</option>
                             <option value="diajukan">Diajukan (Menunggu Approval)</option>
@@ -119,8 +123,8 @@
                         </select>
                     </div>
                     <div>
-                        <label for="filter-stage-po" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Stage Aktif</label>
-                        <select id="filter-stage-po" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                        <label for="filter-stage-po" class="block text-[11px] font-medium text-text-muted mb-1">Stage Aktif</label>
+                        <select id="filter-stage-po" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                             <option value="">— Semua Stage —</option>
                             @foreach (\App\Models\PoStage::STAGES as $urutan => $stageKey)
                                 <option value="{{ $stageKey }}">{{ $urutan }}. {{ \App\Models\PoStage::STAGE_LABELS[$stageKey] }}</option>
@@ -128,8 +132,8 @@
                         </select>
                     </div>
                     <div>
-                        <label for="filter-kategori-supplier" class="block text-[11px] font-medium text-muted-foreground mb-0.5">Kategori Supplier</label>
-                        <select id="filter-kategori-supplier" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
+                        <label for="filter-kategori-supplier" class="block text-[11px] font-medium text-text-muted mb-1">Kategori Supplier</label>
+                        <select id="filter-kategori-supplier" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
                             <option value="">— Semua Kategori —</option>
                             <option value="lokal">Lokal</option>
                             <option value="impor">Impor</option>
@@ -139,17 +143,20 @@
                     </div>
                 </div>
                 <div>
-                    <button type="button" id="btn-reset-po" class="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer transition-colors">
+                    <x-button type="button" id="btn-reset-po" variant="secondary" size="xs">
                         Reset Filter
-                    </button>
+                    </x-button>
                 </div>
             </div>
 
-            <x-card title="Semua Dokumen Purchase Order" :noPadding="true">
+            <x-card title="Semua Dokumen Purchase Order" subtitle="Tracking status pengadaan 8 stage & SLA real-time" :noPadding="true">
+                <x-slot:icon>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </x-slot:icon>
                 <div class="overflow-x-auto">
                     <table id="tbl" class="w-full text-sm">
                         <thead>
-                            <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[13px] font-medium">
+                            <tr>
                                 <th class="px-4 py-3 text-left">No Invoice</th>
                                 <th class="px-4 py-3 text-left">Supplier</th>
                                 <th class="px-4 py-3 text-left">Lokasi</th>
@@ -170,12 +177,12 @@
         <!-- TAB 2: Buku Tagihan & Pembayaran (AP) -->
         @if($canSeePrice)
         <div x-show="activeTab === 'ap'" x-cloak class="min-h-[480px]">
-            <!-- Toolbar Filter AP (Filter status AP terpusat di sini) -->
-            <div class="flex flex-wrap items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border mb-3 shadow-xs">
+            <!-- Toolbar Filter AP -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-gray-900 p-3.5 rounded-[12px] border border-[#e8e8e8] dark:border-border mb-3.5 shadow-theme-xs">
                 <div class="flex flex-wrap items-center gap-3">
                     <div>
-                        <label for="filter-status-bayar-ap" class="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Filter Status Bayar / AP</label>
-                        <select id="filter-status-bayar-ap" class="rounded-lg border-border bg-card text-xs py-1.5 px-2.5 focus:border-primary focus:ring-1 focus:ring-primary w-full sm:w-auto min-w-40 max-w-full outline-none">
+                        <label for="filter-status-bayar-ap" class="block text-[11px] font-medium text-text-muted mb-1">Filter Status Bayar / AP</label>
+                        <select id="filter-status-bayar-ap" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                             <option value="">— Semua Status Bayar —</option>
                             <option value="overdue">🔴 Overdue (Jatuh Tempo - Prioritas)</option>
                             <option value="belum_lunas">🟡 Belum Lunas</option>
@@ -185,8 +192,8 @@
                         </select>
                     </div>
                     <div>
-                        <label for="filter-skema-bayar-ap" class="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Filter Skema Transaksi</label>
-                        <select id="filter-skema-bayar-ap" class="rounded-lg border-border bg-card text-xs py-1.5 px-2.5 focus:border-primary focus:ring-1 focus:ring-primary w-full sm:w-auto min-w-36 max-w-full outline-none">
+                        <label for="filter-skema-bayar-ap" class="block text-[11px] font-medium text-text-muted mb-1">Filter Skema Transaksi</label>
+                        <select id="filter-skema-bayar-ap" class="h-8 rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
                             <option value="">— Semua Skema —</option>
                             <option value="cash">Tunai (Cash)</option>
                             <option value="tempo">Tempo</option>
@@ -195,17 +202,20 @@
                     </div>
                 </div>
                 <div>
-                    <button type="button" id="btn-reset-ap" class="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer transition-colors">
+                    <x-button type="button" id="btn-reset-ap" variant="secondary" size="xs">
                         Reset Filter
-                    </button>
+                    </x-button>
                 </div>
             </div>
 
             <x-card title="Buku Rekapitulasi Tagihan Vendor (Accounts Payable)" :noPadding="true">
-                <div class="overflow-x-auto p-2">
+                <x-slot:icon>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </x-slot:icon>
+                <div class="overflow-x-auto">
                     <table id="tblAp" class="w-full text-xs">
                         <thead>
-                            <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[11px] uppercase">
+                            <tr>
                                 <th class="px-3 py-2.5 text-left">No Invoice</th>
                                 <th class="px-3 py-2.5 text-left">Supplier</th>
                                 <th class="px-3 py-2.5 text-left">Tgl PO</th>
@@ -225,52 +235,52 @@
         @endif
 
         @if($canSeeApprovalTab)
-        <!-- TAB 3: Antrean Approval (Default: Manager & Purchasing) -->
+        <!-- TAB 3: Antrean Approval -->
         <div x-show="activeTab === 'approval'" x-cloak class="min-h-[480px] space-y-4">
-            <div class="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs flex items-center justify-between gap-3 shadow-2xs">
-                <div class="flex items-center gap-2 text-amber-900">
-                    <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <div class="p-3.5 bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-[12px] text-xs flex flex-wrap items-center justify-between gap-3 shadow-theme-xs">
+                <div class="flex items-center gap-2 text-amber-900 dark:text-amber-300">
+                    <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
                     <span>Antrean ini menyaring dokumen PO yang menunggu persetujuan otorisasi Manager (Stage 2 / Diajukan) dan usulan Revisi Komitmen PO.</span>
                 </div>
-                <div class="shrink-0 font-mono text-xs font-semibold text-amber-800">
-                    Total Menunggu: <span class="px-2 py-0.5 bg-amber-200/80 rounded font-bold">{{ $pendingApprovalCount }}</span>
+                <div class="shrink-0 font-mono text-xs font-semibold text-amber-800 dark:text-amber-300">
+                    Total Menunggu: <span class="px-2 py-0.5 bg-amber-200/80 dark:bg-amber-500/20 rounded font-bold">{{ $pendingApprovalCount }}</span>
                 </div>
             </div>
 
             {{-- Daftar Antrean Revisi Komitmen (PoRevisi Menunggu) --}}
             @if(isset($pendingRevisis) && $pendingRevisis->isNotEmpty())
             <x-card title="Antrean Usulan Revisi Komitmen (PoRevisi)" :noPadding="true">
-                <div class="overflow-x-auto p-2">
+                <div class="overflow-x-auto">
                     <table class="w-full text-xs">
                         <thead>
-                            <tr class="bg-amber-50 border-b border-amber-200 text-amber-900 text-[11px] uppercase">
-                                <th class="px-3 py-2.5 text-left">No PO / Invoice</th>
-                                <th class="px-3 py-2.5 text-left">Supplier</th>
-                                <th class="px-3 py-2.5 text-left">Revisi Ke</th>
-                                <th class="px-3 py-2.5 text-left">Diajukan Oleh</th>
-                                <th class="px-3 py-2.5 text-left">Alasan Pengajuan</th>
-                                <th class="px-3 py-2.5 text-center">Aksi Review</th>
+                            <tr class="bg-amber-50/80 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-amber-900 dark:text-amber-300 text-xs">
+                                <th class="px-3 py-2.5 text-left font-normal">No PO / Invoice</th>
+                                <th class="px-3 py-2.5 text-left font-normal">Supplier</th>
+                                <th class="px-3 py-2.5 text-left font-normal">Revisi Ke</th>
+                                <th class="px-3 py-2.5 text-left font-normal">Diajukan Oleh</th>
+                                <th class="px-3 py-2.5 text-left font-normal">Alasan Pengajuan</th>
+                                <th class="px-3 py-2.5 text-center font-normal">Aksi Review</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-border">
+                        <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             @foreach($pendingRevisis as $rev)
-                            <tr class="hover:bg-muted/40 transition">
-                                <td class="px-3 py-2.5 font-mono font-bold text-foreground">
+                            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition">
+                                <td class="px-3 py-2.5 font-mono font-bold text-[#101828] dark:text-white">
                                     {{ $rev->purchaseOrder?->no_invoice ?: $rev->purchaseOrder?->no_po }}
-                                    <span class="block text-[10px] text-muted-foreground font-normal">PO: {{ $rev->purchaseOrder?->no_po }}</span>
+                                    <span class="block text-[10px] text-text-muted font-normal">PO: {{ $rev->purchaseOrder?->no_po }}</span>
                                 </td>
-                                <td class="px-3 py-2.5 text-foreground">{{ $rev->purchaseOrder?->supplier?->nama ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-[#101828] dark:text-gray-200">{{ $rev->purchaseOrder?->supplier?->nama ?? '—' }}</td>
                                 <td class="px-3 py-2.5 font-mono">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-500/30">
                                         Rev #{{ $rev->revisi_ke }}
                                     </span>
                                 </td>
-                                <td class="px-3 py-2.5 text-foreground">{{ $rev->requester?->name ?? '—' }}</td>
-                                <td class="px-3 py-2.5 text-muted-foreground">{{ $rev->alasan ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-[#101828] dark:text-gray-200">{{ $rev->requester?->name ?? '—' }}</td>
+                                <td class="px-3 py-2.5 text-text-muted">{{ $rev->alasan ?? '—' }}</td>
                                 <td class="px-3 py-2.5 text-center">
-                                    <a href="{{ route('purchasing.show', $rev->purchaseOrder) }}" class="inline-flex items-center px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-semibold transition shadow-2xs">
+                                    <x-button :href="route('purchasing.show', $rev->purchaseOrder)" variant="warning" size="xs">
                                         Review Usulan &rarr;
-                                    </a>
+                                    </x-button>
                                 </td>
                             </tr>
                             @endforeach
@@ -282,10 +292,13 @@
 
             {{-- Antrean PO Menunggu Persetujuan --}}
             <x-card title="Antrean Persetujuan Purchase Order" :noPadding="true">
-                <div class="overflow-x-auto p-2">
+                <x-slot:icon>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </x-slot:icon>
+                <div class="overflow-x-auto">
                     <table id="tblApproval" class="w-full text-xs">
                         <thead>
-                            <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[11px] uppercase">
+                            <tr>
                                 <th class="px-3 py-2.5 text-left">No Invoice</th>
                                 <th class="px-3 py-2.5 text-left">Supplier</th>
                                 <th class="px-3 py-2.5 text-left">Lokasi</th>
@@ -301,19 +314,21 @@
         </div>
         @endif
 
-        {{-- TAB 4: Lead Time Supplier (Level-1, Level-2, 9-Stage Breakdown, & Log Transaksi) --}}
-        <div x-show="activeTab === 'lead_time'" x-cloak class="min-h-[480px] space-y-6">
+        {{-- TAB 4: Lead Time Supplier --}}
+        <div x-show="activeTab === 'lead_time'" x-cloak class="min-h-[480px] space-y-5">
             {{-- Header & Sub-toolbar --}}
-            <div class="flex flex-wrap items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border shadow-xs">
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-gray-900 p-4 rounded-[12px] border border-[#e8e8e8] dark:border-border shadow-theme-xs">
                 <div>
-                    <h3 class="text-sm font-bold text-foreground">Analisis Lead Time & Performa Supplier (PRD v2.4)</h3>
-                    <p class="text-xs text-muted-foreground mt-0.5">Ringkasan performa pemenuhan pesanan Level-1 (Supplier), Level-2 (Produk), Breakdown 9 Stage, dan Audit Log Transaksi</p>
+                    <h3 class="text-sm font-bold text-[#101828] dark:text-white">Analisis Lead Time & Performa Supplier (PRD v2.4)</h3>
+                    <p class="text-xs text-text-muted mt-0.5">Ringkasan performa pemenuhan pesanan Level-1 (Supplier), Level-2 (Produk), Breakdown 8 Stage, dan Audit Log Transaksi</p>
                 </div>
                 <div>
-                    <button type="button" onclick="loadLeadTimeData()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium transition cursor-pointer border border-border">
-                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <x-button type="button" onclick="loadLeadTimeData()" variant="secondary" size="sm">
+                        <x-slot:icon>
+                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        </x-slot:icon>
                         Segarkan Data
-                    </button>
+                    </x-button>
                 </div>
             </div>
 
@@ -321,19 +336,19 @@
             <x-card title="Level-1: Performa Lead Time per Supplier" subtitle="Rata-rata dan durasi maksimal lead time pengadaan per vendor" :noPadding="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs" id="tblLtSupplier">
-                        <thead>
-                            <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[11px] uppercase">
-                                <th class="px-4 py-3 text-left">Supplier</th>
-                                <th class="px-4 py-3 text-left">Kategori</th>
-                                <th class="px-4 py-3 text-center">Jml Transaksi Valid</th>
-                                <th class="px-4 py-3 text-right">Rata-rata Lead Time</th>
-                                <th class="px-4 py-3 text-right">Lead Time Maksimal</th>
-                                <th class="px-4 py-3 text-center">Breakdown 9 Stage</th>
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-normal">Supplier</th>
+                                <th class="px-4 py-3 text-left font-normal">Kategori</th>
+                                <th class="px-4 py-3 text-center font-normal">Jml Transaksi Valid</th>
+                                <th class="px-4 py-3 text-right font-normal">Rata-rata Lead Time</th>
+                                <th class="px-4 py-3 text-right font-normal">Lead Time Maksimal</th>
+                                <th class="px-4 py-3 text-center font-normal">Breakdown Stage</th>
                             </tr>
                         </thead>
-                        <tbody id="bodyLtSupplier" class="divide-y divide-border">
+                        <tbody id="bodyLtSupplier" class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             <tr>
-                                <td colspan="6" class="px-4 py-8 text-center text-muted-foreground">Memuat ringkasan supplier...</td>
+                                <td colspan="6" class="px-4 py-8 text-center text-text-muted">Memuat ringkasan supplier...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -344,20 +359,20 @@
             <x-card title="Level-2: Performa Lead Time per Supplier & SKU Produk" subtitle="Matriks kecepatan pemenuhan per varian/komoditas bahan baku" :noPadding="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs" id="tblLtProduk">
-                        <thead>
-                            <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[11px] uppercase">
-                                <th class="px-4 py-3 text-left">Supplier</th>
-                                <th class="px-4 py-3 text-left">SKU</th>
-                                <th class="px-4 py-3 text-left">Nama Produk / Bahan</th>
-                                <th class="px-4 py-3 text-center">Satuan</th>
-                                <th class="px-4 py-3 text-center">Jml Transaksi</th>
-                                <th class="px-4 py-3 text-right">Rata-rata LT</th>
-                                <th class="px-4 py-3 text-right">Max LT</th>
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-normal">Supplier</th>
+                                <th class="px-4 py-3 text-left font-normal">SKU</th>
+                                <th class="px-4 py-3 text-left font-normal">Nama Produk / Bahan</th>
+                                <th class="px-4 py-3 text-center font-normal">Satuan</th>
+                                <th class="px-4 py-3 text-center font-normal">Jml Transaksi</th>
+                                <th class="px-4 py-3 text-right font-normal">Rata-rata LT</th>
+                                <th class="px-4 py-3 text-right font-normal">Max LT</th>
                             </tr>
                         </thead>
-                        <tbody id="bodyLtProduk" class="divide-y divide-border">
+                        <tbody id="bodyLtProduk" class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             <tr>
-                                <td colspan="7" class="px-4 py-8 text-center text-muted-foreground">Memuat data produk...</td>
+                                <td colspan="7" class="px-4 py-8 text-center text-text-muted">Memuat data produk...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -368,22 +383,22 @@
             <x-card title="Log Transaksi Lead Time PO (PoLeadTime)" subtitle="100 transaksi lead time terakhir dengan opsi pembatalan validitas (Invalidate) untuk outlier" :noPadding="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs" id="tblLtTransaksi">
-                        <thead>
-                            <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[11px] uppercase">
-                                <th class="px-3 py-3 text-left">No PO</th>
-                                <th class="px-3 py-3 text-left">Supplier</th>
-                                <th class="px-3 py-3 text-left">Waktu Selesai</th>
-                                <th class="px-3 py-3 text-right">Total LT</th>
-                                <th class="px-3 py-3 text-right">LT Internal</th>
-                                <th class="px-3 py-3 text-right">LT Supplier</th>
-                                <th class="px-3 py-3 text-right">LT Logistik</th>
-                                <th class="px-3 py-3 text-center">Status</th>
-                                <th class="px-3 py-3 text-center">Aksi</th>
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted">
+                            <tr>
+                                <th class="px-3 py-3 text-left font-normal">No PO</th>
+                                <th class="px-3 py-3 text-left font-normal">Supplier</th>
+                                <th class="px-3 py-3 text-left font-normal">Waktu Selesai</th>
+                                <th class="px-3 py-3 text-right font-normal">Total LT</th>
+                                <th class="px-3 py-3 text-right font-normal">LT Internal</th>
+                                <th class="px-3 py-3 text-right font-normal">LT Supplier</th>
+                                <th class="px-3 py-3 text-right font-normal">LT Logistik</th>
+                                <th class="px-3 py-3 text-center font-normal">Status</th>
+                                <th class="px-3 py-3 text-center font-normal">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody id="bodyLtTransaksi" class="divide-y divide-border">
+                        <tbody id="bodyLtTransaksi" class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             <tr>
-                                <td colspan="9" class="px-4 py-8 text-center text-muted-foreground">Memuat transaksi lead time...</td>
+                                <td colspan="9" class="px-4 py-8 text-center text-text-muted">Memuat transaksi lead time...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -392,91 +407,94 @@
         </div>
     </div>
 
-    <!-- Modal Detail Breakdown 9 Stage Supplier -->
-    <div id="modalStageBreakdown" class="fixed inset-0 z-50 bg-black/40 hidden items-center justify-center p-4">
-        <div class="bg-card rounded-xl border border-border shadow-xl max-w-2xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div class="px-5 py-3.5 bg-muted/50 border-b border-border flex items-center justify-between">
+    <!-- Modal Detail Breakdown Stage Supplier -->
+    <div id="modalStageBreakdown" class="fixed inset-0 z-[999] bg-black/50 backdrop-blur-xs hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#e8e8e8] dark:border-border shadow-2xl max-w-2xl w-full overflow-hidden">
+            <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#e8e8e8] dark:border-border flex items-center justify-between">
                 <div>
-                    <h3 class="text-xs font-bold text-foreground">Breakdown Performa 9 Stage</h3>
-                    <p class="text-[11px] text-muted-foreground" id="modalStageSupplierName">Supplier: —</p>
+                    <h3 class="text-base font-bold text-[#101828] dark:text-white tracking-tight">Breakdown Performa Stage</h3>
+                    <p class="text-xs text-text-muted" id="modalStageSupplierName">Supplier: —</p>
                 </div>
-                <button type="button" onclick="closeStageBreakdownModal()" class="text-muted-foreground hover:text-foreground font-bold">✕</button>
+                <button type="button" onclick="closeStageBreakdownModal()" class="text-text-muted hover:text-text-active p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">✕</button>
             </div>
-            <div class="p-4 max-h-[75vh] overflow-y-auto">
-                <table class="w-full text-xs">
-                    <thead>
-                        <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[11px] uppercase">
-                            <th class="px-3 py-2 text-left">Tahap (Stage)</th>
-                            <th class="px-3 py-2 text-center">Jml Transaksi</th>
-                            <th class="px-3 py-2 text-right">Rata-rata Hari</th>
-                            <th class="px-3 py-2 text-right">Rata-rata Jam</th>
-                            <th class="px-3 py-2 text-right">Max Hari</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bodyModalStages" class="divide-y divide-border">
-                        <!-- Populated by JS -->
-                    </tbody>
-                </table>
+            <div class="p-4 sm:p-5 max-h-[75vh] overflow-y-auto custom-scrollbar bg-[#F5F5F5] dark:bg-gray-950">
+                <div class="bg-white dark:bg-gray-900 rounded-[8px] border border-[#e8e8e8] dark:border-border overflow-hidden">
+                    <table class="w-full text-xs">
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-b border-[#e8e8e8] dark:border-border text-text-muted">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-normal">Tahap (Stage)</th>
+                                <th class="px-3 py-2 text-center font-normal">Jml Transaksi</th>
+                                <th class="px-3 py-2 text-right font-normal">Rata-rata Hari</th>
+                                <th class="px-3 py-2 text-right font-normal">Rata-rata Jam</th>
+                                <th class="px-3 py-2 text-right font-normal">Max Hari</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bodyModalStages" class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="px-5 py-3 bg-muted/30 border-t border-border flex justify-end">
-                <x-button type="button" onclick="closeStageBreakdownModal()" variant="secondary" size="xs">Tutup</x-button>
+            <div class="px-4 py-3 bg-white dark:bg-gray-900 border-t border-[#e8e8e8] dark:border-border flex justify-end">
+                <x-button type="button" onclick="closeStageBreakdownModal()" variant="secondary" size="sm">Tutup</x-button>
             </div>
         </div>
     </div>
 
     <!-- Modal Invalidate Lead Time Transaksi -->
-    <div id="modalInvalidateLt" class="fixed inset-0 z-50 bg-black/40 hidden items-center justify-center p-4">
-        <div class="bg-card rounded-xl border border-border shadow-xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div class="px-5 py-3.5 bg-muted/50 border-b border-border flex items-center justify-between">
+    <div id="modalInvalidateLt" class="fixed inset-0 z-[999] bg-black/50 backdrop-blur-xs hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#e8e8e8] dark:border-border shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#e8e8e8] dark:border-border flex items-center justify-between">
                 <div>
-                    <h3 class="text-xs font-bold text-destructive flex items-center gap-1.5">
+                    <h3 class="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5 tracking-tight">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         Batalkan Validitas Lead Time PO
                     </h3>
-                    <p class="text-[11px] text-muted-foreground" id="modalInvPoNo">PO: —</p>
+                    <p class="text-xs text-text-muted" id="modalInvPoNo">PO: —</p>
                 </div>
-                <button type="button" onclick="closeInvalidateLtModal()" class="text-muted-foreground hover:text-foreground font-bold">✕</button>
+                <button type="button" onclick="closeInvalidateLtModal()" class="text-text-muted hover:text-text-active p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">✕</button>
             </div>
-            <form id="formInvalidateLt" onsubmit="submitInvalidateLt(event)" class="p-5 space-y-4 text-xs">
+            <form id="formInvalidateLt" onsubmit="submitInvalidateLt(event)" class="text-xs">
                 <input type="hidden" id="invPoId">
-                <div class="p-3 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg text-xs leading-relaxed">
-                    Tindakan ini akan mengecualikan transaksi PO ini dari perhitungan rata-rata benchmark lead time vendor, mengembalikan akumulasi durasi, dan menghitung ulang SLA.
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
+                    <div class="p-3 bg-red-50/90 dark:bg-red-500/10 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/20 rounded-[8px] text-xs leading-relaxed">
+                        Tindakan ini akan mengecualikan transaksi PO ini dari perhitungan rata-rata benchmark lead time vendor, mengembalikan akumulasi durasi, dan menghitung ulang SLA.
+                    </div>
+                    <x-form-field label="Alasan Anomali" name="alasan" :required="true" align="top">
+                        <textarea id="invAlasan" rows="3" required minlength="5" placeholder="Contoh: Terjadi bencana alam banjir di pabrik supplier, bukan performa normal vendor..." class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0"></textarea>
+                    </x-form-field>
                 </div>
-                <div>
-                    <label class="block font-semibold text-foreground mb-1">Alasan Pembatalan / Anomali <span class="text-destructive">*</span></label>
-                    <textarea id="invAlasan" rows="3" required minlength="5" placeholder="Contoh: Terjadi bencana alam banjir di pabrik supplier, bukan performa normal vendor..." class="w-full text-xs rounded-lg border border-border bg-card p-2.5 focus:ring-2 focus:ring-primary/20 text-foreground outline-none"></textarea>
-                </div>
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                    <x-button type="button" onclick="closeInvalidateLtModal()" variant="secondary" size="xs">Batal</x-button>
-                    <x-button type="submit" variant="danger" size="xs" id="btnSubmitInvalidate">Batalkan Validitas</x-button>
+                <div class="px-4 py-3 bg-white dark:bg-gray-900 border-t border-[#e8e8e8] dark:border-border flex items-center justify-end gap-2">
+                    <x-button type="button" onclick="closeInvalidateLtModal()" variant="secondary" size="sm">Batal</x-button>
+                    <x-button type="submit" variant="danger" size="sm" id="btnSubmitInvalidate">Batalkan Validitas</x-button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal Quick-Edit Tanggal PO & ETA -->
-    <div id="quickDateModal" class="fixed inset-0 z-50 bg-black/40 hidden items-center justify-center p-4">
-        <div class="bg-card rounded-xl border border-border shadow-xl max-w-sm w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div class="px-4 py-3 bg-muted/50 border-b border-border flex items-center justify-between">
+    <div id="quickDateModal" class="fixed inset-0 z-[999] bg-black/50 backdrop-blur-xs hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#e8e8e8] dark:border-border shadow-2xl max-w-sm w-full overflow-hidden">
+            <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#e8e8e8] dark:border-border flex items-center justify-between">
                 <div>
-                    <h3 class="text-xs font-bold text-foreground">Ubah Tanggal PO & ETA</h3>
-                    <p class="text-[10px] text-muted-foreground" id="modalPoNumber">PO-XXXX</p>
+                    <h3 class="text-base font-bold text-[#101828] dark:text-white tracking-tight">Ubah Tanggal PO & ETA</h3>
+                    <p class="text-xs text-text-muted" id="modalPoNumber">PO-XXXX</p>
                 </div>
-                <button type="button" onclick="closeQuickDateModal()" class="text-muted-foreground hover:text-foreground font-bold">✕</button>
+                <button type="button" onclick="closeQuickDateModal()" class="text-text-muted hover:text-text-active p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">✕</button>
             </div>
-            <form id="quickDateForm" onsubmit="submitQuickDate(event)" class="p-4 space-y-3 text-xs">
+            <form id="quickDateForm" onsubmit="submitQuickDate(event)" class="text-xs">
                 <input type="hidden" id="editPoId">
-                <div>
-                    <label class="block font-semibold text-foreground mb-1">Tanggal PO <span class="text-destructive">*</span></label>
-                    <input type="date" id="editTanggal" required class="w-full text-xs py-1.5 px-3 rounded-lg border border-border bg-card focus:ring-2 focus:ring-primary/20 outline-none text-foreground">
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-2.5">
+                    <x-form-field label="Tanggal PO" name="tanggal" :required="true">
+                        <input type="date" id="editTanggal" required class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active outline-none">
+                    </x-form-field>
+                    <x-form-field label="Estimasi (ETA)" name="eta">
+                        <input type="date" id="editEta" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active outline-none">
+                    </x-form-field>
                 </div>
-                <div>
-                    <label class="block font-semibold text-foreground mb-1">Estimasi Kedatangan (ETA)</label>
-                    <input type="date" id="editEta" class="w-full text-xs py-1.5 px-3 rounded-lg border border-border bg-card focus:ring-2 focus:ring-primary/20 outline-none text-foreground">
-                </div>
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                    <x-button type="button" onclick="closeQuickDateModal()" variant="secondary" size="xs">Batal</x-button>
-                    <x-button type="submit" variant="primary" size="xs" id="btnSaveQuickDate">Simpan Perubahan</x-button>
+                <div class="px-4 py-3 bg-white dark:bg-gray-900 border-t border-[#e8e8e8] dark:border-border flex items-center justify-end gap-2">
+                    <x-button type="button" onclick="closeQuickDateModal()" variant="secondary" size="sm">Batal</x-button>
+                    <x-button type="submit" variant="primary" size="sm" id="btnSaveQuickDate">Simpan Perubahan</x-button>
                 </div>
             </form>
         </div>
