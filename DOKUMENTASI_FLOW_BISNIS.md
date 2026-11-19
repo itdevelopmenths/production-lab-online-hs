@@ -234,12 +234,14 @@ flowchart LR
 | **1** | **Perencanaan** | Purchasing | Staf Purchasing membuat PO dan mengajukannya kepada Manager. Saat diajukan, Tahap 1 selesai dan Tahap 2 dimulai pada waktu yang sama. |
 | **2** | **Approval** | Manager | Manager memeriksa harga, jumlah, dan termin pembayaran. Jika **Setuju**, lanjut ke Tahap 3. Jika **Tolak** dengan alasan wajib, dokumen dikembalikan ke Tahap 1 dan sistem membuka **Putaran Baru**. |
 | **3** | **Konfirmasi Supplier** | Purchasing | Mencatat konfirmasi kesanggupan kuantitas, harga, nomor referensi supplier, dan estimasi kedatangan (ETA). |
-| **4** | **Pembayaran** | Purchasing | Dua jalur penyelesaian:<br>1. **Tombol "Dibayarkan":** Wajib sudah mencatat minimal 1 pembayaran (DP/Termin/Pelunasan) dengan nominal $> 0$.<br>2. **Tombol "Lanjut Tempo":** Khusus PO berskema **Tempo**, boleh lanjut ke Tahap 5 tanpa bayar uang muka di awal. |
+| **4** | **Pembayaran** | Purchasing | Dua jalur penyelesaian:<br>1. **Tombol "Dibayarkan":** Wajib sudah mencatat minimal 1 pembayaran (DP/Termin/Pelunasan) dengan nominal $> 0$.<br>2. **Tombol "Lanjut Tempo":** Khusus PO berskema **Tempo**, boleh lanjut ke Tahap 5 tanpa bayar uang muka di awal. Pembayaran hanya dapat dicatat setelah PO disetujui Manager (Tahap 2 selesai). |
 | **5** | **PO Terbit** | Purchasing | Dokumen PO resmi dikirimkan kepada supplier sebagai perintah pemenuhan pesanan. |
 | **6** | **Pengemasan** | Purchasing | Mencatat kesiapan barang di tempat supplier: jumlah koli, berat (kg), dan catatan pengemasan. |
 | **7** | **Pengiriman** | Purchasing | Barang diserahkan ke ekspedisi. **Wajib mengisi nama Ekspedisi**, serta moda pengiriman (darat/laut/udara), nomor resi, nomor kontainer, dan perkiraan tanggal tiba. |
 | **8** | **Unloading (Bongkar Muat)** | Gudang | Barang tiba di Gudang Pusat. Petugas gudang membongkar muatan dan mencatat jumlah fisik kedatangan beserta kondisinya (Baik/Rusak) dan selisihnya. **Saldo stok sistem belum bertambah pada tahap ini!** |
 | **9** | **Input Sistem (Posting Stok)** | Gudang | Petugas gudang menyelesaikan Tahap 9. Secara otomatis:<br>1. Saldo stok **Gudang Pusat** bertambah sesuai jumlah fisik yang diterima.<br>2. Kartu Stok **Masuk (IN)** tercatat.<br>3. Status PO menjadi **Selesai**.<br>4. Sistem menghitung durasi menit & hari untuk seluruh 9 tahap dan memperbarui rata-rata serta maksimum *Lead Time* supplier tersebut! |
+
+User Gudang hanya dapat melihat PO mulai Tahap 5 (PO Terbit); PO pada Tahap 1–4 tidak muncul di daftar dan tidak dapat dibuka lewat tautan langsung.
 
 #### B. Dua Mekanisme Perubahan Data PO (Direct Edit vs Ajukan Revisi)
 Apabila terjadi perubahan data saat PO sedang berjalan, sistem menyediakan 2 mekanisme:

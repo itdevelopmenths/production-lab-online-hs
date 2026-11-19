@@ -592,7 +592,8 @@ class PurchasingRevampFlowTest extends TestCase
             'supplier_id' => $supplier->id,
             'gudang_id' => $gudang->id,
             'tanggal' => now(),
-            'status' => 'diajukan',
+            // Disetujui: form pembayaran (Nominal Bayar) hanya tampil setelah PO disetujui Manager.
+            'status' => 'disetujui',
             'skema_bayar' => 'tempo',
             'grand_total' => 1500000,
             'created_by' => $manager->id,
