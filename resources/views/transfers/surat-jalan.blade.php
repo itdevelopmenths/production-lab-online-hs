@@ -12,7 +12,11 @@
             color: #0f172a;
         }
         .font-mono {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        .print-page {
+            background-color: #ffffff;
+            color: #101828;
         }
         @media print {
             body {
@@ -42,22 +46,26 @@
 <body class="min-h-screen py-6 px-4 print:p-0">
 
     <!-- Action Toolbar (Hidden during Print) -->
-    <div class="max-w-3xl mx-auto mb-6 flex items-center justify-between no-print">
-        <a href="{{ route('transfers.show', $transfer) }}" class="inline-flex items-center gap-2 text-xs font-medium text-foreground bg-background border border-border rounded-lg px-3.5 py-2 shadow-xs hover:bg-muted transition">
-            <svg class="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    <div class="max-w-3xl mx-auto mb-6 flex items-center justify-between gap-3 no-print">
+        <x-button :href="route('transfers.show', $transfer)" variant="secondary" size="sm">
+            <x-slot:icon>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            </x-slot:icon>
             Kembali ke Detail Dokumen
-        </a>
+        </x-button>
 
         <div class="flex items-center gap-2">
-            <button onclick="window.print()" class="inline-flex items-center gap-2 text-xs font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg px-4 py-2 shadow-xs transition cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            <x-button onclick="window.print()" variant="primary" size="sm">
+                <x-slot:icon>
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                </x-slot:icon>
                 Cetak Surat Jalan
-            </button>
+            </x-button>
         </div>
     </div>
 
-    <!-- Container Utama Surat Jalan -->
-    <div class="max-w-3xl mx-auto bg-card rounded-xl border border-border p-8 shadow-xs print-page">
+    <!-- Container Utama Surat Jalan (Kertas Putih A4 Terisolasi) -->
+    <div class="max-w-3xl mx-auto bg-white text-gray-900 rounded-[12px] border border-[#e8e8e8] p-8 shadow-theme-sm print-page">
 
         <!-- Header: Judul & Nomor Dokumen -->
         <div class="flex items-start justify-between border-b-2 border-gray-900 pb-4 mb-6">

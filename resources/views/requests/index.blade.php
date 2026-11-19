@@ -34,15 +34,15 @@
             </x-slot:actions>
         </x-page-header>
 
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-2.5 bg-card px-3.5 py-2 rounded-lg border border-border shadow-2xs">
+        <div class="mb-3.5 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-gray-900 px-4 py-3 rounded-[12px] border border-[#E8E8E8] dark:border-border shadow-theme-xs">
             <div class="flex flex-wrap items-center gap-2.5">
-                <select id="filterJenis" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
+                <select id="filterJenis" class="h-8 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none cursor-pointer">
                     <option value="">Semua Jenis Permintaan</option>
                     <option value="request_bahan">Bahan Baku (Operasional)</option>
                     <option value="request_produk_jadi">Produk Jadi (Fulfillment)</option>
                 </select>
 
-                <select id="filterStatus" class="h-8 rounded-md border border-input bg-background text-xs py-1 px-2.5 focus:ring-1 focus:ring-primary/20 text-foreground outline-none cursor-pointer">
+                <select id="filterStatus" class="h-8 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none cursor-pointer">
                     <option value="">Semua Status</option>
                     <option value="draft">Draft</option>
                     <option value="diajukan">Diajukan</option>
@@ -53,14 +53,29 @@
                     <option value="dibatalkan">Dibatalkan</option>
                 </select>
             </div>
+
+            <div class="bg-[#f3f4f6] dark:bg-gray-950 dark:border dark:border-gray-800 p-[2px] gap-[2px] rounded-[8px] h-8 inline-flex items-center max-w-full overflow-x-auto no-scrollbar"
+                 x-data="{ statusFilter: '' }">
+                @foreach(['' => 'Semua', 'diajukan' => 'Diajukan', 'disetujui' => 'Disetujui', 'selesai' => 'Selesai'] as $sVal => $sLabel)
+                    <button type="button"
+                            @click="statusFilter = '{{ $sVal }}'; $('#filterStatus').val('{{ $sVal }}').trigger('change');"
+                            :class="statusFilter === '{{ $sVal }}' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-theme-xs font-semibold' : 'bg-transparent text-text-muted border border-transparent hover:text-text-active font-medium'"
+                            class="px-2.5 py-1 rounded-[6px] h-full text-xs whitespace-nowrap transition cursor-pointer">
+                        {{ $sLabel }}
+                    </button>
+                @endforeach
+            </div>
         </div>
 
-        <x-card title="Daftar Permintaan Barang" :noPadding="true">
+        <x-card title="Daftar Permintaan Barang" subtitle="Alur permintaan bahan baku & produk jadi lintas gudang" :noPadding="true">
+            <x-slot:icon>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </x-slot:icon>
 
             <div class="overflow-x-auto">
                 <table id="tblRequests" class="w-full text-sm">
                     <thead>
-                        <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[13px] font-medium">
+                        <tr>
                             <th class="px-4 py-3 text-left">No Request</th>
                             <th class="px-4 py-3 text-left">Tanggal</th>
                             <th class="px-4 py-3 text-left">Jenis</th>
@@ -76,57 +91,35 @@
         </x-card>
 
         {{-- Modal Tolak Request --}}
-        <x-modal name="openRejectModal" maxWidth="md">
-            <x-slot:header>
-                <div class="px-6 py-5 border-b border-border/60 bg-rose-50 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="size-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 border border-rose-200">
-                            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </div>
-                        <div>
-                            <h3 class="text-base font-bold text-foreground">Tolak Permintaan Barang</h3>
-                            <p class="text-xs text-muted-foreground" x-text="targetNo"></p>
-                        </div>
-                    </div>
-                </div>
-            </x-slot:header>
-            <form method="POST" :action="actionUrl" class="space-y-4 p-6">
+        <x-modal name="openRejectModal" title="Tolak Permintaan Barang" maxWidth="md" :noPadding="true">
+            <form method="POST" :action="actionUrl">
                 @csrf
-                <div>
-                    <label class="block text-xs font-semibold text-foreground mb-1">Alasan Penolakan <span class="text-destructive">*</span></label>
-                    <textarea name="alasan" x-model="alasan" required rows="3" class="w-full text-xs rounded-lg border border-border p-2 focus:ring-2 focus:ring-primary/20" placeholder="Jelaskan alasan penolakan permintaan..."></textarea>
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
+                    <div class="text-xs text-text-muted">Dokumen: <span class="font-mono font-semibold text-text-active" x-text="targetNo"></span></div>
+                    <x-form-field label="Alasan Penolakan" name="alasan" :required="true" align="top">
+                        <textarea name="alasan" x-model="alasan" required rows="3" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0" placeholder="Jelaskan alasan penolakan permintaan..."></textarea>
+                    </x-form-field>
                 </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <x-button type="button" variant="outline" @click="openRejectModal = false">Batal</x-button>
-                    <x-button type="submit" variant="danger">Tolak Request</x-button>
+                <div class="bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-border px-4 py-3 flex justify-end gap-2">
+                    <x-button type="button" variant="secondary" size="sm" @click="openRejectModal = false">Batal</x-button>
+                    <x-button type="submit" variant="danger" size="sm">Tolak Request</x-button>
                 </div>
             </form>
         </x-modal>
 
         {{-- Modal Batalkan Request --}}
-        <x-modal name="openCancelModal" maxWidth="md">
-            <x-slot:header>
-                <div class="px-6 py-5 border-b border-border/60 bg-amber-50 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="size-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200">
-                            <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        </div>
-                        <div>
-                            <h3 class="text-base font-bold text-foreground">Batalkan Permintaan</h3>
-                            <p class="text-xs text-muted-foreground" x-text="targetNo"></p>
-                        </div>
-                    </div>
-                </div>
-            </x-slot:header>
-            <form method="POST" :action="actionUrl" class="space-y-4 p-6">
+        <x-modal name="openCancelModal" title="Batalkan Permintaan" maxWidth="md" :noPadding="true">
+            <form method="POST" :action="actionUrl">
                 @csrf
-                <div>
-                    <label class="block text-xs font-semibold text-foreground mb-1">Alasan Pembatalan (Opsional)</label>
-                    <textarea name="alasan" x-model="alasan" rows="3" class="w-full text-xs rounded-lg border border-border p-2 focus:ring-2 focus:ring-primary/20" placeholder="Alasan pembatalan..."></textarea>
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
+                    <div class="text-xs text-text-muted">Dokumen: <span class="font-mono font-semibold text-text-active" x-text="targetNo"></span></div>
+                    <x-form-field label="Alasan (Opsional)" name="alasan" align="top">
+                        <textarea name="alasan" x-model="alasan" rows="3" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0" placeholder="Alasan pembatalan..."></textarea>
+                    </x-form-field>
                 </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <x-button type="button" variant="outline" @click="openCancelModal = false">Kembali</x-button>
-                    <x-button type="submit" variant="danger">Batalkan Request</x-button>
+                <div class="bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-border px-4 py-3 flex justify-end gap-2">
+                    <x-button type="button" variant="secondary" size="sm" @click="openCancelModal = false">Kembali</x-button>
+                    <x-button type="submit" variant="danger" size="sm">Batalkan Request</x-button>
                 </div>
             </form>
         </x-modal>

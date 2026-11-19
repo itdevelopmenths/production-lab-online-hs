@@ -104,36 +104,36 @@
             @csrf
             @method('PUT')
 
-            <x-card>
+            <x-card bodyClass="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-4">
                 <x-slot:header>
                     <div class="flex items-center justify-between w-full">
                         <div>
                             <div class="flex items-center gap-2">
-                                <h2 class="text-lg font-semibold text-foreground tracking-tight">Edit Permintaan Barang</h2>
-                                <span class="font-mono text-xs px-2 py-0.5 rounded bg-muted text-primary font-bold">{{ $stockRequest->no_request }}</span>
+                                <h2 class="text-[16px] font-semibold text-[#101828] dark:text-white tracking-tight">Edit Permintaan Barang</h2>
+                                <span class="font-mono text-xs px-2 py-0.5 rounded-[5px] bg-[#F5F5F5] dark:bg-gray-800 border border-[#E8E8E8] dark:border-border text-text-active font-bold">{{ $stockRequest->no_request }}</span>
                             </div>
-                            <p class="text-xs text-muted-foreground mt-0.5">Perbarui rincian gudang dan kuantitas barang yang diminta</p>
+                            <p class="text-xs text-text-muted mt-0.5">Perbarui rincian gudang dan kuantitas barang yang diminta</p>
                         </div>
                         <div>
                             @if($stockRequest->status === 'disetujui')
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-300">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-500/15 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30">
                                     Revisi Pasca Approval (FR-REQ-08)
                                 </span>
                             @else
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border">
+                                <x-badge :variant="$stockRequest->status" :pill="true">
                                     Status Saat Ini: {{ ucfirst($stockRequest->status) }}
-                                </span>
+                                </x-badge>
                             @endif
                         </div>
                     </div>
                 </x-slot:header>
 
                 @if($stockRequest->status === 'disetujui')
-                <div class="p-4 mb-4 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 text-xs flex items-start gap-3">
-                    <svg class="size-5 text-purple-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="p-4 rounded-[10px] bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-purple-900 dark:text-purple-200 text-xs flex items-start gap-3">
+                    <svg class="size-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div>
                         <div class="font-bold">Ketentuan Revisi Permintaan Disetujui (FR-REQ-08):</div>
-                        <p class="mt-0.5 leading-relaxed text-purple-800">
+                        <p class="mt-0.5 leading-relaxed text-purple-800 dark:text-purple-300">
                             Karena permintaan ini sebelumnya sudah berstatus <strong>Disetujui</strong>, setiap perubahan pada kuantitas atau rincian item akan secara otomatis <strong>mereset status dokumen kembali menjadi 'Diajukan'</strong> dan membutuhkan persetujuan (approval) ulang dari Manajer sebelum dapat diproses transfer stoknya.
                         </p>
                     </div>
@@ -141,7 +141,7 @@
                 @endif
 
                 @if($errors->any())
-                <div class="p-4 mb-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+                <div class="p-4 rounded-[10px] bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-300 text-xs">
                     <div class="font-bold mb-1">Terdapat kesalahan input:</div>
                     <ul class="list-disc list-inside space-y-0.5">
                         @foreach($errors->all() as $err)
@@ -151,37 +151,34 @@
                 </div>
                 @endif
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1.5">Jenis Permintaan</label>
-                        <input type="text" readonly value="{{ $stockRequest->jenis === 'request_bahan' ? 'Request Bahan Baku' : 'Request Produk Jadi' }}" class="w-full h-10 text-xs rounded-lg border border-border bg-muted px-3 text-muted-foreground font-medium">
-                    </div>
+                <x-form-section title="Rute & Jenis Permintaan" :cols="3">
+                    <x-form-field label="Jenis Permintaan" :disabled="true">
+                        <input type="text" readonly value="{{ $stockRequest->jenis === 'request_bahan' ? 'Request Bahan Baku' : 'Request Produk Jadi' }}" class="w-full bg-transparent border-0 p-0 text-[13px] text-text-muted font-medium focus:outline-none">
+                    </x-form-field>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1.5">Gudang Pemohon <span class="text-destructive">*</span></label>
-                        <select name="gudang_pemohon_id" x-model="gudangPemohonId" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
+                    <x-form-field label="Gudang Pemohon" name="gudang_pemohon_id" :required="true">
+                        <x-select name="gudang_pemohon_id" variant="seamless" x-model="gudangPemohonId" :required="true">
                             @foreach($gudang as $g)
-                                <option value="{{ $g->id }}">{{ $g->nama }} ({{ $g->kode }})</option>
+                                <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $g->nama }} ({{ $g->kode }})</option>
                             @endforeach
-                        </select>
-                    </div>
+                        </x-select>
+                    </x-form-field>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1.5">Gudang Penyedia <span class="text-destructive">*</span></label>
-                        <select name="gudang_tujuan_id" x-model="gudangTujuanId" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
+                    <x-form-field label="Gudang Penyedia" name="gudang_tujuan_id" :required="true">
+                        <x-select name="gudang_tujuan_id" variant="seamless" x-model="gudangTujuanId" :required="true">
                             @foreach($gudang as $g)
-                                <option value="{{ $g->id }}">{{ $g->nama }} ({{ $g->kode }})</option>
+                                <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $g->nama }} ({{ $g->kode }})</option>
                             @endforeach
-                        </select>
-                    </div>
-                </div>
+                        </x-select>
+                    </x-form-field>
+                </x-form-section>
 
                 @if($stockRequest->jenis === 'request_bahan')
-                <div class="mt-4 p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
-                    <label class="block text-xs font-semibold text-amber-900">
+                <div class="p-3.5 bg-amber-50/70 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-[10px] space-y-2">
+                    <label class="block text-xs font-semibold text-amber-900 dark:text-amber-300">
                         Batch Produksi Terkait (Opsional):
                     </label>
-                    <select name="batch_id" x-model="batchId" class="w-full h-9 rounded-lg border border-border bg-card px-3 text-xs focus:ring-2 focus:ring-primary/20">
+                    <select name="batch_id" x-model="batchId" class="w-full h-9 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 px-3 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white">
                         <option value="">-- Tanpa Batch (Permintaan Bebas) --</option>
                         @foreach($activeBatches as $ab)
                             <option value="{{ $ab->id }}" @selected(old('batch_id', $stockRequest->referensi_batch_id) == $ab->id)>
@@ -192,10 +189,11 @@
                 </div>
                 @endif
 
-                <div class="mt-5">
-                    <label class="block text-xs font-semibold text-foreground mb-1.5">Catatan / Keperluan</label>
-                    <textarea name="catatan" rows="2" class="w-full text-xs rounded-lg border border-border bg-card p-2.5 focus:ring-2 focus:ring-primary/20">{{ old('catatan', $stockRequest->catatan) }}</textarea>
-                </div>
+                <x-form-section title="Catatan Tambahan" :cols="1">
+                    <x-form-field label="Catatan / Keperluan" name="catatan" align="top">
+                        <x-textarea name="catatan" variant="seamless" rows="2">{{ old('catatan', $stockRequest->catatan) }}</x-textarea>
+                    </x-form-field>
+                </x-form-section>
             </x-card>
 
             <x-card class="relative z-10" overflow="visible">

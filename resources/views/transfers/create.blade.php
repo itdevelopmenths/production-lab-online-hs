@@ -394,54 +394,41 @@
                 <input type="hidden" name="referensi_batch_id" value="{{ $referensiBatchId }}">
             @endif
 
-            <x-card>
-                <x-slot:header>
-                    <div class="flex items-center justify-between w-full">
-                        <div>
-                            <h2 class="text-lg font-semibold text-foreground tracking-tight">Formulir Transfer / Mutasi Barang</h2>
-                            <p class="text-xs text-muted-foreground mt-0.5">Penetapan gudang pengirim, gudang tujuan, dan pemotongan stok pada pengiriman</p>
-                        </div>
-                    </div>
-                </x-slot:header>
-
+            <x-card title="Formulir Transfer / Mutasi Barang" subtitle="Penetapan gudang pengirim, gudang tujuan, dan pemotongan stok pada pengiriman" bodyClass="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-4">
                 @if($stockRequest)
-                <div class="p-4 mb-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-center justify-between">
+                <div class="p-4 rounded-[10px] bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-900 dark:text-blue-200 text-xs flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <div class="size-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                        <div class="size-8 rounded-[8px] bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 flex items-center justify-center font-bold shrink-0">
                             RT
                         </div>
                         <div>
                             <span class="font-bold">Memproses Dokumen Permintaan:</span>
-                            <span class="font-mono bg-white px-2 py-0.5 rounded border border-blue-300 font-semibold ml-1">{{ $stockRequest->no_request }}</span>
-                            <div class="text-[11px] text-blue-700 mt-0.5">Permintaan dari {{ $stockRequest->gudangPemohon?->nama }} ke {{ $stockRequest->gudangTujuan?->nama }}</div>
+                            <span class="font-mono bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 py-0.5 rounded-[5px] border border-blue-300 dark:border-blue-500/30 font-semibold ml-1">{{ $stockRequest->no_request }}</span>
+                            <div class="text-[11px] text-blue-700 dark:text-blue-300 mt-0.5">Permintaan dari {{ $stockRequest->gudangPemohon?->nama }} ke {{ $stockRequest->gudangTujuan?->nama }}</div>
                         </div>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        Disetujui
-                    </span>
+                    <x-badge variant="completed" :pill="true">Disetujui</x-badge>
                 </div>
                 @endif
 
                 @if($batch)
-                <div class="p-4 mb-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 text-xs flex items-center justify-between">
+                <div class="p-4 rounded-[10px] bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 text-sky-900 dark:text-sky-200 text-xs flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <div class="size-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center font-bold">
+                        <div class="size-8 rounded-[8px] bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300 flex items-center justify-center font-bold shrink-0">
                             BP
                         </div>
                         <div>
                             <span class="font-bold">Kirim Produk Jadi dari Batch Produksi:</span>
-                            <span class="font-mono bg-white px-2 py-0.5 rounded border border-sky-300 font-semibold ml-1">{{ $batch->no_batch }}</span>
-                            <div class="text-[11px] text-sky-700 mt-0.5">Pengiriman hasil produksi dari {{ $batch->gudangOperasional?->nama }} ke {{ $batch->gudangTujuan?->nama ?? 'Fulfillment Pusat' }}</div>
+                            <span class="font-mono bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 py-0.5 rounded-[5px] border border-sky-300 dark:border-sky-500/30 font-semibold ml-1">{{ $batch->no_batch }}</span>
+                            <div class="text-[11px] text-sky-700 dark:text-sky-300 mt-0.5">Pengiriman hasil produksi dari {{ $batch->gudangOperasional?->nama }} ke {{ $batch->gudangTujuan?->nama ?? 'Fulfillment Pusat' }}</div>
                         </div>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        {{ ucfirst($batch->status) }}
-                    </span>
+                    <x-badge variant="completed" :pill="true">{{ ucfirst($batch->status) }}</x-badge>
                 </div>
                 @endif
 
                 @if($errors->any())
-                <div class="p-4 mb-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs" role="alert">
+                <div class="p-4 rounded-[10px] bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-300 text-xs" role="alert">
                     <div class="font-bold mb-1">Terdapat kesalahan input:</div>
                     <ul class="list-disc list-inside space-y-0.5">
                         @foreach($errors->all() as $err)
@@ -451,49 +438,46 @@
                 </div>
                 @endif
 
-                <div x-show="validationMessage" x-cloak role="alert" class="p-3.5 mb-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-start gap-2">
+                <div x-show="validationMessage" x-cloak role="alert" class="p-3.5 rounded-[10px] bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-300 text-xs flex items-start gap-2">
                     <svg class="size-4 shrink-0 mt-0.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <span class="font-medium" x-text="validationMessage"></span>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div>
-                        <label for="transfer-jenis" class="block text-xs font-semibold text-foreground mb-1.5">Jenis Transfer <span class="text-destructive">*</span></label>
-                        <select id="transfer-jenis" name="jenis" x-model="jenis" @change="onJenisChange()" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
+                <x-form-section title="Rute Pengiriman & Jenis" :cols="3">
+                    <x-form-field label="Jenis Transfer" name="jenis" :required="true">
+                        <x-select id="transfer-jenis" name="jenis" variant="seamless" x-model="jenis" @change="onJenisChange()" :required="true">
                             @foreach(\App\Models\Transfer::JENIS_LABELS as $key => $label)
                                 @if(in_array($key, $allowedJenis ?? \App\Models\Transfer::JENIS, true))
-                                    <option value="{{ $key }}">{{ $label }}</option>
+                                    <option value="{{ $key }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $label }}</option>
                                 @endif
                             @endforeach
-                        </select>
-                    </div>
+                        </x-select>
+                    </x-form-field>
 
-                    <div>
-                        <label for="transfer-gudang-asal" class="block text-xs font-semibold text-foreground mb-1.5">Gudang Asal (Pengirim) <span class="text-destructive">*</span></label>
-                        <select id="transfer-gudang-asal" name="gudang_asal_id" x-model="gudangAsalId" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
-                            <option value="">-- Pilih Gudang Asal --</option>
+                    <x-form-field label="Gudang Asal" name="gudang_asal_id" :required="true">
+                        <x-select id="transfer-gudang-asal" name="gudang_asal_id" variant="seamless" x-model="gudangAsalId" placeholder="-- Pilih Gudang Asal --" :required="true">
                             @foreach($warehouses as $w)
-                                <option value="{{ $w->id }}">{{ $w->nama }} ({{ $w->kode }})</option>
+                                <option value="{{ $w->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $w->nama }} ({{ $w->kode }})</option>
+                            @endforeach
+                        </x-select>
+                    </x-form-field>
+
+                    <x-form-field label="Gudang Tujuan" name="gudang_tujuan_id" :required="true">
+                        <select id="transfer-gudang-tujuan" name="gudang_tujuan_id" x-model="gudangTujuanId" :aria-invalid="isSameWarehouse() ? 'true' : 'false'" class="w-full bg-transparent border-0 p-0 shadow-none outline-none text-[14px] font-medium text-text-active cursor-pointer" required>
+                            <option value="" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">-- Pilih Gudang Tujuan --</option>
+                            @foreach($warehouses as $w)
+                                <option value="{{ $w->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $w->nama }} ({{ $w->kode }})</option>
                             @endforeach
                         </select>
-                    </div>
+                    </x-form-field>
+                </x-form-section>
+                <p x-show="isSameWarehouse()" x-cloak class="text-[11px] font-medium text-red-600 dark:text-red-400 px-1">Gudang tujuan tidak boleh sama dengan gudang asal.</p>
 
-                    <div>
-                        <label for="transfer-gudang-tujuan" class="block text-xs font-semibold text-foreground mb-1.5">Gudang Tujuan (Penerima) <span class="text-destructive">*</span></label>
-                        <select id="transfer-gudang-tujuan" name="gudang_tujuan_id" x-model="gudangTujuanId" :aria-invalid="isSameWarehouse() ? 'true' : 'false'" :class="isSameWarehouse() ? 'border-destructive focus:ring-destructive/20' : 'border-border focus:ring-primary/20'" class="w-full h-10 text-xs rounded-lg border bg-card px-3 focus:ring-2" required>
-                            <option value="">-- Pilih Gudang Tujuan --</option>
-                            @foreach($warehouses as $w)
-                                <option value="{{ $w->id }}">{{ $w->nama }} ({{ $w->kode }})</option>
-                            @endforeach
-                        </select>
-                        <p x-show="isSameWarehouse()" x-cloak class="text-[11px] font-medium text-destructive mt-1">Gudang tujuan tidak boleh sama dengan gudang asal.</p>
-                    </div>
-                </div>
-
-                <div class="mt-5">
-                    <label for="transfer-catatan" class="block text-xs font-semibold text-foreground mb-1.5">Catatan Pengiriman</label>
-                    <textarea id="transfer-catatan" name="catatan" rows="2" class="w-full text-xs rounded-lg border border-border p-2.5 focus:ring-2 focus:ring-primary/20" placeholder="Catatan ekspedisi, armada angkut, atau instruksi serah terima...">{{ old('catatan') }}</textarea>
-                </div>
+                <x-form-section title="Catatan Pengiriman" :cols="1">
+                    <x-form-field label="Catatan" name="catatan" align="top">
+                        <x-textarea id="transfer-catatan" name="catatan" variant="seamless" rows="2" placeholder="Catatan ekspedisi, armada angkut, atau instruksi serah terima...">{{ old('catatan') }}</x-textarea>
+                    </x-form-field>
+                </x-form-section>
             </x-card>
 
             <x-card class="relative z-10" overflow="visible">

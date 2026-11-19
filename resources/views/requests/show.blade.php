@@ -16,32 +16,20 @@
         />
 
         {{-- Header Status Bar --}}
-        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-card border border-border">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-[12px] bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-border shadow-theme-xs">
             <div class="flex items-center gap-4">
-                <div class="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <div class="size-12 rounded-[10px] bg-[#FBFBFB] dark:bg-gray-800 border border-[#E8E8E8] dark:border-border text-text-active flex items-center justify-center shrink-0">
                     <svg class="size-6" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </div>
                 <div>
-                    <div class="flex items-center gap-2.5">
-                        <h2 class="text-xl font-bold font-mono text-foreground">{{ $stockRequest->no_request }}</h2>
-                        @php
-                            $statusBadge = match($stockRequest->status) {
-                                'draft' => 'bg-gray-100 text-gray-700 border-gray-300',
-                                'diajukan' => 'bg-yellow-100 text-yellow-800 border-yellow-300',
-                                'disetujui' => 'bg-emerald-100 text-emerald-800 border-emerald-300',
-                                'diproses' => 'bg-blue-100 text-blue-800 border-blue-300',
-                                'selesai' => 'bg-green-100 text-green-800 border-green-300',
-                                'ditolak' => 'bg-rose-100 text-rose-800 border-rose-300',
-                                'dibatalkan' => 'bg-red-100 text-red-700 border-red-300',
-                                default => 'bg-gray-100 text-gray-700 border-gray-300',
-                            };
-                        @endphp
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border {{ $statusBadge }}">
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h2 class="text-xl font-bold font-mono text-[#101828] dark:text-white">{{ $stockRequest->no_request }}</h2>
+                        <x-badge :variant="$stockRequest->status" :pill="true">
                             {{ ucfirst($stockRequest->status) }}
-                        </span>
+                        </x-badge>
                     </div>
-                    <p class="text-xs text-muted-foreground mt-1">
-                        Dibuat oleh <span class="font-medium text-foreground">{{ $stockRequest->creator?->name ?? 'Sistem' }}</span> pada {{ $stockRequest->created_at->format('d/m/Y H:i') }}
+                    <p class="text-xs text-text-muted mt-1">
+                        Dibuat oleh <span class="font-medium text-text-active">{{ $stockRequest->creator?->name ?? 'Sistem' }}</span> pada {{ $stockRequest->created_at->format('d/m/Y H:i') }}
                     </p>
                 </div>
             </div>
@@ -50,19 +38,19 @@
                 @if($canSubmit)
                     <form method="POST" action="{{ route('requests.submit', $stockRequest) }}" class="inline">
                         @csrf
-                        <x-button type="submit" variant="primary">
+                        <x-button type="submit" variant="primary" size="sm">
                             Ajukan ke Manajer
                         </x-button>
                     </form>
                 @endif
 
                 @if($canApprove)
-                    <button type="button" @click="openApproveModal = true" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition">
+                    <x-button type="button" @click="openApproveModal = true" variant="success" size="sm">
                         Setujui Permintaan
-                    </button>
-                    <button type="button" @click="openRejectModal = true" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition">
+                    </x-button>
+                    <x-button type="button" @click="openRejectModal = true" variant="danger" size="sm">
                         Tolak
-                    </button>
+                    </x-button>
                 @endif
 
                 @if($canCreateTransfer)
@@ -234,65 +222,47 @@
         @endif
 
         {{-- Modals --}}
-        <x-modal name="openApproveModal" maxWidth="md">
-            <x-slot:header>
-                <div class="px-6 py-4 border-b border-border bg-emerald-50 flex items-center justify-between">
-                    <h3 class="text-base font-bold text-emerald-950">Setujui Permintaan Barang</h3>
-                </div>
-            </x-slot:header>
-            <form method="POST" action="{{ route('requests.approve', $stockRequest) }}" class="p-6 space-y-4">
+        <x-modal name="openApproveModal" title="Setujui Permintaan Barang" maxWidth="md" :noPadding="true">
+            <form method="POST" action="{{ route('requests.approve', $stockRequest) }}">
                 @csrf
-                <div>
-                    <label class="block text-xs font-semibold text-foreground mb-1">Catatan Approval (Opsional)</label>
-                    <textarea name="catatan" x-model="catatanApprove" rows="3" class="w-full text-xs rounded-lg border border-border p-2 focus:ring-2 focus:ring-primary/20" placeholder="Catatan persetujuan..."></textarea>
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
+                    <x-form-field label="Catatan Approval" name="catatan" align="top">
+                        <textarea name="catatan" x-model="catatanApprove" rows="3" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0" placeholder="Catatan persetujuan (opsional)..."></textarea>
+                    </x-form-field>
                 </div>
-                <div class="flex justify-end gap-2">
-                    <x-button type="button" variant="outline" @click="openApproveModal = false">Batal</x-button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition">
-                        Konfirmasi Setujui
-                    </button>
+                <div class="bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-border px-4 py-3 flex justify-end gap-2">
+                    <x-button type="button" variant="secondary" size="sm" @click="openApproveModal = false">Batal</x-button>
+                    <x-button type="submit" variant="success" size="sm">Konfirmasi Setujui</x-button>
                 </div>
             </form>
         </x-modal>
 
-        <x-modal name="openRejectModal" maxWidth="md">
-            <x-slot:header>
-                <div class="px-6 py-4 border-b border-border bg-rose-50 flex items-center justify-between">
-                    <h3 class="text-base font-bold text-rose-950">Tolak Permintaan Barang</h3>
-                </div>
-            </x-slot:header>
-            <form method="POST" action="{{ route('requests.reject', $stockRequest) }}" class="p-6 space-y-4">
+        <x-modal name="openRejectModal" title="Tolak Permintaan Barang" maxWidth="md" :noPadding="true">
+            <form method="POST" action="{{ route('requests.reject', $stockRequest) }}">
                 @csrf
-                <div>
-                    <label class="block text-xs font-semibold text-foreground mb-1">Alasan Penolakan <span class="text-destructive">*</span></label>
-                    <textarea name="alasan" x-model="alasanReject" required rows="3" class="w-full text-xs rounded-lg border border-border p-2 focus:ring-2 focus:ring-primary/20" placeholder="Jelaskan alasan penolakan..."></textarea>
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
+                    <x-form-field label="Alasan Penolakan" name="alasan" :required="true" align="top">
+                        <textarea name="alasan" x-model="alasanReject" required rows="3" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0" placeholder="Jelaskan alasan penolakan..."></textarea>
+                    </x-form-field>
                 </div>
-                <div class="flex justify-end gap-2">
-                    <x-button type="button" variant="outline" @click="openRejectModal = false">Batal</x-button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition">
-                        Konfirmasi Tolak
-                    </button>
+                <div class="bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-border px-4 py-3 flex justify-end gap-2">
+                    <x-button type="button" variant="secondary" size="sm" @click="openRejectModal = false">Batal</x-button>
+                    <x-button type="submit" variant="danger" size="sm">Konfirmasi Tolak</x-button>
                 </div>
             </form>
         </x-modal>
 
-        <x-modal name="openCancelModal" maxWidth="md">
-            <x-slot:header>
-                <div class="px-6 py-4 border-b border-border bg-amber-50 flex items-center justify-between">
-                    <h3 class="text-base font-bold text-amber-950">Batalkan Permintaan Barang</h3>
-                </div>
-            </x-slot:header>
-            <form method="POST" action="{{ route('requests.cancel', $stockRequest) }}" class="p-6 space-y-4">
+        <x-modal name="openCancelModal" title="Batalkan Permintaan Barang" maxWidth="md" :noPadding="true">
+            <form method="POST" action="{{ route('requests.cancel', $stockRequest) }}">
                 @csrf
-                <div>
-                    <label class="block text-xs font-semibold text-foreground mb-1">Alasan Pembatalan (Opsional)</label>
-                    <textarea name="alasan" x-model="alasanCancel" rows="3" class="w-full text-xs rounded-lg border border-border p-2 focus:ring-2 focus:ring-primary/20" placeholder="Alasan pembatalan..."></textarea>
+                <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
+                    <x-form-field label="Alasan (Opsional)" name="alasan" align="top">
+                        <textarea name="alasan" x-model="alasanCancel" rows="3" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0" placeholder="Alasan pembatalan..."></textarea>
+                    </x-form-field>
                 </div>
-                <div class="flex justify-end gap-2">
-                    <x-button type="button" variant="outline" @click="openCancelModal = false">Kembali</x-button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition">
-                        Batalkan Request
-                    </button>
+                <div class="bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-border px-4 py-3 flex justify-end gap-2">
+                    <x-button type="button" variant="secondary" size="sm" @click="openCancelModal = false">Kembali</x-button>
+                    <x-button type="submit" variant="danger" size="sm">Batalkan Request</x-button>
                 </div>
             </form>
         </x-modal>

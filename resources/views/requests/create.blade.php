@@ -186,16 +186,9 @@
         <form method="POST" action="{{ route('requests.store') }}" class="space-y-6">
             @csrf
 
-            <x-card>
-                <x-slot:header>
-                    <div>
-                        <h2 class="text-lg font-semibold text-foreground tracking-tight">Formulir Permintaan Barang</h2>
-                        <p class="text-xs text-muted-foreground mt-0.5">Lengkapi data gudang pemohon, gudang penyedia, serta rincian item yang diminta</p>
-                    </div>
-                </x-slot:header>
-
+            <x-card title="Formulir Permintaan Barang" subtitle="Lengkapi data gudang pemohon, gudang penyedia, serta rincian item yang diminta" bodyClass="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-4">
                 @if($errors->any())
-                <div class="p-4 mb-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+                <div class="p-4 rounded-[10px] bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-300 text-xs">
                     <div class="font-bold mb-1">Terdapat kesalahan input:</div>
                     <ul class="list-disc list-inside space-y-0.5">
                         @foreach($errors->all() as $err)
@@ -205,46 +198,41 @@
                 </div>
                 @endif
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1.5">Jenis Permintaan <span class="text-destructive">*</span></label>
-                        <select name="jenis" x-model="jenis" @change="onJenisChange()" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
+                <x-form-section title="Rute & Jenis Permintaan" :cols="3">
+                    <x-form-field label="Jenis Permintaan" name="jenis" :required="true">
+                        <x-select name="jenis" variant="seamless" x-model="jenis" @change="onJenisChange()" :required="true">
                             @if(in_array('request_bahan', $allowedJenis, true))
-                                <option value="request_bahan">Request Bahan Baku (Operasional Lab)</option>
+                                <option value="request_bahan" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">Request Bahan Baku (Operasional Lab)</option>
                             @endif
                             @if(in_array('request_produk_jadi', $allowedJenis, true))
-                                <option value="request_produk_jadi">Request Produk Jadi (Fulfillment)</option>
+                                <option value="request_produk_jadi" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">Request Produk Jadi (Fulfillment)</option>
                             @endif
-                        </select>
-                    </div>
+                        </x-select>
+                    </x-form-field>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1.5">Gudang Pemohon <span class="text-destructive">*</span></label>
-                        <select name="gudang_pemohon_id" x-model="gudangPemohonId" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
-                            <option value="">-- Pilih Gudang Pemohon --</option>
+                    <x-form-field label="Gudang Pemohon" name="gudang_pemohon_id" :required="true">
+                        <x-select name="gudang_pemohon_id" variant="seamless" x-model="gudangPemohonId" placeholder="-- Pilih Gudang Pemohon --" :required="true">
                             @foreach($gudang as $g)
-                                <option value="{{ $g->id }}">{{ $g->nama }} ({{ $g->kode }})</option>
+                                <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $g->nama }} ({{ $g->kode }})</option>
                             @endforeach
-                        </select>
-                    </div>
+                        </x-select>
+                    </x-form-field>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-foreground mb-1.5">Gudang Penyedia (Tujuan Request) <span class="text-destructive">*</span></label>
-                        <select name="gudang_tujuan_id" x-model="gudangTujuanId" class="w-full h-10 text-xs rounded-lg border border-border bg-card px-3 focus:ring-2 focus:ring-primary/20" required>
-                            <option value="">-- Pilih Gudang Penyedia --</option>
+                    <x-form-field label="Gudang Penyedia" name="gudang_tujuan_id" :required="true">
+                        <x-select name="gudang_tujuan_id" variant="seamless" x-model="gudangTujuanId" placeholder="-- Pilih Gudang Penyedia --" :required="true">
                             @foreach($gudang as $g)
-                                <option value="{{ $g->id }}">{{ $g->nama }} ({{ $g->kode }})</option>
+                                <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $g->nama }} ({{ $g->kode }})</option>
                             @endforeach
-                        </select>
-                    </div>
-                </div>
+                        </x-select>
+                    </x-form-field>
+                </x-form-section>
 
                 @if(in_array('request_bahan', $allowedJenis, true))
-                <div x-show="jenis === 'request_bahan'" class="mt-4 p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
-                    <label for="request-batch-id" class="block text-xs font-semibold text-amber-900">
+                <div x-show="jenis === 'request_bahan'" class="p-3.5 bg-amber-50/70 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-[10px] space-y-2">
+                    <label for="request-batch-id" class="block text-xs font-semibold text-amber-900 dark:text-amber-300">
                         Pilih Batch Produksi (Opsional):
                     </label>
-                    <select id="request-batch-id" name="batch_id" x-model="batchId" @change="onBatchChange()" class="w-full h-9 rounded-lg border border-border bg-card px-3 text-xs focus:ring-2 focus:ring-primary/20">
+                    <select id="request-batch-id" name="batch_id" x-model="batchId" @change="onBatchChange()" class="w-full h-9 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 px-3 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white">
                         <option value="">-- Tanpa Batch (Permintaan Bebas) --</option>
                         @foreach($activeBatches as $ab)
                             <option value="{{ $ab->id }}" @selected(old('batch_id', $batch?->id) == $ab->id)>
@@ -252,15 +240,16 @@
                             </option>
                         @endforeach
                     </select>
-                    <p class="text-[11px] text-amber-700">Memilih batch produksi akan mengisi otomatis daftar bahan baku sesuai kebutuhan alokasi batch.</p>
-                    <p x-show="batchNotice" x-cloak class="text-[11px] font-semibold text-emerald-700" x-text="batchNotice"></p>
+                    <p class="text-[11px] text-amber-700 dark:text-amber-400">Memilih batch produksi akan mengisi otomatis daftar bahan baku sesuai kebutuhan alokasi batch.</p>
+                    <p x-show="batchNotice" x-cloak class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400" x-text="batchNotice"></p>
                 </div>
                 @endif
 
-                <div class="mt-5">
-                    <label class="block text-xs font-semibold text-foreground mb-1.5">Catatan / Keperluan</label>
-                    <textarea name="catatan" rows="2" class="w-full text-xs rounded-lg border border-border bg-card p-2.5 focus:ring-2 focus:ring-primary/20" placeholder="Catatan tambahan untuk manajer / gudang penyedia...">{{ old('catatan') }}</textarea>
-                </div>
+                <x-form-section title="Catatan Tambahan" :cols="1">
+                    <x-form-field label="Catatan / Keperluan" name="catatan" align="top">
+                        <x-textarea name="catatan" variant="seamless" rows="2" placeholder="Catatan tambahan untuk manajer / gudang penyedia...">{{ old('catatan') }}</x-textarea>
+                    </x-form-field>
+                </x-form-section>
             </x-card>
 
             <x-card class="relative z-10" overflow="visible">

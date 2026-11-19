@@ -8,11 +8,11 @@
     />
 
     {{-- Filter Toolbar --}}
-    <div class="mb-4 bg-card p-4 rounded-xl border border-border shadow-xs flex flex-wrap items-end justify-between gap-4">
+    <div class="mb-4 bg-white dark:bg-gray-900 p-4 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-wrap items-end justify-between gap-4">
         <div class="flex flex-wrap items-center gap-3">
             <div>
-                <label for="filter-gudang" class="block text-xs font-medium text-muted-foreground mb-1">Lokasi Gudang</label>
-                <select id="filter-gudang" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
+                <label for="filter-gudang" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Lokasi Gudang</label>
+                <select id="filter-gudang" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Gudang —</option>
                     @foreach($gudang as $g)
                         <option value="{{ $g->id }}">{{ $g->nama }}</option>
@@ -21,38 +21,41 @@
             </div>
 
             <div>
-                <label for="filter-tipe" class="block text-xs font-medium text-muted-foreground mb-1">Tipe Mutasi</label>
-                <select id="filter-tipe" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
+                <label for="filter-tipe" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Tipe Mutasi</label>
+                <select id="filter-tipe" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer">
                     <option value="">— Semua Tipe —</option>
-                    <option value="in">🟢 Masuk (IN)</option>
-                    <option value="out">🔴 Keluar (OUT)</option>
+                    <option value="in">Masuk (IN)</option>
+                    <option value="out">Keluar (OUT)</option>
                 </select>
             </div>
 
             <div>
-                <label for="filter-tgl-mulai" class="block text-xs font-medium text-muted-foreground mb-1">Dari Tanggal</label>
-                <input type="date" id="filter-tgl-mulai" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground outline-none">
+                <label for="filter-tgl-mulai" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Dari Tanggal</label>
+                <input type="date" id="filter-tgl-mulai" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none">
             </div>
 
             <div>
-                <label for="filter-tgl-selesai" class="block text-xs font-medium text-muted-foreground mb-1">Sampai Tanggal</label>
-                <input type="date" id="filter-tgl-selesai" class="h-9 rounded-lg border border-border bg-card text-xs py-1.5 px-3 focus:ring-2 focus:ring-primary/20 text-foreground outline-none">
+                <label for="filter-tgl-selesai" class="block text-xs font-medium text-[#667085] dark:text-gray-400 mb-1">Sampai Tanggal</label>
+                <input type="date" id="filter-tgl-selesai" class="h-9 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none">
             </div>
         </div>
 
         <div>
-            <button type="button" id="btn-reset" class="text-xs text-muted-foreground hover:text-foreground font-medium cursor-pointer transition-colors">
+            <x-button type="button" id="btn-reset" variant="secondary" size="xs">
                 Reset Filter
-            </button>
+            </x-button>
         </div>
     </div>
 
     {{-- Main DataTable Card --}}
     <x-card title="Buku Audit Mutasi Fisik Barang" subtitle="Histori perubahan kuantitas, saldo sebelum dan sesudah mutasi, nomor referensi, serta penanggung jawab transaksi" :noPadding="true">
-        <div class="overflow-x-auto">
+        <x-slot:icon>
+            <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        </x-slot:icon>
+        <div tabindex="0" role="region" aria-label="Buku Audit Mutasi Fisik Barang" class="overflow-x-auto">
             <table id="tblLog" class="w-full text-sm">
-                <thead>
-                    <tr class="bg-muted/70 border-b border-border text-muted-foreground text-[13px] font-medium">
+                <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95">
+                    <tr class="border-b border-[#E8E8E8] dark:border-gray-800 text-[#667085] dark:text-gray-400 text-[13px] font-medium">
                         <th class="px-4 py-3 text-center w-28">Tipe</th>
                         <th class="px-4 py-3 text-left">Item</th>
                         <th class="px-4 py-3 text-left">Lokasi Gudang</th>
