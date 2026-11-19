@@ -692,4 +692,28 @@ class DashboardTest extends TestCase
             ->assertSee('Diperbarui')
             ->assertSee(route('purchasing.index', ['tab' => 'approval']));
     }
+
+    public function test_queue_does_not_duplicate_late_badge_when_label_already_says_terlambat(): void
+    {
+        $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
+        $supplier = Supplier::firstOrFail();
+        SupplierLtStageSummary::updateOrCreate(
+            ['supplier_id' => $supplier->id, 'stage' => 'konfirmasi_supplier'],
+            ['jumlah_transaksi' => 5, 'total_menit' => 300, 'average_hari' => 0.1, 'max_hari' => 0.2]
+        );
+        $po = PurchaseOrder::create([
+            'no_po' => 'PO-DUP-1', 'supplier_id' => $supplier->id, 'tanggal' => now()->subDays(2),
+            'status' => 'berjalan', 'stage_aktif' => 'konfirmasi_supplier', 'created_by' => $purchasing->id,
+        ]);
+        $po->stages()->create([
+            'stage' => 'konfirmasi_supplier', 'urutan' => 3, 'putaran' => 1, 'status' => 'berjalan',
+            'waktu_mulai' => now()->subMinutes(300),
+        ]);
+
+        $html = $this->actingAs($purchasing)->get('/')->getContent();
+
+        $this->assertSame(1, preg_match('/<tr\b(?:(?!<\/tr>).)*PO-DUP-1.*?<\/tr>/s', $html, $row));
+        $this->assertStringContainsString('Terlambat SLA', $row[0]);
+        $this->assertSame(0, preg_match('/>\s*Terlambat\s*</', $row[0]));
+    }
 }
