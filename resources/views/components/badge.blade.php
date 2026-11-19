@@ -5,6 +5,11 @@
     'size' => 'default', // default, sm, xs
 ])
 
+{{--
+    Badge minimalis: satu bentuk (pill putih + garis tipis) untuk semua status.
+    Warna hanya muncul sebagai titik kecil (dot) dan hanya merah untuk danger,
+    sehingga status tetap terbaca dari label + titik tanpa blok warna-warni.
+--}}
 @php
     $tone = match ($variant) {
         'primary' => 'primary',
@@ -19,41 +24,37 @@
     };
 
     $classes = match ($tone) {
-        'primary' => 'bg-black text-white border border-black dark:bg-white dark:text-[#0A0A0A] dark:border-white',
-        'info' => 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
-        'teal' => 'bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20',
-        'progress' => 'bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20',
-        'warning' => 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
-        'success' => 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
-        'danger' => 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20',
-        'muted' => 'bg-gray-100 text-gray-700 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700',
-        default => 'bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700',
+        'primary' => 'bg-gray-900 text-white border border-gray-900 dark:bg-white dark:text-gray-900 dark:border-white',
+        'danger' => 'bg-white text-red-700 border border-red-200 dark:bg-transparent dark:text-red-400 dark:border-red-500/30',
+        'muted' => 'bg-white text-gray-500 border border-gray-200 dark:bg-transparent dark:text-gray-400 dark:border-gray-700',
+        default => 'bg-white text-gray-700 border border-gray-200 dark:bg-transparent dark:text-gray-200 dark:border-gray-700',
     };
 
     $dotClasses = match ($tone) {
-        'primary' => 'bg-white dark:bg-[#0A0A0A]',
-        'info' => 'bg-blue-500 dark:bg-blue-400',
-        'teal' => 'bg-teal-500 dark:bg-teal-400',
-        'progress' => 'bg-indigo-500 dark:bg-indigo-400',
-        'warning' => 'bg-amber-500 dark:bg-amber-400',
-        'success' => 'bg-emerald-500 dark:bg-emerald-400',
-        'danger' => 'bg-red-500 dark:bg-red-400',
-        'muted' => 'bg-gray-400 dark:bg-gray-500',
-        default => 'bg-gray-500 dark:bg-gray-400',
+        'primary' => 'bg-white dark:bg-gray-900',
+        'info' => 'bg-sky-500',
+        'teal' => 'bg-teal-500',
+        'progress' => 'bg-indigo-500',
+        'warning' => 'bg-amber-500',
+        'success' => 'bg-emerald-500',
+        'danger' => 'bg-red-500',
+        default => 'bg-gray-400',
     };
+
+    // Status berwarna selalu diberi titik agar tetap terbaca tanpa latar warna.
+    $showDot = $dot || in_array($tone, ['info', 'teal', 'progress', 'warning', 'success', 'danger'], true);
 
     $shapeClass = $pill ? 'rounded-full' : 'rounded-md';
 
     $sizeClasses = match ($size) {
-        'xs' => 'text-[9px] px-1.5 py-0.5',
-        'sm' => 'text-[10px] px-1.5 py-0.5',
-        default => 'text-[11px] px-2.5 py-0.5',
+        'xs', 'sm' => 'text-[11px] px-2 py-0.5',
+        default => 'text-xs px-2.5 py-0.5',
     };
 @endphp
 
-<span {{ $attributes->merge(['class' => 'inline-flex items-center gap-1.5 font-semibold tracking-wide whitespace-nowrap uppercase ' . $shapeClass . ' ' . $classes . ' ' . $sizeClasses]) }}>
-    @if ($dot)
-        <span class="size-1.5 rounded-full {{ $dotClasses }}"></span>
+<span {{ $attributes->merge(['class' => 'inline-flex items-center gap-1.5 font-medium whitespace-nowrap ' . $shapeClass . ' ' . $classes . ' ' . $sizeClasses]) }}>
+    @if ($showDot)
+        <span class="size-1.5 rounded-full shrink-0 {{ $dotClasses }}"></span>
     @endif
     <span>{{ $slot }}</span>
 </span>

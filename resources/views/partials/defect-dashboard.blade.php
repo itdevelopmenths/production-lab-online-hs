@@ -40,7 +40,7 @@
                       class="flex flex-wrap items-center lg:justify-end gap-2 shrink-0 max-w-full">
                     <div class="inline-flex items-center rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 px-2.5 h-8 text-xs shadow-theme-xs">
                         <span class="text-text-muted mr-1.5 font-medium">Tahun:</span>
-                        <select name="year" class="bg-transparent text-xs font-semibold text-text-active outline-none cursor-pointer">
+                        <select name="year" class="bg-transparent text-xs font-medium text-text-active outline-none cursor-pointer">
                             @foreach(range(date('Y') - 2, date('Y') + 1) as $yr)
                                 <option value="{{ $yr }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" {{ ($year ?? date('Y')) == $yr ? 'selected' : '' }}>{{ $yr }}</option>
                             @endforeach
@@ -49,7 +49,7 @@
 
                     <div class="inline-flex items-center rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 px-2.5 h-8 text-xs shadow-theme-xs">
                         <span class="text-text-muted mr-1.5 font-medium">Bulan:</span>
-                        <select name="month" class="bg-transparent text-xs font-semibold text-text-active outline-none cursor-pointer">
+                        <select name="month" class="bg-transparent text-xs font-medium text-text-active outline-none cursor-pointer">
                             <option value="" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">Semua Bulan (12 Bulan)</option>
                             @foreach(range(1, 12) as $m)
                                 <option value="{{ $m }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" {{ ($month ?? null) == $m ? 'selected' : '' }}>
@@ -61,7 +61,7 @@
 
                     <div class="inline-flex items-center rounded-[8px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 px-2.5 h-8 text-xs shadow-theme-xs">
                         <span class="text-text-muted mr-1.5 font-medium">Gudang:</span>
-                        <select name="gudang_id" class="bg-transparent text-xs font-semibold text-text-active outline-none cursor-pointer max-w-40 truncate">
+                        <select name="gudang_id" class="bg-transparent text-xs font-medium text-text-active outline-none cursor-pointer max-w-40 truncate">
                             <option value="" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">Semua Fasilitas</option>
                             @foreach($warehouses ?? [] as $wh)
                                 <option value="{{ $wh->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" {{ ($gudangId ?? null) == $wh->id ? 'selected' : '' }}>{{ $wh->nama }}</option>
@@ -94,19 +94,19 @@
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div class="p-3.5 rounded-[12px] bg-[#FBFBFB] dark:bg-gray-950/60 border border-[#e8e8e8] dark:border-gray-800 shadow-theme-xs flex flex-col justify-between">
                     <span class="text-[11px] font-medium text-text-muted">Total Selesai</span>
-                    <div class="text-xl font-semibold font-mono tabular-nums text-[#101828] dark:text-white mt-1">{{ number_format($defectAnalytics['summary']['total_transfers'] ?? 0) }}</div>
+                    <div class="text-xl font-medium tabular-nums text-[#101828] dark:text-white mt-1">{{ number_format($defectAnalytics['summary']['total_transfers'] ?? 0) }}</div>
                     <span class="text-[11px] text-text-muted mt-0.5">{{ !empty($isCombinedDefectSources) ? 'Transaksi selesai' : 'Transaksi mutasi' }}</span>
                 </div>
 
                 <div class="p-3.5 rounded-[12px] bg-[#FBFBFB] dark:bg-gray-950/60 border border-[#e8e8e8] dark:border-gray-800 shadow-theme-xs flex flex-col justify-between">
                     <span class="text-[11px] font-medium text-text-muted">{{ !empty($isCombinedDefectSources) ? 'Total Volume' : 'Total Dikirim' }}</span>
-                    <div class="text-xl font-semibold font-mono tabular-nums text-[#101828] dark:text-white mt-1">{{ number_format($defectAnalytics['summary']['total_qty_dikirim'] ?? 0, 2) }}</div>
+                    <div class="text-xl font-medium tabular-nums text-[#101828] dark:text-white mt-1">{{ number_format($defectAnalytics['summary']['total_qty_dikirim'] ?? 0, 2) }}</div>
                     <span class="text-[11px] text-text-muted mt-0.5">{{ !empty($isCombinedDefectSources) ? 'Volume Transfer, PO & Batch' : 'Volume mutasi fisik' }}</span>
                 </div>
 
                 <div class="p-3.5 rounded-[12px] bg-[#FBFBFB] dark:bg-gray-950/60 border border-[#e8e8e8] dark:border-gray-800 shadow-theme-xs flex flex-col justify-between">
                     <span class="text-[11px] font-medium text-text-muted">Total Barang Rusak</span>
-                    <div class="text-xl font-semibold font-mono tabular-nums mt-1 {{ ($defectAnalytics['summary']['total_qty_rusak'] ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-[#101828] dark:text-white' }}">
+                    <div class="text-xl font-medium tabular-nums mt-1 {{ ($defectAnalytics['summary']['total_qty_rusak'] ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-[#101828] dark:text-white' }}">
                         {{ number_format($defectAnalytics['summary']['total_qty_rusak'] ?? 0, 2) }}
                     </div>
                     <span class="text-[11px] text-text-muted mt-0.5">
@@ -128,7 +128,7 @@
                             <span class="size-1.5 rounded-full bg-red-500 animate-pulse"></span>
                         @endif
                     </div>
-                    <div class="text-xl font-semibold font-mono tabular-nums mt-1 {{ ($defectAnalytics['summary']['defect_rate_percent'] ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-[#101828] dark:text-white' }}">
+                    <div class="text-xl font-medium tabular-nums mt-1 {{ ($defectAnalytics['summary']['defect_rate_percent'] ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-[#101828] dark:text-white' }}">
                         {{ number_format($defectAnalytics['summary']['defect_rate_percent'] ?? 0, 2) }}%
                     </div>
                     <span class="text-[11px] text-text-muted mt-0.5">{{ !empty($isCombinedDefectSources) ? 'Rasio rusak vs volume' : 'Rasio rusak vs kirim' }}</span>
@@ -136,12 +136,12 @@
 
                 <div class="p-3.5 rounded-[12px] bg-[#FBFBFB] dark:bg-gray-950/60 border border-[#e8e8e8] dark:border-gray-800 shadow-theme-xs col-span-2 md:col-span-1 flex flex-col justify-between">
                     <span class="text-[11px] font-medium text-text-muted">Gudang Terdampak</span>
-                    <div class="text-sm font-bold text-[#101828] dark:text-white mt-1 truncate" title="{{ $defectAnalytics['summary']['gudang_tertinggi_nama'] ?? '—' }}">
+                    <div class="text-sm font-medium text-[#101828] dark:text-white mt-1 truncate" title="{{ $defectAnalytics['summary']['gudang_tertinggi_nama'] ?? '—' }}">
                         {{ $defectAnalytics['summary']['gudang_tertinggi_nama'] ?? '—' }}
                     </div>
                     <span class="text-[11px] text-text-muted mt-0.5">
                         @if(($defectAnalytics['summary']['gudang_tertinggi_qty'] ?? 0) > 0)
-                            <strong class="text-red-600 dark:text-red-400 font-mono">{{ number_format($defectAnalytics['summary']['gudang_tertinggi_qty'], 2) }}</strong> unit rusak
+                            <strong class="text-red-600 dark:text-red-400 tabular-nums">{{ number_format($defectAnalytics['summary']['gudang_tertinggi_qty'], 2) }}</strong> unit rusak
                         @else
                             Nihil laporan kerusakan
                         @endif
@@ -154,18 +154,18 @@
                 <div class="bg-[#f3f4f6] dark:bg-gray-900 dark:border dark:border-gray-800 p-[2px] gap-[2px] rounded-[8px] h-9 inline-flex items-center w-fit max-w-full overflow-x-auto no-scrollbar">
                     <button type="button"
                             @click="setViewMode('matrix')"
-                            :class="viewMode === 'matrix' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white font-medium'"
+                            :class="viewMode === 'matrix' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white font-medium'"
                             class="px-3 py-1 rounded-[6px] h-full text-xs sm:text-[13px] transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         <span>Matriks Tren Bulanan</span>
                     </button>
                     <button type="button"
                             @click="setViewMode('sku')"
-                            :class="viewMode === 'sku' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white font-medium'"
+                            :class="viewMode === 'sku' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white font-medium'"
                             class="px-3 py-1 rounded-[6px] h-full text-xs sm:text-[13px] transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                         <span>Rincian SKU per Fasilitas</span>
-                        <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[11px] font-semibold tabular-nums">
+                        <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[11px] font-medium tabular-nums">
                             {{ count($defectAnalytics['monthly_by_warehouse'] ?? []) }}
                         </span>
                     </button>
@@ -189,7 +189,7 @@
                                 <th class="px-3.5 py-2.5 text-right w-24 font-normal">{{ !empty($isCombinedDefectSources) ? 'Transaksi' : 'Transfer' }}</th>
                                 <th class="px-3.5 py-2.5 text-right w-32 font-normal">{{ !empty($isCombinedDefectSources) ? 'Total Volume' : 'Qty Dikirim' }}</th>
                                 <th class="px-3.5 py-2.5 text-right w-32 font-normal">Qty Baik</th>
-                                <th class="px-3.5 py-2.5 text-right w-32 text-red-600 dark:text-red-400 font-semibold">Qty Rusak</th>
+                                <th class="px-3.5 py-2.5 text-right w-32 text-red-600 dark:text-red-400 font-medium">Qty Rusak</th>
                                 <th class="px-3.5 py-2.5 text-right w-24 font-normal">Defect %</th>
                                 <th class="px-3.5 py-2.5 text-left font-normal">{{ !empty($isCombinedDefectSources) ? 'Rincian per Gudang / Lokasi' : 'Rincian per Gudang Penerima' }}</th>
                             </tr>
@@ -205,19 +205,19 @@
                                     <td class="px-3.5 py-2.5 text-right font-medium text-text-muted tabular-nums">{{ $mRow['transfers_count'] }}</td>
                                     <td class="px-3.5 py-2.5 text-right font-medium text-[#101828] dark:text-gray-200 tabular-nums">{{ number_format($mRow['qty_dikirim'], 2) }}</td>
                                     <td class="px-3.5 py-2.5 text-right font-medium text-[#101828] dark:text-gray-200 tabular-nums">{{ number_format($mRow['qty_baik'], 2) }}</td>
-                                    <td class="px-3.5 py-2.5 text-right font-bold text-red-600 dark:text-red-400 tabular-nums">
+                                    <td class="px-3.5 py-2.5 text-right font-medium text-red-600 dark:text-red-400 tabular-nums">
                                         {{ $mRow['qty_rusak'] > 0 ? number_format($mRow['qty_rusak'], 2) : '-' }}
                                     </td>
-                                    <td class="px-3.5 py-2.5 text-right font-semibold tabular-nums {{ $mRow['defect_rate_percent'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-text-muted' }}">
+                                    <td class="px-3.5 py-2.5 text-right font-medium tabular-nums {{ $mRow['defect_rate_percent'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-text-muted' }}">
                                         {{ number_format($mRow['defect_rate_percent'], 2) }}%
                                     </td>
                                     <td class="px-3.5 py-2.5">
                                         @if(!empty($mRow['warehouses']))
                                             <div class="flex flex-wrap gap-1.5">
                                                 @foreach($mRow['warehouses'] as $whBreakdown)
-                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] {{ $whBreakdown['qty_rusak'] > 0 ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 font-semibold border border-red-200 dark:border-red-500/20' : 'bg-gray-100 dark:bg-gray-800 text-text-muted border border-transparent' }}">
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] {{ $whBreakdown['qty_rusak'] > 0 ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 font-medium border border-red-200 dark:border-red-500/20' : 'bg-gray-100 dark:bg-gray-800 text-text-muted border border-transparent' }}">
                                                         <span>{{ $whBreakdown['gudang_nama'] }}:</span>
-                                                        <span class="tabular-nums font-mono">{{ number_format($whBreakdown['qty_rusak'], 2) }} rusak</span>
+                                                        <span class="tabular-nums ">{{ number_format($whBreakdown['qty_rusak'], 2) }} rusak</span>
                                                     </span>
                                                 @endforeach
                                             </div>
@@ -252,11 +252,11 @@
                             @forelse($defectAnalytics['monthly_by_warehouse'] ?? [] as $whDefect)
                                 <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 {{ ($whDefect['total_tahunan'] ?? 0) > 0 ? 'bg-red-50/40 dark:bg-red-500/5' : '' }}">
                                     <td class="px-3.5 py-3 align-top">
-                                        <div class="font-bold text-[#101828] dark:text-white text-xs">{{ $whDefect['nama'] }}</div>
-                                        <div class="font-mono text-[10px] text-text-muted">{{ $whDefect['kode'] }}</div>
+                                        <div class="font-medium text-[#101828] dark:text-white text-xs">{{ $whDefect['nama'] }}</div>
+                                        <div class="tabular-nums text-[10px] text-text-muted">{{ $whDefect['kode'] }}</div>
                                     </td>
                                     <td class="px-3.5 py-3 text-right align-top tabular-nums">
-                                        <span class="font-bold font-mono {{ ($whDefect['total_tahunan'] ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-text-muted' }}">
+                                        <span class="font-medium tabular-nums {{ ($whDefect['total_tahunan'] ?? 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-text-muted' }}">
                                             {{ number_format($whDefect['total_tahunan'] ?? 0, 2) }}
                                         </span>
                                     </td>
@@ -265,9 +265,9 @@
                                             <div class="flex flex-wrap gap-1.5">
                                                 @foreach($whDefect['sku_rusak_list'] as $skuItem)
                                                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[11px] bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400">
-                                                        <span class="font-mono font-bold">{{ $skuItem['sku'] }}</span>
+                                                        <span class="tabular-nums font-medium">{{ $skuItem['sku'] }}</span>
                                                         <span class="text-[#101828] dark:text-gray-200">{{ $skuItem['nama'] }}:</span>
-                                                        <span class="font-bold font-mono bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded-[4px] border border-[#e8e8e8] dark:border-border tabular-nums text-[#101828] dark:text-white">{{ number_format($skuItem['qty_rusak'], 2) }}</span>
+                                                        <span class="font-medium bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded-[4px] border border-[#e8e8e8] dark:border-border tabular-nums text-[#101828] dark:text-white">{{ number_format($skuItem['qty_rusak'], 2) }}</span>
                                                     </span>
                                                 @endforeach
                                             </div>

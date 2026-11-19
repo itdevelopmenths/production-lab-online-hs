@@ -33,7 +33,7 @@
             @click="window.hsTheme && window.hsTheme.toggle(); isDark = window.hsTheme ? window.hsTheme.isDark() : document.documentElement.classList.contains('dark')"
             :aria-label="isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'"
             class="fixed top-4 right-4 z-50 size-9 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center justify-center shadow-theme-xs">
-        <svg x-show="isDark" x-cloak class="size-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg x-show="isDark" x-cloak class="size-4 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
         </svg>
         <svg x-show="!isDark" class="size-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,7 +50,7 @@
                 </div>
             </div>
             <div class="min-w-0">
-                <h1 class="text-base font-bold text-[#101828] dark:text-white tracking-tight leading-tight">Masuk ke Heaven Scent</h1>
+                <h1 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight leading-tight">Masuk ke Heaven Scent</h1>
                 <p class="text-text-muted text-xs mt-1 leading-snug">Sistem Manajemen Laboratorium Produksi</p>
             </div>
         </div>
@@ -65,7 +65,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                         </svg>
                         <div class="space-y-0.5">
-                            <p class="font-bold text-red-950 dark:text-red-200">Akses Ditolak:</p>
+                            <p class="font-medium text-red-950 dark:text-red-200">Akses Ditolak:</p>
                             @foreach($errors->all() as $error)
                                 <p class="text-red-800 dark:text-red-300">{{ $error }}</p>
                             @endforeach
@@ -141,10 +141,10 @@
             @if(app()->environment('local', 'testing'))
                 <div class="pt-4 border-t border-[#E8E8E8] dark:border-border">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
+                        <span class="text-[11px] font-medium text-text-muted uppercase tracking-wider">
                             Akses Cepat (Dev)
                         </span>
-                        <span class="text-[10px] font-mono text-text-muted">Local Only</span>
+                        <span class="text-[10px] tabular-nums text-text-muted">Local Only</span>
                     </div>
                     <div class="grid grid-cols-2 gap-1.5">
                         @php

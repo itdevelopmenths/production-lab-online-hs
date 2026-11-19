@@ -10,7 +10,7 @@
                     <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Form Input Bahan Baku Impor</h3>
                     <p class="text-xs text-[#667085] dark:text-gray-400 mt-0.5">
                         <span class="font-medium text-[#101828] dark:text-gray-200" x-text="manualImporForm.nama"></span>
-                        <span class="font-mono text-[#667085] dark:text-gray-400" x-text="' (' + manualImporForm.sku + ')'"></span>
+                        <span class="tabular-nums text-[#667085] dark:text-gray-400" x-text="' (' + manualImporForm.sku + ')'"></span>
                         <template x-if="manualImporForm.supplier_nama && manualImporForm.supplier_nama !== '-'">
                             <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700" x-text="manualImporForm.supplier_nama"></span>
                         </template>
@@ -32,16 +32,16 @@
                 </h4>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Lead Time Average (Hari)
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Rata-rata waktu kedatangan pesanan impor.</p>
                         <div class="relative flex items-center">
-                            <input type="number" step="0.1" min="0" x-model.number="manualImporForm.lead_time_average" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-mono font-bold text-[#101828] dark:text-white pr-12 outline-none">
+                            <input type="number" step="0.1" min="0" x-model.number="manualImporForm.lead_time_average" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none">
                             <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">Hari</span>
                         </div>
                         <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-[#667085] dark:text-gray-400" x-show="manualImporForm.empirical_avg_lt !== null && manualImporForm.empirical_avg_lt !== undefined && Number(manualImporForm.empirical_avg_lt) > 0">
-                            <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
+                            <span class="inline-flex items-center gap-1 tabular-nums text-[11px] min-w-0">
                                 <span>Empiris PO:</span>
                                 <span class="font-medium text-[#101828] dark:text-white" x-text="formatLt(manualImporForm.empirical_avg_lt) + ' Hari'"></span>
                             </span>
@@ -53,16 +53,16 @@
                         </div>
                     </div>
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Lead Time Max (Hari)
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Durasi terlama (Buffer Days = Max - Average).</p>
                         <div class="relative flex items-center">
-                            <input type="number" step="0.1" min="0" x-model.number="manualImporForm.lead_time_max" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-mono font-bold text-[#101828] dark:text-white pr-12 outline-none">
+                            <input type="number" step="0.1" min="0" x-model.number="manualImporForm.lead_time_max" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none">
                             <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">Hari</span>
                         </div>
                         <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-[#667085] dark:text-gray-400" x-show="manualImporForm.empirical_max_lt !== null && manualImporForm.empirical_max_lt !== undefined && Number(manualImporForm.empirical_max_lt) > 0">
-                            <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
+                            <span class="inline-flex items-center gap-1 tabular-nums text-[11px] min-w-0">
                                 <span>Empiris PO:</span>
                                 <span class="font-medium text-[#101828] dark:text-white" x-text="formatLt(manualImporForm.empirical_max_lt) + ' Hari'"></span>
                             </span>
@@ -85,54 +85,54 @@
                 {{-- Rentang Tanggal Kalender Riil --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Periode Mulai OUT <span class="text-rose-500">*</span>
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Tanggal awal rekaman data pengeluaran (OUT).</p>
-                        <input type="date" x-model="manualImporForm.periode_mulai" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-mono font-bold text-[#101828] dark:text-white outline-none" required>
+                        <input type="date" x-model="manualImporForm.periode_mulai" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none" required>
                     </div>
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Periode Akhir OUT <span class="text-rose-500">*</span>
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">
-                            Tanggal akhir rekaman (Total: <span class="font-bold text-[#101828] dark:text-white font-mono" x-text="simulasiImporJumlahHari() + ' Hari'"></span>).
+                            Tanggal akhir rekaman (Total: <span class="font-medium text-[#101828] dark:text-white tabular-nums" x-text="simulasiImporJumlahHari() + ' Hari'"></span>).
                         </p>
-                        <input type="date" x-model="manualImporForm.periode_akhir" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-mono font-bold text-[#101828] dark:text-white outline-none" required>
+                        <input type="date" x-model="manualImporForm.periode_akhir" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none" required>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Total OUT (Pengeluaran)
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">
-                            ADU = OUT / <span class="font-bold font-mono text-[#101828] dark:text-white" x-text="simulasiImporJumlahHari()"></span> Hari (per produk)
+                            ADU = OUT / <span class="font-medium tabular-nums text-[#101828] dark:text-white" x-text="simulasiImporJumlahHari()"></span> Hari (per produk)
                         </p>
                         <div class="relative flex items-center">
-                            <input type="number" step="0.01" min="0" x-model.number="manualImporForm.out" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-mono font-bold text-[#101828] dark:text-white pr-12 outline-none">
+                            <input type="number" step="0.01" min="0" x-model.number="manualImporForm.out" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none">
                             <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
                         </div>
                     </div>
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Review Period (Hari)
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Interval siklus order impor (default 30 hari).</p>
                         <div class="relative flex items-center">
-                            <input type="number" min="1" x-model.number="manualImporForm.review_period" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-mono font-bold text-[#101828] dark:text-white pr-12 outline-none">
+                            <input type="number" min="1" x-model.number="manualImporForm.review_period" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none">
                             <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">Hari</span>
                         </div>
                     </div>
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Klasifikasi ABC
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">
-                            Buffer: <span class="font-bold font-mono text-[#101828] dark:text-white" x-text="'+' + simulasiImporTambahanBuffer() + ' Hari'"></span>
+                            Buffer: <span class="font-medium tabular-nums text-[#101828] dark:text-white" x-text="'+' + simulasiImporTambahanBuffer() + ' Hari'"></span>
                         </p>
-                        <select x-model="manualImporForm.klasifikasi_abc_id" @change="onAbcChange()" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-semibold text-[#101828] dark:text-white outline-none cursor-pointer">
+                        <select x-model="manualImporForm.klasifikasi_abc_id" @change="onAbcChange()" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-medium text-[#101828] dark:text-white outline-none cursor-pointer">
                             <option value="">— Default (Tanpa Kelas / +0 Hari) —</option>
                             <template x-for="abc in klasifikasiAbcList" :key="abc.id">
                                 <option :value="abc.id" :selected="manualImporForm.klasifikasi_abc_id == abc.id" x-text="abc.nama + ' (+' + abc.tambahan_buffer_hari + ' Hari)'"></option>
@@ -149,16 +149,16 @@
                 </h4>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Stok Fisik Saat Ini
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Stok riil di gudang impor.</p>
                         <div class="relative flex items-center">
-                            <input type="number" step="0.01" min="0" x-model.number="manualImporForm.stok_saat_ini" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-mono font-bold text-[#101828] dark:text-white pr-12 outline-none">
+                            <input type="number" step="0.01" min="0" x-model.number="manualImporForm.stok_saat_ini" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none">
                             <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
                         </div>
                         <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-[#667085] dark:text-gray-400" x-show="manualImporForm.current_stok_aktual !== null && manualImporForm.current_stok_aktual !== undefined">
-                            <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
+                            <span class="inline-flex items-center gap-1 tabular-nums text-[11px] min-w-0">
                                 <span>Stok Gudang:</span>
                                 <span class="font-medium text-[#101828] dark:text-white" x-text="formatNumber(manualImporForm.current_stok_aktual) + ' ' + (manualImporForm.satuan || '')"></span>
                             </span>
@@ -170,16 +170,16 @@
                         </div>
                     </div>
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Inbound Sebelum ETA
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">PO dalam perjalanan sebelum tiba.</p>
                         <div class="relative flex items-center">
-                            <input type="number" step="0.01" min="0" x-model.number="manualImporForm.inbound_before_eta" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-mono font-bold text-[#101828] dark:text-white pr-12 outline-none">
+                            <input type="number" step="0.01" min="0" x-model.number="manualImporForm.inbound_before_eta" class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none">
                             <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
                         </div>
                         <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-[#667085] dark:text-gray-400" x-show="manualImporForm.current_inbound !== null && manualImporForm.current_inbound !== undefined">
-                            <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
+                            <span class="inline-flex items-center gap-1 tabular-nums text-[11px] min-w-0">
                                 <span>PO Terbuka:</span>
                                 <span class="font-medium text-[#101828] dark:text-white" x-text="formatNumber(manualImporForm.current_inbound) + ' ' + (manualImporForm.satuan || '')"></span>
                             </span>
@@ -191,16 +191,16 @@
                         </div>
                     </div>
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-semibold text-[#101828] dark:text-white block mb-1">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Harga per Satuan (Rp)
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Harga per satuan beli impor.</p>
                         <div class="relative flex items-center">
                             <span class="absolute left-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">Rp</span>
-                            <input type="number" step="0.01" min="0" x-model.number="manualImporForm.harga_per_satuan" class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white font-mono font-bold text-[#101828] dark:text-white outline-none">
+                            <input type="number" step="0.01" min="0" x-model.number="manualImporForm.harga_per_satuan" class="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none">
                         </div>
                         <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-[#667085] dark:text-gray-400" x-show="manualImporForm.current_hpp !== null && manualImporForm.current_hpp !== undefined">
-                            <span class="inline-flex items-center gap-1 font-mono text-[11px] min-w-0">
+                            <span class="inline-flex items-center gap-1 tabular-nums text-[11px] min-w-0">
                                 <span>HPP Sistem:</span>
                                 <span class="font-medium text-[#101828] dark:text-white" x-text="formatRupiah(manualImporForm.current_hpp)"></span>
                             </span>
@@ -216,35 +216,35 @@
 
             {{-- Live Calculation Preview Card --}}
             <div class="bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[10px] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-3">
-                <div class="text-[10px] font-bold text-[#667085] dark:text-gray-400 uppercase tracking-wider flex items-center justify-between">
+                <div class="text-[10px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <svg class="size-4 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                         <span>Simulasi Hasil Analisa Impor:</span>
                     </div>
                     <div class="text-[11px] font-normal text-[#667085] dark:text-gray-400">
-                        MOQ: <span class="font-mono font-bold text-[#101828] dark:text-white" x-text="formatNumber(manualImporForm.satuan_order_moq || 1) + ' ' + (manualImporForm.satuan || '')"></span>
+                        MOQ: <span class="tabular-nums font-medium text-[#101828] dark:text-white" x-text="formatNumber(manualImporForm.satuan_order_moq || 1) + ' ' + (manualImporForm.satuan || '')"></span>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
                     <div class="p-2.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-lg border border-[#E8E8E8] dark:border-gray-800 text-center">
-                        <div class="text-[9px] text-[#667085] dark:text-gray-400 font-semibold uppercase tracking-wider">ADU Harian</div>
-                        <div class="font-mono font-bold text-[#101828] dark:text-white text-xs mt-1" x-text="simulasiImporAdu()"></div>
+                        <div class="text-[9px] text-[#667085] dark:text-gray-400 font-medium uppercase tracking-wider">ADU Harian</div>
+                        <div class="tabular-nums font-medium text-[#101828] dark:text-white text-xs mt-1" x-text="simulasiImporAdu()"></div>
                     </div>
                     <div class="p-2.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-lg border border-[#E8E8E8] dark:border-gray-800 text-center">
-                        <div class="text-[9px] text-[#667085] dark:text-gray-400 font-semibold uppercase tracking-wider">Safety Stock</div>
-                        <div class="font-mono font-bold text-[#101828] dark:text-white text-xs mt-1" x-text="simulasiImporSafetyStock()"></div>
+                        <div class="text-[9px] text-[#667085] dark:text-gray-400 font-medium uppercase tracking-wider">Safety Stock</div>
+                        <div class="tabular-nums font-medium text-[#101828] dark:text-white text-xs mt-1" x-text="simulasiImporSafetyStock()"></div>
                     </div>
                     <div class="p-2.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-lg border border-[#E8E8E8] dark:border-gray-800 text-center">
-                        <div class="text-[9px] text-[#667085] dark:text-gray-400 font-semibold uppercase tracking-wider">Target Stock</div>
-                        <div class="font-mono font-bold text-[#101828] dark:text-white text-xs mt-1" x-text="simulasiImporTarget()"></div>
+                        <div class="text-[9px] text-[#667085] dark:text-gray-400 font-medium uppercase tracking-wider">Target Stock</div>
+                        <div class="tabular-nums font-medium text-[#101828] dark:text-white text-xs mt-1" x-text="simulasiImporTarget()"></div>
                     </div>
                     <div class="p-2.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-lg border border-[#E8E8E8] dark:border-gray-800 text-center">
-                        <div class="text-[9px] text-[#667085] dark:text-gray-400 font-semibold uppercase tracking-wider">Proyeksi</div>
-                        <div class="font-mono font-bold text-xs mt-1" :class="simulasiImporProyeksiRaw() < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[#101828] dark:text-white'" x-text="simulasiImporProyeksi()"></div>
+                        <div class="text-[9px] text-[#667085] dark:text-gray-400 font-medium uppercase tracking-wider">Proyeksi</div>
+                        <div class="tabular-nums font-medium text-xs mt-1" :class="simulasiImporProyeksiRaw() < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[#101828] dark:text-white'" x-text="simulasiImporProyeksi()"></div>
                     </div>
                     <div class="p-2.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-lg border border-[#E8E8E8] dark:border-gray-800 text-center">
-                        <div class="text-[9px] text-[#101828] dark:text-white font-semibold uppercase tracking-wider">Order (MOQ)</div>
-                        <div class="font-mono font-bold text-[#101828] dark:text-white text-xs mt-1" x-text="simulasiImporOrder()"></div>
+                        <div class="text-[9px] text-[#101828] dark:text-white font-medium uppercase tracking-wider">Order (MOQ)</div>
+                        <div class="tabular-nums font-medium text-[#101828] dark:text-white text-xs mt-1" x-text="simulasiImporOrder()"></div>
                     </div>
                 </div>
             </div>

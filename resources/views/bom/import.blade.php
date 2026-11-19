@@ -17,7 +17,7 @@
                 {{-- Step 1: Unggah / Isi Grid --}}
                 <div class="flex items-center gap-3 shrink-0">
                     <div
-                        class="size-[28px] rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                        class="size-[28px] rounded-full flex items-center justify-center text-xs font-medium transition-all"
                         :class="rows.length > 0 ? 'bg-[#00bc7d] text-white shadow-[0px_0px_0px_4px_rgba(0,188,125,0.18)]' : 'bg-[#f3f4f6] dark:bg-gray-800 text-[#667085] dark:text-gray-400 border border-[#E8E8E8] dark:border-gray-700'"
                     >
                         <template x-if="validRowsCount > 0 || invalidRowsCount > 0">
@@ -28,7 +28,7 @@
                         </template>
                     </div>
                     <div>
-                        <p class="text-xs font-semibold text-[#101828] dark:text-white leading-tight">1. Unggah / Isi Grid</p>
+                        <p class="text-xs font-medium text-[#101828] dark:text-white leading-tight">1. Unggah / Isi Grid</p>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400">Import Excel/CSV atau input manual</p>
                     </div>
                 </div>
@@ -38,7 +38,7 @@
                 {{-- Step 2: Validasi Formula --}}
                 <div class="flex items-center gap-3 shrink-0">
                     <div
-                        class="size-[28px] rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                        class="size-[28px] rounded-full flex items-center justify-center text-xs font-medium transition-all"
                         :class="(validRowsCount > 0 && invalidRowsCount === 0) ? 'bg-[#00bc7d] text-white shadow-[0px_0px_0px_4px_rgba(0,188,125,0.18)]' : (rows.length > 0 ? 'bg-[#111111] dark:bg-white text-white dark:text-[#111111]' : 'bg-[#f3f4f6] dark:bg-gray-800 text-[#667085] dark:text-gray-400 border border-[#E8E8E8] dark:border-gray-700')"
                     >
                         <template x-if="validRowsCount > 0 && invalidRowsCount === 0">
@@ -49,7 +49,7 @@
                         </template>
                     </div>
                     <div>
-                        <p class="text-xs font-semibold text-[#101828] dark:text-white leading-tight">2. Validasi Formula</p>
+                        <p class="text-xs font-medium text-[#101828] dark:text-white leading-tight">2. Validasi Formula</p>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400" x-text="invalidRowsCount > 0 ? invalidRowsCount + ' baris perlu diperbaiki' : (validRowsCount > 0 ? validRowsCount + ' baris valid siap simpan' : 'Periksa SKU & takaran')"></p>
                     </div>
                 </div>
@@ -59,13 +59,13 @@
                 {{-- Step 3: Simpan Resep BOM --}}
                 <div class="flex items-center gap-3 shrink-0">
                     <div
-                        class="size-[28px] rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                        class="size-[28px] rounded-full flex items-center justify-center text-xs font-medium transition-all"
                         :class="isSubmitting ? 'bg-[#00bc7d] text-white shadow-[0px_0px_0px_4px_rgba(0,188,125,0.18)]' : ((validRowsCount > 0 && invalidRowsCount === 0) ? 'bg-[#111111] dark:bg-white text-white dark:text-[#111111]' : 'bg-[#f3f4f6] dark:bg-gray-800 text-[#667085] dark:text-gray-400 border border-[#E8E8E8] dark:border-gray-700')"
                     >
                         3
                     </div>
                     <div>
-                        <p class="text-xs font-semibold text-[#101828] dark:text-white leading-tight">3. Simpan Resep BOM</p>
+                        <p class="text-xs font-medium text-[#101828] dark:text-white leading-tight">3. Simpan Resep BOM</p>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400">Komit formula ke database produksi</p>
                     </div>
                 </div>
@@ -91,7 +91,7 @@
                     <button
                         type="button"
                         @click="downloadExcelTemplate()"
-                        class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-xs transition cursor-pointer"
+                        class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-lg text-xs font-medium shadow-xs transition cursor-pointer"
                         title="Unduh format spreadsheet resmi Microsoft Excel (.xlsx)"
                     >
                         <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -109,7 +109,7 @@
                     </a>
 
                     {{-- 3. Upload File Excel / CSV --}}
-                    <label class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 bg-[#111111] dark:bg-white hover:bg-[#292929] dark:hover:bg-gray-100 text-white dark:text-[#111111] rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer">
+                    <label class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3.5 py-1.5 bg-[#111111] dark:bg-white hover:bg-[#292929] dark:hover:bg-gray-100 text-white dark:text-[#111111] rounded-lg text-xs font-medium shadow-xs transition cursor-pointer">
                         <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                         Unggah Berkas (Excel / CSV)
                         <input type="file" @change="handleFileUpload($event)" accept=".xlsx,.xls,.csv,.txt" class="hidden">
@@ -121,23 +121,23 @@
             <div class="mt-4 pt-3 border-t border-[#E8E8E8] dark:border-gray-800 grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div class="p-2.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-lg border border-[#E8E8E8] dark:border-gray-800 flex items-center justify-between">
                     <span class="text-xs text-[#667085] dark:text-gray-400">Total Baris:</span>
-                    <span class="font-mono text-sm font-bold text-[#101828] dark:text-white" x-text="rows.length"></span>
+                    <span class="tabular-nums text-sm font-medium text-[#101828] dark:text-white" x-text="rows.length"></span>
                 </div>
-                <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-between">
-                    <span class="text-xs text-emerald-700 dark:text-emerald-400">Baris Valid:</span>
-                    <span class="font-mono text-sm font-bold text-emerald-700 dark:text-emerald-400" x-text="validRowsCount"></span>
+                <div class="p-2.5 bg-card dark:bg-card rounded-lg border border-border dark:border-border flex items-center justify-between">
+                    <span class="text-xs text-foreground dark:text-foreground">Baris Valid:</span>
+                    <span class="tabular-nums text-sm font-medium text-foreground dark:text-foreground" x-text="validRowsCount"></span>
                 </div>
-                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="duplicateRowsCount > 0 ? 'bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800/50' : 'bg-[#F5F5F5] dark:bg-gray-950 border-[#E8E8E8] dark:border-gray-800'">
-                    <span class="text-xs" :class="duplicateRowsCount > 0 ? 'text-purple-700 dark:text-purple-400 font-semibold' : 'text-[#667085] dark:text-gray-400'">Duplikat di Grid:</span>
-                    <span class="font-mono text-sm font-bold" :class="duplicateRowsCount > 0 ? 'text-purple-700 dark:text-purple-400' : 'text-[#667085] dark:text-gray-400'" x-text="duplicateRowsCount"></span>
+                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="duplicateRowsCount > 0 ? 'bg-card dark:bg-card border-border dark:border-border' : 'bg-[#F5F5F5] dark:bg-gray-950 border-[#E8E8E8] dark:border-gray-800'">
+                    <span class="text-xs" :class="duplicateRowsCount > 0 ? 'text-foreground dark:text-foreground font-medium' : 'text-[#667085] dark:text-gray-400'">Duplikat di Grid:</span>
+                    <span class="tabular-nums text-sm font-medium" :class="duplicateRowsCount > 0 ? 'text-foreground dark:text-foreground' : 'text-[#667085] dark:text-gray-400'" x-text="duplicateRowsCount"></span>
                 </div>
-                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="alreadyExistsCount > 0 ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' : 'bg-[#F5F5F5] dark:bg-gray-950 border-[#E8E8E8] dark:border-gray-800'">
-                    <span class="text-xs" :class="alreadyExistsCount > 0 ? 'text-amber-700 dark:text-amber-400 font-semibold' : 'text-[#667085] dark:text-gray-400'">Sudah Terdaftar:</span>
-                    <span class="font-mono text-sm font-bold" :class="alreadyExistsCount > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-[#667085] dark:text-gray-400'" x-text="alreadyExistsCount"></span>
+                <div class="p-2.5 rounded-lg border flex items-center justify-between transition" :class="alreadyExistsCount > 0 ? 'bg-card dark:bg-card border-border dark:border-border' : 'bg-[#F5F5F5] dark:bg-gray-950 border-[#E8E8E8] dark:border-gray-800'">
+                    <span class="text-xs" :class="alreadyExistsCount > 0 ? 'text-foreground dark:text-foreground font-medium' : 'text-[#667085] dark:text-gray-400'">Sudah Terdaftar:</span>
+                    <span class="tabular-nums text-sm font-medium" :class="alreadyExistsCount > 0 ? 'text-foreground dark:text-foreground' : 'text-[#667085] dark:text-gray-400'" x-text="alreadyExistsCount"></span>
                 </div>
                 <div class="p-2.5 bg-rose-50 dark:bg-rose-950/30 rounded-lg border border-rose-200 dark:border-rose-800/50 flex items-center justify-between">
                     <span class="text-xs text-rose-700 dark:text-rose-400">Perlu Diperiksa:</span>
-                    <span class="font-mono text-sm font-bold text-rose-700 dark:text-rose-400" x-text="invalidRowsCount"></span>
+                    <span class="tabular-nums text-sm font-medium text-rose-700 dark:text-rose-400" x-text="invalidRowsCount"></span>
                 </div>
             </div>
         </div>
@@ -150,7 +150,7 @@
                         type="button"
                         @click="removeExisting()"
                         x-show="alreadyExistsCount > 0"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg text-xs font-medium cursor-pointer transition"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-card hover:bg-gray-50 text-foreground dark:text-foreground border border-border rounded-lg text-xs font-medium cursor-pointer transition"
                         title="Hapus baris bahan yang sudah terdaftar sebelumnya dari tabel"
                     >
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -160,7 +160,7 @@
                         type="button"
                         @click="removeDuplicates()"
                         x-show="duplicateRowsCount > 0"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-400 border border-purple-500/20 rounded-lg text-xs font-medium cursor-pointer transition"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 bg-card hover:bg-gray-50 text-foreground dark:text-foreground border border-border rounded-lg text-xs font-medium cursor-pointer transition"
                         title="Hapus baris duplikat secara otomatis dan pertahankan baris pertama"
                     >
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -186,20 +186,20 @@
             </x-slot:headerActions>
 
             <!-- Keyboard Paste Listener Box -->
-            <div class="px-4 py-2.5 bg-blue-500/10 border-b border-blue-500/20 flex items-center justify-between text-xs text-blue-700 dark:text-blue-300">
+            <div class="px-4 py-2.5 bg-card border-b border-border flex items-center justify-between text-xs text-foreground dark:text-foreground">
                 <div class="flex items-center gap-2">
-                    <span class="size-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span class="size-2 rounded-full bg-gray-400 animate-pulse"></span>
                     <span>
                         <strong>Tips Efisiensi:</strong> Anda dapat memblok data tabel di Microsoft Excel / Google Sheets, tekan <strong>Ctrl + C</strong>, lalu klik di sini dan tekan <strong>Ctrl + V</strong> untuk mengisi otomatis seluruh baris!
                     </span>
                 </div>
-                <span class="text-[11px] font-mono font-medium hidden sm:inline">Ctrl + V didukung</span>
+                <span class="text-[11px] tabular-nums font-medium hidden sm:inline">Ctrl + V didukung</span>
             </div>
 
             <div class="overflow-visible min-h-[280px] p-2" @paste="handlePaste($event)">
                 <table class="w-full text-xs border-collapse">
                     <thead>
-                        <tr class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                        <tr class="bg-muted/70 border-b border-border text-muted-foreground font-medium uppercase text-[11px] tracking-wider">
                             <th class="px-3 py-2.5 text-center w-12">#</th>
                             <th class="px-3 py-2.5 text-left w-[33%]">Produk Jadi <span class="text-destructive">*</span></th>
                             <th class="px-3 py-2.5 text-left w-[33%]">Bahan Baku / Kemasan <span class="text-destructive">*</span></th>
@@ -212,11 +212,11 @@
                         <template x-for="(row, index) in rows" :key="row.id">
                             <tr
                                 :style="'position: relative; z-index: ' + (activeDropdownKey && activeDropdownKey.startsWith(row.id + ':') ? 200 : (100 - index))"
-                                :class="row.isExisting ? 'bg-amber-500/10' : (row.isDuplicate ? 'bg-purple-500/10' : (row.valid === false ? 'bg-destructive/10' : 'hover:bg-muted/40'))"
+                                :class="row.isExisting ? 'bg-card' : (row.isDuplicate ? 'bg-card' : (row.valid === false ? 'bg-destructive/10' : 'hover:bg-muted/40'))"
                                 @hs-dropdown-opened.window="if ($event.detail && $event.detail.startsWith(row.id + ':')) activeDropdownKey = $event.detail"
                                 @hs-dropdown-closed.window="if ($event.detail === activeDropdownKey) activeDropdownKey = null"
                             >
-                                <td class="px-3 py-2.5 text-center font-mono text-muted-foreground text-xs" x-text="index + 1"></td>
+                                <td class="px-3 py-2.5 text-center tabular-nums text-muted-foreground text-xs" x-text="index + 1"></td>
 
                                 {{-- Kolom 1: Produk Jadi (Dropdown Search Component) --}}
                                 <td class="px-3 py-2" :style="activeDropdownKey === `${row.id}:pj` ? 'position: relative; z-index: 200;' : ''">
@@ -251,14 +251,14 @@
                                             <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
                                                 <template x-if="selectedItem">
                                                     <div class="flex items-center gap-1.5 truncate">
-                                                        <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
+                                                        <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
                                                         <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
-                                                        <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan || 'pcs'"></span>
+                                                        <span class="text-[9px] tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan || 'pcs'"></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="!selectedItem && row.sku_produk_jadi">
                                                     <div class="flex items-center gap-1.5 truncate text-destructive">
-                                                        <span class="font-mono font-semibold bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20 text-[10px]" x-text="row.sku_produk_jadi"></span>
+                                                        <span class="tabular-nums font-medium bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20 text-[10px]" x-text="row.sku_produk_jadi"></span>
                                                         <span class="truncate text-[11px] font-medium">SKU tidak ditemukan</span>
                                                     </div>
                                                 </template>
@@ -286,15 +286,15 @@
                                                 <template x-for="item in items" :key="item.id">
                                                     <div
                                                         @click="select(item)"
-                                                        :class="selectedId == item.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50'"
+                                                        :class="selectedId == item.id ? 'bg-muted text-foreground font-medium' : 'text-foreground hover:bg-muted/50'"
                                                         class="px-3.5 py-2.5 cursor-pointer transition flex items-center justify-between gap-2 select-none"
                                                     >
                                                         <div class="flex items-center gap-2 truncate pointer-events-none">
-                                                            <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
+                                                            <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
                                                             <span class="truncate font-medium text-foreground" x-text="item.nama"></span>
                                                         </div>
                                                         <div class="flex items-center gap-1 shrink-0 pointer-events-none">
-                                                            <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan || 'pcs'"></span>
+                                                            <span class="text-[9px] tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan || 'pcs'"></span>
                                                         </div>
                                                     </div>
                                                 </template>
@@ -344,14 +344,14 @@
                                             <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
                                                 <template x-if="selectedItem">
                                                     <div class="flex items-center gap-1.5 truncate">
-                                                        <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
+                                                        <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
                                                         <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
-                                                        <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan || '-'"></span>
+                                                        <span class="text-[9px] tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan || '-'"></span>
                                                     </div>
                                                 </template>
                                                 <template x-if="!selectedItem && row.sku_bahan">
                                                     <div class="flex items-center gap-1.5 truncate text-destructive">
-                                                        <span class="font-mono font-semibold bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20 text-[10px]" x-text="row.sku_bahan"></span>
+                                                        <span class="tabular-nums font-medium bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20 text-[10px]" x-text="row.sku_bahan"></span>
                                                         <span class="truncate text-[11px] font-medium">SKU tidak ditemukan</span>
                                                     </div>
                                                 </template>
@@ -379,21 +379,21 @@
                                                 <template x-for="item in items" :key="item.id">
                                                     <div
                                                         @click="isPairDuplicateInOtherRow(row, item.sku) ? alertDuplicatePair(row, item) : select(item)"
-                                                        :class="isPairDuplicateInOtherRow(row, item.sku) ? 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed opacity-60' : (selectedId == item.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50 cursor-pointer')"
+                                                        :class="isPairDuplicateInOtherRow(row, item.sku) ? 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed opacity-60' : (selectedId == item.id ? 'bg-muted text-foreground font-medium' : 'text-foreground hover:bg-muted/50 cursor-pointer')"
                                                         class="px-3.5 py-2.5 transition flex items-center justify-between gap-2 select-none"
                                                     >
                                                         <div class="flex items-center gap-2 truncate pointer-events-none">
-                                                            <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
+                                                            <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="item.sku"></span>
                                                             <span class="truncate font-medium" :class="isPairDuplicateInOtherRow(row, item.sku) ? 'text-muted-foreground' : 'text-foreground'" x-text="item.nama"></span>
                                                             <template x-if="isPairDuplicateInOtherRow(row, item.sku)">
-                                                                <span class="text-[9px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Sudah di Tabel</span>
+                                                                <span class="text-[9px] font-medium text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Sudah di Tabel</span>
                                                             </template>
                                                             <template x-if="!isPairDuplicateInOtherRow(row, item.sku) && isPairAlreadyRegistered(row, item.sku)">
-                                                                <span class="text-[9px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Terdaftar BOM</span>
+                                                                <span class="text-[9px] font-medium text-foreground dark:text-foreground bg-card px-1.5 py-0.5 rounded border border-border">Terdaftar BOM</span>
                                                             </template>
                                                         </div>
                                                         <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
-                                                            <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan"></span>
+                                                            <span class="text-[9px] tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="item.satuan"></span>
                                                         </div>
                                                     </div>
                                                 </template>
@@ -419,26 +419,26 @@
                                             min="0.0001"
                                             x-model="row.qty_per_unit"
                                             @input="validateRow(row)"
-                                            class="w-36 text-xs py-2 pl-2.5 pr-14 text-right rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring font-mono shadow-xs"
+                                            class="w-36 text-xs py-2 pl-2.5 pr-14 text-right rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring tabular-nums shadow-xs"
                                         >
-                                        <span class="absolute right-2 px-1.5 py-0.5 text-[9px] font-mono font-semibold text-muted-foreground bg-muted border border-border rounded pointer-events-none" x-text="row.bahan_item?.satuan || '-'"></span>
+                                        <span class="absolute right-2 px-1.5 py-0.5 text-[9px] tabular-nums font-medium text-muted-foreground bg-muted border border-border rounded pointer-events-none" x-text="row.bahan_item?.satuan || '-'"></span>
                                     </div>
                                 </td>
 
                                 {{-- Kolom 4: Status Validasi --}}
                                 <td class="px-3 py-1.5 text-center">
                                     <template x-if="row.valid === true">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-card text-foreground dark:text-foreground border border-border">
                                             &check; Siap Disimpan
                                         </span>
                                     </template>
                                     <template x-if="row.isExisting === true">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20" :title="row.error">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-card text-foreground dark:text-foreground border border-border" :title="row.error">
                                             ⚠️ Resep Sudah Terdaftar
                                         </span>
                                     </template>
                                     <template x-if="row.valid === false && !row.isExisting">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20" :title="row.error">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/10 text-destructive border border-destructive/20" :title="row.error">
                                             &times; <span x-text="row.error || 'Data Tidak Valid'"></span>
                                         </span>
                                     </template>
@@ -452,7 +452,7 @@
                                     <button
                                         type="button"
                                         @click="removeRow(index)"
-                                        class="text-muted-foreground hover:text-destructive p-1 transition cursor-pointer font-bold"
+                                        class="text-muted-foreground hover:text-destructive p-1 transition cursor-pointer font-medium"
                                         title="Hapus baris ini"
                                     >
                                         &times;
@@ -469,7 +469,7 @@
                                 <button
                                     type="button"
                                     @click="addRow()"
-                                    class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition cursor-pointer shadow-xs"
+                                    class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition cursor-pointer shadow-xs"
                                 >
                                     + Tambah Baris Pertama
                                 </button>
@@ -483,7 +483,7 @@
             <div class="p-3 bg-muted/30 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div class="text-xs text-muted-foreground">
                     Menampilkan <strong class="text-foreground" x-text="rows.length"></strong> baris resep.
-                    <span x-show="invalidRowsCount > 0" class="text-destructive font-semibold ml-2">
+                    <span x-show="invalidRowsCount > 0" class="text-destructive font-medium ml-2">
                         * Ada <span x-text="invalidRowsCount"></span> baris yang perlu diperbaiki sebelum dapat disimpan.
                     </span>
                 </div>
@@ -500,7 +500,7 @@
                         type="button"
                         @click="submitBulk()"
                         :disabled="rows.length === 0 || invalidRowsCount > 0 || isSubmitting"
-                        class="px-4 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                        class="px-4 py-1.5 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground rounded-lg text-xs font-medium shadow-xs transition cursor-pointer flex items-center gap-1.5"
                     >
                         <svg x-show="isSubmitting" class="animate-spin -ml-1 mr-1.5 size-3.5 text-primary-foreground" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         <span x-text="isSubmitting ? 'Menyimpan...' : 'Simpan Semua Formula BOM (' + validRowsCount + ' Baris)'"></span>
@@ -654,7 +654,7 @@
                         confirmButtonText: 'Mengerti'
                     });
                 } else {
-                    alert(msg);
+                    appDialog.alert(msg);
                 }
             },
 
@@ -688,8 +688,8 @@
                 this.validateAll();
             },
 
-            clearAllRows() {
-                if (confirm('Kosongkan semua baris pada grid tabel?')) {
+            async clearAllRows() {
+                if (await appDialog.confirm('Semua baris pada grid tabel akan dihapus.', { title: 'Kosongkan grid?', tone: 'danger', confirmText: 'Kosongkan' })) {
                     this.rows = [];
                     this.activeDropdownKey = null;
                 }
@@ -822,7 +822,7 @@
 
             downloadExcelTemplate() {
                 if (typeof XLSX === 'undefined') {
-                    alert('Library Excel belum siap.');
+                    appDialog.alert('Library Excel belum siap.');
                     return;
                 }
 
@@ -853,7 +853,7 @@
                         const json = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
 
                         if (!json || json.length < 2) {
-                            alert('Berkas kosong atau tidak memiliki baris data.');
+                            appDialog.alert('Berkas kosong atau tidak memiliki baris data.');
                             return;
                         }
 
@@ -894,7 +894,7 @@
                             }
                         }
                     } catch (err) {
-                        alert('Gagal membaca berkas: ' + err.message);
+                        appDialog.alert('Gagal membaca berkas: ' + err.message, { tone: 'danger', title: 'Gagal' });
                     }
                     event.target.value = '';
                 };
@@ -943,9 +943,9 @@
                 }
             },
 
-            submitBulk() {
+            async submitBulk() {
                 if (this.duplicateRowsCount > 0) {
-                    if (confirm(`Terdapat ${this.duplicateRowsCount} baris formula duplikat di dalam tabel grid. Bersihkan baris duplikat secara otomatis sebelum menyimpan?`)) {
+                    if (await appDialog.confirm(`Terdapat ${this.duplicateRowsCount} baris formula duplikat di dalam tabel grid. Bersihkan baris duplikat secara otomatis sebelum menyimpan?`, { title: 'Baris duplikat', confirmText: 'Bersihkan' })) {
                         this.removeDuplicates();
                     } else {
                         return;
@@ -953,7 +953,7 @@
                 }
 
                 if (this.alreadyExistsCount > 0) {
-                    if (confirm(`Terdapat ${this.alreadyExistsCount} baris bahan yang sudah terdaftar dalam formula produk sebelumnya. Lewati bahan yang sudah terdaftar dan simpan resep yang baru?`)) {
+                    if (await appDialog.confirm(`Terdapat ${this.alreadyExistsCount} baris bahan yang sudah terdaftar dalam formula produk sebelumnya. Lewati bahan yang sudah terdaftar dan simpan resep yang baru?`, { title: 'Bahan sudah terdaftar', confirmText: 'Lewati & simpan' })) {
                         this.removeExisting();
                     } else {
                         return;
@@ -962,12 +962,12 @@
 
                 const validRows = this.rows.filter(r => r.valid === true);
                 if (validRows.length === 0) {
-                    alert('Tidak ada baris resep baru yang dapat disimpan.');
+                    appDialog.alert('Tidak ada baris resep baru yang dapat disimpan.');
                     return;
                 }
 
                 if (this.invalidRowsCount > 0) {
-                    if (!confirm(`Ada ${this.invalidRowsCount} baris tidak valid yang akan dilewati. Lanjutkan menyimpan ${validRows.length} baris valid?`)) {
+                    if (!(await appDialog.confirm(`Ada ${this.invalidRowsCount} baris tidak valid yang akan dilewati. Lanjutkan menyimpan ${validRows.length} baris valid?`, { title: 'Baris tidak valid', confirmText: 'Simpan baris valid' }))) {
                         return;
                     }
                 }
@@ -1003,16 +1003,16 @@
                                 window.location.href = '{{ route("bom.index") }}';
                             });
                         } else {
-                            alert(data.message);
+                            appDialog.alert(data.message, { tone: 'danger', title: 'Gagal' });
                             window.location.href = '{{ route("bom.index") }}';
                         }
                     } else {
-                        alert(data.message || 'Gagal menyimpan formula BOM.');
+                        appDialog.alert(data.message || 'Gagal menyimpan formula BOM.', { tone: 'danger', title: 'Gagal' });
                     }
                 })
                 .catch(err => {
                     this.isSubmitting = false;
-                    alert('Terjadi kesalahan koneksi server.');
+                    appDialog.alert('Terjadi kesalahan koneksi server.', { tone: 'danger', title: 'Gagal' });
                 });
             }
         };

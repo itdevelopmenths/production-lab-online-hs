@@ -34,9 +34,9 @@
         @if($isCancelled)
             <div class="flex items-center justify-between p-3.5 bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-[10px]">
                 <div class="flex items-center gap-3">
-                    <div class="size-8 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center text-red-600 dark:text-red-400 font-bold text-xs shrink-0">✕</div>
+                    <div class="size-8 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center text-red-600 dark:text-red-400 font-medium text-xs shrink-0">✕</div>
                     <div>
-                        <h4 class="text-xs font-bold text-red-900 dark:text-red-200">Purchase Order Dibatalkan</h4>
+                        <h4 class="text-xs font-semibold text-red-900 dark:text-red-200">Purchase Order Dibatalkan</h4>
                         <p class="text-[11px] text-red-700 dark:text-red-300 mt-0.5">{{ $po->alasan_batal ?? 'Dokumen ini telah dibatalkan.' }}</p>
                     </div>
                 </div>
@@ -51,7 +51,7 @@
                             $isActive = $st['step'] == $currentStep && $po->status !== 'selesai';
                         @endphp
                         <li class="flex flex-col items-center text-center group" @if($isActive) aria-current="step" @endif>
-                            <div class="size-8 rounded-full flex items-center justify-center text-xs font-bold transition {{ $isCompleted ? 'bg-[#00bc7d] text-white shadow-[0px_0px_0px_4px_rgba(0,188,125,0.18)]' : ($isActive ? 'bg-brand-500 dark:bg-white text-white dark:text-gray-900 shadow-lg ring-4 ring-brand-500/15 dark:ring-white/20' : 'bg-white dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700 text-text-muted') }}">
+                            <div class="size-8 rounded-full flex items-center justify-center text-xs font-medium transition {{ $isCompleted ? 'bg-[#00bc7d] text-white shadow-[0px_0px_0px_4px_rgba(0,188,125,0.18)]' : ($isActive ? 'bg-brand-500 dark:bg-white text-white dark:text-gray-900 shadow-lg ring-4 ring-brand-500/15 dark:ring-white/20' : 'bg-white dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700 text-text-muted') }}">
                                 @if($isCompleted)
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                 @else
@@ -59,7 +59,7 @@
                                 @endif
                             </div>
                             <div class="mt-2">
-                                <span class="block text-xs font-semibold {{ $isActive || $isCompleted ? 'text-text-active' : 'text-text-muted' }}">
+                                <span class="block text-xs font-medium {{ $isActive || $isCompleted ? 'text-text-active' : 'text-text-muted' }}">
                                     {{ $st['label'] }}
                                 </span>
                                 <span class="hidden sm:block text-[10px] text-text-muted truncate max-w-[95px] mt-0.5">
@@ -133,9 +133,9 @@
         @if($isCancelled)
             <div class="flex items-center justify-between p-3.5 bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-[10px]">
                 <div class="flex items-center gap-3">
-                    <div class="size-8 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center text-red-600 dark:text-red-400 font-bold text-xs shrink-0">✕</div>
+                    <div class="size-8 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center text-red-600 dark:text-red-400 font-medium text-xs shrink-0">✕</div>
                     <div>
-                        <h4 class="text-xs font-bold text-red-900 dark:text-red-200">Purchase Order Dibatalkan</h4>
+                        <h4 class="text-xs font-semibold text-red-900 dark:text-red-200">Purchase Order Dibatalkan</h4>
                         <p class="text-[11px] text-red-700 dark:text-red-300 mt-0.5">{{ $po->alasan_batal ?? 'Dibatalkan oleh manajemen.' }}</p>
                     </div>
                 </div>
@@ -150,26 +150,26 @@
                 <div class="grid grid-cols-8 gap-2 mb-4 select-none" role="group" aria-label="Klasifikasi Fase Purchase Order">
                     <div class="col-span-4 rounded-[8px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border px-3 py-1.5 flex items-center justify-center gap-2 shadow-theme-xs min-w-0"
                          title="Internal Processing: Tahap 1–4 (Perencanaan, Approval, Supplier Confirm, Payment)">
-                        <span class="size-2 rounded-full bg-blue-600 shrink-0"></span>
-                        <span class="text-xs font-semibold text-text-active tracking-tight truncate">Internal Processing</span>
+                        <span class="size-2 rounded-full bg-gray-400 shrink-0"></span>
+                        <span class="text-xs font-medium text-text-active tracking-tight truncate">Internal Processing</span>
                     </div>
 
                     <div class="col-span-1 rounded-[8px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border px-1.5 py-1.5 flex items-center justify-center gap-1.5 shadow-theme-xs min-w-0"
                          title="Supplier Processing: Tahap 5 (Penerbitan PO)">
-                        <span class="size-2 rounded-full bg-amber-500 shrink-0"></span>
-                        <span class="text-xs font-semibold text-text-active tracking-tight truncate">Supplier</span>
+                        <span class="size-2 rounded-full bg-gray-400 shrink-0"></span>
+                        <span class="text-xs font-medium text-text-active tracking-tight truncate">Supplier</span>
                     </div>
 
                     <div class="col-span-1 rounded-[8px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border px-1.5 py-1.5 flex items-center justify-center gap-1.5 shadow-theme-xs min-w-0"
                          title="Transportation Time: Tahap 6 (Pengiriman)">
-                        <span class="size-2 rounded-full bg-purple-600 shrink-0"></span>
-                        <span class="text-xs font-semibold text-text-active truncate" title="Transportation Time">Transport</span>
+                        <span class="size-2 rounded-full bg-gray-400 shrink-0"></span>
+                        <span class="text-xs font-medium text-text-active truncate" title="Transportation Time">Transport</span>
                     </div>
 
                     <div class="col-span-2 rounded-[8px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border px-2.5 py-1.5 flex items-center justify-center gap-2 shadow-theme-xs min-w-0"
                          title="Receiving: Tahap 7–8 (Unloading, Input)">
-                        <span class="size-2 rounded-full bg-emerald-600 shrink-0"></span>
-                        <span class="text-xs font-semibold text-text-active tracking-tight truncate">Receiving</span>
+                        <span class="size-2 rounded-full bg-gray-400 shrink-0"></span>
+                        <span class="text-xs font-medium text-text-active tracking-tight truncate">Receiving</span>
                     </div>
                 </div>
 
@@ -224,15 +224,15 @@
                                 'selesai' => 'bg-[#00bc7d] text-white shadow-[0px_0px_0px_4px_rgba(0,188,125,0.18)]',
                                 'berjalan' => 'bg-brand-500 dark:bg-white text-white dark:text-gray-900 shadow-lg ring-4 ring-brand-500/15 dark:ring-white/20 animate-pulse',
                                 'terlambat' => 'bg-[#F04438] text-white ring-4 ring-red-500/20 shadow-md animate-pulse',
-                                'dikembalikan' => 'bg-amber-500 text-white ring-4 ring-amber-500/20 shadow-xs',
+                                'dikembalikan' => 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 ring-4 ring-border shadow-xs',
                                 default => 'bg-white dark:bg-gray-800 border-2 border-[#E8E8E8] dark:border-gray-700 text-text-muted',
                             };
 
                             $textClass = match($state) {
-                                'selesai' => 'text-text-active font-semibold',
-                                'berjalan' => 'text-text-active font-bold',
-                                'terlambat' => 'text-red-600 dark:text-red-400 font-bold',
-                                'dikembalikan' => 'text-amber-600 dark:text-amber-400 font-bold',
+                                'selesai' => 'text-text-active font-medium',
+                                'berjalan' => 'text-text-active font-medium',
+                                'terlambat' => 'text-red-600 dark:text-red-400 font-medium',
+                                'dikembalikan' => 'text-foreground dark:text-foreground font-medium',
                                 default => 'text-text-muted font-normal',
                             };
                         @endphp
@@ -241,14 +241,14 @@
                             @if($isCurrent) aria-current="step" @endif>
 
                             {{-- Step Node Circle --}}
-                            <div class="size-8 rounded-full flex items-center justify-center text-xs font-bold transition {{ $nodeClass }}"
+                            <div class="size-8 rounded-full flex items-center justify-center text-xs font-medium transition {{ $nodeClass }}"
                                  title="Tahap {{ $num }}: {{ $def['short'] }} ({{ ucfirst(str_replace('_',' ',$state)) }})">
                                 @if($state === 'selesai')
                                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                 @elseif($state === 'dikembalikan')
                                     <span class="text-xs">↩</span>
                                 @elseif($state === 'terlambat')
-                                    <span class="text-xs font-black">!</span>
+                                    <span class="text-xs font-medium">!</span>
                                 @else
                                     {{ $num }}
                                 @endif
@@ -277,7 +277,7 @@
                             {{-- Hasil Lead Time per Stage --}}
                             <div class="mt-1.5">
                                 @if($state === 'selesai')
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[5px] font-mono text-[10px] font-semibold bg-[#F5F5F5] dark:bg-gray-800 text-text-active border border-[#E8E8E8] dark:border-border"
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[5px] tabular-nums text-[10px] font-medium bg-[#F5F5F5] dark:bg-gray-800 text-text-active border border-[#E8E8E8] dark:border-border"
                                           title="Lead Time Selesai: {{ $stageLtHari }} hari / {{ $stageLtJam }} jam ({{ $stageLtMenit }} menit)">
                                         <span>{{ $stageLtHari }} hr</span>
                                         @if($stageLtMenit > 0 && $stageLtMenit < 1440)
@@ -285,7 +285,7 @@
                                         @endif
                                     </span>
                                 @elseif($state === 'berjalan' || $state === 'terlambat')
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[5px] font-mono text-[10px] font-bold bg-white dark:bg-gray-900 text-text-active border {{ $state === 'terlambat' ? 'border-red-500 ring-1 ring-red-500/25' : 'border-black dark:border-white ring-1 ring-black/10 dark:ring-white/20' }} shadow-theme-xs"
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[5px] tabular-nums text-[10px] font-medium bg-white dark:bg-gray-900 text-text-active border {{ $state === 'terlambat' ? 'border-red-500 ring-1 ring-red-500/25' : 'border-black dark:border-white ring-1 ring-black/10 dark:ring-white/20' }} shadow-theme-xs"
                                           title="Lead Time Berjalan: {{ $stageLtHari }} hari / {{ $stageLtJam }} jam ({{ $stageLtMenit }} menit)">
                                         <span class="size-1.5 rounded-full {{ $state === 'terlambat' ? 'bg-red-500 animate-ping' : 'bg-black dark:bg-white animate-pulse' }}"></span>
                                         <span>{{ $stageLtHari }} hr</span>
@@ -294,7 +294,7 @@
                                         @endif
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-[5px] font-mono text-[10px] text-text-muted/60 bg-[#FBFBFB] dark:bg-gray-800/40 border border-[#E8E8E8]/70 dark:border-gray-800"
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-[5px] tabular-nums text-[10px] text-text-muted/60 bg-[#FBFBFB] dark:bg-gray-800/40 border border-[#E8E8E8]/70 dark:border-gray-800"
                                           title="Lead Time: Belum Dimulai (0 menit)">
                                         0 hr
                                     </span>
@@ -311,18 +311,18 @@
             {{-- Kiri: Highlight Tahap Aktif --}}
             <div class="flex items-center gap-2 flex-wrap">
                 @if($po->status === 'selesai')
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
-                        <svg class="size-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-card dark:bg-card text-foreground dark:text-foreground border border-border dark:border-border">
+                        <svg class="size-3.5 text-foreground dark:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                         Seluruh 8 Tahap Selesai (PO Closed)
                     </span>
                 @elseif($isCancelled)
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20">
                         PO Dibatalkan
                     </span>
                 @elseif($activeStageNum)
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-text-muted text-[11px]">Tahap Aktif:</span>
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-xs font-bold {{ $activeStageState === 'terlambat' ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20' : 'bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white border border-[#E8E8E8] dark:border-border' }}">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] text-xs font-medium {{ $activeStageState === 'terlambat' ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20' : 'bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white border border-[#E8E8E8] dark:border-border' }}">
                             <span class="size-2 rounded-full {{ $activeStageState === 'terlambat' ? 'bg-red-600 animate-ping' : 'bg-[#627EF2] animate-pulse' }}"></span>
                             Tahap {{ $activeStageNum }}: {{ $activeStageLabel }}
                         </span>
@@ -342,27 +342,27 @@
 
             {{-- Kanan: Metrik Lead Time Bersih --}}
             <div class="flex flex-wrap items-center gap-2 text-[11px]">
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border font-mono text-text-muted" title="Internal Processing (Stage 1-4: Perencanaan, Approval, Supplier Confirm, Payment)">
-                    <span class="size-1.5 rounded-full bg-blue-500 shrink-0"></span>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border tabular-nums text-text-muted" title="Internal Processing (Stage 1-4: Perencanaan, Approval, Supplier Confirm, Payment)">
+                    <span class="size-1.5 rounded-full bg-gray-400 shrink-0"></span>
                     <span>Internal<span class="hidden xl:inline"> Processing</span>:</span>
-                    <strong class="text-text-active font-bold">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($internalMenit) }} hr</strong>
+                    <strong class="text-text-active font-medium">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($internalMenit) }} hr</strong>
                 </div>
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border font-mono text-text-muted" title="Supplier Processing (Stage 5: PO)">
-                    <span class="size-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border tabular-nums text-text-muted" title="Supplier Processing (Stage 5: PO)">
+                    <span class="size-1.5 rounded-full bg-gray-400 shrink-0"></span>
                     <span>Supplier<span class="hidden xl:inline"> Processing</span>:</span>
-                    <strong class="text-text-active font-bold">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($supplierMenit) }} hr</strong>
+                    <strong class="text-text-active font-medium">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($supplierMenit) }} hr</strong>
                 </div>
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border font-mono text-text-muted" title="Transportation Time (Stage 6: Pengiriman)">
-                    <span class="size-1.5 rounded-full bg-purple-500 shrink-0"></span>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border tabular-nums text-text-muted" title="Transportation Time (Stage 6: Pengiriman)">
+                    <span class="size-1.5 rounded-full bg-gray-400 shrink-0"></span>
                     <span>Transportation<span class="hidden xl:inline"> Time</span>:</span>
-                    <strong class="text-text-active font-bold">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($transportationMenit) }} hr</strong>
+                    <strong class="text-text-active font-medium">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($transportationMenit) }} hr</strong>
                 </div>
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border font-mono text-text-muted" title="Receiving (Stage 7-8: Unloading, Input)">
-                    <span class="size-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#FBFBFB] dark:bg-gray-800/60 border border-[#E8E8E8] dark:border-border tabular-nums text-text-muted" title="Receiving (Stage 7-8: Unloading, Input)">
+                    <span class="size-1.5 rounded-full bg-gray-400 shrink-0"></span>
                     <span>Receiving:</span>
-                    <strong class="text-text-active font-bold">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($receivingMenit) }} hr</strong>
+                    <strong class="text-text-active font-medium">{{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($receivingMenit) }} hr</strong>
                 </div>
-                <div class="px-2.5 py-1 rounded-[6px] bg-black dark:bg-white text-white dark:text-[#0A0A0A] font-mono font-bold shadow-theme-xs">
+                <div class="px-2.5 py-1 rounded-[6px] bg-black dark:bg-white text-white dark:text-[#0A0A0A] tabular-nums font-medium shadow-theme-xs">
                     Total LT: {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($totalLtMenit) }} Hari
                     <span class="font-normal text-[10px] opacity-80">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($totalLtMenit) }} j)</span>
                 </div>

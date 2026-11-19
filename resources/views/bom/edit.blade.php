@@ -16,14 +16,14 @@
                     <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-center justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <span class="font-mono text-[#101828] dark:text-white font-semibold bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md border border-[#E8E8E8] dark:border-gray-700 text-xs">{{ $produk->sku }}</span>
+                                <span class="tabular-nums text-[#101828] dark:text-white font-medium bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md border border-[#E8E8E8] dark:border-gray-700 text-xs">{{ $produk->sku }}</span>
                                 <h3 class="text-sm font-semibold text-[#101828] dark:text-white">{{ $produk->nama }}</h3>
                             </div>
-                            <p class="text-xs text-[#667085] dark:text-gray-400 mt-1">Kalkulasi alokasi bahan otomatis: <span class="font-mono font-medium text-[#101828] dark:text-gray-200">Kebutuhan Bahan = Formula &times; Qty Rencana Batch</span></p>
+                            <p class="text-xs text-[#667085] dark:text-gray-400 mt-1">Kalkulasi alokasi bahan otomatis: <span class="tabular-nums font-medium text-[#101828] dark:text-gray-200">Kebutuhan Bahan = Formula &times; Qty Rencana Batch</span></p>
                         </div>
                         <div class="text-right shrink-0">
-                            <span class="text-[11px] uppercase tracking-wider text-[#667085] dark:text-gray-400 font-semibold">Satuan Output</span>
-                            <p class="font-mono font-bold text-sm text-[#101828] dark:text-white">{{ $produk->satuan }}</p>
+                            <span class="text-[11px] uppercase tracking-wider text-[#667085] dark:text-gray-400 font-medium">Satuan Output</span>
+                            <p class="tabular-nums font-medium text-sm text-[#101828] dark:text-white">{{ $produk->satuan }}</p>
                         </div>
                     </div>
 
@@ -81,9 +81,9 @@
                                                         <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
                                                             <template x-if="selectedItem">
                                                                 <div class="flex items-center gap-1.5 truncate">
-                                                                    <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded border border-border text-[11px]" x-text="selectedItem.sku"></span>
+                                                                    <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded border border-border text-[11px]" x-text="selectedItem.sku"></span>
                                                                     <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
-                                                                    <span class="text-[10px] font-mono text-muted-foreground bg-muted px-1 py-0.5 rounded border border-border" x-text="selectedItem.satuan"></span>
+                                                                    <span class="text-[10px] tabular-nums text-muted-foreground bg-muted px-1 py-0.5 rounded border border-border" x-text="selectedItem.satuan"></span>
                                                                 </div>
                                                             </template>
                                                             <template x-if="!selectedItem">
@@ -108,12 +108,12 @@
 
                                                         <div class="max-h-52 overflow-y-auto divide-y divide-border">
                                                             <template x-for="item in items" :key="item.id">
-                                                                <div @click="select(item)" :class="selectedId == item.id ? 'bg-accent text-accent-foreground font-semibold' : 'text-foreground hover:bg-muted/50'" class="px-3 py-2 cursor-pointer transition flex items-center justify-between gap-2 select-none">
+                                                                <div @click="select(item)" :class="selectedId == item.id ? 'bg-accent text-accent-foreground font-medium' : 'text-foreground hover:bg-muted/50'" class="px-3 py-2 cursor-pointer transition flex items-center justify-between gap-2 select-none">
                                                                     <div class="flex items-center gap-1.5 truncate pointer-events-none">
-                                                                        <span class="font-mono text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded border border-border text-[10px]" x-text="item.sku"></span>
+                                                                        <span class="tabular-nums text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded border border-border text-[10px]" x-text="item.sku"></span>
                                                                         <span class="truncate font-medium text-foreground" x-text="item.nama"></span>
                                                                     </div>
-                                                                    <span class="text-[10px] font-mono text-muted-foreground bg-muted px-1 py-0.5 rounded border border-border" x-text="item.satuan"></span>
+                                                                    <span class="text-[10px] tabular-nums text-muted-foreground bg-muted px-1 py-0.5 rounded border border-border" x-text="item.satuan"></span>
                                                                 </div>
                                                             </template>
                                                             <div x-show="!loading && items.length === 0" class="py-4 text-center text-muted-foreground">Tidak ada bahan yang cocok.</div>
@@ -137,10 +137,10 @@
                                                         :name="`items[${i}][qty_per_unit]`"
                                                         x-model="row.qty"
                                                         placeholder="0.0000"
-                                                        class="w-full rounded-lg border border-border bg-background text-xs py-1.5 pr-16 font-mono text-right text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
+                                                        class="w-full rounded-lg border border-border bg-background text-xs py-1.5 pr-16 tabular-nums text-right text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
                                                         required
                                                     >
-                                                    <span class="absolute right-2 px-1.5 py-0.5 text-[10px] font-mono font-bold text-foreground bg-muted border border-border rounded uppercase tracking-wider pointer-events-none" x-text="row.satuan || 'Unit'"></span>
+                                                    <span class="absolute right-2 px-1.5 py-0.5 text-[10px] tabular-nums font-medium text-foreground bg-muted border border-border rounded uppercase tracking-wider pointer-events-none" x-text="row.satuan || 'Unit'"></span>
                                                 </div>
                                             </td>
                                             <td class="px-4 py-2.5 text-center">
@@ -162,8 +162,8 @@
                                 Tambah Baris Bahan
                             </x-button>
 
-                            <div class="text-xs text-text-muted font-mono">
-                                Total Komponen: <span class="font-bold text-text-active" x-text="rows.length"></span> Bahan
+                            <div class="text-xs text-text-muted tabular-nums">
+                                Total Komponen: <span class="font-medium text-text-active" x-text="rows.length"></span> Bahan
                             </div>
                         </div>
 

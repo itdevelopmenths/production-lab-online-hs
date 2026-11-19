@@ -100,7 +100,7 @@
                 {
                     data: 'kode',
                     render: function(data) {
-                        return '<span class="font-mono font-bold text-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border text-[11px]">' + (data || '-') + '</span>';
+                        return '<span class="tabular-nums font-medium text-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border text-[11px]">' + (data || '-') + '</span>';
                     }
                 },
                 {
@@ -118,7 +118,7 @@
                 {
                     data: 'konversi',
                     render: function(data) {
-                        return '<span class="font-mono text-muted-foreground text-[11px]">' + (data || '-') + '</span>';
+                        return '<span class="tabular-nums text-muted-foreground text-[11px]">' + (data || '-') + '</span>';
                     }
                 },
                 {
@@ -126,7 +126,7 @@
                     orderable: false,
                     searchable: false,
                     render: function(data) {
-                        return '<span class="font-mono text-xs text-muted-foreground">' + (data || '0 SKU') + '</span>';
+                        return '<span class="tabular-nums text-xs text-muted-foreground">' + (data || '0 SKU') + '</span>';
                     }
                 },
                 {
@@ -136,9 +136,9 @@
                         const val = String(data || '').toLowerCase().trim();
                         const isAktif = (data === true || data === 1 || data === '1' || val === 'aktif' || val === 'active' || val.includes('>aktif<'));
                         const cls = isAktif
-                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                            ? 'bg-card text-foreground dark:text-foreground border-border'
                             : 'bg-zinc-100 dark:bg-gray-800 text-text-muted border-[#E8E8E8] dark:border-gray-700';
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ' + cls + '">' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
+                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ' + cls + '">' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
                     }
                 },
                 { data: 'action', orderable: false, searchable: false, className: 'text-center' }

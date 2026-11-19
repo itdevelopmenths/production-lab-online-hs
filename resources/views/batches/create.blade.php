@@ -46,10 +46,10 @@
         <div x-data="batchCreateForm()">
             <form method="POST" action="{{ route('batches.store') }}" @submit="onSubmit($event)">
                 @csrf
-                <div class="space-y-6">
+                <div class="space-y-4">
                     @if($errors->any())
                     <div role="alert" class="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
-                        <div class="font-bold mb-1">Batch produksi gagal disimpan:</div>
+                        <div class="font-medium mb-1">Batch produksi gagal disimpan:</div>
                         <ul class="list-disc list-inside space-y-0.5">
                             @foreach($errors->all() as $err)
                                 <li>{{ $err }}</li>
@@ -70,8 +70,8 @@
                     </div>
 
                     {{-- Card 1: Parameter & Lokasi Pabrik (AppForm Section + Inline White Cards) --}}
-                    <x-card title="Parameter Fasilitas & Jadwal" subtitle="Pilih fasilitas gudang operasional penarik bahan dan gudang tujuan produk jadi" class="relative z-0" bodyClass="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5">
-                        <x-form-section title="Fasilitas & Jadwal Produksi" :cols="3">
+                    <x-card title="Parameter Fasilitas & Jadwal" subtitle="Pilih fasilitas gudang operasional penarik bahan dan gudang tujuan produk jadi" class="relative z-0" bodyClass="bg-gray-50 dark:bg-gray-950 p-3 sm:p-4">
+                        <x-form-section card title="Fasilitas & Jadwal Produksi" :cols="3">
                             <x-form-field label="Gudang Bahan" name="gudang_operasional_id" help="Gudang asal pengambilan stok bahan baku saat batch dirilis">
                                 <x-select name="gudang_operasional_id" variant="seamless" placeholder="— Pilih Gudang Bahan —">
                                     @foreach($gudangOp as $g)
@@ -98,7 +98,7 @@
                     <div class="bg-card text-card-foreground rounded-lg border border-border shadow-2xs flex flex-col overflow-visible transition-all relative z-20">
                         <div class="px-5 py-4 border-b border-[#e8e8e8] dark:border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-gray-900 rounded-t-lg">
                             <div class="min-w-0 flex-1">
-                                <h3 class="text-[16px] leading-[1.4] font-semibold tracking-[-0.176px] text-[#101828] dark:text-white truncate">Produk Jadi Luaran (Multi-Output)</h3>
+                                <h3 class="text-[16px] leading-[1.4] font-medium tracking-[-0.176px] text-[#101828] dark:text-white truncate">Produk Jadi Luaran (Multi-Output)</h3>
                                 <p class="text-[12px] leading-[18px] tracking-[-0.132px] text-[#6a7282] dark:text-gray-400 mt-0.5">Hanya produk jadi yang sudah memiliki formula BOM yang dapat dipilih dan diproduksi</p>
                             </div>
                         </div>
@@ -157,9 +157,9 @@
                                                         <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
                                                             <template x-if="selectedItem">
                                                                 <div class="flex items-center gap-1.5 truncate">
-                                                                    <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded-md border border-border text-[11px]" x-text="selectedItem.sku"></span>
+                                                                    <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[11px]" x-text="selectedItem.sku"></span>
                                                                     <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
-                                                                    <span class="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan"></span>
+                                                                    <span class="text-[10px] tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan"></span>
                                                                 </div>
                                                             </template>
                                                             <template x-if="!selectedItem">
@@ -196,18 +196,18 @@
                                                             <template x-for="item in items" :key="item.id">
                                                                 <div
                                                                     @click="hasBom(item.id) ? select(item) : (clear(), rejectNoBom(row, item))"
-                                                                    :class="!hasBom(item.id) ? 'bg-red-50/40 dark:bg-red-500/5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 cursor-not-allowed' : (selectedId == item.id ? 'bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white font-semibold cursor-pointer' : 'text-text-active hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer')"
+                                                                    :class="!hasBom(item.id) ? 'bg-red-50/40 dark:bg-red-500/5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 cursor-not-allowed' : (selectedId == item.id ? 'bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white font-medium cursor-pointer' : 'text-text-active hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer')"
                                                                     class="px-3.5 py-2.5 transition flex items-center justify-between gap-2 select-none"
                                                                 >
                                                                     <div class="flex items-center gap-2 truncate pointer-events-none">
-                                                                        <span class="font-mono text-text-active font-medium bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#e8e8e8] dark:border-gray-700 text-[10px]" x-text="item.sku"></span>
+                                                                        <span class="tabular-nums text-text-active font-medium bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#e8e8e8] dark:border-gray-700 text-[10px]" x-text="item.sku"></span>
                                                                         <span class="truncate font-medium" :class="hasBom(item.id) ? 'text-text-active' : 'text-text-muted'" x-text="item.nama"></span>
                                                                     </div>
                                                                     <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
                                                                         <template x-if="!hasBom(item.id)">
-                                                                            <span class="text-[9px] font-semibold text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-500/20">Belum Ada BOM</span>
+                                                                            <span class="text-[9px] font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-500/20">Belum Ada BOM</span>
                                                                         </template>
-                                                                        <span class="text-[10px] font-mono text-text-muted bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#e8e8e8] dark:border-gray-700" x-text="item.satuan"></span>
+                                                                        <span class="text-[10px] tabular-nums text-text-muted bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#e8e8e8] dark:border-gray-700" x-text="item.satuan"></span>
                                                                     </div>
                                                                 </div>
                                                             </template>
@@ -233,9 +233,9 @@
                                                         x-model="row.qty_rencana"
                                                         placeholder="misal: 100"
                                                         required
-                                                        class="w-full rounded-lg border-input bg-background text-xs py-2 pr-16 font-mono text-right focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                        class="w-full rounded-lg border-input bg-background text-xs py-2 pr-16 tabular-nums text-right focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                                                     />
-                                                    <span class="absolute right-2.5 px-2 py-0.5 text-[10px] font-mono font-semibold text-muted-foreground bg-muted border border-border rounded-md uppercase tracking-wider pointer-events-none" x-text="row.satuan || 'Pcs'"></span>
+                                                    <span class="absolute right-2.5 px-2 py-0.5 text-[10px] tabular-nums font-medium text-muted-foreground bg-muted border border-border rounded-md uppercase tracking-wider pointer-events-none" x-text="row.satuan || 'Pcs'"></span>
                                                 </div>
                                             </td>
                                             <td class="px-4 py-3 text-center align-top">
@@ -259,8 +259,8 @@
                                 + Tambah Produk Jadi Luaran
                             </x-button>
 
-                            <div class="text-xs text-text-muted font-mono">
-                                Total Varian: <span class="font-bold text-text-active" x-text="rows.length"></span>
+                            <div class="text-xs text-text-muted tabular-nums">
+                                Total Varian: <span class="font-medium text-text-active" x-text="rows.length"></span>
                             </div>
                         </div>
 
@@ -284,7 +284,7 @@
                     <div class="bg-card text-card-foreground rounded-lg border border-border shadow-2xs flex flex-col overflow-hidden transition-all relative z-0">
                         <div class="px-5 py-4 border-b border-[#e8e8e8] dark:border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-gray-900 rounded-t-lg">
                             <div class="min-w-0 flex-1">
-                                <h3 class="text-[16px] leading-[1.4] font-semibold tracking-[-0.176px] text-[#101828] dark:text-white truncate">Pratinjau Agregasi Kebutuhan BOM</h3>
+                                <h3 class="text-[16px] leading-[1.4] font-medium tracking-[-0.176px] text-[#101828] dark:text-white truncate">Pratinjau Agregasi Kebutuhan BOM</h3>
                                 <p class="text-[12px] leading-[18px] tracking-[-0.132px] text-[#6a7282] dark:text-gray-400 mt-0.5">Kalkulasi dinamis total kebutuhan bahan baku yang akan dialokasikan untuk seluruh produk jadi di atas</p>
                             </div>
                         </div>
@@ -304,9 +304,9 @@
                                     <template x-for="(bomItem, idx) in getBomPreview()" :key="bomItem.bahan_id">
                                         <tr class="hover:bg-muted/30">
                                             <td class="px-4 py-2.5 text-center text-muted-foreground" x-text="idx + 1"></td>
-                                            <td class="px-4 py-2.5 font-mono font-medium text-foreground" x-text="bomItem.sku"></td>
-                                            <td class="px-4 py-2.5 font-semibold text-foreground" x-text="bomItem.nama"></td>
-                                            <td class="px-4 py-2.5 text-right font-mono font-bold text-primary" x-text="Number(bomItem.total_kebutuhan).toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 4})"></td>
+                                            <td class="px-4 py-2.5 tabular-nums font-medium text-foreground" x-text="bomItem.sku"></td>
+                                            <td class="px-4 py-2.5 font-medium text-foreground" x-text="bomItem.nama"></td>
+                                            <td class="px-4 py-2.5 text-right tabular-nums font-medium text-primary" x-text="Number(bomItem.total_kebutuhan).toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 4})"></td>
                                             <td class="px-4 py-2.5 text-muted-foreground" x-text="bomItem.satuan"></td>
                                         </tr>
                                     </template>

@@ -67,7 +67,7 @@
                             confirmButtonText: 'Mengerti'
                         });
                     } else {
-                        alert(`Produk "${nama}" sudah ada di baris lain. Setiap produk hanya boleh dipilih 1 kali.`);
+                        appDialog.alert(`Produk "${nama}" sudah ada di baris lain. Setiap produk hanya boleh dipilih 1 kali.`);
                     }
                 },
                 onProductSelected(item, product, index) {
@@ -109,14 +109,14 @@
                     <div class="flex items-center justify-between w-full">
                         <div>
                             <div class="flex items-center gap-2">
-                                <h2 class="text-[16px] font-semibold text-[#101828] dark:text-white tracking-tight">Edit Permintaan Barang</h2>
-                                <span class="font-mono text-xs px-2 py-0.5 rounded-[5px] bg-[#F5F5F5] dark:bg-gray-800 border border-[#E8E8E8] dark:border-border text-text-active font-bold">{{ $stockRequest->no_request }}</span>
+                                <h2 class="text-[16px] font-medium text-[#101828] dark:text-white tracking-tight">Edit Permintaan Barang</h2>
+                                <span class="tabular-nums text-xs px-2 py-0.5 rounded-[5px] bg-[#F5F5F5] dark:bg-gray-800 border border-[#E8E8E8] dark:border-border text-text-active font-medium">{{ $stockRequest->no_request }}</span>
                             </div>
                             <p class="text-xs text-text-muted mt-0.5">Perbarui rincian gudang dan kuantitas barang yang diminta</p>
                         </div>
                         <div>
                             @if($stockRequest->status === 'disetujui')
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-500/15 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-card dark:bg-card text-foreground dark:text-foreground border border-border dark:border-border">
                                     Revisi Pasca Approval (FR-REQ-08)
                                 </span>
                             @else
@@ -129,11 +129,11 @@
                 </x-slot:header>
 
                 @if($stockRequest->status === 'disetujui')
-                <div class="p-4 rounded-[10px] bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-purple-900 dark:text-purple-200 text-xs flex items-start gap-3">
-                    <svg class="size-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="p-4 rounded-[10px] bg-card dark:bg-card border border-border dark:border-border text-foreground dark:text-foreground text-xs flex items-start gap-3">
+                    <svg class="size-5 text-foreground dark:text-foreground shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div>
-                        <div class="font-bold">Ketentuan Revisi Permintaan Disetujui (FR-REQ-08):</div>
-                        <p class="mt-0.5 leading-relaxed text-purple-800 dark:text-purple-300">
+                        <div class="font-medium">Ketentuan Revisi Permintaan Disetujui (FR-REQ-08):</div>
+                        <p class="mt-0.5 leading-relaxed text-foreground dark:text-foreground">
                             Karena permintaan ini sebelumnya sudah berstatus <strong>Disetujui</strong>, setiap perubahan pada kuantitas atau rincian item akan secara otomatis <strong>mereset status dokumen kembali menjadi 'Diajukan'</strong> dan membutuhkan persetujuan (approval) ulang dari Manajer sebelum dapat diproses transfer stoknya.
                         </p>
                     </div>
@@ -142,7 +142,7 @@
 
                 @if($errors->any())
                 <div class="p-4 rounded-[10px] bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-300 text-xs">
-                    <div class="font-bold mb-1">Terdapat kesalahan input:</div>
+                    <div class="font-medium mb-1">Terdapat kesalahan input:</div>
                     <ul class="list-disc list-inside space-y-0.5">
                         @foreach($errors->all() as $err)
                             <li>{{ $err }}</li>
@@ -174,8 +174,8 @@
                 </x-form-section>
 
                 @if($stockRequest->jenis === 'request_bahan')
-                <div class="p-3.5 bg-amber-50/70 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-[10px] space-y-2">
-                    <label class="block text-xs font-semibold text-amber-900 dark:text-amber-300">
+                <div class="p-3.5 bg-card dark:bg-card border border-border dark:border-border rounded-[10px] space-y-2">
+                    <label class="block text-xs font-medium text-foreground dark:text-foreground">
                         Batch Produksi Terkait (Opsional):
                     </label>
                     <select name="batch_id" x-model="batchId" class="w-full h-9 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 px-3 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white">
@@ -200,10 +200,10 @@
                 <x-slot:header>
                     <div class="flex items-center justify-between w-full">
                         <div>
-                            <h2 class="text-lg font-semibold text-foreground tracking-tight">Rincian Barang</h2>
+                            <h2 class="text-lg font-medium text-foreground tracking-tight">Rincian Barang</h2>
                             <p class="text-xs text-muted-foreground mt-0.5">Ubah item dan jumlah kuantitas yang diminta</p>
                         </div>
-                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition">
+                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition">
                             <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             Tambah Baris
                         </button>
@@ -263,9 +263,9 @@
                                                 <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
                                                     <template x-if="selectedItem">
                                                         <div class="flex items-center gap-1.5 truncate">
-                                                            <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
+                                                            <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
                                                             <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
-                                                            <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan"></span>
+                                                            <span class="text-[9px] tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan"></span>
                                                         </div>
                                                     </template>
                                                     <template x-if="!selectedItem">
@@ -292,18 +292,18 @@
                                                     <template x-for="p in items" :key="p.id">
                                                         <div
                                                             @click="isProductSelectedElsewhere(p.id, index) ? alertDuplicate(p) : select(p)"
-                                                            :class="isProductSelectedElsewhere(p.id, index) ? 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed opacity-60' : (selectedId == p.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50 cursor-pointer')"
+                                                            :class="isProductSelectedElsewhere(p.id, index) ? 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed opacity-60' : (selectedId == p.id ? 'bg-muted text-foreground font-medium' : 'text-foreground hover:bg-muted/50 cursor-pointer')"
                                                             class="px-3.5 py-2.5 transition flex items-center justify-between gap-2 select-none"
                                                         >
                                                             <div class="flex items-center gap-2 truncate pointer-events-none">
-                                                                <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="p.sku"></span>
+                                                                <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="p.sku"></span>
                                                                 <span class="truncate font-medium" :class="isProductSelectedElsewhere(p.id, index) ? 'text-muted-foreground' : 'text-foreground'" x-text="p.nama"></span>
                                                                 <template x-if="isProductSelectedElsewhere(p.id, index)">
-                                                                    <span class="text-[9px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Sudah Dipilih</span>
+                                                                    <span class="text-[9px] font-medium text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Sudah Dipilih</span>
                                                                 </template>
                                                             </div>
                                                             <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
-                                                                <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="p.satuan"></span>
+                                                                <span class="text-[9px] tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="p.satuan"></span>
                                                             </div>
                                                         </div>
                                                     </template>
@@ -343,7 +343,7 @@
 
                 <div class="p-4 bg-muted/20 border-t border-border flex items-center justify-between">
                     <x-button href="{{ route('requests.show', $stockRequest) }}" variant="outline">Batal</x-button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs">
+                    <button type="submit" class="px-4 py-2 text-xs font-medium rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs">
                         Simpan Perubahan
                     </button>
                 </div>

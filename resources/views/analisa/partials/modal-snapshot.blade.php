@@ -4,7 +4,7 @@
         <div class="px-6 py-4 border-b border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between">
             <div>
                 <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Detail Snapshot Riwayat</h3>
-                <p class="text-xs text-[#667085] dark:text-gray-400 font-mono mt-0.5" x-text="activeSnapshot ? activeSnapshot.session_id + ' · ' + activeSnapshot.item_label : ''"></p>
+                <p class="text-xs text-[#667085] dark:text-gray-400 tabular-nums mt-0.5" x-text="activeSnapshot ? activeSnapshot.session_id + ' · ' + activeSnapshot.item_label : ''"></p>
             </div>
             <button type="button" @click="showSnapshotModal = false" class="text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white transition cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -17,8 +17,8 @@
             <template x-if="activeSnapshot && activeSnapshot.detail">
                 <template x-for="[key, val] in Object.entries(activeSnapshot.detail).filter(([k]) => k !== 'varian_detail')" :key="key">
                     <div class="bg-white dark:bg-gray-900 p-3.5 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <dt class="text-[10px] uppercase font-semibold text-[#667085] dark:text-gray-400 tracking-wider" x-text="key.replace(/_/g, ' ')"></dt>
-                        <dd class="mt-1 font-mono text-[#101828] dark:text-white font-bold text-sm" x-text="typeof val === 'number' ? (/(lead_time|buffer|lt|hari)/i.test(key) ? formatLt(val) + ' Hari' : formatNumber(val)) : (val ?? '-')"></dd>
+                        <dt class="text-[10px] uppercase font-medium text-[#667085] dark:text-gray-400 tracking-wider" x-text="key.replace(/_/g, ' ')"></dt>
+                        <dd class="mt-1 tabular-nums text-[#101828] dark:text-white font-medium text-sm" x-text="typeof val === 'number' ? (/(lead_time|buffer|lt|hari)/i.test(key) ? formatLt(val) + ' Hari' : formatNumber(val)) : (val ?? '-')"></dd>
                     </div>
                 </template>
             </template>

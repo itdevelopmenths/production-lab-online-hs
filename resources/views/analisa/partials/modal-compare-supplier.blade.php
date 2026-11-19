@@ -12,7 +12,7 @@
                     <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Perbandingan & Pemilihan Supplier</h3>
                     <p class="text-xs text-[#667085] dark:text-gray-400 mt-0.5">
                         <span class="font-medium text-[#101828] dark:text-gray-200" x-text="compareProduct.nama"></span>
-                        <span class="font-mono text-[#667085] dark:text-gray-400" x-text="' (' + compareProduct.sku + ')'"></span>
+                        <span class="tabular-nums text-[#667085] dark:text-gray-400" x-text="' (' + compareProduct.sku + ')'"></span>
                     </p>
                 </div>
             </div>
@@ -26,7 +26,7 @@
         <div class="text-xs text-[#667085] dark:text-gray-300 bg-white dark:bg-gray-900 p-3.5 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 flex items-start gap-2.5">
             <svg class="size-4 text-[#111111] dark:text-white shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <div>
-                <p class="font-semibold text-[#101828] dark:text-white">Satu Produk Satu Supplier Aktif untuk Analisa</p>
+                <p class="font-medium text-[#101828] dark:text-white">Satu Produk Satu Supplier Aktif untuk Analisa</p>
                 <p class="mt-0.5 text-[11px]">Memilih supplier akan mengunci supplier tersebut sebagai acuan kalkulasi stok dan PO. Sistem akan menggunakan riwayat lead time empiris (rata-rata dan maksimum) dari transaksi PO selesai vendor tersebut jika tersedia, atau parameter manual jika belum ada riwayat.</p>
             </div>
         </div>
@@ -60,30 +60,30 @@
                             <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition" :class="s.is_current ? 'bg-gray-50/80 dark:bg-gray-800/30' : ''">
                                 <td class="py-3 px-4">
                                     <div class="flex items-center gap-2">
-                                        <div class="font-semibold text-[#101828] dark:text-white" x-text="s.supplier_nama"></div>
-                                        <span x-show="s.is_current" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50">AKTIF</span>
+                                        <div class="font-medium text-[#101828] dark:text-white" x-text="s.supplier_nama"></div>
+                                        <span x-show="s.is_current" class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-card text-foreground dark:bg-card dark:text-foreground border border-border dark:border-border">AKTIF</span>
                                     </div>
-                                    <div class="text-[10px] text-[#667085] dark:text-gray-400 font-mono mt-0.5" x-text="s.total_po_selesai > 0 ? 'Riwayat Empiris PO' : 'Manual (Fallback)'"></div>
+                                    <div class="text-[10px] text-[#667085] dark:text-gray-400 tabular-nums mt-0.5" x-text="s.total_po_selesai > 0 ? 'Riwayat Empiris PO' : 'Manual (Fallback)'"></div>
                                 </td>
                                 <td class="py-3 px-3 text-center">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono capitalize" :class="s.status === 'utama' ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50' : 'bg-gray-100 dark:bg-gray-800 text-[#667085] dark:text-gray-300'" x-text="s.status || 'terdaftar'"></span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] tabular-nums capitalize" :class="s.status === 'utama' ? 'bg-card text-foreground dark:bg-card dark:text-foreground border border-border dark:border-border' : 'bg-gray-100 dark:bg-gray-800 text-[#667085] dark:text-gray-300'" x-text="s.status || 'terdaftar'"></span>
                                 </td>
-                                <td class="py-3 px-4 text-center font-mono font-medium text-[#101828] dark:text-white">
+                                <td class="py-3 px-4 text-center tabular-nums font-medium text-[#101828] dark:text-white">
                                     <span x-text="s.total_po_selesai + ' PO'"></span>
                                 </td>
-                                <td class="py-3 px-4 text-right font-mono text-[#667085] dark:text-gray-400">
+                                <td class="py-3 px-4 text-right tabular-nums text-[#667085] dark:text-gray-400">
                                     <span x-text="formatLt(s.average_lt_days) + ' Hari'"></span>
                                 </td>
-                                <td class="py-3 px-4 text-right font-mono text-[#667085] dark:text-gray-400">
+                                <td class="py-3 px-4 text-right tabular-nums text-[#667085] dark:text-gray-400">
                                     <span x-text="formatLt(s.max_lt_days) + ' Hari'"></span>
                                 </td>
-                                <td class="py-3 px-4 text-right font-mono text-[#667085] dark:text-gray-400" x-text="formatNumber(s.batas_minimum ?? s.simulasi_batas_minimum ?? 0)"></td>
-                                <td class="py-3 px-4 text-right font-mono text-[#667085] dark:text-gray-400" x-text="formatNumber(s.target_stock ?? s.simulasi_target_stock ?? 0)"></td>
-                                <td class="py-3 px-4 text-right font-mono text-[#101828] dark:text-white" x-text="'Rp ' + formatNumber(s.harga_terakhir)"></td>
-                                <td class="py-3 px-4 text-right font-mono text-[#667085] dark:text-gray-400" x-text="formatNumber(s.min_order_qty)"></td>
+                                <td class="py-3 px-4 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatNumber(s.batas_minimum ?? s.simulasi_batas_minimum ?? 0)"></td>
+                                <td class="py-3 px-4 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatNumber(s.target_stock ?? s.simulasi_target_stock ?? 0)"></td>
+                                <td class="py-3 px-4 text-right tabular-nums text-[#101828] dark:text-white" x-text="'Rp ' + formatNumber(s.harga_terakhir)"></td>
+                                <td class="py-3 px-4 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatNumber(s.min_order_qty)"></td>
                                 <td class="py-3 px-4 text-center">
                                     <template x-if="s.is_current">
-                                        <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Aktif</span>
+                                        <span class="text-xs font-medium text-foreground dark:text-foreground">Aktif</span>
                                     </template>
                                     <template x-if="!s.is_current">
                                         @can('analisa.manage')
@@ -91,7 +91,7 @@
                                             type="button" 
                                             @click="selectSupplier(s.supplier_id)" 
                                             :disabled="savingSelectSupplier"
-                                            class="px-3 py-1.5 bg-[#111111] hover:bg-[#292929] dark:bg-white dark:hover:bg-gray-100 text-white dark:text-[#111111] disabled:opacity-50 text-xs font-semibold rounded-lg shadow-xs transition cursor-pointer"
+                                            class="px-3 py-1.5 bg-[#111111] hover:bg-[#292929] dark:bg-white dark:hover:bg-gray-100 text-white dark:text-[#111111] disabled:opacity-50 text-xs font-medium rounded-lg shadow-xs transition cursor-pointer"
                                         >
                                             <span x-show="!savingSelectSupplier">Gunakan Supplier</span>
                                             <span x-show="savingSelectSupplier">Menyimpan...</span>

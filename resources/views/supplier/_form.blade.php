@@ -137,9 +137,9 @@ function supplierProdukChecklist(allProducts, initialSelectedIds) {
 }
 </script>
 
-<div class="space-y-4">
-    <x-form-section title="Identitas & Kontak Vendor" subtitle="Nama badan usaha, kategori asal, skema termin, serta informasi kontak">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="space-y-3">
+    <x-form-section card title="Identitas & Kontak Vendor" subtitle="Nama badan usaha, kategori asal, skema termin, serta informasi kontak">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
             <x-form-field name="nama" label="Nama Supplier" :required="true" help="Nama resmi badan usaha atau penyedia">
                 <x-input name="nama" variant="seamless" value="{{ old('nama', $s?->nama) }}" placeholder="misal: PT Sumber Kimia Abadi" :required="true" />
             </x-form-field>
@@ -175,9 +175,9 @@ function supplierProdukChecklist(allProducts, initialSelectedIds) {
     <div x-data="supplierProdukChecklist({{ Js::from($availableProduks) }}, {{ Js::from($assignedIds) }})" class="border border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 rounded-[12px] p-4 sm:p-5 space-y-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8E8E8] dark:border-gray-800 pb-3">
             <div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-[#101828] dark:text-white flex items-center gap-2">
+                <h3 class="text-sm font-medium text-[#101828] dark:text-white flex items-center gap-2">
                     <svg class="size-4 text-[#111111] dark:text-white" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                    Produk yang Dipasok (<span class="font-mono text-[#111111] dark:text-white" x-text="selectedIds.length"></span> dipilih)
+                    Produk yang Dipasok (<span class="tabular-nums text-[#111111] dark:text-white" x-text="selectedIds.length"></span> dipilih)
                 </h3>
                 <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-0.5">Pilih bahan baku atau kemasan yang dapat dipesan ke supplier ini. Pilihan tetap terjaga meski kata kunci diubah.</p>
             </div>
@@ -215,7 +215,7 @@ function supplierProdukChecklist(allProducts, initialSelectedIds) {
                            autocapitalize="none"
                            spellcheck="false"
                            placeholder="Cari nama atau SKU (pisahkan koma untuk multi-keyword, mis: alkohol, botol)..."
-                           class="w-full text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 pl-9 pr-8 py-2 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none transition [&::-webkit-search-cancel-button]:hidden">
+                           class="w-full text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 pl-9 pr-8 py-2 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none transition [&::-webkit-search-cancel-button]:hidden">
                     <button type="button"
                             x-show="search.length > 0"
                             x-cloak
@@ -230,26 +230,26 @@ function supplierProdukChecklist(allProducts, initialSelectedIds) {
                     <button type="button"
                             @click="filterMode = 'all'"
                             :aria-pressed="filterMode === 'all'"
-                            :class="filterMode === 'all' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            :class="filterMode === 'all' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
                             class="px-2.5 py-1 text-[11px] font-medium rounded-[7px] transition cursor-pointer">
-                        Semua (<span class="font-mono" x-text="allProducts.length"></span>)
+                        Semua (<span class="tabular-nums" x-text="allProducts.length"></span>)
                     </button>
                     <button type="button"
                             @click="filterMode = 'selected'"
                             :aria-pressed="filterMode === 'selected'"
-                            :class="filterMode === 'selected' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            :class="filterMode === 'selected' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
                             class="px-2.5 py-1 text-[11px] font-medium rounded-[7px] transition cursor-pointer">
-                        Terpilih (<span class="font-mono" x-text="selectedIds.length"></span>)
+                        Terpilih (<span class="tabular-nums" x-text="selectedIds.length"></span>)
                     </button>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#667085] dark:text-gray-400 px-0.5">
                 <span>
-                    Menampilkan <span class="font-mono font-semibold text-[#101828] dark:text-white" x-text="filteredProducts.length"></span> produk<span x-show="search.trim()"> untuk "<span class="font-medium text-[#101828] dark:text-white" x-text="search.trim()"></span>"</span>
+                    Menampilkan <span class="tabular-nums font-medium text-[#101828] dark:text-white" x-text="filteredProducts.length"></span> produk<span x-show="search.trim()"> untuk "<span class="font-medium text-[#101828] dark:text-white" x-text="search.trim()"></span>"</span>
                 </span>
-                <span x-show="selectedIds.length > filteredSelectedCount" x-cloak class="font-medium text-emerald-700 dark:text-emerald-400">
-                    +<span class="font-mono" x-text="selectedIds.length - filteredSelectedCount"></span> produk terpilih di luar filter tetap tersimpan
+                <span x-show="selectedIds.length > filteredSelectedCount" x-cloak class="font-medium text-foreground dark:text-foreground">
+                    +<span class="tabular-nums" x-text="selectedIds.length - filteredSelectedCount"></span> produk terpilih di luar filter tetap tersimpan
                 </span>
                 <span x-show="selectedIds.length === filteredSelectedCount" class="text-[#667085]/80 dark:text-gray-500">
                     Tips: pisahkan koma untuk cari 2+ keyword sekaligus
@@ -276,12 +276,12 @@ function supplierProdukChecklist(allProducts, initialSelectedIds) {
                                :checked="isSelected(prod.id)"
                                @change="setSelected(prod.id, $event.target.checked)"
                                class="rounded border-[#E8E8E8] dark:border-gray-700 accent-[#111111] dark:accent-white text-[#111111] dark:text-white focus:outline-none size-4 shrink-0 cursor-pointer">
-                        <span class="font-mono text-xs font-semibold text-[#101828] dark:text-white shrink-0" x-text="prod.sku"></span>
+                        <span class="tabular-nums text-xs font-medium text-[#101828] dark:text-white shrink-0" x-text="prod.sku"></span>
                         <span class="text-xs text-[#101828] dark:text-gray-200 font-medium truncate" x-text="prod.nama"></span>
                     </div>
                     <div class="shrink-0">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase border"
-                              :class="['kemas', 'kemasan'].includes(prod.tipe) ? 'bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800/50' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50'"
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase border"
+                              :class="['kemas', 'kemasan'].includes(prod.tipe) ? 'bg-card dark:bg-card text-foreground dark:text-foreground border-border dark:border-border' : 'bg-card dark:bg-card text-foreground dark:text-foreground border-border dark:border-border'"
                               x-text="['kemas', 'kemasan'].includes(prod.tipe) ? 'Kemasan' : 'Bahan Baku'">
                         </span>
                     </div>
@@ -293,7 +293,7 @@ function supplierProdukChecklist(allProducts, initialSelectedIds) {
         </div>
     </div>
 
-    <x-form-section title="Status Aktivasi">
+    <x-form-section card title="Status Aktivasi">
         <x-checkbox name="is_active" label="Status Aktif" :checked="old('is_active', $s?->is_active ?? true)" help="Supplier aktif dapat dipilih pada penerimaan dan purchase order" />
     </x-form-section>
 </div>

@@ -92,16 +92,16 @@
                         if (!data) return '-';
                         const isImpor = String(data).toLowerCase().includes('impor');
                         const cls = isImpor 
-                            ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20' 
-                            : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20';
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ' + cls + '">' + data + '</span>';
+                            ? 'bg-card text-foreground dark:text-foreground border-border' 
+                            : 'bg-card text-foreground dark:text-foreground border-border';
+                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ' + cls + '">' + data + '</span>';
                     }
                 },
                 { data: 'kontak' },
                 {
                     data: 'termin_default',
                     render: function(data) {
-                        return '<span class="font-mono text-xs text-muted-foreground">' + (data || '-') + '</span>';
+                        return '<span class="tabular-nums text-xs text-muted-foreground">' + (data || '-') + '</span>';
                     }
                 },
                 {
@@ -116,9 +116,9 @@
                     render: function(data) {
                         const isAktif = String(data).toLowerCase() === 'aktif';
                         const cls = isAktif
-                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                            ? 'bg-card text-foreground dark:text-foreground border-border'
                             : 'bg-muted text-muted-foreground border-border';
-                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ' + cls + '">' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
+                        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ' + cls + '">' + (isAktif ? 'Aktif' : 'Nonaktif') + '</span>';
                     }
                 },
                 {

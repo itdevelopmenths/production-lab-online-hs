@@ -62,9 +62,9 @@
         <div class="flex items-center gap-2 truncate flex-1 min-w-0 pointer-events-none">
             <template x-if="selectedItem">
                 <div class="flex items-center gap-2 truncate">
-                    <span class="font-mono text-[#111111] dark:text-white font-semibold bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#E8E8E8] dark:border-border text-[11px]" x-text="selectedItem.sku"></span>
+                    <span class="tabular-nums text-[#111111] dark:text-white font-medium bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#E8E8E8] dark:border-border text-[11px]" x-text="selectedItem.sku"></span>
                     <span class="font-medium text-text-active truncate" x-text="selectedItem.nama"></span>
-                    <span class="text-[10px] font-mono text-text-muted bg-[#FBFBFB] dark:bg-gray-800/80 px-1.5 py-0.5 rounded-[5px] border border-[#E8E8E8] dark:border-border" x-text="selectedItem.satuan"></span>
+                    <span class="text-[10px] tabular-nums text-text-muted bg-[#FBFBFB] dark:bg-gray-800/80 px-1.5 py-0.5 rounded-[5px] border border-[#E8E8E8] dark:border-border" x-text="selectedItem.satuan"></span>
                 </div>
             </template>
             <template x-if="!selectedItem">
@@ -134,15 +134,15 @@
                 <template x-for="item in items" :key="item.id">
                     <div
                         @click="select(item)"
-                        :class="selectedId == item.id ? 'bg-brand-50 dark:bg-brand-500/10 text-[#111111] dark:text-white font-bold' : 'text-text-active hover:bg-gray-50 dark:hover:bg-gray-800/60'"
+                        :class="selectedId == item.id ? 'bg-brand-50 dark:bg-brand-500/10 text-[#111111] dark:text-white font-medium' : 'text-text-active hover:bg-gray-50 dark:hover:bg-gray-800/60'"
                         class="px-3.5 py-2.5 cursor-pointer transition flex items-center justify-between gap-2 select-none"
                     >
                         <div class="flex items-center gap-2 truncate pointer-events-none">
-                            <span class="font-mono text-text-active font-medium bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#E8E8E8] dark:border-gray-700 text-[10px]" x-text="item.sku"></span>
+                            <span class="tabular-nums text-text-active font-medium bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#E8E8E8] dark:border-gray-700 text-[10px]" x-text="item.sku"></span>
                             <span class="truncate font-medium" x-text="item.nama"></span>
                         </div>
                         <div class="flex items-center gap-1 shrink-0 pointer-events-none">
-                            <span class="text-[10px] font-mono text-text-muted bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#E8E8E8] dark:border-gray-700" x-text="item.satuan"></span>
+                            <span class="text-[10px] tabular-nums text-text-muted bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#E8E8E8] dark:border-gray-700" x-text="item.satuan"></span>
                         </div>
                     </div>
                 </template>
@@ -151,7 +151,7 @@
                 <div x-show="!loading && items.length === 0" class="py-4 text-center text-text-muted">
                     <p class="text-xs">Tidak ada komoditas yang cocok.</p>
                     <template x-if="search">
-                        <p class="text-[10px] text-text-muted mt-1">Kata kunci: "<span class="font-mono text-text-active" x-text="search"></span>"</p>
+                        <p class="text-[10px] text-text-muted mt-1">Kata kunci: "<span class="tabular-nums text-text-active" x-text="search"></span>"</p>
                     </template>
                 </div>
             </div>

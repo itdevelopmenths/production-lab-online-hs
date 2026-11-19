@@ -169,31 +169,31 @@
                 </x-form-field>
 
                 {{-- Box Informasi Stok Tercatat di Sistem --}}
-                <div x-show="produkId && gudangId" x-cloak class="p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 rounded-xl space-y-1.5">
+                <div x-show="produkId && gudangId" x-cloak class="p-3 bg-card dark:bg-card border border-border dark:border-border rounded-xl space-y-1.5">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
-                            <svg class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        <span class="text-[11px] font-medium text-foreground dark:text-foreground flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-foreground dark:text-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                             Stok Saat Ini di Sistem:
                         </span>
                         <div class="flex items-center gap-1">
-                            <span x-show="loading" class="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                                <svg class="animate-spin h-3 w-3 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                            <span x-show="loading" class="text-[10px] text-foreground dark:text-foreground flex items-center gap-1">
+                                <svg class="animate-spin h-3 w-3 text-foreground dark:text-foreground" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
                                 Memeriksa...
                             </span>
-                            <span x-show="!loading && hasFetched" class="font-mono font-bold text-xs text-blue-950 dark:text-blue-100">
+                            <span x-show="!loading && hasFetched" class="tabular-nums font-medium text-xs text-foreground dark:text-foreground">
                                 <span x-text="formatNumber(systemQty)"></span>
-                                <span class="text-[10px] text-blue-700 dark:text-blue-300 uppercase" x-text="mutasiUom || 'Unit'"></span>
+                                <span class="text-[10px] text-foreground dark:text-foreground uppercase" x-text="mutasiUom || 'Unit'"></span>
                             </span>
                         </div>
                     </div>
-                    <div x-show="hasFetched && qty && parseFloat(qty) > 0" class="pt-1.5 border-t border-blue-200/60 dark:border-blue-800/50 flex items-center justify-between text-[11px]">
+                    <div x-show="hasFetched && qty && parseFloat(qty) > 0" class="pt-1.5 border-t border-border dark:border-border flex items-center justify-between text-[11px]">
                         <span class="text-[#667085] dark:text-gray-400">Estimasi Stok Baru:</span>
-                        <span class="font-mono font-bold text-xs" :class="newEstimatedStock() < 0 ? 'text-rose-700 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'">
+                        <span class="tabular-nums font-medium text-xs" :class="newEstimatedStock() < 0 ? 'text-rose-700 dark:text-rose-400' : 'text-foreground dark:text-foreground'">
                             <span x-text="formatNumber(newEstimatedStock())"></span>
                             <span class="text-[10px] uppercase" x-text="mutasiUom || 'Unit'"></span>
                         </span>
                     </div>
-                    <div x-show="hasFetched && tipe === 'out' && qty && parseFloat(qty) > systemQty" class="text-[10px] text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
+                    <div x-show="hasFetched && tipe === 'out' && qty && parseFloat(qty) > systemQty" class="text-[10px] text-rose-600 dark:text-rose-400 font-medium flex items-center gap-1">
                         <svg class="w-3 h-3 text-rose-500 dark:text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         Peringatan: Qty keluar melebihi stok sistem (<span x-text="formatNumber(systemQty)"></span> <span x-text="mutasiUom"></span>).
                     </div>
@@ -208,8 +208,8 @@
                     </x-form-field>
                     <x-form-field name="qty" label="Qty" :required="true">
                         <div class="relative flex items-center">
-                            <input type="number" step="0.01" min="0.01" name="qty" x-model="qty" class="w-full h-9 rounded-lg border-0 bg-transparent text-xs py-1.5 pr-14 font-mono text-[#101828] dark:text-white outline-none focus:ring-0" placeholder="0.00" required>
-                            <span class="absolute right-0 px-1.5 py-0.5 text-[10px] font-mono font-bold text-[#101828] dark:text-white bg-gray-100 dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700 rounded-md uppercase tracking-wider pointer-events-none" x-text="mutasiUom || 'Unit'"></span>
+                            <input type="number" step="0.01" min="0.01" name="qty" x-model="qty" class="w-full h-9 rounded-lg border-0 bg-transparent text-xs py-1.5 pr-14 tabular-nums text-[#101828] dark:text-white outline-none focus:ring-0" placeholder="0.00" required>
+                            <span class="absolute right-0 px-1.5 py-0.5 text-[10px] tabular-nums font-medium text-[#101828] dark:text-white bg-gray-100 dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700 rounded-md uppercase tracking-wider pointer-events-none" x-text="mutasiUom || 'Unit'"></span>
                         </div>
                     </x-form-field>
                 </div>
@@ -239,15 +239,15 @@
             { data: 'sku', orderable: false, searchable: true },
             { data: 'nama', orderable: false, searchable: true },
             { data: 'gudang_nama', orderable: false, searchable: true },
-            { data: 'batas_minimum', className: 'text-right font-mono', orderable: false, searchable: false },
-            { data: 'stok_aktual', className: 'text-right font-mono font-semibold text-[#101828] dark:text-white', orderable: false, searchable: false },
-            { data: 'stok_berjalan', className: 'text-right font-mono', orderable: false, searchable: false },
+            { data: 'batas_minimum', className: 'text-right tabular-nums', orderable: false, searchable: false },
+            { data: 'stok_aktual', className: 'text-right tabular-nums font-medium text-[#101828] dark:text-white', orderable: false, searchable: false },
+            { data: 'stok_berjalan', className: 'text-right tabular-nums', orderable: false, searchable: false },
             { data: 'status_stok', className: 'text-center', orderable: false, searchable: false }
         ];
 
         if (canSeePrice) {
-            cols.push({ data: 'hpp', className: 'text-right font-mono text-[#667085] dark:text-gray-300', orderable: false, searchable: false });
-            cols.push({ data: 'nilai_stok', className: 'text-right font-mono font-bold text-[#101828] dark:text-white', orderable: false, searchable: false });
+            cols.push({ data: 'hpp', className: 'text-right tabular-nums text-[#667085] dark:text-gray-300', orderable: false, searchable: false });
+            cols.push({ data: 'nilai_stok', className: 'text-right tabular-nums font-medium text-[#101828] dark:text-white', orderable: false, searchable: false });
         }
 
         cols.push({ data: 'action', className: 'text-center', orderable: false, searchable: false });

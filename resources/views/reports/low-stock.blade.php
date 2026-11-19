@@ -42,23 +42,23 @@
                         $var = $o->variance();
                     @endphp
                     <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
-                        <td class="px-4 py-3 font-mono font-medium text-[#101828] dark:text-white">
+                        <td class="px-4 py-3 tabular-nums font-medium text-[#101828] dark:text-white">
                             {{ $o->batch->no_batch ?? '-' }}
                         </td>
                         <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                             {{ $o->bahan->nama ?? '-' }}
                         </td>
-                        <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
+                        <td class="px-4 py-3 text-right tabular-nums text-[#667085] dark:text-gray-400">
                             {{ number_format($o->pemakaian_teoritis, 2, ',', '.') }}
                         </td>
-                        <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white font-medium">
+                        <td class="px-4 py-3 text-right tabular-nums text-[#101828] dark:text-white font-medium">
                             {{ number_format($o->pemakaian_aktual, 2, ',', '.') }}
                         </td>
-                        <td class="px-4 py-3 text-right font-mono font-semibold">
+                        <td class="px-4 py-3 text-right tabular-nums font-medium">
                             @if($var > 0)
-                                <span class="text-rose-600 dark:text-rose-400 font-semibold">+{{ number_format($var, 2, ',', '.') }}</span>
+                                <span class="text-rose-600 dark:text-rose-400 font-medium">+{{ number_format($var, 2, ',', '.') }}</span>
                             @elseif($var < 0)
-                                <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ number_format($var, 2, ',', '.') }}</span>
+                                <span class="text-foreground dark:text-foreground font-medium">{{ number_format($var, 2, ',', '.') }}</span>
                             @else
                                 <span class="text-[#667085] dark:text-gray-400">0,00</span>
                             @endif

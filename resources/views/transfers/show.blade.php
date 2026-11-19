@@ -53,7 +53,7 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2.5 flex-wrap">
-                        <h2 class="text-xl font-bold font-mono text-[#101828] dark:text-white">{{ $transfer->no_transfer }}</h2>
+                        <h2 class="text-xl font-semibold tabular-nums text-[#101828] dark:text-white">{{ $transfer->no_transfer }}</h2>
                         @php
                             $statusLabel = match($transfer->status) {
                                 'draft' => 'Draft',
@@ -94,7 +94,7 @@
                 @endif
 
                 @if($canReceive)
-                    <button type="button" @click="openReceiveModal = true" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                    <button type="button" @click="openReceiveModal = true" class="px-3.5 py-2 text-xs font-medium rounded-xl bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition flex items-center gap-1.5 shadow-xs cursor-pointer">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Konfirmasi Penerimaan Barang
                     </button>
@@ -105,7 +105,7 @@
                 @endif
 
                 @if($canCancel)
-                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-semibold rounded-xl border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer">
+                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-medium rounded-xl border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer">
                         Batalkan Transfer
                     </button>
                 @endif
@@ -116,7 +116,7 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <x-card class="p-4">
                 <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Gudang Asal (Pengirim)</div>
-                <div class="text-sm font-semibold text-[#101828] dark:text-white mt-1">{{ $transfer->gudangAsal?->nama ?? '-' }}</div>
+                <div class="text-sm font-medium text-[#101828] dark:text-white mt-1">{{ $transfer->gudangAsal?->nama ?? '-' }}</div>
                 <div class="text-[10px] text-[#667085] dark:text-gray-400">{{ $transfer->gudangAsal?->kode }}</div>
                 @if($transfer->waktu_dikirim)
                     <div class="text-[10px] text-[#111111] dark:text-gray-300 font-medium mt-1">Dikirim: {{ $transfer->waktu_dikirim->format('d/m/Y H:i') }} ({{ $transfer->sender?->name ?? 'Staff' }})</div>
@@ -125,16 +125,16 @@
 
             <x-card class="p-4">
                 <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Gudang Tujuan (Penerima)</div>
-                <div class="text-sm font-semibold text-[#101828] dark:text-white mt-1">{{ $transfer->gudangTujuan?->nama ?? '-' }}</div>
+                <div class="text-sm font-medium text-[#101828] dark:text-white mt-1">{{ $transfer->gudangTujuan?->nama ?? '-' }}</div>
                 <div class="text-[10px] text-[#667085] dark:text-gray-400">{{ $transfer->gudangTujuan?->kode }}</div>
                 @if($transfer->waktu_diterima)
-                    <div class="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">Diterima: {{ $transfer->waktu_diterima->format('d/m/Y H:i') }} ({{ $transfer->receiver?->name ?? 'Staff' }})</div>
+                    <div class="text-[10px] text-foreground dark:text-foreground mt-1">Diterima: {{ $transfer->waktu_diterima->format('d/m/Y H:i') }} ({{ $transfer->receiver?->name ?? 'Staff' }})</div>
                 @endif
             </x-card>
 
             <x-card class="p-4">
                 <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Referensi Request</div>
-                <div class="text-sm font-semibold text-[#101828] dark:text-white mt-1 font-mono">
+                <div class="text-sm font-medium text-[#101828] dark:text-white mt-1 tabular-nums">
                     @if($transfer->stockRequest)
                         <a href="{{ route('requests.show', $transfer->stockRequest) }}" class="text-[#111111] dark:text-white underline decoration-gray-400 hover:decoration-current">
                             {{ $transfer->stockRequest->no_request }}
@@ -151,7 +151,7 @@
                 @php
                     $totalRusak = (float) $transfer->items->sum('qty_rusak');
                 @endphp
-                <div class="text-sm font-bold {{ $totalRusak > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400' }} mt-1">
+                <div class="text-sm font-medium {{ $totalRusak > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground dark:text-foreground' }} mt-1">
                     {{ $totalRusak > 0 ? number_format($totalRusak, 2) . ' Rusak / Defect' : '0 Rusak (Kondisi Baik)' }}
                 </div>
                 <div class="text-[10px] text-[#667085] dark:text-gray-400">Dari total {{ number_format($transfer->items->sum('qty_dikirim'), 2) }} dikirim</div>
@@ -160,14 +160,14 @@
 
         @if($transfer->catatan)
         <div class="p-4 rounded-[12px] bg-[#F5F5F5] dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 text-xs">
-            <span class="font-semibold text-[#101828] dark:text-white">Catatan Pengiriman:</span>
+            <span class="font-medium text-[#101828] dark:text-white">Catatan Pengiriman:</span>
             <p class="text-[#667085] dark:text-gray-400 mt-0.5">{{ $transfer->catatan }}</p>
         </div>
         @endif
 
         @if($transfer->status === 'dibatalkan' && $transfer->alasan_batal)
         <div class="p-4 rounded-[12px] bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-rose-900 dark:text-rose-200 text-xs">
-            <span class="font-bold">Alasan Pembatalan Transfer:</span>
+            <span class="font-medium">Alasan Pembatalan Transfer:</span>
             <p class="mt-0.5">{{ $transfer->alasan_batal }}</p>
         </div>
         @endif
@@ -196,14 +196,14 @@
                         @foreach($transfer->items as $idx => $it)
                         <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 {{ ($it->qty_rusak ?? 0) > 0 ? 'bg-rose-50/20 dark:bg-rose-950/15' : '' }}">
                             <td class="px-4 py-3 text-center text-[#667085] dark:text-gray-400">{{ $idx + 1 }}</td>
-                            <td class="px-4 py-3 font-mono font-medium text-[#101828] dark:text-white">{{ $it->produk?->sku ?? '-' }}</td>
-                            <td class="px-4 py-3 font-semibold text-[#101828] dark:text-white">{{ $it->produk?->nama ?? '-' }}</td>
+                            <td class="px-4 py-3 tabular-nums font-medium text-[#101828] dark:text-white">{{ $it->produk?->sku ?? '-' }}</td>
+                            <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">{{ $it->produk?->nama ?? '-' }}</td>
                             <td class="px-4 py-3 text-[#667085] dark:text-gray-400">{{ $it->produk?->satuan ?? '-' }}</td>
-                            <td class="px-4 py-3 text-right font-bold font-mono text-[#101828] dark:text-white">{{ number_format($it->qty_dikirim, 2) }}</td>
-                            <td class="px-4 py-3 text-right font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                            <td class="px-4 py-3 text-right font-medium tabular-nums text-[#101828] dark:text-white">{{ number_format($it->qty_dikirim, 2) }}</td>
+                            <td class="px-4 py-3 text-right font-medium tabular-nums text-foreground dark:text-foreground">
                                 {{ $transfer->status === 'selesai' ? number_format($it->qty_baik ?? 0, 2) : '-' }}
                             </td>
-                            <td class="px-4 py-3 text-right font-extrabold font-mono text-rose-600 dark:text-rose-400">
+                            <td class="px-4 py-3 text-right font-medium tabular-nums text-rose-600 dark:text-rose-400">
                                 @if($transfer->status === 'selesai')
                                     {{ ($it->qty_rusak ?? 0) > 0 ? number_format($it->qty_rusak, 2) : '0' }}
                                 @else
@@ -228,10 +228,10 @@
         @if($canReceive)
         <x-modal name="openReceiveModal" maxWidth="3xl">
             <x-slot:header>
-                <div class="px-6 py-4 border-b border-[#E8E8E8] dark:border-gray-800 bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-between">
+                <div class="px-6 py-4 border-b border-[#E8E8E8] dark:border-gray-800 bg-card dark:bg-card flex items-center justify-between">
                     <div>
-                        <h3 class="text-base font-bold text-emerald-950 dark:text-emerald-100">Konfirmasi Penerimaan Barang Transfer</h3>
-                        <p class="text-xs text-emerald-800 dark:text-emerald-300">Verifikasi fisik barang datang, hitung barang baik & barang rusak secara akurat</p>
+                        <h3 class="text-base font-semibold text-foreground dark:text-foreground">Konfirmasi Penerimaan Barang Transfer</h3>
+                        <p class="text-xs text-foreground dark:text-foreground">Verifikasi fisik barang datang, hitung barang baik & barang rusak secara akurat</p>
                     </div>
                 </div>
             </x-slot:header>
@@ -239,9 +239,9 @@
             <form method="POST" action="{{ route('transfers.receive', $transfer) }}" class="p-6 space-y-5 bg-[#F5F5F5] dark:bg-gray-950">
                 @csrf
 
-                <div class="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl text-xs text-amber-900 dark:text-amber-200 space-y-1">
-                    <div class="font-bold flex items-center gap-1.5">
-                        <svg class="size-4 shrink-0 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <div class="p-3.5 bg-card dark:bg-card border border-border dark:border-border rounded-xl text-xs text-foreground dark:text-foreground space-y-1">
+                    <div class="font-medium flex items-center gap-1.5">
+                        <svg class="size-4 shrink-0 text-foreground dark:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         Aturan Anti-Fraud Penerimaan (Strict Invariant):
                     </div>
                     <p class="leading-relaxed">
@@ -265,20 +265,20 @@
                                 <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40">
                                     <td class="px-3 py-3">
                                         <input type="hidden" :name="`items[${idx}][id]`" :value="item.id">
-                                        <div class="font-semibold text-[#101828] dark:text-white" x-text="item.nama"></div>
-                                        <div class="font-mono text-[10px] text-[#667085] dark:text-gray-400" x-text="`${item.sku} (${item.satuan})`"></div>
+                                        <div class="font-medium text-[#101828] dark:text-white" x-text="item.nama"></div>
+                                        <div class="tabular-nums text-[10px] text-[#667085] dark:text-gray-400" x-text="`${item.sku} (${item.satuan})`"></div>
                                     </td>
-                                    <td class="px-3 py-3 text-right font-bold font-mono text-[#101828] dark:text-white" x-text="item.qty_dikirim"></td>
+                                    <td class="px-3 py-3 text-right font-medium tabular-nums text-[#101828] dark:text-white" x-text="item.qty_dikirim"></td>
                                     <td class="px-3 py-3">
-                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_baik]`" x-model.number="item.qty_baik" class="w-full h-8 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-right font-semibold text-emerald-700 dark:text-emerald-400 text-xs outline-none focus:border-[#111111] dark:focus:border-white" required>
+                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_baik]`" x-model.number="item.qty_baik" class="w-full h-8 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-right font-medium text-foreground dark:text-foreground text-xs outline-none focus:border-[#111111] dark:focus:border-white" required>
                                     </td>
                                     <td class="px-3 py-3">
-                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_rusak]`" x-model.number="item.qty_rusak" class="w-full h-8 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-right font-semibold text-rose-700 dark:text-rose-400 text-xs outline-none focus:border-[#111111] dark:focus:border-white" required>
+                                        <input type="number" step="0.01" min="0" :max="item.qty_dikirim" :name="`items[${idx}][qty_rusak]`" x-model.number="item.qty_rusak" class="w-full h-8 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2 text-right font-medium text-rose-700 dark:text-rose-400 text-xs outline-none focus:border-[#111111] dark:focus:border-white" required>
                                     </td>
                                     <td class="px-3 py-3">
                                         <input type="text" :name="`items[${idx}][keterangan_rusak]`" x-model="item.keterangan_rusak" :required="item.qty_rusak > 0" placeholder="Pecah, bocor, kadaluarsa..." class="w-full h-8 rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 text-xs outline-none focus:border-[#111111] dark:focus:border-white">
                                         <template x-for="diff in [parseFloat(item.qty_dikirim) - (parseFloat(item.qty_baik || 0) + parseFloat(item.qty_rusak || 0))]">
-                                            <div x-show="Math.abs(diff) > 0.0001" class="text-[10px] text-rose-600 dark:text-rose-400 font-semibold mt-1">
+                                            <div x-show="Math.abs(diff) > 0.0001" class="text-[10px] text-rose-600 dark:text-rose-400 font-medium mt-1">
                                                 Selisih: <span x-text="diff.toFixed(2)"></span> (Wajib 0)
                                             </div>
                                         </template>
@@ -291,7 +291,7 @@
 
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <x-button type="button" variant="secondary" @click="openReceiveModal = false">Batal</x-button>
-                    <button type="submit" :disabled="!isReceiveValid()" class="px-5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                    <button type="submit" :disabled="!isReceiveValid()" class="px-5 py-2 text-xs font-medium rounded-xl bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
                         Konfirmasi & Terima Stok
                     </button>
                 </div>
@@ -307,7 +307,7 @@
         <x-modal name="openCancelModal" maxWidth="md">
             <x-slot:header>
                 <div class="px-6 py-4 border-b border-[#E8E8E8] dark:border-gray-800 bg-rose-50 dark:bg-rose-950/30 flex items-center justify-between">
-                    <h3 class="text-base font-bold text-rose-950 dark:text-rose-100">
+                    <h3 class="text-base font-semibold text-rose-950 dark:text-rose-100">
                         {{ $isInTransitCancel ? 'Batalkan Transfer In Transit' : 'Batalkan Draft Transfer' }}
                     </h3>
                 </div>
@@ -315,7 +315,7 @@
             <form method="POST" action="{{ route('transfers.cancel', $transfer) }}" class="p-6 space-y-4 bg-[#F5F5F5] dark:bg-gray-950">
                 @csrf
                 @if($isInTransitCancel)
-                <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-200 text-xs leading-relaxed">
+                <div class="p-3 rounded-xl bg-card dark:bg-card border border-border dark:border-border text-foreground dark:text-foreground text-xs leading-relaxed">
                     <strong>Perhatian:</strong> Transfer ini sedang berstatus <strong>In Transit</strong>. Membatalkan transfer akan mengembalikan seluruh kuantitas kirim ke saldo stok <strong>{{ $transfer->gudangAsal?->nama ?? 'gudang asal' }}</strong>.
                 </div>
                 @endif
@@ -330,7 +330,7 @@
                 </x-form-field>
                 <div class="flex justify-end gap-2 pt-2">
                     <x-button type="button" variant="secondary" @click="openCancelModal = false">Tutup</x-button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer">
+                    <button type="submit" class="px-4 py-2 text-xs font-medium rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer">
                         {{ $isInTransitCancel ? 'Konfirmasi Batalkan Transfer' : 'Batalkan Transfer' }}
                     </button>
                 </div>

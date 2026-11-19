@@ -100,7 +100,7 @@
                             $stages = $stageSummaries->get($s['supplier_id'], collect());
                         @endphp
                         <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
-                            <td class="px-4 py-3 font-semibold text-[#101828] dark:text-white">
+                            <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                                 {{ $s['supplier_nama'] }}
                             </td>
                             <td class="px-4 py-3 text-center">
@@ -108,16 +108,16 @@
                                     {{ strtoupper($s['kategori']) }}
                                 </x-badge>
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white">
+                            <td class="px-4 py-3 text-right tabular-nums text-[#101828] dark:text-white">
                                 {{ number_format($s['jumlah_transaksi']) }}
                             </td>
-                            <td class="px-4 py-3 text-right font-mono font-bold text-[#101828] dark:text-white">
+                            <td class="px-4 py-3 text-right tabular-nums font-medium text-[#101828] dark:text-white">
                                 {{ number_format($s['average_lt_hari'], 1) }} d
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
+                            <td class="px-4 py-3 text-right tabular-nums text-[#667085] dark:text-gray-400">
                                 {{ number_format($s['average_lt_jam'], 1) }} h
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
+                            <td class="px-4 py-3 text-right tabular-nums text-[#667085] dark:text-gray-400">
                                 {{ number_format($s['max_lt_hari'], 1) }} d
                             </td>
                             <td class="px-4 py-3">
@@ -125,8 +125,8 @@
                                     <div class="grid grid-cols-3 gap-1.5 text-[10px]">
                                         @foreach($stages as $stg)
                                             <div class="p-1.5 rounded-md bg-[#F5F5F5] dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700">
-                                                <span class="text-[#667085] dark:text-gray-400 font-mono font-semibold">{{ $stg->stage }}:</span>
-                                                <span class="font-bold text-[#101828] dark:text-white font-mono">{{ number_format($stg->average_hari, 1) }}d</span>
+                                                <span class="text-[#667085] dark:text-gray-400 tabular-nums font-medium">{{ $stg->stage }}:</span>
+                                                <span class="font-medium text-[#101828] dark:text-white tabular-nums">{{ number_format($stg->average_hari, 1) }}d</span>
                                             </div>
                                         @endforeach
                                     </div>
@@ -171,25 +171,25 @@
                             <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                                 {{ $sp['supplier_nama'] }}
                             </td>
-                            <td class="px-4 py-3 font-mono text-[#667085] dark:text-gray-400">
+                            <td class="px-4 py-3 tabular-nums text-[#667085] dark:text-gray-400">
                                 {{ $sp['sku'] }}
                             </td>
                             <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                                 {{ $sp['nama_produk'] }}
                                 @if(!empty($sp['satuan']))
-                                    <span class="text-[11px] text-[#667085] dark:text-gray-400 font-mono">({{ $sp['satuan'] }})</span>
+                                    <span class="text-[11px] text-[#667085] dark:text-gray-400 tabular-nums">({{ $sp['satuan'] }})</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white">
+                            <td class="px-4 py-3 text-right tabular-nums text-[#101828] dark:text-white">
                                 {{ number_format($sp['jumlah_transaksi']) }}
                             </td>
-                            <td class="px-4 py-3 text-right font-mono font-bold text-[#101828] dark:text-white">
+                            <td class="px-4 py-3 text-right tabular-nums font-medium text-[#101828] dark:text-white">
                                 {{ number_format($sp['average_lt_hari'], 1) }} d
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
+                            <td class="px-4 py-3 text-right tabular-nums text-[#667085] dark:text-gray-400">
                                 {{ number_format($sp['average_lt_jam'], 1) }} h
                             </td>
-                            <td class="px-4 py-3 text-right font-mono text-[#667085] dark:text-gray-400">
+                            <td class="px-4 py-3 text-right tabular-nums text-[#667085] dark:text-gray-400">
                                 {{ number_format($sp['max_lt_hari'], 1) }} d
                             </td>
                         </tr>
@@ -226,7 +226,7 @@
                     <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800">
                         @forelse($transaksiList as $lt)
                         <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
-                            <td class="px-4 py-3 font-mono font-semibold text-[#101828] dark:text-white">
+                            <td class="px-4 py-3 tabular-nums font-medium text-[#101828] dark:text-white">
                                 @can('purchasing.view')
                                     <a href="{{ route('purchasing.show', $lt->po_id) }}" class="underline decoration-gray-400 hover:decoration-current">
                                         {{ $lt->purchaseOrder?->no_po ?? 'PO#' . substr($lt->po_id, 0, 8) }}
@@ -238,17 +238,17 @@
                             <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                                 {{ $lt->supplier?->nama ?? '—' }}
                             </td>
-                            <td class="px-4 py-3 text-[#667085] dark:text-gray-400 font-mono text-xs">
+                            <td class="px-4 py-3 text-[#667085] dark:text-gray-400 tabular-nums text-xs">
                                 {{ $lt->waktu_mulai?->format('d/m/Y H:i') ?? '—' }} &rarr; {{ $lt->waktu_selesai?->format('d/m/Y H:i') ?? '—' }}
                             </td>
-                            <td class="px-4 py-3 text-right font-mono font-bold text-[#101828] dark:text-white">
+                            <td class="px-4 py-3 text-right tabular-nums font-medium text-[#101828] dark:text-white">
                                 {{ number_format((float) $lt->total_lt_hari, 1) }} d
                                 <span class="text-[11px] text-[#667085] dark:text-gray-400 font-normal">({{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($lt->total_lt_menit), 1) }}h)</span>
                             </td>
-                            <td class="px-4 py-3 text-center font-mono text-[10px]">
-                                <span class="text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800/50" title="Internal LT">Int: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_internal_menit), 1) }}d</span>
-                                <span class="text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50" title="Supplier LT">Sup: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_supplier_menit), 1) }}d</span>
-                                <span class="text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/30 px-1.5 py-0.5 rounded border border-purple-200 dark:border-purple-800/50" title="Logistik LT">Log: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_logistik_menit), 1) }}d</span>
+                            <td class="px-4 py-3 text-center tabular-nums text-[10px]">
+                                <span class="text-foreground dark:text-foreground bg-card dark:bg-card px-1.5 py-0.5 rounded border border-border dark:border-border" title="Internal LT">Int: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_internal_menit), 1) }}d</span>
+                                <span class="text-foreground dark:text-foreground bg-card dark:bg-card px-1.5 py-0.5 rounded border border-border dark:border-border" title="Supplier LT">Sup: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_supplier_menit), 1) }}d</span>
+                                <span class="text-foreground dark:text-foreground bg-card dark:bg-card px-1.5 py-0.5 rounded border border-border dark:border-border" title="Logistik LT">Log: {{ number_format((float) \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($lt->lt_logistik_menit), 1) }}d</span>
                             </td>
                             <td class="px-4 py-3 text-center">
                                 @if($lt->is_valid)

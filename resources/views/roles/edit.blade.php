@@ -9,7 +9,7 @@
 
         @if ($role->is_system)
             <x-alert type="warning" title="Peran Sistem Terproteksi:">
-                Peran ini merupakan peran bawaan sistem (Core System Role). Kode identifikasi (<code class="font-bold font-mono">{{ $role->name }}</code>) dikunci untuk menjamin integritas alur kerja, namun Anda dapat menyesuaikan wewenang modul di bawah secara leluasa.
+                Peran ini merupakan peran bawaan sistem (Core System Role). Kode identifikasi (<code class="font-medium tabular-nums">{{ $role->name }}</code>) dikunci untuk menjamin integritas alur kerja, namun Anda dapat menyesuaikan wewenang modul di bawah secara leluasa.
             </x-alert>
         @endif
 
@@ -27,9 +27,9 @@
 
                         <x-form-field name="name" label="Kode Identifikasi (Key)" :required="!$role->is_system" :disabled="$role->is_system" help="{{ $role->is_system ? 'Terkunci (Peran Bawaan Sistem)' : 'Identifier unik peran' }}">
                             @if ($role->is_system)
-                                <x-input name="name" id="name" variant="seamless" value="{{ $role->name }}" readonly="readonly" class="text-text-muted cursor-not-allowed font-mono" />
+                                <x-input name="name" id="name" variant="seamless" value="{{ $role->name }}" readonly="readonly" class="text-text-muted cursor-not-allowed tabular-nums" />
                             @else
-                                <x-input name="name" id="name" variant="seamless" value="{{ old('name', $role->name) }}" placeholder="misal: supervisor_qc" :required="true" class="font-mono" />
+                                <x-input name="name" id="name" variant="seamless" value="{{ old('name', $role->name) }}" placeholder="misal: supervisor_qc" :required="true" class="tabular-nums" />
                             @endif
                         </x-form-field>
 

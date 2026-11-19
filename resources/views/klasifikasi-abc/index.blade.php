@@ -53,7 +53,7 @@
                     <div>
                         <div class="flex items-center gap-2">
                             <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Kelola SKU Klasifikasi ABC</h3>
-                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white border border-[#E8E8E8] dark:border-gray-700" x-text="activeAbc ? activeAbc.nama : ''"></span>
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-medium uppercase bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white border border-[#E8E8E8] dark:border-gray-700" x-text="activeAbc ? activeAbc.nama : ''"></span>
                         </div>
                         <p class="text-xs text-[#667085] dark:text-gray-400 mt-0.5">
                             Pilih atau keluarkan SKU Bahan Baku / Kemasan pada klasifikasi ini.
@@ -91,7 +91,7 @@
                             </div>
                         </div>
 
-                        <div x-show="hasNonImporSelected()" class="p-2.5 rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 text-[11px]">
+                        <div x-show="hasNonImporSelected()" class="p-2.5 rounded-lg border border-border dark:border-border bg-card dark:bg-card text-foreground dark:text-foreground text-[11px]">
                             Perhatian: SKU berprofil <strong>Lokal</strong> atau <strong>Belum Diset</strong> yang dipilih akan otomatis dipindahkan ke profil <strong>Impor</strong> (dan dihapus dari daftar Analisa Lokal agar tidak tampil ganda).
                         </div>
 
@@ -106,15 +106,15 @@
                                 <label class="flex items-center justify-between gap-3 px-3 py-2 hover:bg-white dark:hover:bg-gray-900 cursor-pointer text-xs transition-colors">
                                     <div class="flex items-center gap-2.5 min-w-0">
                                         <input type="checkbox" :value="cand.id" x-model="selectedSkuIds" class="rounded border-[#E8E8E8] dark:border-gray-700 text-[#111111] dark:text-white focus:ring-0 cursor-pointer">
-                                        <span class="font-mono font-semibold text-[#101828] dark:text-white shrink-0" x-text="cand.sku"></span>
+                                        <span class="tabular-nums font-medium text-[#101828] dark:text-white shrink-0" x-text="cand.sku"></span>
                                         <span class="text-[#101828] dark:text-gray-200 truncate" x-text="cand.nama"></span>
                                     </div>
                                     <div class="flex items-center gap-1.5 shrink-0">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-medium border"
-                                              :class="cand.is_impor ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/50' : (cand.profil_analisa === 'lokal' ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700')"
+                                              :class="cand.is_impor ? 'bg-card dark:bg-card text-foreground dark:text-foreground border-border dark:border-border' : (cand.profil_analisa === 'lokal' ? 'bg-card dark:bg-card text-foreground dark:text-foreground border-border dark:border-border' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700')"
                                               x-text="cand.is_impor ? 'Impor' : (cand.profil_analisa === 'lokal' ? 'Lokal' : 'Belum Diset')"></span>
                                         <template x-if="cand.klasifikasi_abc_kode">
-                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700" x-text="'Saat ini: ' + cand.klasifikasi_abc_kode"></span>
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-gray-200 border border-[#E8E8E8] dark:border-gray-700" x-text="'Saat ini: ' + cand.klasifikasi_abc_kode"></span>
                                         </template>
                                     </div>
                                 </label>
@@ -129,7 +129,7 @@
                                 type="button"
                                 @click="assignSelectedSkus()"
                                 :disabled="selectedSkuIds.length === 0 || assigningSkus"
-                                class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white dark:text-[#111111] bg-[#111111] dark:bg-white hover:bg-[#292929] dark:hover:bg-gray-100 rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white dark:text-[#111111] bg-[#111111] dark:bg-white hover:bg-[#292929] dark:hover:bg-gray-100 rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
                             >
                                 <span x-text="assigningSkus ? 'Menyimpan...' : 'Tambahkan SKU Terpilih (' + selectedSkuIds.length + ')'"></span>
                             </button>
@@ -166,10 +166,10 @@
                                     </template>
                                     <template x-for="skuItem in assignedSkus" :key="skuItem.id">
                                         <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40">
-                                            <td class="px-3 py-2.5 font-mono font-semibold text-[#101828] dark:text-white" x-text="skuItem.sku"></td>
+                                            <td class="px-3 py-2.5 tabular-nums font-medium text-[#101828] dark:text-white" x-text="skuItem.sku"></td>
                                             <td class="px-3 py-2.5 text-[#101828] dark:text-gray-200" x-text="skuItem.nama"></td>
-                                            <td class="px-3 py-2.5 uppercase text-[10px] font-semibold text-[#667085] dark:text-gray-400" x-text="skuItem.tipe"></td>
-                                            <td class="px-3 py-2.5 uppercase text-[10px] font-semibold text-[#101828] dark:text-white" x-text="skuItem.profil_analisa || 'impor'"></td>
+                                            <td class="px-3 py-2.5 uppercase text-[10px] font-medium text-[#667085] dark:text-gray-400" x-text="skuItem.tipe"></td>
+                                            <td class="px-3 py-2.5 uppercase text-[10px] font-medium text-[#101828] dark:text-white" x-text="skuItem.profil_analisa || 'impor'"></td>
                                             @can('analisa.manage')
                                             <td class="px-3 py-2.5 text-center">
                                                 <button type="button" @click="unassignSku(skuItem)" class="px-2 py-1 rounded-md text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer">
@@ -209,19 +209,19 @@
                     <div class="p-5 sm:p-6 space-y-4">
                         <div class="bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 p-4 space-y-3.5">
                             <div>
-                                <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Kode Klasifikasi <span class="text-rose-500">*</span></label>
+                                <label class="block text-xs font-medium text-[#101828] dark:text-white mb-1">Kode Klasifikasi <span class="text-rose-500">*</span></label>
                                 <input
                                     type="text"
                                     x-model="form.kode"
                                     placeholder="misal: a, b, c, wajib_a"
-                                    class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white font-mono lowercase text-[#101828] dark:text-white"
+                                    class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white tabular-nums lowercase text-[#101828] dark:text-white"
                                     required
                                 >
                                 <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-1">Gunakan huruf kecil atau underscore (contoh: wajib_a, a, b, c).</p>
                             </div>
 
                             <div>
-                                <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Nama Klasifikasi <span class="text-rose-500">*</span></label>
+                                <label class="block text-xs font-medium text-[#101828] dark:text-white mb-1">Nama Klasifikasi <span class="text-rose-500">*</span></label>
                                 <input
                                     type="text"
                                     x-model="form.nama"
@@ -233,20 +233,20 @@
 
                             <div class="grid grid-cols-2 gap-3.5">
                                 <div>
-                                    <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Tambahan Buffer (Hari) <span class="text-rose-500">*</span></label>
+                                    <label class="block text-xs font-medium text-[#101828] dark:text-white mb-1">Tambahan Buffer (Hari) <span class="text-rose-500">*</span></label>
                                     <input
                                         type="number"
                                         min="0"
                                         max="365"
                                         x-model.number="form.tambahan_buffer_hari"
-                                        class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white font-mono text-[#101828] dark:text-white"
+                                        class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white tabular-nums text-[#101828] dark:text-white"
                                         required
                                     >
                                     <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-1">Ditambahkan ke Buffer Days.</p>
                                 </div>
 
                                 <div>
-                                    <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Warna Badge <span class="text-rose-500">*</span></label>
+                                    <label class="block text-xs font-medium text-[#101828] dark:text-white mb-1">Warna Badge <span class="text-rose-500">*</span></label>
                                     <select
                                         x-model="form.warna_badge"
                                         class="w-full px-3 py-2 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 focus:outline-none focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white"
@@ -261,7 +261,7 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-semibold text-[#101828] dark:text-white mb-1">Deskripsi</label>
+                                <label class="block text-xs font-medium text-[#101828] dark:text-white mb-1">Deskripsi</label>
                                 <textarea
                                     x-model="form.deskripsi"
                                     rows="2"
@@ -567,7 +567,7 @@
             columns: [
                 { data: 'badge', name: 'kode' },
                 { data: 'nama', name: 'nama' },
-                { data: 'tambahan_buffer_label', name: 'tambahan_buffer_hari', className: 'font-mono' },
+                { data: 'tambahan_buffer_label', name: 'tambahan_buffer_hari', className: 'tabular-nums' },
                 { data: 'deskripsi', name: 'deskripsi', defaultContent: '-' },
                 { data: 'penggunaan_count', orderable: false, searchable: false },
                 { data: 'status_badge', name: 'is_active', className: 'text-center' },

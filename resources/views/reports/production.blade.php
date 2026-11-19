@@ -53,7 +53,7 @@
                         $yieldVariant = $yieldVal === null ? 'neutral' : ($yieldVal >= 98 ? 'success' : ($yieldVal >= 90 ? 'warning' : 'danger'));
                     @endphp
                     <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
-                        <td class="px-4 py-3 font-mono font-semibold text-[#101828] dark:text-white">
+                        <td class="px-4 py-3 tabular-nums font-medium text-[#101828] dark:text-white">
                             @can('batch.view')
                                 <a href="{{ route('batches.show', $b) }}" class="underline decoration-gray-400 hover:decoration-current">{{ $b->no_batch }}</a>
                             @else
@@ -62,9 +62,9 @@
                         </td>
                         <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">{{ $produkLabel }}</td>
                         <td class="px-4 py-3 text-[#667085] dark:text-gray-400">{{ $b->tanggal->format('d/m/Y') }}</td>
-                        <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white">{{ number_format($qtyRencana, 0, ',', '.') }}</td>
-                        <td class="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{{ number_format($b->qty_baik, 0, ',', '.') }}</td>
-                        <td class="px-4 py-3 text-right font-mono {{ $b->qty_rusak > 0 ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-[#667085] dark:text-gray-400' }}">{{ number_format($b->qty_rusak, 0, ',', '.') }}</td>
+                        <td class="px-4 py-3 text-right tabular-nums text-[#101828] dark:text-white">{{ number_format($qtyRencana, 0, ',', '.') }}</td>
+                        <td class="px-4 py-3 text-right tabular-nums text-foreground dark:text-foreground font-medium">{{ number_format($b->qty_baik, 0, ',', '.') }}</td>
+                        <td class="px-4 py-3 text-right tabular-nums {{ $b->qty_rusak > 0 ? 'text-rose-600 dark:text-rose-400 font-medium' : 'text-[#667085] dark:text-gray-400' }}">{{ number_format($b->qty_rusak, 0, ',', '.') }}</td>
                         <td class="px-4 py-3 text-center">
                             @if($yieldVal !== null)
                                 <x-badge :variant="$yieldVariant" size="xs" :pill="true">{{ number_format($yieldVal, 1) }}%</x-badge>

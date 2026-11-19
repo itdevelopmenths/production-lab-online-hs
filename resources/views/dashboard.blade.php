@@ -2,7 +2,7 @@
     <x-page-header title="Dashboard Operasional">
         <x-slot:actions>
             <div class="flex flex-wrap items-center justify-end gap-2">
-                <span class="text-xs text-text-muted hidden sm:inline">User: <strong class="text-text-active font-semibold">{{ auth()->user()->name }}</strong></span>
+                <span class="text-xs text-text-muted hidden sm:inline">User: <strong class="text-text-active font-medium">{{ auth()->user()->name }}</strong></span>
                 <x-badge variant="neutral" size="sm" :pill="true">{{ auth()->user()->roles->first()?->name ?? 'Staff' }}</x-badge>
                 @can('analisa.view')
                 <x-button href="{{ route('analisa.index') }}" variant="secondary" size="sm">
@@ -60,7 +60,7 @@
 
         @if(!empty($actionQueue['viewAllUrl']))
             <x-slot:tools>
-                <a href="{{ $actionQueue['viewAllUrl'] }}" class="text-xs font-semibold text-text-active hover:text-text-muted transition-colors inline-flex items-center gap-1">
+                <a href="{{ $actionQueue['viewAllUrl'] }}" class="text-xs font-medium text-text-active hover:text-text-muted transition-colors inline-flex items-center gap-1">
                     Lihat Semua &rarr;
                 </a>
             </x-slot:tools>
@@ -79,7 +79,7 @@
                             </x-badge>
                         @endif
                         <div class="flex flex-col min-w-0">
-                            <span class="font-semibold text-[#101828] dark:text-white text-xs sm:text-[13px] tabular-nums truncate">{{ $item->nomor }}</span>
+                            <span class="font-medium text-[#101828] dark:text-white text-xs sm:text-[13px] tabular-nums truncate">{{ $item->nomor }}</span>
                             <span class="text-text-muted text-[11px] truncate">{{ $item->meta }}</span>
                         </div>
                     </div>
@@ -96,7 +96,7 @@
                 </div>
             @empty
                 <div class="py-10 text-center text-text-muted text-xs flex flex-col items-center justify-center">
-                    <svg class="size-6 mb-1.5 opacity-50 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="size-6 mb-1.5 opacity-50 text-foreground dark:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     Semua tugas prioritas peran ini telah ditindaklanjuti. Antrean bersih.
@@ -119,7 +119,7 @@
 
                 @if(!empty($stream['viewAllUrl']))
                     <x-slot:tools>
-                        <a href="{{ $stream['viewAllUrl'] }}" class="text-xs font-semibold text-text-active hover:text-text-muted transition-colors inline-flex items-center gap-1">
+                        <a href="{{ $stream['viewAllUrl'] }}" class="text-xs font-medium text-text-active hover:text-text-muted transition-colors inline-flex items-center gap-1">
                             Lihat Semua &rarr;
                         </a>
                     </x-slot:tools>
@@ -230,7 +230,7 @@
                         @endphp
                         <a href="{{ $rowUrl }}" class="flex items-center justify-between px-5 py-3 hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors group">
                             <div class="flex flex-col min-w-0 pr-4">
-                                <span class="font-semibold text-[#101828] dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-xs sm:text-[13px] tabular-nums truncate">{{ $rowTitle }}</span>
+                                <span class="font-medium text-[#101828] dark:text-white group-hover:text-foreground dark:group-hover:text-foreground transition-colors text-xs sm:text-[13px] tabular-nums truncate">{{ $rowTitle }}</span>
                                 <span class="text-text-muted text-[11px] truncate mt-0.5">
                                     {{ $rowSubtitle }}
                                 </span>

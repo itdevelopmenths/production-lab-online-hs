@@ -14,7 +14,7 @@
        @click="if (window.location.pathname === new URL('{{ $href }}', window.location.origin).pathname && window.location.search === new URL('{{ $href }}', window.location.origin).search) { $event.preventDefault(); }"
    @endif
    onclick="try { sessionStorage.setItem('hs_sidebar_scroll', this.closest('.sidebar-scroll')?.scrollTop || 0); } catch(e) {}"
-   {{ $attributes->merge(['class' => 'relative flex items-center justify-between gap-2 h-9 rounded-lg px-2.5 text-[13px] transition-colors cursor-pointer ' . ($active ? 'text-[#111111] dark:text-white font-semibold bg-[#F2F2F2]/75 dark:bg-white/[0.05]' : 'text-text-muted hover:text-[#111111] dark:hover:text-white hover:bg-[#FBFBFB] dark:hover:bg-white/[0.02] font-medium')]) }}>
+   {{ $attributes->merge(['class' => 'relative flex items-center justify-between gap-2 h-9 rounded-lg px-2.5 text-[13px] transition-colors cursor-pointer ' . ($active ? 'text-[#111111] dark:text-white font-medium bg-[#F2F2F2]/75 dark:bg-white/[0.05]' : 'text-text-muted hover:text-[#111111] dark:hover:text-white hover:bg-[#FBFBFB] dark:hover:bg-white/[0.02] font-medium')]) }}>
     @if ($active)
         <div class="absolute left-[-19px] top-1/2 -translate-y-1/2 w-[3px] h-6 bg-[#627EF2] rounded-full"></div>
     @endif
@@ -29,7 +29,7 @@
     </span>
 
     @if ($badge !== null && $badge > 0)
-        <span class="min-w-5 px-1.5 py-0.5 text-[11px] leading-tight inline-flex items-center justify-center font-semibold rounded-full {{ $active ? 'bg-[#111111] text-white dark:bg-white dark:text-[#111111]' : 'bg-[#F3F4F6] dark:bg-gray-800 text-[#6A7282] dark:text-gray-300' }}">
+        <span class="min-w-5 px-1.5 py-0.5 text-[11px] leading-tight inline-flex items-center justify-center font-medium rounded-full {{ $active ? 'bg-[#111111] text-white dark:bg-white dark:text-[#111111]' : 'bg-[#F3F4F6] dark:bg-gray-800 text-[#6A7282] dark:text-gray-300' }}">
             {{ $badge > 99 ? '99+' : $badge }}
         </span>
     @endif
@@ -64,7 +64,7 @@
             :class="collapsed 
                 ? 'absolute top-1 right-1 size-4 text-[9px] ring-2 ring-white dark:ring-[#0A0A0A]' 
                 : 'min-w-5 px-1.5 py-0.5 text-[11px] leading-tight'"
-            class="relative z-10 inline-flex items-center justify-center font-bold rounded-full {{ $active ? 'bg-white text-[#111111]' : 'bg-[#F3F4F6] dark:bg-gray-800 text-[#101828] dark:text-gray-200' }}"
+            class="relative z-10 inline-flex items-center justify-center font-medium rounded-full {{ $active ? 'bg-white text-[#111111]' : 'bg-[#F3F4F6] dark:bg-gray-800 text-[#101828] dark:text-gray-200' }}"
         >
             {{ $badge > 99 ? '99+' : $badge }}
         </span>

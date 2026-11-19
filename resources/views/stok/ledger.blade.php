@@ -69,8 +69,8 @@
                 { data: 'tanggal', orderable: false },
                 { data: 'gudang_nama', orderable: false },
                 { data: 'tipe', orderable: false },
-                { data: 'qty', className: 'text-right font-mono' },
-                { data: 'saldo_setelah', className: 'text-right font-mono font-semibold' },
+                { data: 'qty', className: 'text-right tabular-nums' },
+                { data: 'saldo_setelah', className: 'text-right tabular-nums font-medium' },
                 { data: 'referensi_tipe', orderable: false },
                 { data: 'catatan', orderable: false }
             ]

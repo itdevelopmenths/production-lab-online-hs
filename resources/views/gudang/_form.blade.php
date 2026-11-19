@@ -3,9 +3,9 @@
     $rawTipe = old('tipe', $g?->tipe);
     $selectedTipe = in_array($rawTipe, ['fulfillment_pusat', 'fulfillment_cabang'], true) ? 'fulfillment' : $rawTipe;
 @endphp
-<div class="space-y-4">
-    <x-form-section title="Identitas & Klasifikasi Gudang" subtitle="Kode lokasi, fungsi operasional, serta hirarki fasilitas">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="space-y-3">
+    <x-form-section card title="Identitas & Klasifikasi Gudang" subtitle="Kode lokasi, fungsi operasional, serta hirarki fasilitas">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
             <x-form-field name="kode" label="Kode Gudang" :required="true" help="Singkatan kode identitas lokasi unik">
                 <x-input name="kode" variant="seamless" value="{{ old('kode', $g?->kode) }}" placeholder="misal: GDG-BB-01" :required="true" />
             </x-form-field>
@@ -39,7 +39,7 @@
         </div>
     </x-form-section>
 
-    <x-form-section title="Kebijakan Operasional" subtitle="Pengaturan status central hub dan toleransi saldo negatif">
+    <x-form-section card title="Kebijakan Operasional" subtitle="Pengaturan status central hub dan toleransi saldo negatif">
         <div class="space-y-3.5">
             <x-checkbox 
                 name="is_pusat" 

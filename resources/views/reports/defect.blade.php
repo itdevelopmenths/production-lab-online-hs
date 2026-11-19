@@ -112,7 +112,7 @@
                                 : ($b->produk?->nama ?? '—');
                         @endphp
                         <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
-                            <td class="px-4 py-3 font-mono font-semibold text-[#101828] dark:text-white">
+                            <td class="px-4 py-3 tabular-nums font-medium text-[#101828] dark:text-white">
                                 @can('batch.view')
                                     <a href="{{ route('batches.show', $b) }}" class="underline decoration-gray-400 hover:decoration-current">{{ $b->no_batch }}</a>
                                 @else
@@ -120,8 +120,8 @@
                                 @endcan
                             </td>
                             <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">{{ $produkLabel }}</td>
-                            <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white">{{ number_format($b->qty_baik, 0, ',', '.') }}</td>
-                            <td class="px-4 py-3 text-right font-mono text-rose-600 dark:text-rose-400 font-semibold">{{ number_format($b->qty_rusak, 0, ',', '.') }}</td>
+                            <td class="px-4 py-3 text-right tabular-nums text-[#101828] dark:text-white">{{ number_format($b->qty_baik, 0, ',', '.') }}</td>
+                            <td class="px-4 py-3 text-right tabular-nums text-rose-600 dark:text-rose-400 font-medium">{{ number_format($b->qty_rusak, 0, ',', '.') }}</td>
                             <td class="px-4 py-3 text-center">
                                 @if($defect !== null)
                                     <x-badge variant="danger" size="xs" :pill="true">{{ number_format($defect, 1) }}%</x-badge>
@@ -133,7 +133,7 @@
                         @empty
                         <tr>
                             <td colspan="5" class="px-4 py-8 text-center text-xs text-[#667085] dark:text-gray-400">
-                                <svg class="mx-auto h-8 w-8 text-emerald-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <svg class="mx-auto h-8 w-8 text-foreground mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Kualitas sempurna! Tidak ditemukan batch produksi dengan unit rusak pada filter terpilih.
                             </td>
                         </tr>
@@ -150,31 +150,31 @@
             </x-slot:icon>
             <div tabindex="0" role="region" aria-label="Matriks Kerusakan Pengiriman Transfer Bulanan per Gudang" class="overflow-x-auto focus:outline-none focus:ring-1 focus:ring-[#111111]/20 dark:focus:ring-white/20">
                 <table class="w-full text-xs text-left border-collapse min-w-[980px]">
-                    <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 uppercase text-[10px] font-semibold tracking-wider border-b border-[#E8E8E8] dark:border-gray-800">
+                    <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 uppercase text-[10px] font-medium tracking-wider border-b border-[#E8E8E8] dark:border-gray-800">
                         <tr>
                             <th class="px-3 py-3 w-44">Gudang Tujuan</th>
                             @for($m = 1; $m <= 12; $m++)
                                 <th class="px-2 py-3 text-right">{{ substr($namaBulan[$m], 0, 3) }}</th>
                             @endfor
-                            <th class="px-3 py-3 text-right bg-gray-100 dark:bg-gray-800 font-bold text-[#101828] dark:text-white">Total Tahunan</th>
+                            <th class="px-3 py-3 text-right bg-gray-100 dark:bg-gray-800 font-medium text-[#101828] dark:text-white">Total Tahunan</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800">
                         @forelse($transferAnalytics['monthly_by_warehouse'] ?? [] as $mWh)
                         <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
                             <td class="px-3 py-2.5 font-medium text-[#101828] dark:text-white">
-                                <div class="font-semibold">{{ $mWh['nama'] }}</div>
-                                <div class="text-[10px] font-mono text-[#667085] dark:text-gray-400">{{ $mWh['kode'] }}</div>
+                                <div class="font-medium">{{ $mWh['nama'] }}</div>
+                                <div class="text-[10px] tabular-nums text-[#667085] dark:text-gray-400">{{ $mWh['kode'] }}</div>
                             </td>
                             @for($m = 1; $m <= 12; $m++)
                                 @php
                                     $val = $mWh['months'][$m] ?? 0;
                                 @endphp
-                                <td class="px-2 py-2.5 text-right font-mono {{ $val > 0 ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-[#667085]/60 dark:text-gray-600' }}">
+                                <td class="px-2 py-2.5 text-right tabular-nums {{ $val > 0 ? 'text-rose-600 dark:text-rose-400 font-medium' : 'text-[#667085]/60 dark:text-gray-600' }}">
                                     {{ $val > 0 ? number_format($val, 0, ',', '.') : '—' }}
                                 </td>
                             @endfor
-                            <td class="px-3 py-2.5 text-right font-mono font-bold bg-[#fafafa] dark:bg-gray-800/50 {{ ($mWh['total_tahunan'] ?? 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[#667085] dark:text-gray-400' }}">
+                            <td class="px-3 py-2.5 text-right tabular-nums font-medium bg-[#fafafa] dark:bg-gray-800/50 {{ ($mWh['total_tahunan'] ?? 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[#667085] dark:text-gray-400' }}">
                                 {{ number_format($mWh['total_tahunan'] ?? 0, 0, ',', '.') }}
                             </td>
                         </tr>
@@ -209,18 +209,18 @@
                         @foreach($transferAnalytics['monthly_by_warehouse'] ?? [] as $w)
                             @if(!empty($w['sku_rusak_list']))
                                 <div class="p-3.5 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 space-y-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                                    <div class="font-bold text-xs text-[#101828] dark:text-white flex items-center justify-between border-b border-[#E8E8E8] dark:border-gray-800 pb-1.5">
+                                    <div class="font-medium text-xs text-[#101828] dark:text-white flex items-center justify-between border-b border-[#E8E8E8] dark:border-gray-800 pb-1.5">
                                         <span>{{ $w['nama'] }}</span>
-                                        <span class="font-mono text-rose-600 dark:text-rose-400 text-[11px]">{{ number_format($w['total_tahunan'], 0, ',', '.') }} Pcs</span>
+                                        <span class="tabular-nums text-rose-600 dark:text-rose-400 text-[11px]">{{ number_format($w['total_tahunan'], 0, ',', '.') }} Pcs</span>
                                     </div>
                                     <div class="divide-y divide-[#E8E8E8]/60 dark:divide-gray-800 text-[11px]">
                                         @foreach($w['sku_rusak_list'] as $sku)
                                             <div class="py-1.5 flex items-center justify-between">
                                                 <div class="truncate pr-2">
                                                     <span class="font-medium text-[#101828] dark:text-white">{{ $sku['nama'] }}</span>
-                                                    <span class="font-mono text-[10px] text-[#667085] dark:text-gray-400 block">{{ $sku['sku'] }}</span>
+                                                    <span class="tabular-nums text-[10px] text-[#667085] dark:text-gray-400 block">{{ $sku['sku'] }}</span>
                                                 </div>
-                                                <span class="font-mono font-semibold text-rose-600 dark:text-rose-400 shrink-0">{{ number_format($sku['qty_rusak'], 0, ',', '.') }}</span>
+                                                <span class="tabular-nums font-medium text-rose-600 dark:text-rose-400 shrink-0">{{ number_format($sku['qty_rusak'], 0, ',', '.') }}</span>
                                             </div>
                                         @endforeach
                                     </div>

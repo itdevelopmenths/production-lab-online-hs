@@ -3,9 +3,9 @@
     $rawFaktor = old('faktor_konversi', $u?->faktor_konversi ?? 1);
     $displayFaktor = ($rawFaktor !== null && $rawFaktor !== '') ? ((float) $rawFaktor == (int) $rawFaktor ? (int) $rawFaktor : (float) $rawFaktor) : 1;
 @endphp
-<div class="space-y-4">
-    <x-form-section title="Identitas Satuan Unit" subtitle="Kode simbol resmi, nama lengkap, serta kategori dimensi fisik">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="space-y-3">
+    <x-form-section card title="Identitas Satuan Unit" subtitle="Kode simbol resmi, nama lengkap, serta kategori dimensi fisik">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
             <x-form-field name="kode" label="Kode Satuan (Simbol)" :required="true" help="Singkatan resmi satuan (huruf kecil, misal: pcs, ml, gr, kg, l, botol)">
                 <x-input name="kode" variant="seamless" value="{{ old('kode', $u?->kode) }}" placeholder="misal: ml" :required="true" />
             </x-form-field>
@@ -26,8 +26,8 @@
         </div>
     </x-form-section>
 
-    <x-form-section title="Konversi Satuan & Status" subtitle="Relasi konversi ke satuan pokok laboratorium dan status aktivasi">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <x-form-section card title="Konversi Satuan & Status" subtitle="Relasi konversi ke satuan pokok laboratorium dan status aktivasi">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
             <x-form-field name="satuan_dasar" label="Satuan Pokok Acuan (Basis)" help="Satuan dasar laboratorium jika unit ini adalah wadah/kemasan turunan">
                 <x-select name="satuan_dasar" variant="seamless" placeholder="— Pilih Satuan Pokok / Mandiri —">
                     <option value="" @selected(empty(old('satuan_dasar', $u?->satuan_dasar)))>— Satuan Mandiri (Pokok) —</option>

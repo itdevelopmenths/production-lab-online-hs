@@ -96,6 +96,11 @@
             };
         }
     </script>
+    <style>
+        /* Spacer selebar sidebar (desktop saja) agar konten tidak tertimpa sidebar yang position:fixed */
+        .hs-sidebar-spacer { display: none; flex: none; transition: width .3s ease-out; }
+        @media (min-width: 1024px) { .hs-sidebar-spacer { display: block; } }
+    </style>
 </head>
 <body class="min-h-screen font-sans antialiased text-text-base bg-gray-50 dark:bg-gray-950 flex flex-col"
       x-data="appSidebarState()">
@@ -111,7 +116,11 @@
              class="fixed inset-0 z-[90] bg-black/50 backdrop-blur-xs lg:hidden"></div>
 
         {{-- Heaven Scent Blueprint Sidebar --}}
-        <div class="fixed inset-y-0 left-0 z-[100] transition-all duration-300 ease-out lg:sticky lg:top-0 lg:h-screen lg:z-40 shrink-0"
+        {{-- Spacer selebar sidebar: menjaga area konten tetap bergeser walau sidebar position:fixed --}}
+        <div class="hs-sidebar-spacer" :style="collapsed ? 'width:80px' : 'width:264px'" aria-hidden="true"></div>
+
+        {{-- Sidebar selalu setinggi layar (fixed), tidak ikut panjang konten halaman --}}
+        <div class="fixed inset-y-0 left-0 z-[100] transition-all duration-300 ease-out lg:z-40 shrink-0" style="height:100vh;height:100dvh"
              :class="[
                  mobileOpen ? 'translate-x-0 w-[264px]' : '-translate-x-full lg:translate-x-0',
                  collapsed ? 'lg:w-[80px]' : 'lg:w-[264px]'
@@ -127,7 +136,7 @@
                             <img src="{{ asset('Logo HS - black.png') }}" alt="Heaven Scent" class="size-5 object-contain brightness-0 invert" />
                         </span>
                         <div x-show="!collapsed" class="leading-tight min-w-0">
-                            <span class="block text-xs font-bold tracking-tight text-[#111111] dark:text-white truncate">HEAVEN SCENT</span>
+                            <span class="block text-xs font-medium tracking-tight text-[#111111] dark:text-white truncate">HEAVEN SCENT</span>
                             <span class="block text-[11px] font-medium text-text-muted truncate">Production Lab</span>
                         </div>
                     </a>
@@ -172,7 +181,7 @@
                     {{-- Section: MENU --}}
                     <div :class="collapsed && 'flex flex-col items-center'">
                         <p :class="collapsed ? 'text-[10px] text-center' : 'text-[12px] px-3'"
-                           class="text-text-muted font-semibold uppercase tracking-[0.6px] mb-1.5 select-none">
+                           class="text-text-muted font-medium uppercase tracking-[0.6px] mb-1.5 select-none">
                             Menu
                         </p>
                         <ul class="space-y-1 w-full">
@@ -190,7 +199,7 @@
                     {{-- Section: OPERASIONAL --}}
                     <div :class="collapsed && 'flex flex-col items-center'">
                         <p :class="collapsed ? 'text-[10px] text-center' : 'text-[12px] px-3'"
-                           class="text-text-muted font-semibold uppercase tracking-[0.6px] mb-1.5 select-none">
+                           class="text-text-muted font-medium uppercase tracking-[0.6px] mb-1.5 select-none">
                             Operasional
                         </p>
                         <ul class="space-y-1 w-full">
@@ -254,7 +263,7 @@
                     {{-- Section: PENGELOLAAN & REFERENSI (Collapsible Groups with #627EF2 Timeline) --}}
                     <div class="space-y-1.5" :class="collapsed && 'flex flex-col items-center'">
                         <p :class="collapsed ? 'text-[10px] text-center' : 'text-[12px] px-3'"
-                           class="text-text-muted font-semibold uppercase tracking-[0.6px] mb-1.5 select-none">
+                           class="text-text-muted font-medium uppercase tracking-[0.6px] mb-1.5 select-none">
                             Inventori & Sistem
                         </p>
 
@@ -454,9 +463,9 @@
                          :class="collapsed ? 'left-full ml-2 bottom-0' : 'right-2 bottom-full left-2 mb-2'"
                          class="bg-white dark:bg-[#141414] absolute rounded-[12px] border border-[#E8E8E8] dark:border-border p-1.5 shadow-theme-lg z-50 min-w-56 text-sm">
                         <div class="border-b border-[#E8E8E8] dark:border-border px-3 py-2.5">
-                            <p class="font-semibold text-[#111111] dark:text-white text-xs leading-snug break-words whitespace-normal">{{ auth()->user()->name }}</p>
+                            <p class="font-medium text-[#111111] dark:text-white text-xs leading-snug break-words whitespace-normal">{{ auth()->user()->name }}</p>
                             <p class="text-text-muted truncate text-[11px] mt-0.5">{{ auth()->user()->email }}</p>
-                            <span class="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-semibold bg-[#F3F4F6] dark:bg-gray-800 text-[#101828] dark:text-gray-200 uppercase rounded-md">
+                            <span class="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-medium bg-[#F3F4F6] dark:bg-gray-800 text-[#101828] dark:text-gray-200 uppercase rounded-md">
                                 {{ auth()->user()->roleName() ?? 'User' }}
                             </span>
                         </div>
@@ -464,7 +473,7 @@
                         {{-- Quick role switch for dev --}}
                         @if(app()->environment('local', 'testing'))
                         <div class="px-3 py-2.5 border-b border-[#E8E8E8] dark:border-border bg-[#FBFBFB] dark:bg-gray-900/50">
-                            <label class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Ganti Peran (Dev):</label>
+                            <label class="block text-[10px] font-medium text-text-muted uppercase tracking-wider mb-1.5">Ganti Peran (Dev):</label>
                             <form method="POST" action="{{ route('switch-role') }}">
                                 @csrf
                                 <select name="role" onchange="this.form.submit()" class="w-full text-xs rounded-[6px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2.5 py-1.5 outline-none">
@@ -503,14 +512,14 @@
                             :aria-expanded="userMenuOpen"
                             :class="collapsed ? 'justify-center p-1.5' : 'w-full gap-2.5 px-2.5 py-2'"
                             class="hover:bg-[#FBFBFB] dark:hover:bg-white/[0.04] flex items-center rounded-lg text-left transition-colors cursor-pointer w-full group">
-                        <span class="bg-[#111111] dark:bg-white text-white dark:text-[#111111] relative flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-theme-xs">
+                        <span class="bg-[#111111] dark:bg-white text-white dark:text-[#111111] relative flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-medium shadow-theme-xs">
                             {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
-                            <span class="border-white dark:border-[#0A0A0A] absolute right-0 bottom-0 size-2.5 rounded-full border-2 bg-emerald-500"></span>
+                            <span class="border-white dark:border-[#0A0A0A] absolute right-0 bottom-0 size-2.5 rounded-full border-2 bg-gray-400"></span>
                         </span>
 
                         <div x-show="!collapsed" class="min-w-0 flex-1 flex items-center justify-between gap-1.5">
                             <div class="min-w-0 flex-1">
-                                <span class="block text-xs font-semibold text-[#111111] dark:text-white leading-snug break-words whitespace-normal" title="{{ auth()->user()->name }}">
+                                <span class="block text-xs font-medium text-[#111111] dark:text-white leading-snug break-words whitespace-normal" title="{{ auth()->user()->name }}">
                                     {{ auth()->user()->name }}
                                 </span>
                                 <span class="text-text-muted block text-[11px] leading-tight mt-0.5 capitalize truncate">
@@ -548,7 +557,7 @@
                     @endif
 
                     <div class="min-w-0 flex-1">
-                        <h1 class="text-sm md:text-base font-bold text-gray-900 dark:text-white tracking-tight leading-tight truncate">{!! $title !!}</h1>
+                        <h1 class="text-sm md:text-base font-semibold text-gray-900 dark:text-white tracking-tight leading-tight truncate">{!! $title !!}</h1>
                         @if ($subtitle)
                             <p class="text-[10px] md:text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-medium truncate">{!! $subtitle !!}</p>
                         @endif
@@ -564,7 +573,7 @@
                             :aria-label="isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'"
                             :title="isDark ? 'Mode Terang' : 'Mode Gelap'"
                             class="size-9 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors inline-flex items-center justify-center shrink-0 shadow-theme-xs">
-                        <svg x-show="isDark" x-cloak class="size-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg x-show="isDark" x-cloak class="size-4 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
                         </svg>
                         <svg x-show="!isDark" class="size-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -580,12 +589,12 @@
                     {{-- Flash Alert Messages --}}
                     @if(session('success'))
                         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 4000)" x-transition class="mb-4">
-                            <div class="rounded-[8px] border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/80 dark:bg-emerald-500/10 px-4 py-3 text-xs text-emerald-900 dark:text-emerald-300 flex items-center justify-between shadow-theme-xs">
+                            <div class="rounded-[8px] border border-border dark:border-border bg-card dark:bg-card px-4 py-3 text-xs text-foreground dark:text-foreground flex items-center justify-between shadow-theme-xs">
                                 <div class="flex items-center gap-2">
-                                    <svg class="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    <svg class="size-4 text-foreground dark:text-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                     <span class="font-medium">{{ session('success') }}</span>
                                 </div>
-                                <button type="button" @click="show = false" class="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-white">
+                                <button type="button" @click="show = false" class="text-foreground dark:text-foreground hover:text-foreground dark:hover:text-white">
                                     <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
@@ -608,7 +617,7 @@
 
                     @if($errors->any())
                         <div class="mb-4 rounded-[8px] border border-red-200 dark:border-red-500/20 bg-red-50/80 dark:bg-red-500/10 px-4 py-3 text-xs text-red-900 dark:text-red-300 shadow-theme-xs">
-                            <div class="flex items-center gap-1.5 font-semibold mb-1">
+                            <div class="flex items-center gap-1.5 font-medium mb-1">
                                 <svg class="size-3.5 text-red-600 dark:text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                 <span>Terdapat Kesalahan Input:</span>
                             </div>
@@ -719,6 +728,8 @@
             setInterval(refreshSessionSecurity, 10 * 60 * 1000);
         });
     </script>
+
+    <x-app-dialog />
 
     @stack('scripts')
 </body>

@@ -23,7 +23,7 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2.5 flex-wrap">
-                        <h2 class="text-xl font-bold font-mono text-[#101828] dark:text-white">{{ $stockRequest->no_request }}</h2>
+                        <h2 class="text-xl font-semibold tabular-nums text-[#101828] dark:text-white">{{ $stockRequest->no_request }}</h2>
                         <x-badge :variant="$stockRequest->status" :pill="true">
                             {{ ucfirst($stockRequest->status) }}
                         </x-badge>
@@ -69,7 +69,7 @@
                 @endif
 
                 @if($canCancel)
-                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-semibold rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition">
+                    <button type="button" @click="openCancelModal = true" class="px-3.5 py-2 text-xs font-medium rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition">
                         Batalkan
                     </button>
                 @endif
@@ -80,14 +80,14 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <x-card class="p-4">
                 <div class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Jenis Permintaan</div>
-                <div class="text-sm font-semibold text-foreground mt-1">
+                <div class="text-sm font-medium text-foreground mt-1">
                     {{ $stockRequest->jenis === 'request_bahan' ? 'Bahan Baku Operasional' : 'Produk Jadi Fulfillment' }}
                 </div>
             </x-card>
 
             <x-card class="p-4">
                 <div class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Gudang Pemohon</div>
-                <div class="text-sm font-semibold text-foreground mt-1">
+                <div class="text-sm font-medium text-foreground mt-1">
                     {{ $stockRequest->gudangPemohon?->nama ?? '-' }}
                 </div>
                 <div class="text-[10px] text-muted-foreground">{{ $stockRequest->gudangPemohon?->kode }}</div>
@@ -95,7 +95,7 @@
 
             <x-card class="p-4">
                 <div class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Gudang Penyedia</div>
-                <div class="text-sm font-semibold text-foreground mt-1">
+                <div class="text-sm font-medium text-foreground mt-1">
                     {{ $stockRequest->gudangTujuan?->nama ?? '-' }}
                 </div>
                 <div class="text-[10px] text-muted-foreground">{{ $stockRequest->gudangTujuan?->kode }}</div>
@@ -103,7 +103,7 @@
 
             <x-card class="p-4">
                 <div class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Batch Produksi</div>
-                <div class="text-sm font-semibold text-foreground mt-1 font-mono">
+                <div class="text-sm font-medium text-foreground mt-1 tabular-nums">
                     @if($stockRequest->batch)
                         <a href="{{ route('batches.show', $stockRequest->batch) }}" class="text-primary hover:underline">
                             {{ $stockRequest->batch->no_batch }}
@@ -117,22 +117,22 @@
 
         @if($stockRequest->catatan)
         <div class="p-4 rounded-xl bg-muted/40 border border-border text-xs">
-            <span class="font-semibold text-foreground">Catatan Pemohon:</span>
+            <span class="font-medium text-foreground">Catatan Pemohon:</span>
             <p class="text-muted-foreground mt-0.5">{{ $stockRequest->catatan }}</p>
         </div>
         @endif
 
         @if($stockRequest->alasan_tolak)
         <div class="p-4 rounded-xl bg-rose-50 border-rose-200 text-rose-900 border text-xs">
-            <span class="font-bold">Alasan Penolakan Manager:</span>
+            <span class="font-medium">Alasan Penolakan Manager:</span>
             <p class="mt-0.5">{{ $stockRequest->alasan_tolak }}</p>
             <div class="text-[10px] opacity-80 mt-1">Oleh: {{ $stockRequest->approver?->name ?? 'Manager' }} pada {{ $stockRequest->disetujui_pada?->format('d/m/Y H:i') }}</div>
         </div>
         @endif
 
         @if($stockRequest->alasan_batal)
-        <div class="p-4 rounded-xl bg-amber-50 border-amber-200 text-amber-900 border text-xs">
-            <span class="font-bold">Alasan Pembatalan:</span>
+        <div class="p-4 rounded-xl bg-card border-border text-foreground border text-xs">
+            <span class="font-medium">Alasan Pembatalan:</span>
             <p class="mt-0.5">{{ $stockRequest->alasan_batal }}</p>
         </div>
         @endif
@@ -162,9 +162,9 @@
                         @foreach($stockRequest->items as $idx => $it)
                         <tr class="hover:bg-muted/30">
                             <td class="px-4 py-3 text-center text-muted-foreground">{{ $idx + 1 }}</td>
-                            <td class="px-4 py-3 font-mono font-medium text-foreground">{{ $it->produk?->sku ?? '-' }}</td>
-                            <td class="px-4 py-3 font-semibold text-foreground">{{ $it->produk?->nama ?? '-' }}</td>
-                            <td class="px-4 py-3 font-bold text-foreground">{{ number_format($it->qty_diminta, 2) }}</td>
+                            <td class="px-4 py-3 tabular-nums font-medium text-foreground">{{ $it->produk?->sku ?? '-' }}</td>
+                            <td class="px-4 py-3 font-medium text-foreground">{{ $it->produk?->nama ?? '-' }}</td>
+                            <td class="px-4 py-3 font-medium text-foreground">{{ number_format($it->qty_diminta, 2) }}</td>
                             <td class="px-4 py-3 text-muted-foreground">{{ $it->produk?->satuan ?? '-' }}</td>
                             <td class="px-4 py-3 text-muted-foreground">{{ $it->keterangan ?? '-' }}</td>
                         </tr>
@@ -198,13 +198,13 @@
                     <tbody class="divide-y divide-border">
                         @foreach($stockRequest->transfers as $tr)
                         <tr class="hover:bg-muted/30">
-                            <td class="px-4 py-3 font-mono font-semibold text-primary">
+                            <td class="px-4 py-3 tabular-nums font-medium text-primary">
                                 <a href="{{ route('transfers.show', $tr) }}" class="hover:underline">{{ $tr->no_transfer }}</a>
                             </td>
                             <td class="px-4 py-3 text-foreground">{{ $tr->gudangAsal?->nama }}</td>
                             <td class="px-4 py-3 text-foreground">{{ $tr->gudangTujuan?->nama }}</td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-0.5 rounded-full text-xs font-semibold {{ $tr->status === 'selesai' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
+                                <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $tr->status === 'selesai' ? 'bg-card text-foreground' : 'bg-card text-foreground' }}">
                                     {{ ucfirst($tr->status) }}
                                 </span>
                             </td>

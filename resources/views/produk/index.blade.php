@@ -27,25 +27,25 @@
                 <div class="inline-flex flex-wrap items-center gap-1 p-1 bg-[#f3f4f6] dark:bg-gray-950 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
                     <button type="button"
                             @click="currentTab = 'all'; filterTab('all')"
-                            :class="currentTab === 'all' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            :class="currentTab === 'all' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
                             class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
                         Semua Produk
                     </button>
                     <button type="button"
                             @click="currentTab = 'bahan'; filterTab('bahan')"
-                            :class="currentTab === 'bahan' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            :class="currentTab === 'bahan' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
                             class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
                         Bahan Baku
                     </button>
                     <button type="button"
                             @click="currentTab = 'kemas'; filterTab('kemas')"
-                            :class="currentTab === 'kemas' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            :class="currentTab === 'kemas' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
                             class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
                         Kemasan
                     </button>
                     <button type="button"
                             @click="currentTab = 'produk_jadi'; filterTab('produk_jadi')"
-                            :class="currentTab === 'produk_jadi' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            :class="currentTab === 'produk_jadi' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
                             class="px-3 py-1.5 rounded-[7px] text-xs font-medium transition-all cursor-pointer select-none">
                         Produk Jadi
                     </button>
@@ -141,13 +141,13 @@
                 }
             },
             columns: [
-                { data: 'sku', name: 'sku', searchable: true, className: 'px-4 py-3.5 align-middle text-left font-mono text-xs' },
+                { data: 'sku', name: 'sku', searchable: true, className: 'px-4 py-3.5 align-middle text-left tabular-nums text-xs' },
                 { data: 'nama', name: 'nama', searchable: true, className: 'px-4 py-3.5 align-middle text-left font-medium' },
                 { data: 'kategori_nama', name: 'kategori_nama', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
                 { data: 'varian_nama', name: 'varian_nama', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
                 { data: 'tipe', name: 'tipe', searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
                 { data: 'supplier_count', name: 'supplier_count', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
-                { data: 'satuan', name: 'satuan', searchable: false, className: 'px-4 py-3.5 align-middle text-center font-mono text-xs' },
+                { data: 'satuan', name: 'satuan', searchable: false, className: 'px-4 py-3.5 align-middle text-center tabular-nums text-xs' },
                 { data: 'klasifikasi_abc_badge', name: 'klasifikasi_abc_id', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
                 { data: 'is_active', name: 'is_active', searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
                 { data: 'action', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' }

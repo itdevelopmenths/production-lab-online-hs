@@ -2,10 +2,6 @@
     @php
         $po = $purchaseOrder;
         $poBadgeVariant = match($po->status) {
-            'diajukan' => 'warning',
-            'disetujui' => 'primary',
-            'dikirim_ke_gudang' => 'info',
-            'selesai' => 'success',
             'dibatalkan' => 'danger',
             default => 'neutral',
         };
@@ -46,11 +42,7 @@
 
         $effectivePayStatus = $po->status === 'dibatalkan' ? 'batal' : ($po->status_pembayaran ?? 'belum_lunas');
         $payBadge = match($effectivePayStatus) {
-            'overdue' => 'danger',
-            'belum_lunas' => 'warning',
-            'parsial' => 'info',
-            'lunas' => 'success',
-            'batal' => 'danger',
+            'overdue', 'batal' => 'danger',
             default => 'neutral',
         };
         $isTempoOverdue = $po->status !== 'dibatalkan' && $po->skema_bayar === 'tempo' && $po->tanggal_tempo && $po->tanggal_tempo->isPast() && !$po->isLunas();
@@ -82,7 +74,7 @@
                 @endif
 
                 @if($po->dari_analisa)
-                    <x-badge variant="warning" size="sm">Dari Analisa</x-badge>
+                    <x-badge variant="neutral" size="sm">Dari Analisa</x-badge>
                 @endif
 
                 @can('purchasing.edit')
@@ -100,7 +92,7 @@
                             Direct Edit
                         </x-button>
                         @if(!in_array($po->stage_aktif, [\App\Models\PoStage::STAGE_7, \App\Models\PoStage::STAGE_8]))
-                            <x-button type="button" @click="openRevisiModal = true" variant="outline" size="xs" class="border-amber-500/40 text-amber-800 hover:bg-amber-500/10">
+                            <x-button type="button" @click="openRevisiModal = true" variant="outline" size="xs" class="border-border text-foreground hover:bg-gray-50">
                                 Ajukan Revisi
                             </x-button>
                         @endif
@@ -259,10 +251,10 @@
             }
         @endphp
         @if($hasPendingRevisi)
-        <section aria-labelledby="pending-revisi-heading" class="mb-5 bg-card border border-amber-300/80 rounded-xl shadow-xs overflow-hidden">
-            <div class="px-4 sm:px-5 py-3.5 bg-amber-50/70 border-b border-amber-200/80 flex flex-wrap items-center justify-between gap-3">
+        <section aria-labelledby="pending-revisi-heading" class="mb-5 bg-card border border-border rounded-xl shadow-xs overflow-hidden">
+            <div class="px-4 sm:px-5 py-3.5 bg-card border-b border-border flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3 min-w-0">
-                    <span class="size-8 rounded-lg bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0" aria-hidden="true">
+                    <span class="size-8 rounded-lg bg-card border border-border text-foreground flex items-center justify-center shrink-0" aria-hidden="true">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
@@ -272,7 +264,7 @@
                             <h2 id="pending-revisi-heading" class="text-sm font-semibold text-foreground tracking-tight">
                                 Antrean Persetujuan Revisi Komitmen
                             </h2>
-                            <x-badge variant="warning" size="sm">Revisi ke-{{ $pendingRevisis->first()->revisi_ke }}</x-badge>
+                            <x-badge variant="neutral" size="sm">Revisi ke-{{ $pendingRevisis->first()->revisi_ke }}</x-badge>
                             @if($pendingRevisis->count() > 1)
                                 <x-badge variant="neutral" size="sm">{{ $pendingRevisis->count() }} Antrean</x-badge>
                             @endif
@@ -282,7 +274,7 @@
                         </p>
                     </div>
                 </div>
-                <x-badge variant="warning" :dot="true" size="sm">Menunggu Approval Manager</x-badge>
+                <x-badge variant="neutral" :dot="true" size="sm">Menunggu Approval Manager</x-badge>
             </div>
 
             <div class="divide-y divide-border">
@@ -303,14 +295,14 @@
                     <div class="p-4 sm:p-5 space-y-4 text-xs">
                         {{-- 1. Konteks Pengajuan: Alasan & Audit Metadata --}}
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
-                            <div class="lg:col-span-8 rounded-xl border border-border bg-muted/25 p-3.5 flex items-start gap-3">
+                            <div class="lg:col-span-8 rounded-xl border border-border bg-gray-50 dark:bg-gray-800/40 p-3.5 flex items-start gap-3">
                                 <span class="size-7 rounded-lg bg-card border border-border text-muted-foreground flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
                                     <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h6m-2 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                                     </svg>
                                 </span>
                                 <div class="min-w-0 flex-1">
-                                    <span class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+                                    <span class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground block mb-1">
                                         Alasan Pengajuan Revisi
                                     </span>
                                     <p class="text-xs sm:text-[13px] text-foreground leading-relaxed font-medium break-words">
@@ -322,11 +314,11 @@
                             <dl class="lg:col-span-4 rounded-xl border border-border bg-card p-3.5 space-y-2">
                                 <div class="flex items-center justify-between gap-3">
                                     <dt class="text-[11px] text-muted-foreground">Diajukan oleh</dt>
-                                    <dd class="font-semibold text-foreground text-right truncate">{{ $rev->requester?->name ?? 'Purchasing' }}</dd>
+                                    <dd class="font-medium text-foreground text-right truncate">{{ $rev->requester?->name ?? 'Purchasing' }}</dd>
                                 </div>
                                 <div class="flex items-center justify-between gap-3">
                                     <dt class="text-[11px] text-muted-foreground">Waktu pengajuan</dt>
-                                    <dd class="font-mono tabular-nums text-foreground text-right">{{ $submittedAt }}</dd>
+                                    <dd class=" tabular-nums text-foreground text-right">{{ $submittedAt }}</dd>
                                 </div>
                                 <div class="flex items-center justify-between gap-3">
                                     <dt class="text-[11px] text-muted-foreground">Stage saat ajukan</dt>
@@ -339,8 +331,8 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 {{ $canSeePrice ? 'lg:grid-cols-4' : '' }} gap-3">
                             <div class="rounded-xl border border-border bg-card px-3.5 py-2.5 flex items-center justify-between gap-3">
                                 <div>
-                                    <span class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block">Item Diubah</span>
-                                    <span class="font-mono tabular-nums text-sm font-bold text-foreground mt-0.5 block">
+                                    <span class="text-[10px] uppercase tracking-wider font-medium text-muted-foreground block">Item Diubah</span>
+                                    <span class=" tabular-nums text-sm font-medium text-foreground mt-0.5 block">
                                         {{ $changedItemCount }} / {{ $totalItemCount }} item
                                     </span>
                                 </div>
@@ -351,23 +343,23 @@
 
                             <div class="rounded-xl border border-border bg-card px-3.5 py-2.5 flex items-center justify-between gap-3">
                                 <div>
-                                    <span class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block">Versi Komitmen</span>
-                                    <span class="font-mono tabular-nums text-sm font-bold text-foreground mt-0.5 block">
+                                    <span class="text-[10px] uppercase tracking-wider font-medium text-muted-foreground block">Versi Komitmen</span>
+                                    <span class=" tabular-nums text-sm font-medium text-foreground mt-0.5 block">
                                         Rev ke-{{ (int) $po->revisi_ke }} &rarr; ke-{{ $rev->revisi_ke }}
                                     </span>
                                 </div>
-                                <x-badge variant="info" size="sm">Usulan</x-badge>
+                                <x-badge variant="neutral" size="sm">Usulan</x-badge>
                             </div>
 
                             @if($canSeePrice)
                                 <div class="rounded-xl border border-border bg-card px-3.5 py-2.5">
                                     <span class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground block">Grand Total Sebelumnya</span>
-                                    <span class="font-mono tabular-nums text-sm font-semibold text-muted-foreground mt-0.5 block whitespace-nowrap">
+                                    <span class=" tabular-nums text-sm font-medium text-muted-foreground mt-0.5 block whitespace-nowrap">
                                         {{ $fmtRp($oldGrandTotal) }}
                                     </span>
                                 </div>
 
-                                <div class="rounded-xl border {{ abs($deltaGrandTotal) >= 0.5 ? 'border-amber-300/80 bg-amber-50/40' : 'border-border bg-card' }} px-3.5 py-2.5">
+                                <div class="rounded-xl border {{ abs($deltaGrandTotal) >= 0.5 ? 'border-border bg-card' : 'border-border bg-card' }} px-3.5 py-2.5">
                                     <div class="flex items-center justify-between gap-2">
                                         <span class="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Grand Total Usulan Baru</span>
                                         @php
@@ -375,7 +367,7 @@
                                         @endphp
                                         <x-badge :variant="$deltaGtVariant" size="sm">{{ $fmtSignedRp($deltaGrandTotal) }}</x-badge>
                                     </div>
-                                    <span class="font-mono tabular-nums text-sm font-extrabold text-foreground mt-0.5 block whitespace-nowrap">
+                                    <span class=" tabular-nums text-sm font-medium text-foreground mt-0.5 block whitespace-nowrap">
                                         {{ $fmtRp($newGrandTotal) }}
                                     </span>
                                 </div>
@@ -389,7 +381,7 @@
                                     <h3 id="revisi-items-title-{{ $rev->id }}" class="text-xs font-semibold text-foreground uppercase tracking-wider">
                                         Perbandingan Rincian Item
                                     </h3>
-                                    <span class="text-[11px] text-muted-foreground font-mono tabular-nums">
+                                    <span class="text-[11px] text-muted-foreground tabular-nums">
                                         {{ $totalItemCount }} item · {{ $changedItemCount }} berubah
                                     </span>
                                 </div>
@@ -397,30 +389,30 @@
                                 <div tabindex="0" role="region" aria-labelledby="revisi-items-title-{{ $rev->id }}" class="overflow-x-auto rounded-xl border border-border bg-card">
                                     <table class="w-full text-xs text-left">
                                         <caption class="sr-only">Perbandingan item Purchase Order {{ $po->no_po }} pada Revisi ke-{{ $rev->revisi_ke }}</caption>
-                                        <thead class="bg-muted/60 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider border-b border-border">
+                                        <thead class="bg-gray-50 dark:bg-gray-800/40 text-muted-foreground font-medium text-[11px] uppercase tracking-wider border-b border-border">
                                             <tr>
                                                 <th scope="col" class="py-2.5 px-3.5 min-w-44">Bahan Baku / SKU</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Sebelum</th>
-                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap bg-muted/80 text-foreground">Usulan Baru</th>
+                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap bg-gray-50 dark:bg-gray-800/40 text-foreground">Usulan Baru</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Selisih</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-border bg-card">
                                             @foreach($itemComparisons as $itRow)
-                                                <tr class="{{ $itRow['changed'] ? 'bg-amber-50/35' : 'opacity-80' }} hover:bg-muted/30 transition-colors">
+                                                <tr class="{{ $itRow['changed'] ? 'bg-card' : 'opacity-80' }} hover:bg-gray-50 transition-colors">
                                                     <th scope="row" class="py-3 px-3.5 font-normal text-left align-top">
                                                         <div class="flex flex-wrap items-center gap-2">
-                                                            <span class="font-semibold text-foreground leading-snug">{{ $itRow['nama'] }}</span>
+                                                            <span class="font-medium text-foreground leading-snug">{{ $itRow['nama'] }}</span>
                                                             <x-badge :variant="$itRow['changed'] ? 'warning' : 'muted'" size="sm">
                                                                 {{ $itRow['changed'] ? 'Berubah' : 'Tetap' }}
                                                             </x-badge>
                                                         </div>
-                                                        <div class="font-mono text-[10px] text-muted-foreground mt-0.5">
+                                                        <div class="tabular-nums text-[10px] text-muted-foreground mt-0.5">
                                                             {{ $itRow['sku'] }} · Satuan dasar: {{ $itRow['sat_dasar'] }}
                                                         </div>
                                                     </th>
 
-                                                    <td class="py-3 px-3.5 text-right align-top font-mono tabular-nums text-muted-foreground whitespace-nowrap">
+                                                    <td class="py-3 px-3.5 text-right align-top tabular-nums text-muted-foreground whitespace-nowrap">
                                                         <div class="text-foreground/90 font-medium">
                                                             {{ $fmtQty($itRow['old_qty_beli']) }} <span class="text-[11px] font-normal text-muted-foreground">{{ $itRow['old_sat_beli'] }}</span>
                                                         </div>
@@ -436,8 +428,8 @@
                                                         @endif
                                                     </td>
 
-                                                    <td class="py-3 px-3.5 text-right align-top font-mono tabular-nums bg-muted/20 whitespace-nowrap">
-                                                        <div class="font-semibold text-foreground">
+                                                    <td class="py-3 px-3.5 text-right align-top tabular-nums bg-gray-50 dark:bg-gray-800/40 whitespace-nowrap">
+                                                        <div class="font-medium text-foreground">
                                                             {{ $fmtQty($itRow['new_qty_beli']) }} <span class="text-[11px] font-normal text-muted-foreground">{{ $itRow['new_sat_beli'] }}</span>
                                                         </div>
                                                         @if(strcasecmp((string) $itRow['new_sat_beli'], (string) $itRow['sat_dasar']) !== 0)
@@ -446,20 +438,20 @@
                                                             </div>
                                                         @endif
                                                         @if($canSeePrice)
-                                                            <div class="text-[11px] font-bold text-foreground mt-1">
+                                                            <div class="text-[11px] font-medium text-foreground mt-1">
                                                                 {{ $fmtRp($itRow['new_harga']) }}
                                                             </div>
                                                         @endif
                                                     </td>
 
-                                                    <td class="py-3 px-3.5 text-right align-top font-mono tabular-nums whitespace-nowrap">
+                                                    <td class="py-3 px-3.5 text-right align-top tabular-nums whitespace-nowrap">
                                                         @if($itRow['qty_changed'])
                                                             @if($itRow['delta_qty_beli'] !== null && abs($itRow['delta_qty_beli']) > 0.0001)
-                                                                <div class="font-semibold {{ $itRow['delta_qty_beli'] > 0 ? 'text-amber-700' : 'text-emerald-700' }}">
+                                                                <div class="font-medium {{ $itRow['delta_qty_beli'] > 0 ? 'text-foreground' : 'text-foreground' }}">
                                                                     {{ ($itRow['delta_qty_beli'] > 0 ? '+' : '-') . $fmtQty(abs($itRow['delta_qty_beli'])) }} {{ $itRow['new_sat_beli'] }}
                                                                 </div>
                                                             @else
-                                                                <div class="text-[11px] font-semibold text-amber-700">Ubah UOM</div>
+                                                                <div class="text-[11px] font-medium text-foreground">Ubah UOM</div>
                                                             @endif
                                                             @if(abs($itRow['delta_qty_dasar']) > 0.0001 && !$itRow['same_unit_beli'])
                                                                 <div class="text-[10px] text-muted-foreground mt-0.5">
@@ -472,7 +464,7 @@
 
                                                         @if($canSeePrice)
                                                             @if(abs($itRow['delta_harga']) >= 0.5)
-                                                                <div class="text-[11px] font-semibold mt-1 {{ $itRow['delta_harga'] > 0 ? 'text-amber-700' : 'text-emerald-700' }}">
+                                                                <div class="text-[11px] font-medium mt-1 {{ $itRow['delta_harga'] > 0 ? 'text-foreground' : 'text-foreground' }}">
                                                                     {{ $fmtSignedRp($itRow['delta_harga']) }}
                                                                 </div>
                                                             @else
@@ -498,11 +490,11 @@
                                 <div tabindex="0" role="region" aria-labelledby="revisi-finance-title-{{ $rev->id }}" class="overflow-x-auto rounded-xl border border-border bg-card">
                                     <table class="w-full text-xs text-left">
                                         <caption class="sr-only">Perbandingan komponen biaya global dan Grand Total PO {{ $po->no_po }}</caption>
-                                        <thead class="bg-muted/60 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider border-b border-border">
+                                        <thead class="bg-gray-50 dark:bg-gray-800/40 text-muted-foreground font-medium text-[11px] uppercase tracking-wider border-b border-border">
                                             <tr>
                                                 <th scope="col" class="py-2.5 px-3.5 min-w-44">Komponen Biaya</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Sebelum</th>
-                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap bg-muted/80 text-foreground">Usulan Baru</th>
+                                                <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap bg-gray-50 dark:bg-gray-800/40 text-foreground">Usulan Baru</th>
                                                 <th scope="col" class="py-2.5 px-3.5 text-right whitespace-nowrap">Selisih</th>
                                             </tr>
                                         </thead>
@@ -523,34 +515,34 @@
                                                         return $fmtRp($v);
                                                     };
                                                 @endphp
-                                                <tr class="{{ $fChanged ? 'bg-amber-50/30' : '' }} hover:bg-muted/30 transition-colors">
+                                                <tr class="{{ $fChanged ? 'bg-card' : '' }} hover:bg-gray-50 transition-colors">
                                                     <th scope="row" class="py-2.5 px-3.5 font-medium text-foreground text-left">
                                                         {{ $fRow['label'] }}
                                                     </th>
-                                                    <td class="py-2.5 px-3.5 text-right font-mono tabular-nums text-muted-foreground whitespace-nowrap">
+                                                    <td class="py-2.5 px-3.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">
                                                         {{ $fmtFinanceCell($fRow['old']) }}
                                                     </td>
-                                                    <td class="py-2.5 px-3.5 text-right font-mono tabular-nums font-semibold text-foreground bg-muted/20 whitespace-nowrap">
+                                                    <td class="py-2.5 px-3.5 text-right tabular-nums font-medium text-foreground bg-gray-50 dark:bg-gray-800/40 whitespace-nowrap">
                                                         {{ $fmtFinanceCell($fRow['new']) }}
                                                     </td>
-                                                    <td class="py-2.5 px-3.5 text-right font-mono tabular-nums whitespace-nowrap {{ $fChanged ? ($fDelta > 0 ? 'text-amber-700 font-semibold' : 'text-emerald-700 font-semibold') : 'text-muted-foreground' }}">
+                                                    <td class="py-2.5 px-3.5 text-right tabular-nums whitespace-nowrap {{ $fChanged ? ($fDelta > 0 ? 'text-foreground font-medium' : 'text-foreground font-medium') : 'text-muted-foreground' }}">
                                                         {{ $fmtSignedRp($fDelta) }}
                                                     </td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
                                         <tfoot>
-                                            <tr class="bg-muted/50 border-t-2 border-border">
-                                                <th scope="row" class="py-3 px-3.5 font-bold text-foreground text-left">
+                                            <tr class="bg-gray-50 dark:bg-gray-800/40 border-t-2 border-border">
+                                                <th scope="row" class="py-3 px-3.5 font-medium text-foreground text-left">
                                                     Grand Total Tagihan
                                                 </th>
-                                                <td class="py-3 px-3.5 text-right font-mono tabular-nums font-semibold text-muted-foreground whitespace-nowrap">
+                                                <td class="py-3 px-3.5 text-right tabular-nums font-medium text-muted-foreground whitespace-nowrap">
                                                     {{ $fmtRp($oldGrandTotal) }}
                                                 </td>
-                                                <td class="py-3 px-3.5 text-right font-mono tabular-nums font-extrabold text-sm text-foreground bg-muted/40 whitespace-nowrap">
+                                                <td class="py-3 px-3.5 text-right tabular-nums font-medium text-sm text-foreground bg-gray-50 dark:bg-gray-800/40 whitespace-nowrap">
                                                     {{ $fmtRp($newGrandTotal) }}
                                                 </td>
-                                                <td class="py-3 px-3.5 text-right font-mono tabular-nums font-bold whitespace-nowrap {{ $deltaGrandTotal > 0.5 ? 'text-amber-700' : ($deltaGrandTotal < -0.5 ? 'text-emerald-700' : 'text-muted-foreground') }}">
+                                                <td class="py-3 px-3.5 text-right tabular-nums font-medium whitespace-nowrap {{ $deltaGrandTotal > 0.5 ? 'text-foreground' : ($deltaGrandTotal < -0.5 ? 'text-foreground' : 'text-muted-foreground') }}">
                                                     {{ $fmtSignedRp($deltaGrandTotal) }}
                                                 </td>
                                             </tr>
@@ -570,7 +562,7 @@
                                  isRejectDisabled() { return this.alasanReject.trim().length < 3; }
                              }">
                             <p class="text-[11px] text-muted-foreground leading-relaxed">
-                                Menyetujui usulan akan memperbarui nilai komitmen PO aktif ke <strong class="text-foreground font-semibold">Revisi ke-{{ $rev->revisi_ke }}</strong> tanpa mereset waktu stage.
+                                Menyetujui usulan akan memperbarui nilai komitmen PO aktif ke <strong class="text-foreground font-medium">Revisi ke-{{ $rev->revisi_ke }}</strong> tanpa mereset waktu stage.
                             </p>
 
                             <div class="flex flex-wrap items-center justify-end gap-2 shrink-0">
@@ -580,7 +572,7 @@
 
                                 <form method="POST" action="{{ route('purchasing.revisi.approve', $rev) }}" class="inline">
                                     @csrf
-                                    <x-button type="submit" variant="success" size="sm">
+                                    <x-button type="submit" variant="primary" size="sm">
                                         ✓ Setujui Revisi Komitmen
                                     </x-button>
                                 </form>
@@ -593,7 +585,7 @@
                                     class="w-full max-w-md">
                                 <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-border shadow-2xl overflow-hidden text-left">
                                     <div class="px-4 py-3 border-b border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 flex items-center justify-between gap-3">
-                                        <h2 id="reject-revisi-title-{{ $rev->id }}" class="font-bold text-base text-text-active tracking-tight leading-snug">
+                                        <h2 id="reject-revisi-title-{{ $rev->id }}" class="font-semibold text-base text-text-active tracking-tight leading-snug">
                                             Tolak Usulan Revisi ke-{{ $rev->revisi_ke }}
                                         </h2>
                                         <button type="button"
@@ -608,7 +600,7 @@
 
                                     <form method="POST" action="{{ route('purchasing.revisi.reject', $rev) }}">
                                         @csrf
-                                        <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
+                                        <div class="bg-white dark:bg-gray-900 p-4 sm:p-5 space-y-3">
                                             <p id="reject-hint-{{ $rev->id }}" class="text-xs text-text-muted">
                                                 Nilai PO aktif tetap dipertahankan. Masukkan alasan penolakan minimal 3 karakter untuk tim Purchasing.
                                             </p>
@@ -644,16 +636,16 @@
         <!-- Metadata Singkat PO -->
         <div class="grid grid-cols-2 {{ $po->skema_bayar === 'tempo' ? 'sm:grid-cols-5' : 'sm:grid-cols-4' }} gap-3 mb-5">
             <div class="bg-card p-3.5 rounded-xl border border-border shadow-2xs min-w-0">
-                <span class="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">No. Invoice Vendor</span>
-                <p class="font-mono font-semibold text-xs text-foreground mt-0.5 truncate">{{ $po->no_invoice ?? '—' }}</p>
+                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider block">No. Invoice Vendor</span>
+                <p class="tabular-nums font-medium text-xs text-foreground mt-0.5 truncate">{{ $po->no_invoice ?? '—' }}</p>
             </div>
             <div class="bg-card p-3.5 rounded-xl border border-border shadow-2xs min-w-0">
-                <span class="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">Lokasi PO (Gudang)</span>
-                <p class="font-semibold text-xs text-foreground mt-0.5 truncate">{{ $po->gudang?->nama ?? 'Semua Gudang' }}</p>
+                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider block">Lokasi PO (Gudang)</span>
+                <p class="font-medium text-xs text-foreground mt-0.5 truncate">{{ $po->gudang?->nama ?? 'Semua Gudang' }}</p>
             </div>
             <div class="bg-card p-3.5 rounded-xl border border-border shadow-2xs min-w-0">
                 <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">Estimasi Tiba (ETA)</span>
+                    <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider block">Estimasi Tiba (ETA)</span>
                     @can('purchasing.edit')
                         @if($hasStages && !in_array($po->status, ['selesai', 'dibatalkan']))
                             <button type="button" @click="openDirectEditModal = true" aria-label="Edit ETA" title="Edit ETA" class="text-xs font-medium text-primary hover:underline cursor-pointer">
@@ -662,21 +654,21 @@
                         @endif
                     @endcan
                 </div>
-                <p class="font-mono text-xs {{ $isEtaPast ? 'text-destructive font-bold' : 'text-foreground font-medium' }} mt-0.5">
+                <p class="tabular-nums text-xs {{ $isEtaPast ? 'text-destructive font-medium' : 'text-foreground font-medium' }} mt-0.5">
                     {{ $po->eta ? $po->eta->format('d/m/Y') : '—' }}
                 </p>
             </div>
             <div class="bg-card p-3.5 rounded-xl border border-border shadow-2xs min-w-0">
-                <span class="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider block">Skema Bayar</span>
-                <p class="font-semibold text-xs text-foreground mt-0.5 capitalize">{{ $po->skema_bayar ?? 'cash' }}</p>
+                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider block">Skema Bayar</span>
+                <p class="font-medium text-xs text-foreground mt-0.5 capitalize">{{ $po->skema_bayar ?? 'cash' }}</p>
             </div>
             @if($po->skema_bayar === 'tempo')
             <div class="bg-card p-3.5 rounded-xl border {{ $isTempoOverdue ? 'border-destructive/30 bg-destructive/5' : 'border-border' }} shadow-2xs min-w-0">
-                <span class="text-[10px] uppercase font-semibold {{ $isTempoOverdue ? 'text-destructive' : 'text-muted-foreground' }} tracking-wider block">Deadline Tempo</span>
-                <p class="font-mono text-xs {{ $isTempoOverdue ? 'text-destructive font-bold' : 'text-foreground font-semibold' }} mt-0.5">
+                <span class="text-[10px] uppercase font-medium {{ $isTempoOverdue ? 'text-destructive' : 'text-muted-foreground' }} tracking-wider block">Deadline Tempo</span>
+                <p class="tabular-nums text-xs {{ $isTempoOverdue ? 'text-destructive font-medium' : 'text-foreground font-medium' }} mt-0.5">
                     {{ $po->tanggal_tempo ? $po->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—') }}
                     @if($isTempoOverdue)
-                        <span class="text-[9px] uppercase font-bold text-destructive bg-destructive/10 px-1 py-0.5 rounded ml-1 border border-destructive/20">Overdue</span>
+                        <span class="text-[9px] uppercase font-medium text-destructive bg-destructive/10 px-1 py-0.5 rounded ml-1 border border-destructive/20">Overdue</span>
                     @endif
                 </p>
             </div>
@@ -684,10 +676,10 @@
         </div>
 
         @if($po->catatan)
-        <div class="mb-5 bg-muted/40 border border-border rounded-xl p-4 flex items-start gap-3">
+        <div class="mb-5 bg-gray-50 dark:bg-gray-800/40 border border-border rounded-xl p-4 flex items-start gap-3">
             <svg class="size-4 text-muted-foreground mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
             <div class="text-xs min-w-0">
-                <span class="font-semibold text-foreground block mb-0.5">Catatan / Instruksi Khusus PO:</span>
+                <span class="font-medium text-foreground block mb-0.5">Catatan / Instruksi Khusus PO:</span>
                 <p class="text-muted-foreground whitespace-pre-line">{{ $po->catatan }}</p>
             </div>
         </div>
@@ -699,38 +691,38 @@
                 <!-- Tabel Item PO -->
                 <x-card title="Rincian Item Purchase Order" :noPadding="true">
                     <x-slot:tools>
-                        <span class="text-xs text-muted-foreground font-mono font-medium">{{ $po->items->count() }} item</span>
+                        <span class="text-xs text-muted-foreground tabular-nums font-medium">{{ $po->items->count() }} item</span>
                     </x-slot:tools>
 
                     <div tabindex="0" role="region" aria-label="Tabel Rincian Item Purchase Order" class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
                             <caption class="sr-only">Rincian Item Purchase Order {{ $po->no_po }}</caption>
-                            <thead class="bg-muted/60 border-b border-border text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">
+                            <thead class="bg-gray-50 dark:bg-gray-800/40 border-b border-border text-muted-foreground font-medium text-[11px] uppercase tracking-wider">
                                 <tr>
                                     <th scope="col" class="py-3 px-4 min-w-36">Bahan Baku</th>
                                     <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Qty PO</th>
                                     @if($canSeePrice)
                                         <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Total Kotor</th>
                                         <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Net Total</th>
-                                        <th scope="col" class="py-3 px-4 text-right whitespace-nowrap bg-muted/80 text-foreground">HPP / Unit</th>
+                                        <th scope="col" class="py-3 px-4 text-right whitespace-nowrap bg-gray-50 dark:bg-gray-800/40 text-foreground">HPP / Unit</th>
                                     @endif
                                     <th scope="col" class="py-3 px-4 text-right whitespace-nowrap">Diterima Fisik</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-border bg-card">
                                 @forelse($po->items as $it)
-                                <tr class="hover:bg-muted/30 transition-colors">
+                                <tr class="hover:bg-gray-50 transition-colors">
                                     <th scope="row" class="py-3.5 px-4 font-normal text-left align-top">
-                                        <div class="font-semibold text-foreground leading-snug">{{ $it->produk?->nama ?? '—' }}</div>
-                                        <div class="font-mono text-[11px] text-muted-foreground mt-0.5">{{ $it->produk?->sku ?? '—' }}</div>
+                                        <div class="font-medium text-foreground leading-snug">{{ $it->produk?->nama ?? '—' }}</div>
+                                        <div class="tabular-nums text-[11px] text-muted-foreground mt-0.5">{{ $it->produk?->sku ?? '—' }}</div>
                                     </th>
-                                    <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums font-medium text-foreground whitespace-nowrap">
+                                    <td class="py-3.5 px-4 text-right align-top tabular-nums font-medium text-foreground whitespace-nowrap">
                                         @if($it->qty_satuan_beli && $it->satuan_beli && strcasecmp($it->satuan_beli, $it->produk?->satuan ?? '') !== 0)
-                                            <div class="text-foreground font-semibold">
+                                            <div class="text-foreground font-medium">
                                                 {{ rtrim(rtrim(number_format($it->qty_satuan_beli, 2, ',', '.'), '0'), ',') }}
                                                 <span class="text-xs font-normal text-muted-foreground">{{ $it->satuan_beli }}</span>
                                             </div>
-                                            <div class="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border inline-block mt-1">
+                                            <div class="text-[10px] text-muted-foreground bg-gray-50 dark:bg-gray-800/40 px-1.5 py-0.5 rounded border border-border inline-block mt-1">
                                                 = {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk?->satuan }}
                                             </div>
                                         @else
@@ -741,13 +733,13 @@
                                         @endif
                                     </td>
                                     @if($canSeePrice)
-                                        <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums text-foreground whitespace-nowrap">
+                                        <td class="py-3.5 px-4 text-right align-top tabular-nums text-foreground whitespace-nowrap">
                                             Rp {{ number_format($it->harga_total, 0, ',', '.') }}
                                         </td>
-                                        <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums font-semibold text-foreground whitespace-nowrap">
+                                        <td class="py-3.5 px-4 text-right align-top tabular-nums font-medium text-foreground whitespace-nowrap">
                                             Rp {{ number_format($it->netTotal(), abs($it->netTotal() - round($it->netTotal())) < 0.00001 ? 0 : 2, ',', '.') }}
                                         </td>
-                                        <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums font-bold text-foreground bg-muted/40 whitespace-nowrap" title="HPP / Satuan Dasar ({{ $it->produk?->satuan }}): {{ $it->formattedHpp() }}">
+                                        <td class="py-3.5 px-4 text-right align-top tabular-nums font-medium text-foreground bg-gray-50 dark:bg-gray-800/40 whitespace-nowrap" title="HPP / Satuan Dasar ({{ $it->produk?->satuan }}): {{ $it->formattedHpp() }}">
                                             <div>{{ $it->formattedHpp() }}</div>
                                             @if($it->qty_satuan_beli && $it->satuan_beli && strcasecmp($it->satuan_beli, $it->produk?->satuan ?? '') !== 0 && (float)$it->qty_satuan_beli > 0)
                                                 @php
@@ -759,7 +751,7 @@
                                             @endif
                                         </td>
                                     @endif
-                                    <td class="py-3.5 px-4 text-right align-top font-mono tabular-nums font-medium whitespace-nowrap {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-foreground' }}">
+                                    <td class="py-3.5 px-4 text-right align-top tabular-nums font-medium whitespace-nowrap {{ (float)$it->qtyDiterima() >= (float)$it->qty ? 'text-foreground dark:text-foreground font-medium' : 'text-foreground' }}">
                                         {{ rtrim(rtrim(number_format($it->qtyDiterima(), 2, ',', '.'), '0'), ',') }}
                                         <span class="text-muted-foreground font-normal text-[10px]">{{ $it->produk?->satuan }}</span>
                                     </td>
@@ -785,46 +777,46 @@
                                 ? (float) $po->adjustment
                                 : (float) $po->items->sum('adjustment');
                         @endphp
-                        <div class="border-t border-border bg-muted/20 p-4 sm:px-5 sm:py-4">
+                        <div class="border-t border-border bg-gray-50 dark:bg-gray-800/40 p-4 sm:px-5 sm:py-4">
                             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                                 <p class="text-[11px] leading-relaxed text-muted-foreground max-w-sm">
-                                    Komponen <strong class="font-semibold text-foreground">Diskon</strong>, <strong class="font-semibold text-foreground">PPN</strong>, <strong class="font-semibold text-foreground">Ongkir</strong>, dan <strong class="font-semibold text-foreground">Adjustment</strong> dikelompokkan di tingkat PO serta dialokasikan proporsional ke Net Total dan HPP per unit.
+                                    Komponen <strong class="font-medium text-foreground">Diskon</strong>, <strong class="font-medium text-foreground">PPN</strong>, <strong class="font-medium text-foreground">Ongkir</strong>, dan <strong class="font-medium text-foreground">Adjustment</strong> dikelompokkan di tingkat PO serta dialokasikan proporsional ke Net Total dan HPP per unit.
                                 </p>
 
                                 <div class="w-full md:w-[360px] md:ms-auto shrink-0 rounded-xl border border-border bg-card p-3.5 sm:p-4 shadow-2xs space-y-3">
                                     <dl class="flex items-center justify-between gap-4 text-xs">
                                         <dt class="text-muted-foreground font-medium">Subtotal Bahan (Kotor)</dt>
-                                        <dd class="font-mono tabular-nums font-semibold text-foreground whitespace-nowrap">
+                                        <dd class=" tabular-nums font-medium text-foreground whitespace-nowrap">
                                             Rp {{ number_format($subtotalKotor, 0, ',', '.') }}
                                         </dd>
                                     </dl>
 
-                                    <div class="rounded-lg bg-muted/40 border border-border/70 px-3 py-2.5 space-y-2">
-                                        <div class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pb-1 border-b border-border/60">
+                                    <div class="rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-border/70 px-3 py-2.5 space-y-2">
+                                        <div class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground pb-1 border-b border-border/60">
                                             Biaya &amp; Penyesuaian Global PO
                                         </div>
                                         <dl class="space-y-1.5 text-xs">
                                             <div class="flex items-center justify-between gap-4">
                                                 <dt class="text-muted-foreground">Diskon</dt>
-                                                <dd class="font-mono tabular-nums whitespace-nowrap {{ $diskonGlobal > 0 ? 'text-destructive font-semibold' : 'text-muted-foreground' }}">
+                                                <dd class=" tabular-nums whitespace-nowrap {{ $diskonGlobal > 0 ? 'text-destructive font-medium' : 'text-muted-foreground' }}">
                                                     {{ $diskonGlobal > 0 ? '-Rp ' . number_format($diskonGlobal, 0, ',', '.') : 'Rp 0' }}
                                                 </dd>
                                             </div>
                                             <div class="flex items-center justify-between gap-4">
                                                 <dt class="text-muted-foreground">PPN</dt>
-                                                <dd class="font-mono tabular-nums whitespace-nowrap {{ $ppnGlobal > 0 ? 'text-foreground font-semibold' : 'text-muted-foreground' }}">
+                                                <dd class=" tabular-nums whitespace-nowrap {{ $ppnGlobal > 0 ? 'text-foreground font-medium' : 'text-muted-foreground' }}">
                                                     {{ $ppnGlobal > 0 ? '+Rp ' . number_format($ppnGlobal, 0, ',', '.') : 'Rp 0' }}
                                                 </dd>
                                             </div>
                                             <div class="flex items-center justify-between gap-4">
                                                 <dt class="text-muted-foreground">Ongkir</dt>
-                                                <dd class="font-mono tabular-nums whitespace-nowrap {{ $ongkirGlobal > 0 ? 'text-foreground font-semibold' : 'text-muted-foreground' }}">
+                                                <dd class=" tabular-nums whitespace-nowrap {{ $ongkirGlobal > 0 ? 'text-foreground font-medium' : 'text-muted-foreground' }}">
                                                     {{ $ongkirGlobal > 0 ? '+Rp ' . number_format($ongkirGlobal, 0, ',', '.') : 'Rp 0' }}
                                                 </dd>
                                             </div>
                                             <div class="flex items-center justify-between gap-4">
                                                 <dt class="text-muted-foreground">Adjustment</dt>
-                                                <dd class="font-mono tabular-nums whitespace-nowrap {{ $adjustmentGlobal < 0 ? 'text-destructive font-semibold' : ($adjustmentGlobal > 0 ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-muted-foreground') }}">
+                                                <dd class=" tabular-nums whitespace-nowrap {{ $adjustmentGlobal < 0 ? 'text-destructive font-medium' : ($adjustmentGlobal > 0 ? 'text-foreground dark:text-foreground font-medium' : 'text-muted-foreground') }}">
                                                     @if($adjustmentGlobal > 0)
                                                         +Rp {{ number_format($adjustmentGlobal, 0, ',', '.') }}
                                                     @elseif($adjustmentGlobal < 0)
@@ -838,8 +830,8 @@
                                     </div>
 
                                     <dl class="pt-2.5 border-t border-border flex items-baseline justify-between gap-4">
-                                        <dt class="text-xs sm:text-sm font-bold text-foreground">Grand Total Nilai Pesanan</dt>
-                                        <dd class="font-mono tabular-nums font-extrabold text-base text-foreground whitespace-nowrap">
+                                        <dt class="text-xs sm:text-sm font-semibold text-foreground">Grand Total Nilai Pesanan</dt>
+                                        <dd class=" tabular-nums font-medium text-base text-foreground whitespace-nowrap">
                                             Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}
                                         </dd>
                                     </dl>
@@ -857,14 +849,14 @@
                         <div class="p-4 space-y-2.5">
                             <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <span class="font-semibold text-foreground">Terima: {{ $bardat->tanggal_terima->format('d/m/Y') }}</span>
+                                    <span class="font-medium text-foreground">Terima: {{ $bardat->tanggal_terima->format('d/m/Y') }}</span>
                                     <x-badge :variant="$bardat->kondisi === 'baik' ? 'success' : 'warning'" size="sm">
                                         Kondisi {{ ucfirst(str_replace('_',' ', $bardat->kondisi)) }}
                                     </x-badge>
                                     @if($hasStages && $bardat->status_posting === 'belum')
-                                        <x-badge variant="info" size="sm">Menunggu Posting Stok</x-badge>
+                                        <x-badge variant="neutral" size="sm">Menunggu Posting Stok</x-badge>
                                     @elseif($hasStages && $bardat->status_posting === 'diposting')
-                                        <x-badge variant="success" :dot="true" size="sm">Stok Diposting</x-badge>
+                                        <x-badge variant="neutral" :dot="true" size="sm">Stok Diposting</x-badge>
                                     @endif
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2 text-muted-foreground text-[11px]">
@@ -874,10 +866,10 @@
                                     @endif
                                 </div>
                             </div>
-                            <div tabindex="0" role="region" aria-label="Detail Barang Datang" class="overflow-x-auto bg-muted/20 rounded-lg border border-border">
+                            <div tabindex="0" role="region" aria-label="Detail Barang Datang" class="overflow-x-auto bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-border">
                                 <table class="w-full text-xs text-left">
                                     <caption class="sr-only">Detail penerimaan barang di gudang pada {{ $bardat->tanggal_terima->format('d/m/Y') }}</caption>
-                                    <thead class="bg-muted/50 border-b border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                                    <thead class="bg-gray-50 dark:bg-gray-800/40 border-b border-border text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
                                         <tr>
                                             <th scope="col" class="py-2 px-3">Bahan</th>
                                             <th scope="col" class="py-2 px-3 text-right whitespace-nowrap">Diterima</th>
@@ -898,21 +890,21 @@
                                                 : (float) ($bItem->qty_fisik ?? 0);
                                             $selisihVal = (float) ($bItem->selisih ?? 0);
                                         @endphp
-                                        <tr class="hover:bg-muted/30 transition-colors">
+                                        <tr class="hover:bg-gray-50 transition-colors">
                                             <th scope="row" class="py-2.5 px-3 font-medium text-foreground text-left">{{ $namaProduk }}</th>
-                                            <td class="py-2.5 px-3 text-right font-mono tabular-nums font-semibold text-foreground whitespace-nowrap">
+                                            <td class="py-2.5 px-3 text-right tabular-nums font-medium text-foreground whitespace-nowrap">
                                                 {{ $fmtQtyDisplay($qtyRiwayatDiterima) }}
                                                 @if($satuanProduk !== '')
                                                     <span class="text-muted-foreground font-normal text-[10px]">{{ $satuanProduk }}</span>
                                                 @endif
                                             </td>
-                                            <td class="py-2.5 px-3 text-right font-mono tabular-nums whitespace-nowrap">
+                                            <td class="py-2.5 px-3 text-right tabular-nums whitespace-nowrap">
                                                 @if($selisihVal < 0)
-                                                    <span class="text-destructive font-semibold">{{ $fmtQtyDisplay($selisihVal) }} (Kurang)</span>
+                                                    <span class="text-destructive font-medium">{{ $fmtQtyDisplay($selisihVal) }} (Kurang)</span>
                                                 @elseif($selisihVal > 0)
-                                                    <span class="text-sky-700 dark:text-sky-400 font-semibold">+{{ $fmtQtyDisplay($selisihVal) }} (Lebih)</span>
+                                                    <span class="text-foreground dark:text-foreground font-medium">+{{ $fmtQtyDisplay($selisihVal) }} (Lebih)</span>
                                                 @else
-                                                    <span class="text-emerald-700 dark:text-emerald-400">Sesuai</span>
+                                                    <span class="text-foreground dark:text-foreground">Sesuai</span>
                                                 @endif
                                             </td>
                                             <td class="py-2.5 px-3 text-muted-foreground italic">{{ $bItem->keterangan_selisih ?? '—' }}</td>
@@ -935,7 +927,7 @@
                         @csrf
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
-                                <label class="block text-xs font-semibold text-foreground mb-1">Gudang Penerima</label>
+                                <label class="block text-xs font-medium text-foreground mb-1">Gudang Penerima</label>
                                 @php
                                     $targetGudang = $po->gudang ?? $gudang->firstWhere('id', $po->gudang_id) ?? $gudang->first();
                                 @endphp
@@ -943,11 +935,11 @@
                                 <input type="text" value="{{ $targetGudang?->nama ?? '—' }}" class="w-full rounded-lg border border-border bg-muted text-xs py-1.5 px-2.5 text-muted-foreground cursor-not-allowed focus:outline-none" readonly>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-foreground mb-1">Tanggal Terima <span class="text-destructive">*</span></label>
+                                <label class="block text-xs font-medium text-foreground mb-1">Tanggal Terima <span class="text-destructive">*</span></label>
                                 <input type="date" name="tanggal_terima" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-1.5 px-2.5 focus:border-ring focus:ring-1 focus:ring-ring outline-none" required>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-foreground mb-1">Kondisi Fisik <span class="text-destructive">*</span></label>
+                                <label class="block text-xs font-medium text-foreground mb-1">Kondisi Fisik <span class="text-destructive">*</span></label>
                                 <select name="kondisi" class="w-full rounded-lg border border-input bg-background text-xs py-1.5 px-2.5 focus:border-ring focus:ring-1 focus:ring-ring outline-none">
                                     <option value="baik">Baik (Sesuai Standar)</option>
                                     <option value="rusak_sebagian">Rusak Sebagian</option>
@@ -957,19 +949,19 @@
 
                         <div class="border-t border-border pt-3 space-y-3">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                <p class="text-xs font-semibold text-foreground uppercase tracking-wider">Kuantitas Diterima &amp; Pengecekan Selisih:</p>
-                                <x-badge variant="info" size="sm">Penerimaan dicatat dalam satuan dasar (ml / gr / pcs)</x-badge>
+                                <p class="text-xs font-medium text-foreground uppercase tracking-wider">Kuantitas Diterima &amp; Pengecekan Selisih:</p>
+                                <x-badge variant="neutral" size="sm">Penerimaan dicatat dalam satuan dasar (ml / gr / pcs)</x-badge>
                             </div>
 
                             @foreach($po->items as $i => $it)
-                            <div class="p-3 bg-muted/30 border border-border rounded-lg text-xs space-y-2">
+                            <div class="p-3 bg-gray-50 dark:bg-gray-800/40 border border-border rounded-lg text-xs space-y-2">
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div>
-                                        <span class="font-bold text-foreground">{{ $it->produk->nama }}</span>
-                                        <span class="font-mono text-muted-foreground text-[11px]">
+                                        <span class="font-medium text-foreground">{{ $it->produk->nama }}</span>
+                                        <span class="tabular-nums text-muted-foreground text-[11px]">
                                             ({{ $it->produk->sku }}) · Order:
                                             @if($it->qty_satuan_beli && $it->satuan_beli && strcasecmp($it->satuan_beli, $it->produk?->satuan ?? '') !== 0)
-                                                <span class="font-semibold text-foreground">{{ rtrim(rtrim(number_format($it->qty_satuan_beli, 2, ',', '.'), '0'), ',') }} {{ $it->satuan_beli }}</span>
+                                                <span class="font-medium text-foreground">{{ rtrim(rtrim(number_format($it->qty_satuan_beli, 2, ',', '.'), '0'), ',') }} {{ $it->satuan_beli }}</span>
                                                 ({{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk->satuan }})
                                             @else
                                                 {{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }} {{ $it->produk->satuan }}
@@ -982,24 +974,24 @@
                                         <input type="number" step="0.01" min="0"
                                             name="items[{{ $i }}][qty_diterima]"
                                             x-model.number="receiptItems[{{ $i }}].qty_terima"
-                                            class="w-24 text-right rounded-lg border border-input bg-card text-xs py-1 px-2 focus:border-ring focus:ring-1 focus:ring-ring font-mono font-bold outline-none"
+                                            class="w-24 text-right rounded-lg border border-input bg-card text-xs py-1 px-2 focus:border-ring focus:ring-1 focus:ring-ring tabular-nums font-medium outline-none"
                                             required>
                                         <span class="text-muted-foreground">{{ $it->produk->satuan }}</span>
 
                                         <template x-if="getDiff({{ $i }}) < 0">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-destructive/10 text-destructive border border-destructive/20" x-text="'Kurang: ' + getDiff({{ $i }})"></span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] tabular-nums font-medium bg-destructive/10 text-destructive border border-destructive/20" x-text="'Kurang: ' + getDiff({{ $i }})"></span>
                                         </template>
                                         <template x-if="getDiff({{ $i }}) > 0">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-sky-50 text-sky-700 border border-sky-200" x-text="'Lebih: +' + getDiff({{ $i }})"></span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] tabular-nums font-medium bg-card text-foreground border border-border" x-text="'Lebih: +' + getDiff({{ $i }})"></span>
                                         </template>
                                         <template x-if="getDiff({{ $i }}) === 0">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">✓ Sesuai</span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] tabular-nums font-medium bg-card text-foreground border border-border">✓ Sesuai</span>
                                         </template>
                                     </div>
                                 </div>
 
                                 <div x-show="getDiff({{ $i }}) !== 0" x-cloak class="pt-2 border-t border-border">
-                                    <label class="block text-[11px] font-semibold text-destructive mb-1">
+                                    <label class="block text-[11px] font-medium text-destructive mb-1">
                                         Keterangan Alasan Selisih <span class="text-destructive">*</span>:
                                     </label>
                                     <input type="text"
@@ -1028,7 +1020,7 @@
                         @csrf
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-semibold text-foreground mb-1">Gudang Penerima</label>
+                                <label class="block text-xs font-medium text-foreground mb-1">Gudang Penerima</label>
                                 @php
                                     $targetGudang = $po->gudang ?? $gudang->firstWhere('id', $po->gudang_id) ?? $gudang->first();
                                 @endphp
@@ -1036,7 +1028,7 @@
                                 <input type="text" value="{{ $targetGudang?->nama ?? '—' }}" class="w-full rounded-lg border border-border bg-muted text-xs p-2 text-muted-foreground cursor-not-allowed" readonly>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-foreground mb-1">Kondisi Fisik Muatan <span class="text-destructive">*</span></label>
+                                <label class="block text-xs font-medium text-foreground mb-1">Kondisi Fisik Muatan <span class="text-destructive">*</span></label>
                                 <select name="physical_check[kondisi]" x-model="kondisiMuatan" class="w-full rounded-lg border border-input bg-background text-xs p-2 focus:border-ring focus:ring-1 focus:ring-ring outline-none">
                                     <option value="baik">Baik (Sesuai Standar)</option>
                                     <option value="rusak_sebagian">Rusak Sebagian</option>
@@ -1046,45 +1038,45 @@
 
                         <div class="border-t border-border pt-3 space-y-3">
                             <div class="flex flex-wrap items-center justify-between gap-2">
-                                <p class="text-xs font-semibold text-foreground uppercase tracking-wider">Perhitungan Fisik Bahan Baku Masuk:</p>
+                                <p class="text-xs font-medium text-foreground uppercase tracking-wider">Perhitungan Fisik Bahan Baku Masuk:</p>
                                 <template x-if="kondisiMuatan === 'rusak_sebagian'">
-                                    <span class="text-[11px] text-amber-800 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-medium">
+                                    <span class="text-[11px] text-foreground bg-card border border-border px-2 py-0.5 rounded font-medium">
                                         Muatan rusak sebagian: sesuaikan Qty Fisik yang layak terima &amp; wajib isi keterangan
                                     </span>
                                 </template>
                             </div>
 
                             @foreach($po->items as $i => $it)
-                            <div class="p-3 bg-muted/30 border border-border rounded-lg text-xs space-y-2">
+                            <div class="p-3 bg-gray-50 dark:bg-gray-800/40 border border-border rounded-lg text-xs space-y-2">
                                 <input type="hidden" name="physical_check[items][{{ $it->id }}][po_item_id]" value="{{ $it->id }}">
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div>
-                                        <span class="font-bold text-foreground">{{ $it->produk->nama }}</span>
-                                        <span class="font-mono text-muted-foreground text-[11px]">({{ $it->produk->sku }}) · Order PO: {{ $it->qty }} {{ $it->produk->satuan }}</span>
+                                        <span class="font-medium text-foreground">{{ $it->produk->nama }}</span>
+                                        <span class="tabular-nums text-muted-foreground text-[11px]">({{ $it->produk->sku }}) · Order PO: {{ $it->qty }} {{ $it->produk->satuan }}</span>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <span class="text-muted-foreground font-medium">Qty Fisik:</span>
                                         <input type="number" step="0.01" min="0"
                                             name="physical_check[items][{{ $it->id }}][qty_fisik]"
                                             x-model.number="receiptItems[{{ $i }}].qty_terima"
-                                            class="w-24 text-right rounded-lg border border-input bg-card text-xs p-1.5 font-mono font-bold focus:border-ring focus:ring-1 focus:ring-ring outline-none"
+                                            class="w-24 text-right rounded-lg border border-input bg-card text-xs p-1.5 tabular-nums font-medium focus:border-ring focus:ring-1 focus:ring-ring outline-none"
                                             required>
                                         <span class="text-muted-foreground">{{ $it->produk->satuan }}</span>
 
                                         <template x-if="getDiff({{ $i }}) < 0">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-destructive/10 text-destructive border border-destructive/20" x-text="'Kurang: ' + getDiff({{ $i }})"></span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] tabular-nums font-medium bg-destructive/10 text-destructive border border-destructive/20" x-text="'Kurang: ' + getDiff({{ $i }})"></span>
                                         </template>
                                         <template x-if="getDiff({{ $i }}) > 0">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-sky-50 text-sky-700 border border-sky-200" x-text="'Lebih: +' + getDiff({{ $i }})"></span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] tabular-nums font-medium bg-card text-foreground border border-border" x-text="'Lebih: +' + getDiff({{ $i }})"></span>
                                         </template>
                                         <template x-if="getDiff({{ $i }}) === 0">
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">✓ Sesuai</span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] tabular-nums font-medium bg-card text-foreground border border-border">✓ Sesuai</span>
                                         </template>
                                     </div>
                                 </div>
 
                                 <div x-show="isDiscrepancyRequired({{ $i }})" x-cloak class="pt-2 border-t border-border">
-                                    <label class="block text-[11px] font-semibold text-destructive mb-1">
+                                    <label class="block text-[11px] font-medium text-destructive mb-1">
                                         Keterangan Alasan Selisih / Kerusakan <span class="text-destructive">*</span>:
                                     </label>
                                     <input type="text"
@@ -1115,9 +1107,9 @@
                 <x-card title="Verifikasi dan Input Sistem Penerimaan (Tahap 8)"
                         subtitle="Hasil unloading fisik telah tersimpan. Verifikasi data sebelum memposting stok ke inventori gudang.">
                     <div class="space-y-4 text-xs">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/40 border border-border">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-border">
                             <div class="flex items-center gap-2.5 flex-wrap">
-                                <span class="font-semibold text-foreground">Kondisi Hasil Bongkar:</span>
+                                <span class="font-medium text-foreground">Kondisi Hasil Bongkar:</span>
                                 <x-badge :variant="$latestBardat->kondisi === 'baik' ? 'success' : 'warning'" size="sm">
                                     {{ str_replace('_', ' ', $latestBardat->kondisi) }}
                                 </x-badge>
@@ -1132,11 +1124,11 @@
 
                         <div tabindex="0" role="region" aria-label="Verifikasi Penerimaan Tahap 8" class="overflow-x-auto rounded-lg border border-border">
                             <table class="w-full text-left text-xs">
-                                <thead class="bg-muted/60 text-muted-foreground font-semibold text-[10px] uppercase border-b border-border">
+                                <thead class="bg-gray-50 dark:bg-gray-800/40 text-muted-foreground font-medium text-[10px] uppercase border-b border-border">
                                     <tr>
                                         <th class="p-2.5">Bahan Baku</th>
                                         <th class="p-2.5 text-right">Dipesan (PO)</th>
-                                        <th class="p-2.5 text-right font-bold text-foreground">Fisik Diterima</th>
+                                        <th class="p-2.5 text-right font-medium text-foreground">Fisik Diterima</th>
                                         <th class="p-2.5 text-right">Selisih</th>
                                         <th class="p-2.5">Keterangan Selisih / Kerusakan</th>
                                     </tr>
@@ -1148,19 +1140,19 @@
                                         $stg9Fisik = $bItem->qty_fisik !== null ? (float) $bItem->qty_fisik : (float) ($bItem->qty_diterima ?? 0);
                                         $stg9Selisih = (float) ($bItem->selisih ?? 0);
                                     @endphp
-                                    <tr class="hover:bg-muted/20">
+                                    <tr class="hover:bg-gray-50">
                                         <td class="p-2.5 font-medium text-foreground">{{ $pItem?->produk?->nama ?? '—' }}</td>
-                                        <td class="p-2.5 text-right font-mono tabular-nums text-muted-foreground whitespace-nowrap">{{ $fmtQtyDisplay((float) ($pItem?->qty ?? 0)) }} {{ $pItem?->produk?->satuan }}</td>
-                                        <td class="p-2.5 text-right font-mono tabular-nums font-bold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                                        <td class="p-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{{ $fmtQtyDisplay((float) ($pItem?->qty ?? 0)) }} {{ $pItem?->produk?->satuan }}</td>
+                                        <td class="p-2.5 text-right tabular-nums font-medium text-foreground dark:text-foreground whitespace-nowrap">
                                             {{ $fmtQtyDisplay($stg9Fisik) }} {{ $pItem?->produk?->satuan }}
                                         </td>
-                                        <td class="p-2.5 text-right font-mono tabular-nums font-semibold whitespace-nowrap">
+                                        <td class="p-2.5 text-right tabular-nums font-medium whitespace-nowrap">
                                             @if($stg9Selisih < 0)
                                                 <span class="text-destructive">{{ $fmtQtyDisplay($stg9Selisih) }} (Kurang/Rusak)</span>
                                             @elseif($stg9Selisih > 0)
-                                                <span class="text-sky-700 dark:text-sky-400">+{{ $fmtQtyDisplay($stg9Selisih) }} (Lebih)</span>
+                                                <span class="text-foreground dark:text-foreground">+{{ $fmtQtyDisplay($stg9Selisih) }} (Lebih)</span>
                                             @else
-                                                <span class="text-emerald-700 dark:text-emerald-400">✓ Sesuai</span>
+                                                <span class="text-foreground dark:text-foreground">✓ Sesuai</span>
                                             @endif
                                         </td>
                                         <td class="p-2.5 text-muted-foreground italic">{{ $bItem->keterangan_selisih ?? '—' }}</td>
@@ -1175,16 +1167,16 @@
                         @endphp
                         <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_8]) }}" class="space-y-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
                             @csrf
-                            <div class="p-3 bg-muted/30 rounded-lg border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="max-w-md w-full sm:w-auto">
                                     @if($existingResi !== '')
                                         <div class="space-y-1.5">
                                             <div class="flex items-center gap-2 flex-wrap">
-                                                <span class="font-semibold text-foreground text-xs">No. Resi / AWB:</span>
-                                                <span class="font-mono text-xs font-bold text-foreground px-2 py-0.5 rounded bg-muted/80 border border-border">
+                                                <span class="font-medium text-foreground text-xs">No. Resi / AWB:</span>
+                                                <span class="tabular-nums text-xs font-medium text-foreground px-2 py-0.5 rounded bg-gray-50 dark:bg-gray-800/40 border border-border">
                                                     {{ $existingResi }}
                                                 </span>
-                                                <span class="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                                <span class="inline-flex items-center gap-1 text-[11px] text-foreground dark:text-foreground font-medium">
                                                     <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                                     Sudah Tercatat di Pengiriman
                                                 </span>
@@ -1193,16 +1185,16 @@
                                                 <label class="block text-[11px] text-muted-foreground mb-1">
                                                     Perbarui No. Resi <span class="font-normal">(Opsional)</span>:
                                                 </label>
-                                                <input type="text" name="no_resi" value="{{ old('no_resi', $existingResi) }}" placeholder="Ketik nomor resi baru jika ada revisi..." class="w-full sm:w-72 rounded-lg border border-input bg-card text-xs py-1.5 px-2.5 font-mono text-foreground focus:border-ring focus:ring-1 focus:ring-ring outline-none">
+                                                <input type="text" name="no_resi" value="{{ old('no_resi', $existingResi) }}" placeholder="Ketik nomor resi baru jika ada revisi..." class="w-full sm:w-72 rounded-lg border border-input bg-card text-xs py-1.5 px-2.5 tabular-nums text-foreground focus:border-ring focus:ring-1 focus:ring-ring outline-none">
                                             </div>
                                         </div>
                                     @else
                                         <div class="space-y-1">
-                                            <label class="block font-semibold text-foreground text-xs mb-1">
-                                                No. Resi / AWB <span class="text-rose-500 font-bold">* (Wajib diisi)</span>
+                                            <label class="block font-medium text-foreground text-xs mb-1">
+                                                No. Resi / AWB <span class="text-rose-500 font-medium">* (Wajib diisi)</span>
                                             </label>
-                                            <input type="text" name="no_resi" required value="{{ old('no_resi') }}" placeholder="Masukkan nomor resi pengiriman..." class="w-full sm:w-72 rounded-lg border border-rose-300 dark:border-rose-800 bg-card text-xs py-1.5 px-2.5 font-mono text-foreground focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none">
-                                            <p class="text-[10px] text-amber-600 dark:text-amber-400 font-medium mt-1">
+                                            <input type="text" name="no_resi" required value="{{ old('no_resi') }}" placeholder="Masukkan nomor resi pengiriman..." class="w-full sm:w-72 rounded-lg border border-rose-300 dark:border-rose-800 bg-card text-xs py-1.5 px-2.5 tabular-nums text-foreground focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none">
+                                            <p class="text-[10px] text-foreground dark:text-foreground font-medium mt-1">
                                                 Nomor resi belum dicatat pada tahap pengiriman, wajib diisi sebelum posting stok.
                                             </p>
                                         </div>
@@ -1212,7 +1204,7 @@
                                     @enderror
                                 </div>
                                 <div class="shrink-0 flex items-center">
-                                    <x-button type="submit" variant="success" size="md" x-bind:disabled="submitting">
+                                    <x-button type="submit" variant="primary" size="md" x-bind:disabled="submitting">
                                         <span x-show="!submitting">Posting Stok ke Gudang &amp; Selesaikan PO</span>
                                         <span x-show="submitting" class="flex items-center gap-2" style="display: none;">
                                             <svg class="animate-spin size-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
@@ -1244,7 +1236,7 @@
                             <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_1]) }}" class="space-y-3 text-xs">
                                 @csrf
                                 <div>
-                                    <label class="block font-semibold mb-1 text-foreground">Catatan Pengajuan (Opsional)</label>
+                                    <label class="block font-medium mb-1 text-foreground">Catatan Pengajuan (Opsional)</label>
                                     <textarea name="catatan" rows="2" placeholder="Catatan pengajuan untuk Manager..." class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"></textarea>
                                 </div>
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
@@ -1261,7 +1253,7 @@
                             <div class="space-y-3 text-xs" x-data="{ openRejectStage2: false, rejectAlasan: '', isRejectDisabled() { return this.rejectAlasan.trim().length < 3; } }">
                                 <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_2]) }}" class="space-y-2">
                                     @csrf
-                                    <x-button type="submit" variant="success" size="sm" class="w-full">
+                                    <x-button type="submit" variant="primary" size="sm" class="w-full">
                                         ✓ Setujui PO (Lanjut Konfirmasi Supplier)
                                     </x-button>
                                 </form>
@@ -1273,7 +1265,7 @@
                                 <div x-show="openRejectStage2" class="p-3 rounded-lg border border-destructive/30 bg-destructive/5 space-y-2" x-cloak>
                                     <form method="POST" action="{{ route('purchasing.stages.reject-stage2', $po) }}" class="space-y-2">
                                         @csrf
-                                        <label class="block font-semibold text-foreground text-[11px]">Alasan Penolakan / Pengembalian <span class="text-destructive">*</span></label>
+                                        <label class="block font-medium text-foreground text-[11px]">Alasan Penolakan / Pengembalian <span class="text-destructive">*</span></label>
                                         <textarea name="alasan" x-model="rejectAlasan" required minlength="3" rows="2" placeholder="Tuliskan alasan penolakan..." class="w-full text-xs p-2 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"></textarea>
                                         <div class="flex justify-end gap-2">
                                             <x-button type="button" variant="outline" size="xs" @click="openRejectStage2 = false">Batal</x-button>
@@ -1292,11 +1284,11 @@
                             <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_3]) }}" class="space-y-3 text-xs">
                                 @csrf
                                 <div>
-                                    <label class="block font-semibold mb-1 text-foreground">No. Referensi / Sales Order Supplier</label>
+                                    <label class="block font-medium mb-1 text-foreground">No. Referensi / Sales Order Supplier</label>
                                     <input type="text" name="confirmation[no_referensi_supplier]" value="{{ $po->no_referensi_supplier ?? '' }}" placeholder="Contoh: SO-SUPPLIER-1234" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
                                 </div>
                                 <div>
-                                    <label class="block font-semibold mb-1 text-foreground">Catatan Konfirmasi</label>
+                                    <label class="block font-medium mb-1 text-foreground">Catatan Konfirmasi</label>
                                     <textarea name="catatan" rows="2" placeholder="Catatan konfirmasi kesiapan barang..." class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"></textarea>
                                 </div>
                                 @foreach($po->items as $it)
@@ -1314,8 +1306,8 @@
                         {{-- STAGE 4: Pembayaran / DP --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_4)
                             @if($hasPendingRevisi)
-                            <div role="status" class="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs flex items-start gap-2 leading-relaxed">
-                                <svg class="size-4 shrink-0 mt-0.5 text-amber-600" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div role="status" class="p-3 rounded-lg bg-card border border-border text-foreground text-xs flex items-start gap-2 leading-relaxed">
+                                <svg class="size-4 shrink-0 mt-0.5 text-foreground" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
                                 <span><strong>Stage Pembayaran dikunci.</strong> Selesaikan persetujuan revisi komitmen di atas sebelum mengonfirmasi pembayaran atau lanjut tempo.</span>
@@ -1326,12 +1318,12 @@
                                 @if($po->payments->isNotEmpty())
                                     <form method="POST" action="{{ route('purchasing.stages.dibayarkan', $po) }}">
                                         @csrf
-                                        <x-button type="submit" variant="success" size="sm" class="w-full">
+                                        <x-button type="submit" variant="primary" size="sm" class="w-full">
                                             ✓ Konfirmasi Telah Dibayarkan (Lanjut Terbit PO)
                                         </x-button>
                                     </form>
                                 @else
-                                    <div class="p-2.5 rounded-lg bg-muted/60 border border-border text-muted-foreground text-[11px] leading-tight">
+                                    <div class="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-border text-muted-foreground text-[11px] leading-tight">
                                         Tercatat belum ada pembayaran. Catat pembayaran di form bawah untuk opsi "Dibayarkan".
                                     </div>
                                 @endif
@@ -1370,16 +1362,16 @@
                             <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_6]) }}" class="space-y-3 text-xs">
                                 @csrf
                                 <div>
-                                    <label class="block font-semibold mb-1 text-foreground">Nama Ekspedisi / Kurir <span class="text-destructive">*</span></label>
+                                    <label class="block font-medium mb-1 text-foreground">Nama Ekspedisi / Kurir <span class="text-destructive">*</span></label>
                                     <input type="text" name="shipping[ekspedisi]" value="{{ $po->pengiriman?->ekspedisi ?? '' }}" required placeholder="Cth: JNE Cargo / Truk Vendor" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="block font-semibold mb-1 text-foreground">No. Resi / AWB <span class="text-muted-foreground font-normal">(Opsional)</span></label>
+                                        <label class="block font-medium mb-1 text-foreground">No. Resi / AWB <span class="text-muted-foreground font-normal">(Opsional)</span></label>
                                         <input type="text" name="shipping[no_resi]" value="{{ $po->pengiriman?->no_resi ?? '' }}" placeholder="Dapat diisi saat input sistem..." class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
                                     </div>
                                     <div>
-                                        <label class="block font-semibold mb-1 text-foreground">Tanggal Kirim</label>
+                                        <label class="block font-medium mb-1 text-foreground">Tanggal Kirim</label>
                                         <input type="date" name="shipping[tgl_kirim]" value="{{ $po->pengiriman?->tgl_kirim ? $po->pengiriman->tgl_kirim->format('Y-m-d') : date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring">
                                     </div>
                                 </div>
@@ -1393,16 +1385,16 @@
 
                         {{-- STAGE 7: Unloading di Gudang --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_7)
-                            <div class="p-2.5 rounded-lg bg-muted/60 border border-border text-foreground text-xs">
+                            <div class="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-border text-foreground text-xs">
                                 Silakan input kuantitas fisik pada formulir pemeriksaan barang di sebelah kiri untuk menyelesaikan Unloading.
                             </div>
 
                         {{-- STAGE 8: Input Sistem & Posting Stok --}}
                         @elseif($stgAktif === \App\Models\PoStage::STAGE_8)
                             @can('purchasing.receive')
-                            <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-2">
-                                <div class="flex items-center gap-2 font-semibold text-emerald-800">
-                                    <span class="size-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                            <div class="p-3 rounded-lg bg-card border border-border text-xs space-y-2">
+                                <div class="flex items-center gap-2 font-medium text-foreground">
+                                    <span class="size-2 rounded-full bg-foreground"></span>
                                     Siap Posting Stok
                                 </div>
                                 @php
@@ -1410,10 +1402,10 @@
                                 @endphp
                                 @if($hasPengirimanResi)
                                     <p class="text-[11px] text-muted-foreground leading-relaxed">
-                                        No. Resi tercatat: <strong class="text-foreground font-mono">{{ $po->pengiriman->no_resi }}</strong>. Verifikasi kuantitas fisik pada panel verifikasi di sebelah kiri, lalu klik <strong>Posting Stok ke Gudang</strong> untuk menyelesaikan transaksi.
+                                        No. Resi tercatat: <strong class="text-foreground tabular-nums">{{ $po->pengiriman->no_resi }}</strong>. Verifikasi kuantitas fisik pada panel verifikasi di sebelah kiri, lalu klik <strong>Posting Stok ke Gudang</strong> untuk menyelesaikan transaksi.
                                     </p>
                                 @else
-                                    <p class="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
+                                    <p class="text-[11px] text-foreground dark:text-foreground leading-relaxed font-medium">
                                         ⚠️ Nomor resi belum dicatat pada pengiriman. Harap isi nomor resi pada formulir di sebelah kiri sebelum posting stok.
                                     </p>
                                 @endif
@@ -1453,7 +1445,7 @@
                                 @if($po->status === 'diajukan')
                                 <form method="POST" action="{{ route('purchasing.approve', $po) }}">
                                     @csrf
-                                    <x-button type="submit" variant="success" size="md" class="w-full">
+                                    <x-button type="submit" variant="primary" size="md" class="w-full">
                                         Setujui &amp; Kirim ke Gudang
                                     </x-button>
                                 </form>
@@ -1490,7 +1482,7 @@
                             @endcan
 
                             @if(in_array($po->status, ['selesai', 'dibatalkan']))
-                            <div class="py-2.5 px-3 bg-muted/50 rounded-lg text-center text-xs text-muted-foreground font-medium border border-border">
+                            <div class="py-2.5 px-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg text-center text-xs text-muted-foreground font-medium border border-border">
                                 Dokumen ini telah berstatus final ({{ ucfirst($po->status) }}).
                             </div>
                             @endif
@@ -1507,7 +1499,7 @@
                                         <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                     </div>
                                     <div class="min-w-0">
-                                        <h3 class="text-base font-bold text-foreground tracking-tight">Batalkan Purchase Order</h3>
+                                        <h3 class="text-base font-semibold text-foreground tracking-tight">Batalkan Purchase Order</h3>
                                         <p class="text-xs text-muted-foreground truncate">{{ $po->no_po }} &middot; {{ $po->supplier->nama }}</p>
                                     </div>
                                 </div>
@@ -1521,7 +1513,7 @@
                             @csrf
 
                             <div class="p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl text-xs text-destructive space-y-1">
-                                <div class="font-bold flex items-center gap-1.5">
+                                <div class="font-medium flex items-center gap-1.5">
                                     <svg class="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     Peringatan Pembatalan Dokumen
                                 </div>
@@ -1532,7 +1524,7 @@
 
                             <div>
                                 <div class="flex items-center justify-between mb-1.5">
-                                    <label for="alasan_pembatalan" class="text-xs font-semibold text-foreground">
+                                    <label for="alasan_pembatalan" class="text-xs font-medium text-foreground">
                                         Alasan Pembatalan <span class="text-destructive">*</span>
                                     </label>
                                     <span class="text-[10px] text-muted-foreground">Wajib diisi</span>
@@ -1550,7 +1542,7 @@
                                 ></textarea>
                                 <div class="flex items-center justify-between mt-1 text-[11px]">
                                     <span class="text-muted-foreground">Minimal 5 karakter</span>
-                                    <span :class="alasan.trim().length >= 5 ? 'text-emerald-600 font-semibold' : 'text-muted-foreground'" x-text="alasan.trim().length + ' / 500 karakter'"></span>
+                                    <span :class="alasan.trim().length >= 5 ? 'text-foreground font-medium' : 'text-muted-foreground'" x-text="alasan.trim().length + ' / 500 karakter'"></span>
                                 </div>
                             </div>
 
@@ -1600,25 +1592,25 @@
                         @if($po->skema_bayar === 'tempo')
                         <div class="flex justify-between items-center text-xs">
                             <span class="text-muted-foreground">Jatuh Tempo Pembayaran</span>
-                            <span class="font-mono font-bold {{ $isTempoOverdue ? 'text-destructive' : 'text-foreground' }}">
+                            <span class="tabular-nums font-medium {{ $isTempoOverdue ? 'text-destructive' : 'text-foreground' }}">
                                 {{ $po->tanggal_tempo ? $po->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—') }}
                                 @if($isTempoOverdue)
-                                    <span class="text-[10px] text-destructive font-semibold">(Overdue)</span>
+                                    <span class="text-[10px] text-destructive font-medium">(Overdue)</span>
                                 @endif
                             </span>
                         </div>
                         @endif
                         <div class="flex justify-between">
                             <span class="text-muted-foreground">Total Tagihan</span>
-                            <span class="font-bold font-mono text-foreground">Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}</span>
+                            <span class="font-medium tabular-nums text-foreground">Rp {{ number_format($po->totalNilai(), 0, ',', '.') }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-muted-foreground">Telah Dibayar</span>
-                            <span class="font-bold font-mono text-emerald-700">Rp {{ number_format($po->totalDibayar(), 0, ',', '.') }}</span>
+                            <span class="font-medium tabular-nums text-foreground">Rp {{ number_format($po->totalDibayar(), 0, ',', '.') }}</span>
                         </div>
                         <div class="flex justify-between pt-1.5 border-t border-border">
-                            <span class="font-semibold text-foreground">Sisa Tagihan</span>
-                            <span class="font-bold font-mono {{ $po->status === 'dibatalkan' ? 'text-muted-foreground' : ($po->isLunas() ? 'text-emerald-700' : 'text-destructive') }}">
+                            <span class="font-medium text-foreground">Sisa Tagihan</span>
+                            <span class="font-medium tabular-nums {{ $po->status === 'dibatalkan' ? 'text-muted-foreground' : ($po->isLunas() ? 'text-foreground' : 'text-destructive') }}">
                                 Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }}
                             </span>
                         </div>
@@ -1627,7 +1619,7 @@
                     <!-- Daftar Termin Tagihan (Hanya ditampilkan jika skema termin dan ada jadwal) -->
                     @if($po->skema_bayar === 'termin' && $po->termins->count())
                     <div class="py-3 border-b border-border">
-                        <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Jadwal Termin Tagihan:</p>
+                        <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Jadwal Termin Tagihan:</p>
                         <div class="space-y-1.5">
                             @foreach($po->termins as $tm)
                             @php
@@ -1639,13 +1631,13 @@
                                     default => 'neutral',
                                 };
                             @endphp
-                            <div class="p-2.5 bg-muted/30 rounded-lg border border-border text-xs flex items-center justify-between gap-2">
+                            <div class="p-2.5 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-border text-xs flex items-center justify-between gap-2">
                                 <div class="min-w-0">
-                                    <div class="font-semibold text-foreground truncate">Termin {{ $tm->termin_ke }} ({{ $tm->keterangan ?? 'Tagihan' }})</div>
-                                    <div class="text-[10px] text-muted-foreground font-mono">Tempo: {{ $tm->tanggal_tempo->format('d/m/Y') }}</div>
+                                    <div class="font-medium text-foreground truncate">Termin {{ $tm->termin_ke }} ({{ $tm->keterangan ?? 'Tagihan' }})</div>
+                                    <div class="text-[10px] text-muted-foreground tabular-nums">Tempo: {{ $tm->tanggal_tempo->format('d/m/Y') }}</div>
                                 </div>
                                 <div class="text-right shrink-0">
-                                    <div class="font-mono font-bold text-foreground">Rp {{ number_format($tm->nominal_tagihan, 0, ',', '.') }}</div>
+                                    <div class="tabular-nums font-medium text-foreground">Rp {{ number_format($tm->nominal_tagihan, 0, ',', '.') }}</div>
                                     <x-badge :variant="$tmBadge" :dot="true" size="sm">{{ ucfirst(str_replace('_',' ', $tm->status)) }}</x-badge>
                                 </div>
                             </div>
@@ -1656,9 +1648,9 @@
 
                     @can('purchasing.pay')
                     @if(!$po->isLunas() && !$po->isCancelled() && $hasPendingRevisi)
-                        <div role="status" class="mt-3 p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-800 text-xs space-y-1.5">
-                            <div class="font-semibold flex items-center gap-1.5">
-                                <svg class="size-4 shrink-0 text-amber-600" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div role="status" class="mt-3 p-3.5 rounded-xl border border-border bg-card text-foreground text-xs space-y-1.5">
+                            <div class="font-medium flex items-center gap-1.5">
+                                <svg class="size-4 shrink-0 text-foreground" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
                                 <span>Pembayaran dikunci sementara</span>
@@ -1677,16 +1669,16 @@
                             <input type="hidden" name="nominal" value="{{ (float)$po->sisaTagihan() }}">
 
                             <div>
-                                <label for="pay_tanggal_cash" class="block text-xs font-semibold text-foreground mb-1.5">Tanggal Bayar</label>
+                                <label for="pay_tanggal_cash" class="block text-xs font-medium text-foreground mb-1.5">Tanggal Bayar</label>
                                 <input id="pay_tanggal_cash" type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition" required>
                             </div>
 
-                            <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 space-y-1.5">
+                            <div class="rounded-xl border border-border bg-card p-3.5 space-y-1.5">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs font-semibold text-foreground">Total Pembayaran Tunai</span>
-                                    <x-badge variant="success" size="sm">Lunas Penuh</x-badge>
+                                    <span class="text-xs font-medium text-foreground">Total Pembayaran Tunai</span>
+                                    <x-badge variant="neutral" size="sm">Lunas Penuh</x-badge>
                                 </div>
-                                <div class="text-lg font-mono font-bold text-emerald-700">
+                                <div class="text-lg tabular-nums font-medium text-foreground">
                                     Rp {{ number_format($po->sisaTagihan(), 0, ',', '.') }}
                                 </div>
                                 <p class="text-[11px] text-muted-foreground leading-tight">
@@ -1694,7 +1686,7 @@
                                 </p>
                             </div>
 
-                            <x-button type="submit" variant="success" size="sm" class="w-full">
+                            <x-button type="submit" variant="primary" size="sm" class="w-full">
                                 <x-slot:icon>
                                     <svg class="size-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                                 </x-slot:icon>
@@ -1717,7 +1709,7 @@
                         <form method="POST" action="{{ route('purchasing.pay', $po) }}" aria-label="Formulir Pembayaran Termin atau Tempo" class="space-y-4" x-data="payForm({{ $po->sisaTagihan() }}, '{{ $defaultPaySkema }}', {{ $initialPayNominal }}, '{{ $po->skema_bayar }}')">
                             @csrf
                             <div>
-                                <label for="pay_skema" class="block text-xs font-semibold text-foreground mb-1.5">Skema Pembayaran</label>
+                                <label for="pay_skema" class="block text-xs font-medium text-foreground mb-1.5">Skema Pembayaran</label>
                                 <select id="pay_skema" name="skema" x-model="skema" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition">
                                     @if($po->skema_bayar === 'tempo')
                                         <option value="tempo">Tempo (Pembayaran Cicilan / Parsial)</option>
@@ -1731,7 +1723,7 @@
 
                             @if($po->skema_bayar === 'termin' && $po->termins->where('status', '!=', 'lunas')->count())
                             <div x-show="skema === 'termin'">
-                                <label for="pay_termin_id" class="block text-xs font-semibold text-foreground mb-1.5">Target Termin (Opsional)</label>
+                                <label for="pay_termin_id" class="block text-xs font-medium text-foreground mb-1.5">Target Termin (Opsional)</label>
                                 <select id="pay_termin_id" name="termin_id" @change="onTerminChange($event)" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition">
                                     <option value="">— Alokasikan Otomatis (FIFO) —</option>
                                     @foreach($po->termins->where('status', '!=', 'lunas') as $tOpt)
@@ -1744,24 +1736,24 @@
                             @endif
 
                             <div>
-                                <label for="pay_tanggal_tempo" class="block text-xs font-semibold text-foreground mb-1.5">Tanggal Bayar</label>
+                                <label for="pay_tanggal_tempo" class="block text-xs font-medium text-foreground mb-1.5">Tanggal Bayar</label>
                                 <input id="pay_tanggal_tempo" type="date" name="tanggal_bayar" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition" required>
                             </div>
 
                             <!-- Kolom Nominal Bayar Custom (Termin / Tempo) -->
-                            <div class="rounded-xl border border-border bg-muted/20 p-3.5 space-y-2.5">
+                            <div class="rounded-xl border border-border bg-gray-50 dark:bg-gray-800/40 p-3.5 space-y-2.5">
                                 <div class="flex items-center justify-between">
-                                    <label for="pay_nominal_display" class="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                    <label for="pay_nominal_display" class="text-xs font-medium text-foreground flex items-center gap-1.5">
                                         <svg class="size-3.5 text-muted-foreground" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                         <span>Nominal Bayar (Custom / Diedit)</span>
                                     </label>
-                                    <span class="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono font-medium border border-border">
+                                    <span class="text-[10px] text-muted-foreground bg-gray-50 dark:bg-gray-800/40 px-2 py-0.5 rounded tabular-nums font-medium border border-border">
                                         Bebas diedit
                                     </span>
                                 </div>
 
                                 <div class="relative flex items-center rounded-lg border border-input bg-card focus-within:border-ring focus-within:ring-1 focus-within:ring-ring transition">
-                                    <span class="pl-3 pr-2.5 py-2 text-xs font-bold text-muted-foreground border-r border-border select-none">
+                                    <span class="pl-3 pr-2.5 py-2 text-xs font-medium text-muted-foreground border-r border-border select-none">
                                         Rp
                                     </span>
                                     <input type="hidden" name="nominal" :value="nominal">
@@ -1771,7 +1763,7 @@
                                         @focus="onFocusNominal($event)"
                                         @input="onInputNominal($event)"
                                         placeholder="0"
-                                        class="w-full bg-transparent border-0 text-base font-bold font-mono text-foreground px-3 py-2 outline-none focus:ring-0 text-right placeholder:text-muted-foreground/30"
+                                        class="w-full bg-transparent border-0 text-base font-medium tabular-nums text-foreground px-3 py-2 outline-none focus:ring-0 text-right placeholder:text-muted-foreground/30"
                                         required>
                                     <button type="button"
                                         x-show="nominal > 0"
@@ -1786,14 +1778,14 @@
                                 <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
                                     <button type="button"
                                         @click="setNominal(sisa, 'pelunasan')"
-                                        :class="nominal === sisa ? 'bg-primary text-primary-foreground font-semibold' : 'bg-card border border-border hover:bg-muted text-foreground'"
+                                        :class="nominal === sisa ? 'bg-primary text-primary-foreground font-medium' : 'bg-card border border-border hover:bg-gray-50 text-foreground'"
                                         class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
                                         100% Lunas (Rp <span x-text="formatThousand(sisa)"></span>)
                                     </button>
                                     @if($po->sisaTagihan() > 1000)
                                     <button type="button"
                                         @click="setNominal(Math.round(sisa / 2), '{{ $po->skema_bayar === 'termin' ? 'termin' : 'tempo' }}')"
-                                        :class="nominal === Math.round(sisa / 2) ? 'bg-primary text-primary-foreground font-semibold' : 'bg-card border border-border hover:bg-muted text-foreground'"
+                                        :class="nominal === Math.round(sisa / 2) ? 'bg-primary text-primary-foreground font-medium' : 'bg-card border border-border hover:bg-gray-50 text-foreground'"
                                         class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
                                         50% (Rp <span x-text="formatThousand(Math.round(sisa / 2))"></span>)
                                     </button>
@@ -1801,7 +1793,7 @@
                                     @if($po->skema_bayar === 'tempo' && $po->sisaTagihan() > 2000)
                                     <button type="button"
                                         @click="setNominal(Math.round(sisa / 4), 'tempo')"
-                                        :class="nominal === Math.round(sisa / 4) ? 'bg-primary text-primary-foreground font-semibold' : 'bg-card border border-border hover:bg-muted text-foreground'"
+                                        :class="nominal === Math.round(sisa / 4) ? 'bg-primary text-primary-foreground font-medium' : 'bg-card border border-border hover:bg-gray-50 text-foreground'"
                                         class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
                                         25% (Rp <span x-text="formatThousand(Math.round(sisa / 4))"></span>)
                                     </button>
@@ -1809,7 +1801,7 @@
                                     @if($po->skema_bayar === 'termin' && $nextUnpaidTermin)
                                     <button type="button"
                                         @click="setNominal({{ (float)$nextUnpaidTermin->sisaNominal() }}, 'termin', '{{ $nextUnpaidTermin->id }}')"
-                                        :class="nominal === {{ (float)$nextUnpaidTermin->sisaNominal() }} ? 'bg-primary text-primary-foreground font-semibold' : 'bg-card border border-border hover:bg-muted text-foreground'"
+                                        :class="nominal === {{ (float)$nextUnpaidTermin->sisaNominal() }} ? 'bg-primary text-primary-foreground font-medium' : 'bg-card border border-border hover:bg-gray-50 text-foreground'"
                                         class="px-2.5 py-1 rounded-md text-[11px] transition cursor-pointer">
                                         Termin {{ $nextUnpaidTermin->termin_ke }} (Rp {{ number_format($nextUnpaidTermin->sisaNominal(), 0, ',', '.') }})
                                     </button>
@@ -1819,24 +1811,24 @@
                                 <div class="rounded-lg bg-card border border-border p-2.5 text-xs space-y-1">
                                     <div class="flex justify-between items-center text-[11px] text-muted-foreground">
                                         <span>Sisa Tagihan Saat Ini:</span>
-                                        <span class="font-mono font-medium text-foreground">Rp <span x-text="formatThousand(sisa)"></span></span>
+                                        <span class="tabular-nums font-medium text-foreground">Rp <span x-text="formatThousand(sisa)"></span></span>
                                     </div>
                                     <div class="flex justify-between items-center text-[11px]">
                                         <span class="text-muted-foreground">Sisa Setelah Bayar Ini:</span>
-                                        <span class="font-mono font-bold"
-                                            :class="sisaAfterPay === 0 ? 'text-emerald-600' : (sisaAfterPay < 0 ? 'text-destructive' : 'text-foreground')"
+                                        <span class="tabular-nums font-medium"
+                                            :class="sisaAfterPay === 0 ? 'text-foreground' : (sisaAfterPay < 0 ? 'text-destructive' : 'text-foreground')"
                                             x-text="sisaAfterPay < 0 ? 'Kelebihan Bayar Rp ' + formatThousand(Math.abs(sisaAfterPay)) : 'Rp ' + formatThousand(sisaAfterPay)">
                                         </span>
                                     </div>
                                 </div>
 
                                 <div x-show="nominal > sisa" role="alert" class="p-2.5 bg-destructive/10 border border-destructive/20 rounded-lg text-[11px] text-destructive space-y-1">
-                                    <div class="font-semibold flex items-center gap-1">
+                                    <div class="font-medium flex items-center gap-1">
                                         <svg class="size-3.5 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                         <span>Nominal melebihi sisa tagihan!</span>
                                     </div>
                                     <p class="text-destructive/90">Maksimal pembayaran yang dapat dicatat adalah Rp <span x-text="formatThousand(sisa)"></span>.</p>
-                                    <button type="button" @click="setNominal(sisa, 'pelunasan')" class="underline font-semibold hover:opacity-80 cursor-pointer">
+                                    <button type="button" @click="setNominal(sisa, 'pelunasan')" class="underline font-medium hover:opacity-80 cursor-pointer">
                                         Klik untuk sesuaikan ke Rp <span x-text="formatThousand(sisa)"></span>
                                     </button>
                                 </div>
@@ -1844,18 +1836,18 @@
 
                             @if($po->skema_bayar === 'tempo')
                             <!-- Fitur Adjustment Tanggal Jatuh Tempo (Khusus Skema Tempo) -->
-                            <div class="rounded-xl border border-border bg-muted/30 p-3 space-y-2.5" x-data="{ adjustTempo: false }">
+                            <div class="rounded-xl border border-border bg-gray-50 dark:bg-gray-800/40 p-3 space-y-2.5" x-data="{ adjustTempo: false }">
                                 <div class="flex items-center justify-between gap-2">
-                                    <label class="text-xs font-semibold text-foreground flex items-center gap-2 cursor-pointer select-none">
+                                    <label class="text-xs font-medium text-foreground flex items-center gap-2 cursor-pointer select-none">
                                         <input type="checkbox" x-model="adjustTempo" class="rounded border-input text-primary focus:ring-ring size-3.5 cursor-pointer">
                                         <span>Adjustment Jatuh Tempo PO</span>
                                     </label>
-                                    <span class="text-[10px] text-muted-foreground font-mono font-medium bg-card px-1.5 py-0.5 rounded border border-border">
+                                    <span class="text-[10px] text-muted-foreground tabular-nums font-medium bg-card px-1.5 py-0.5 rounded border border-border">
                                         Tempo Saat Ini: {{ $po->tanggal_tempo ? $po->tanggal_tempo->format('d/m/Y') : ($po->eta ? $po->eta->format('d/m/Y') : '—') }}
                                     </span>
                                 </div>
                                 <div x-show="adjustTempo" x-cloak class="pt-2 border-t border-border space-y-1.5">
-                                    <label for="pay_tanggal_tempo_baru" class="block text-[11px] font-semibold text-foreground">
+                                    <label for="pay_tanggal_tempo_baru" class="block text-[11px] font-medium text-foreground">
                                         Tanggal Jatuh Tempo Baru untuk Sisa Tagihan:
                                     </label>
                                     <input id="pay_tanggal_tempo_baru" type="date"
@@ -1884,15 +1876,15 @@
 
                     @if($po->payments->count())
                     <div class="mt-4 pt-3 border-t border-border">
-                        <p class="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Riwayat Transaksi Bayar:</p>
+                        <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Riwayat Transaksi Bayar:</p>
                         <ul class="space-y-1.5 text-xs text-muted-foreground">
                             @foreach($po->payments as $pay)
-                            <li class="flex items-center justify-between py-1.5 px-2.5 bg-muted/30 rounded-lg border border-border">
+                            <li class="flex items-center justify-between py-1.5 px-2.5 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-border">
                                 <div>
                                     <span class="font-medium text-foreground">{{ $pay->tanggal_bayar->format('d/m/Y') }}</span>
                                     <span class="text-[10px] text-muted-foreground capitalize block">{{ $pay->skema }}</span>
                                 </div>
-                                <span class="font-bold font-mono text-foreground">Rp {{ number_format($pay->nominal, 0, ',', '.') }}</span>
+                                <span class="font-medium tabular-nums text-foreground">Rp {{ number_format($pay->nominal, 0, ',', '.') }}</span>
                             </li>
                             @endforeach
                         </ul>
@@ -1923,7 +1915,7 @@
                 <div tabindex="0" role="region" aria-labelledby="histori-revisi-caption" class="overflow-x-auto max-h-[32rem]">
                     <table class="w-full text-xs text-left border-separate border-spacing-0">
                         <caption id="histori-revisi-caption" class="sr-only">Histori Revisi Komitmen Purchase Order {{ $po->no_po }}</caption>
-                        <thead class="sticky top-0 z-10 bg-muted/95 backdrop-blur-xs text-muted-foreground font-semibold uppercase text-[10px] border-b border-border">
+                        <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-800/40 backdrop-blur-xs text-muted-foreground font-medium uppercase text-[10px] border-b border-border">
                             <tr>
                                 <th scope="col" class="px-4 py-2.5 whitespace-nowrap border-b border-border">Revisi &amp; Status</th>
                                 <th scope="col" class="px-4 py-2.5 min-w-44 border-b border-border">Alasan &amp; Catatan Keputusan</th>
@@ -1942,12 +1934,12 @@
                                     $statusMeta = $revisionStatusMap[$rev->status]
                                         ?? ['label' => ucfirst((string) $rev->status), 'variant' => 'neutral', 'dot' => false];
                                     $deltaGtClass = $diff['deltaGrandTotal'] > 0.5
-                                        ? 'text-amber-700'
-                                        : ($diff['deltaGrandTotal'] < -0.5 ? 'text-emerald-700' : 'text-muted-foreground');
+                                        ? 'text-foreground'
+                                        : ($diff['deltaGrandTotal'] < -0.5 ? 'text-foreground' : 'text-muted-foreground');
                                 @endphp
-                                <tr class="hover:bg-muted/30 transition-colors">
+                                <tr class="hover:bg-gray-50 transition-colors">
                                     <th scope="row" class="px-4 py-3 align-top text-left font-normal whitespace-nowrap">
-                                        <div class="font-mono tabular-nums font-semibold text-foreground">
+                                        <div class=" tabular-nums font-medium text-foreground">
                                             Revisi ke-{{ $rev->revisi_ke }}
                                         </div>
                                         <div class="mt-1">
@@ -1965,8 +1957,8 @@
                                             {{ $rev->alasan ?: '—' }}
                                         </p>
                                         @if(filled($rev->catatan_keputusan))
-                                            <p class="mt-1.5 text-[11px] leading-snug break-words {{ $rev->status === \App\Models\PoRevisi::STATUS_DITOLAK ? 'text-red-700 bg-red-50/70 border border-red-200/70 rounded-md px-2 py-1' : 'text-muted-foreground bg-muted/40 rounded-md px-2 py-1' }}">
-                                                <span class="font-semibold">Catatan:</span> {{ $rev->catatan_keputusan }}
+                                            <p class="mt-1.5 text-[11px] leading-snug break-words {{ $rev->status === \App\Models\PoRevisi::STATUS_DITOLAK ? 'text-red-700 bg-red-50/70 border border-red-200/70 rounded-md px-2 py-1' : 'text-muted-foreground bg-gray-50 dark:bg-gray-800/40 rounded-md px-2 py-1' }}">
+                                                <span class="font-medium">Catatan:</span> {{ $rev->catatan_keputusan }}
                                             </p>
                                         @endif
                                     </td>
@@ -1976,8 +1968,8 @@
                                             <ul class="space-y-1.5">
                                                 @foreach($diff['itemComparisons'] as $itRow)
                                                     <li class="text-[11px] leading-snug">
-                                                        <span class="font-semibold text-foreground">{{ $itRow['nama'] }}</span>
-                                                        <div class="font-mono tabular-nums text-muted-foreground mt-0.5">
+                                                        <span class="font-medium text-foreground">{{ $itRow['nama'] }}</span>
+                                                        <div class=" tabular-nums text-muted-foreground mt-0.5">
                                                             <span>{{ $fmtQty($itRow['old_qty_beli']) }} {{ $itRow['old_sat_beli'] }}</span>
                                                             <span aria-hidden="true"> &rarr; </span>
                                                             <span class="text-foreground font-medium">{{ $fmtQty($itRow['new_qty_beli']) }} {{ $itRow['new_sat_beli'] }}</span>
@@ -1996,11 +1988,11 @@
                                     </td>
 
                                     @if($canSeePrice)
-                                        <td class="px-4 py-3 align-top text-right font-mono tabular-nums whitespace-nowrap">
+                                        <td class="px-4 py-3 align-top text-right tabular-nums whitespace-nowrap">
                                             <div class="text-[11px] text-muted-foreground">
-                                                {{ $fmtRp($diff['oldGrandTotal']) }} &rarr; <span class="text-foreground font-semibold">{{ $fmtRp($diff['newGrandTotal']) }}</span>
+                                                {{ $fmtRp($diff['oldGrandTotal']) }} &rarr; <span class="text-foreground font-medium">{{ $fmtRp($diff['newGrandTotal']) }}</span>
                                             </div>
-                                            <div class="text-[11px] font-semibold mt-0.5 {{ $deltaGtClass }}">
+                                            <div class="text-[11px] font-medium mt-0.5 {{ $deltaGtClass }}">
                                                 {{ $fmtSignedRp($diff['deltaGrandTotal']) }}
                                             </div>
                                         </td>
@@ -2010,7 +2002,7 @@
                                         <div class="font-medium text-foreground">
                                             {{ $rev->requester?->name ?? ($rev->diajukan_oleh ? 'User #' . $rev->diajukan_oleh : '—') }}
                                         </div>
-                                        <div class="text-muted-foreground font-mono tabular-nums text-[11px] mt-0.5">
+                                        <div class="text-muted-foreground tabular-nums text-[11px] mt-0.5">
                                             {{ $diff['submittedAt'] }}
                                         </div>
                                     </td>
@@ -2022,7 +2014,7 @@
                                             <div class="font-medium text-foreground">
                                                 {{ $rev->decider?->name ?? ($rev->diputuskan_oleh ? 'User #' . $rev->diputuskan_oleh : 'Sistem') }}
                                             </div>
-                                            <div class="text-muted-foreground font-mono tabular-nums text-[11px] mt-0.5">
+                                            <div class="text-muted-foreground tabular-nums text-[11px] mt-0.5">
                                                 {{ $diff['decidedAt'] }}
                                             </div>
                                         @endif
@@ -2042,7 +2034,7 @@
             <x-card title="Riwayat Perubahan Operasional (Direct Edit Log)" subtitle="Jejak audit perubahan field operasional tanpa persetujuan manager" :noPadding="true">
                 <div tabindex="0" role="region" aria-label="Riwayat Perubahan Operasional Direct Edit" class="overflow-x-auto">
                     <table class="w-full text-xs text-left">
-                        <thead class="bg-muted/60 text-muted-foreground font-semibold uppercase text-[10px] border-b border-border">
+                        <thead class="bg-gray-50 dark:bg-gray-800/40 text-muted-foreground font-medium uppercase text-[10px] border-b border-border">
                             <tr>
                                 <th class="px-4 py-2.5">Field Diubah</th>
                                 <th class="px-4 py-2.5">Nilai Lama</th>
@@ -2053,12 +2045,12 @@
                         </thead>
                         <tbody class="divide-y divide-border bg-card">
                             @foreach($po->logPerubahan as $log)
-                            <tr class="hover:bg-muted/30">
-                                <td class="px-4 py-2 font-mono font-medium text-foreground">{{ $log->nama_field }}</td>
-                                <td class="px-4 py-2 text-muted-foreground italic font-mono">{{ $log->nilai_lama ?? '—' }}</td>
-                                <td class="px-4 py-2 text-foreground font-mono font-semibold">{{ $log->nilai_baru ?? '—' }}</td>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-2 tabular-nums font-medium text-foreground">{{ $log->nama_field }}</td>
+                                <td class="px-4 py-2 text-muted-foreground italic tabular-nums">{{ $log->nilai_lama ?? '—' }}</td>
+                                <td class="px-4 py-2 text-foreground tabular-nums font-medium">{{ $log->nilai_baru ?? '—' }}</td>
                                 <td class="px-4 py-2 text-foreground">{{ $log->changer?->name ?? 'User #' . $log->diubah_oleh }}</td>
-                                <td class="px-4 py-2 text-muted-foreground font-mono text-[11px]">{{ $log->diubah_pada ? $log->diubah_pada->format('d/m/Y H:i') : '—' }}</td>
+                                <td class="px-4 py-2 text-muted-foreground tabular-nums text-[11px]">{{ $log->diubah_pada ? $log->diubah_pada->format('d/m/Y H:i') : '—' }}</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -2073,13 +2065,13 @@
         <div class="mt-6">
             <x-card title="Lead Time Transaksi PO {{ $po->no_po }}" subtitle="Rekapitulasi durasi realisasi pengadaan aktual per stage & per kompartemen">
                 <div class="space-y-4">
-                    <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border {{ $po->leadTime->is_valid ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-destructive/10 border-destructive/20' }}">
+                    <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border {{ $po->leadTime->is_valid ? 'bg-card border-border' : 'bg-destructive/10 border-destructive/20' }}">
                         <div class="flex items-center gap-3">
-                            <span class="size-8 rounded-full flex items-center justify-center font-bold text-xs {{ $po->leadTime->is_valid ? 'bg-emerald-600 text-white' : 'bg-destructive text-destructive-foreground' }}">
+                            <span class="size-8 rounded-full flex items-center justify-center font-medium text-xs {{ $po->leadTime->is_valid ? 'bg-primary text-primary-foreground' : 'bg-destructive text-destructive-foreground' }}">
                                 {{ $po->leadTime->is_valid ? '✓' : '✕' }}
                             </span>
                             <div>
-                                <div class="font-semibold text-xs text-foreground">
+                                <div class="font-medium text-xs text-foreground">
                                     Status Validitas: {{ $po->leadTime->is_valid ? 'Valid (Masuk Benchmark)' : 'Tidak Valid (Dikeluarkan dari Benchmark)' }}
                                 </div>
                                 @if(!$po->leadTime->is_valid)
@@ -2121,10 +2113,10 @@
                     <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
                         <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 1-4: Perencanaan, Approval, Supplier Confirm, Payment">
                             <div class="flex items-center gap-1.5 mb-1">
-                                <span class="size-2 rounded-full bg-blue-600 shrink-0"></span>
-                                <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider truncate">Internal Processing</span>
+                                <span class="size-2 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0"></span>
+                                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider truncate">Internal Processing</span>
                             </div>
-                            <p class="font-mono font-bold text-sm text-foreground mt-0.5">
+                            <p class="tabular-nums font-medium text-sm text-foreground mt-0.5">
                                 {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardInternalMenit) }} hari
                                 <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardInternalMenit) }} j)</span>
                             </p>
@@ -2132,10 +2124,10 @@
 
                         <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 5: Penerbitan PO Resmi">
                             <div class="flex items-center gap-1.5 mb-1">
-                                <span class="size-2 rounded-full bg-amber-500 shrink-0"></span>
-                                <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider truncate">Supplier Processing</span>
+                                <span class="size-2 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0"></span>
+                                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider truncate">Supplier Processing</span>
                             </div>
-                            <p class="font-mono font-bold text-sm text-foreground mt-0.5">
+                            <p class="tabular-nums font-medium text-sm text-foreground mt-0.5">
                                 {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardSupplierMenit) }} hari
                                 <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardSupplierMenit) }} j)</span>
                             </p>
@@ -2143,10 +2135,10 @@
 
                         <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 7: Pengiriman">
                             <div class="flex items-center gap-1.5 mb-1">
-                                <span class="size-2 rounded-full bg-purple-600 shrink-0"></span>
-                                <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider truncate">Transportation Time</span>
+                                <span class="size-2 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0"></span>
+                                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider truncate">Transportation Time</span>
                             </div>
-                            <p class="font-mono font-bold text-sm text-foreground mt-0.5">
+                            <p class="tabular-nums font-medium text-sm text-foreground mt-0.5">
                                 {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardTransportMenit) }} hari
                                 <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardTransportMenit) }} j)</span>
                             </p>
@@ -2154,10 +2146,10 @@
 
                         <div class="p-3 bg-card rounded-xl border border-border shadow-2xs" title="Stage 8-9: Unloading, Input">
                             <div class="flex items-center gap-1.5 mb-1">
-                                <span class="size-2 rounded-full bg-emerald-600 shrink-0"></span>
-                                <span class="text-[10px] uppercase font-bold text-muted-foreground tracking-wider truncate">Receiving</span>
+                                <span class="size-2 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0"></span>
+                                <span class="text-[10px] uppercase font-medium text-muted-foreground tracking-wider truncate">Receiving</span>
                             </div>
-                            <p class="font-mono font-bold text-sm text-foreground mt-0.5">
+                            <p class="tabular-nums font-medium text-sm text-foreground mt-0.5">
                                 {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardReceivingMenit) }} hari
                                 <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardReceivingMenit) }} j)</span>
                             </p>
@@ -2166,9 +2158,9 @@
                         <div class="p-3 bg-card rounded-xl border border-border shadow-2xs">
                             <div class="flex items-center gap-1.5 mb-1">
                                 <span class="size-2 rounded-full bg-primary shrink-0"></span>
-                                <span class="text-[10px] uppercase font-bold text-foreground tracking-wider truncate">Total Realisasi LT</span>
+                                <span class="text-[10px] uppercase font-medium text-foreground tracking-wider truncate">Total Realisasi LT</span>
                             </div>
-                            <p class="font-mono font-bold text-sm text-foreground mt-0.5">
+                            <p class="tabular-nums font-medium text-sm text-foreground mt-0.5">
                                 {{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToDays($cardTotalMenit) }} hari
                                 <span class="text-[10px] text-muted-foreground font-normal">({{ \App\Services\Purchasing\SupplierLeadTimeService::minutesToHours($cardTotalMenit) }} j)</span>
                             </p>
@@ -2192,7 +2184,7 @@
             <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-border max-w-lg w-full shadow-2xl overflow-hidden">
                 <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#E8E8E8] dark:border-border flex justify-between items-center">
                     <div>
-                        <h3 class="font-bold text-base text-text-active tracking-tight">Direct Edit Field Operasional</h3>
+                        <h3 class="font-semibold text-base text-text-active tracking-tight">Direct Edit Field Operasional</h3>
                         <p class="text-xs text-text-muted">Perubahan langsung tercatat di PO_LOG_PERUBAHAN tanpa memerlukan approval</p>
                     </div>
                     <button type="button" @click="openDirectEditModal = false" class="text-text-muted hover:text-text-active cursor-pointer p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
@@ -2200,7 +2192,7 @@
 
                 <form method="POST" action="{{ route('purchasing.direct-edit', $po) }}" class="text-xs">
                     @csrf
-                    <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-2.5">
+                    <div class="bg-white dark:bg-gray-900 p-4 sm:p-5 space-y-2.5">
                         <x-form-field label="No Invoice" name="no_invoice">
                             <input type="text" name="fields[no_invoice]" value="{{ $po->no_invoice ?? '' }}" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active focus:outline-none focus:ring-0">
                         </x-form-field>
@@ -2231,21 +2223,21 @@
                 <div class="flex justify-between items-start border-b border-border pb-3">
                     <div>
                         <div class="flex items-center gap-2">
-                            <h3 class="font-bold text-base text-foreground">Ajukan Usulan Revisi Komitmen Pengadaan</h3>
-                            <x-badge variant="warning" size="sm">Revisi ke-{{ (int)$po->revisi_ke + 1 }}</x-badge>
+                            <h3 class="font-semibold text-base text-foreground">Ajukan Usulan Revisi Komitmen Pengadaan</h3>
+                            <x-badge variant="neutral" size="sm">Revisi ke-{{ (int)$po->revisi_ke + 1 }}</x-badge>
                         </div>
                         <p class="text-xs text-muted-foreground mt-0.5">
                             Sesuaikan kuantitas beli, harga, diskon, PPN, dan ongkos kirim. Jenis bahan baku terkunci sesuai PO asli.
                         </p>
                     </div>
-                    <button type="button" @click="openRevisiModal = false" class="size-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer">✕</button>
+                    <button type="button" @click="openRevisiModal = false" class="size-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-gray-50 transition cursor-pointer">✕</button>
                 </div>
 
                 <form method="POST" action="{{ route('purchasing.revisi.submit', $po) }}" class="space-y-4 text-xs" @submit="handleSubmit($event)">
                     @csrf
 
-                    <div class="bg-muted/30 p-3 rounded-xl border border-border space-y-1.5">
-                        <label class="block font-semibold text-xs text-foreground">
+                    <div class="bg-gray-50 dark:bg-gray-800/40 p-3 rounded-xl border border-border space-y-1.5">
+                        <label class="block font-medium text-xs text-foreground">
                             Alasan Pengajuan Revisi Komitmen <span class="text-destructive">*</span>
                         </label>
                         <textarea name="alasan" x-model="alasan" required minlength="5" rows="2"
@@ -2256,29 +2248,29 @@
                     <x-card title="Daftar Bahan Baku" subtitle="Input kuantitas dan total harga per bahan. Diskon, PPN, ongkir, dan adjustment diatur pada formulir Global di bawah dan dialokasikan ke HPP secara realtime." :noPadding="true" class="relative z-10" overflow="visible">
                         <div class="overflow-x-auto min-h-[160px]">
                             <table class="w-full text-xs">
-                                <thead class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[10px] tracking-wider">
+                                <thead class="bg-gray-50 dark:bg-gray-800/40 border-b border-border text-muted-foreground font-medium uppercase text-[10px] tracking-wider">
                                     <tr>
                                         <th class="px-3.5 py-2.5 text-left w-[36%]">Bahan Baku <span class="text-destructive">*</span></th>
                                         <th class="px-3 py-2.5 text-left w-64">Kuantitas &amp; Satuan Beli <span class="text-destructive">*</span></th>
                                         <th class="px-3 py-2.5 text-right w-44">Total Harga <span class="text-destructive">*</span></th>
-                                        <th class="px-3.5 py-2.5 text-right w-52 bg-muted/40 text-foreground">HPP / Satuan Dasar</th>
+                                        <th class="px-3.5 py-2.5 text-right w-52 bg-gray-50 dark:bg-gray-800/40 text-foreground">HPP / Satuan Dasar</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-border bg-card">
                                     <template x-for="(row, i) in rows" :key="row.po_item_id || i">
-                                        <tr class="hover:bg-muted/30 transition">
+                                        <tr class="hover:bg-gray-50 transition">
                                             <td class="px-3.5 py-2.5">
                                                 <input type="hidden" :name="`data_usulan[items][${i}][po_item_id]`" :value="row.po_item_id">
                                                 <input type="hidden" :name="`data_usulan[items][${i}][produk_id]`" :value="row.produk_id">
                                                 <div class="space-y-1">
                                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                                        <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded border border-border text-[10px]" x-text="row.sku"></span>
-                                                        <span class="font-bold text-foreground text-xs" x-text="row.nama"></span>
-                                                        <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border" x-text="row.satuan"></span>
+                                                        <span class="tabular-nums text-foreground font-medium bg-gray-50 dark:bg-gray-800/40 px-1.5 py-0.5 rounded border border-border text-[10px]" x-text="row.sku"></span>
+                                                        <span class="font-medium text-foreground text-xs" x-text="row.nama"></span>
+                                                        <span class="text-[9px] tabular-nums text-muted-foreground bg-gray-50 dark:bg-gray-800/40 px-1.5 py-0.5 rounded border border-border" x-text="row.satuan"></span>
                                                     </div>
-                                                    <div class="flex items-center gap-1.5 text-[10px] font-mono">
+                                                    <div class="flex items-center gap-1.5 text-[10px] tabular-nums">
                                                         <span class="text-muted-foreground">HPP Saat Ini:</span>
-                                                        <span class="font-semibold text-foreground bg-muted px-1.5 py-0.5 rounded border border-border" x-text="'Rp ' + formatHpp(row.current_hpp) + ' / ' + row.satuan"></span>
+                                                        <span class="font-medium text-foreground bg-gray-50 dark:bg-gray-800/40 px-1.5 py-0.5 rounded border border-border" x-text="'Rp ' + formatHpp(row.current_hpp) + ' / ' + row.satuan"></span>
                                                     </div>
                                                 </div>
                                             </td>
@@ -2287,7 +2279,7 @@
                                                 <div class="space-y-1">
                                                     <div class="flex items-center gap-1.5">
                                                         <div class="relative flex items-center shrink-0">
-                                                            <span class="absolute left-2.5 text-[10px] font-bold font-mono tracking-wider text-muted-foreground/70 uppercase select-none pointer-events-none">QTY</span>
+                                                            <span class="absolute left-2.5 text-[10px] font-medium tabular-nums tracking-wider text-muted-foreground/70 uppercase select-none pointer-events-none">QTY</span>
                                                             <input
                                                                 type="number"
                                                                 step="1"
@@ -2300,7 +2292,7 @@
                                                                 @paste="handleQtyPaste(row, $event)"
                                                                 placeholder="0"
                                                                 required
-                                                                class="w-24 rounded-lg border border-input bg-background text-xs py-1.5 pl-9 pr-2 font-mono font-bold text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
+                                                                class="w-24 rounded-lg border border-input bg-background text-xs py-1.5 pl-9 pr-2 tabular-nums font-medium text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs"
                                                             />
                                                         </div>
 
@@ -2319,9 +2311,9 @@
                                                     <input type="hidden" :name="`data_usulan[items][${i}][faktor_konversi]`" :value="row.faktor_konversi">
                                                     <input type="hidden" :name="`data_usulan[items][${i}][qty]`" :value="row.qty">
 
-                                                    <div class="text-[10px] font-mono text-foreground bg-muted px-2 py-0.5 rounded border border-border flex items-center justify-between select-none" x-show="row.qty > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
+                                                    <div class="text-[10px] tabular-nums text-foreground bg-gray-50 dark:bg-gray-800/40 px-2 py-0.5 rounded border border-border flex items-center justify-between select-none" x-show="row.qty > 0 && row.satuan_beli && row.satuan_beli.toLowerCase() !== (row.satuan || '').toLowerCase()">
                                                         <span class="text-muted-foreground">Masuk fisik:</span>
-                                                        <span class="font-bold text-foreground" x-text="formatQty(row.qty) + ' ' + (row.satuan || '')"></span>
+                                                        <span class="font-medium text-foreground" x-text="formatQty(row.qty) + ' ' + (row.satuan || '')"></span>
                                                     </div>
                                                 </div>
                                             </td>
@@ -2337,16 +2329,16 @@
                                                         @keydown="handleKeyDown($event)"
                                                         placeholder="0"
                                                         required
-                                                        class="w-full rounded-lg border border-input bg-background text-xs py-1.5 px-2 font-mono text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs font-semibold"
+                                                        class="w-full rounded-lg border border-input bg-background text-xs py-1.5 px-2 tabular-nums text-right text-foreground focus:border-ring focus:ring-1 focus:ring-ring shadow-xs font-medium"
                                                     />
                                                 </div>
                                             </td>
 
-                                            <td class="px-3.5 py-2.5 text-right bg-muted/20">
+                                            <td class="px-3.5 py-2.5 text-right bg-gray-50 dark:bg-gray-800/40">
                                                 <template x-if="calculateRowHpp(row) > 0">
                                                     <div>
-                                                        <div class="font-mono font-bold text-xs text-foreground" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + ' / ' + (row.satuan || 'unit')"></div>
-                                                        <div class="text-[10px] text-muted-foreground font-mono mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
+                                                        <div class="tabular-nums font-medium text-xs text-foreground" x-text="'Rp ' + formatHpp(calculateRowHpp(row)) + ' / ' + (row.satuan || 'unit')"></div>
+                                                        <div class="text-[10px] text-muted-foreground tabular-nums mt-0.5" x-text="'Net: Rp ' + formatHpp(calculateRowNet(row))"></div>
                                                     </div>
                                                 </template>
                                                 <template x-if="!calculateRowHpp(row) || calculateRowHpp(row) <= 0">
@@ -2359,11 +2351,11 @@
                             </table>
                         </div>
 
-                        <div class="px-4 py-2.5 bg-muted/30 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                        <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/40 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
                             <span class="italic font-medium">
                                 * Jenis bahan baku terkunci sesuai PO asli (tidak dapat menambah / menghapus bahan baku).
                             </span>
-                            <span class="font-mono">
+                            <span class="tabular-nums">
                                 Total: <strong class="text-foreground" x-text="rows.length"></strong> item
                             </span>
                         </div>
@@ -2375,25 +2367,25 @@
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div class="flex items-center gap-1.5 min-w-0">
                                         <label class="text-xs text-foreground font-medium">Diskon Global PO</label>
-                                        <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerDiskonMode === 'persen' && headerDiskon > 0" x-text="'(= Rp ' + formatThousand(headerDiskon) + ')'"></span>
+                                        <span class="text-[10px] text-muted-foreground tabular-nums truncate" x-show="headerDiskonMode === 'persen' && headerDiskon > 0" x-text="'(= Rp ' + formatThousand(headerDiskon) + ')'"></span>
                                     </div>
                                     <div class="flex items-center gap-2 shrink-0">
                                         <input type="hidden" name="data_usulan[diskon_total]" :value="headerDiskon">
                                         <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none">
-                                            <button type="button" @click="setHeaderDiskonMode('nominal')" class="px-2 py-0.5 text-xs font-semibold rounded transition cursor-pointer" :class="headerDiskonMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
-                                            <button type="button" @click="setHeaderDiskonMode('persen')" class="px-2 py-0.5 text-xs font-semibold rounded transition cursor-pointer" :class="headerDiskonMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
+                                            <button type="button" @click="setHeaderDiskonMode('nominal')" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer" :class="headerDiskonMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
+                                            <button type="button" @click="setHeaderDiskonMode('persen')" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer" :class="headerDiskonMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
                                         </div>
                                         <div class="relative w-36">
                                             <template x-if="headerDiskonMode === 'persen'">
                                                 <div class="relative flex items-center">
-                                                    <input type="number" step="any" min="0" max="100" x-model.number="headerDiskonVal" @input="recalcHeaderDiskon()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 rounded-lg border border-input bg-background font-mono text-destructive font-semibold focus:ring-1 focus:ring-ring shadow-xs" />
-                                                    <span class="absolute right-2 text-xs text-destructive font-mono font-bold pointer-events-none">%</span>
+                                                    <input type="number" step="any" min="0" max="100" x-model.number="headerDiskonVal" @input="recalcHeaderDiskon()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 rounded-lg border border-input bg-background tabular-nums text-destructive font-medium focus:ring-1 focus:ring-ring shadow-xs" />
+                                                    <span class="absolute right-2 text-xs text-destructive tabular-nums font-medium pointer-events-none">%</span>
                                                 </div>
                                             </template>
                                             <template x-if="headerDiskonMode !== 'persen'">
                                                 <div class="relative flex items-center">
-                                                    <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
-                                                    <input type="text" inputmode="numeric" :value="formatThousand(headerDiskon)" @input="updateHeaderField('headerDiskon', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background font-mono text-destructive font-semibold focus:ring-1 focus:ring-ring shadow-xs" />
+                                                    <span class="absolute left-2.5 text-[10px] text-muted-foreground tabular-nums pointer-events-none">Rp</span>
+                                                    <input type="text" inputmode="numeric" :value="formatThousand(headerDiskon)" @input="updateHeaderField('headerDiskon', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background tabular-nums text-destructive font-medium focus:ring-1 focus:ring-ring shadow-xs" />
                                                 </div>
                                             </template>
                                         </div>
@@ -2403,25 +2395,25 @@
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div class="flex items-center gap-1.5 min-w-0">
                                         <label class="text-xs text-foreground font-medium">PPN Global PO</label>
-                                        <span class="text-[10px] text-muted-foreground font-mono truncate" x-show="headerPpnMode === 'persen' && headerPpn > 0" x-text="'(= Rp ' + formatThousand(headerPpn) + ')'"></span>
+                                        <span class="text-[10px] text-muted-foreground tabular-nums truncate" x-show="headerPpnMode === 'persen' && headerPpn > 0" x-text="'(= Rp ' + formatThousand(headerPpn) + ')'"></span>
                                     </div>
                                     <div class="flex items-center gap-2 shrink-0">
                                         <input type="hidden" name="data_usulan[ppn_nominal]" :value="headerPpn">
                                         <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none">
-                                            <button type="button" @click="setHeaderPpnMode('nominal')" class="px-2 py-0.5 text-xs font-semibold rounded transition cursor-pointer" :class="headerPpnMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
-                                            <button type="button" @click="setHeaderPpnMode('persen')" class="px-2 py-0.5 text-xs font-semibold rounded transition cursor-pointer" :class="headerPpnMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
+                                            <button type="button" @click="setHeaderPpnMode('nominal')" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer" :class="headerPpnMode === 'nominal' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">Rp</button>
+                                            <button type="button" @click="setHeaderPpnMode('persen')" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer" :class="headerPpnMode === 'persen' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'">%</button>
                                         </div>
                                         <div class="relative w-36">
                                             <template x-if="headerPpnMode === 'persen'">
                                                 <div class="relative flex items-center">
-                                                    <input type="number" step="any" min="0" max="100" x-model.number="headerPpnVal" @input="recalcHeaderPpn()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 rounded-lg border border-input bg-background font-mono text-foreground font-semibold focus:ring-1 focus:ring-ring shadow-xs" />
-                                                    <span class="absolute right-2 text-xs text-muted-foreground font-mono font-bold pointer-events-none">%</span>
+                                                    <input type="number" step="any" min="0" max="100" x-model.number="headerPpnVal" @input="recalcHeaderPpn()" placeholder="0" class="w-full text-right text-xs py-1.5 pl-2 pr-6 rounded-lg border border-input bg-background tabular-nums text-foreground font-medium focus:ring-1 focus:ring-ring shadow-xs" />
+                                                    <span class="absolute right-2 text-xs text-muted-foreground tabular-nums font-medium pointer-events-none">%</span>
                                                 </div>
                                             </template>
                                             <template x-if="headerPpnMode !== 'persen'">
                                                 <div class="relative flex items-center">
-                                                    <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
-                                                    <input type="text" inputmode="numeric" :value="formatThousand(headerPpn)" @input="updateHeaderField('headerPpn', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background font-mono text-foreground font-semibold focus:ring-1 focus:ring-ring shadow-xs" />
+                                                    <span class="absolute left-2.5 text-[10px] text-muted-foreground tabular-nums pointer-events-none">Rp</span>
+                                                    <input type="text" inputmode="numeric" :value="formatThousand(headerPpn)" @input="updateHeaderField('headerPpn', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background tabular-nums text-foreground font-medium focus:ring-1 focus:ring-ring shadow-xs" />
                                                 </div>
                                             </template>
                                         </div>
@@ -2433,8 +2425,8 @@
                                     <div class="relative w-36 shrink-0">
                                         <input type="hidden" name="data_usulan[ongkos_kirim]" :value="headerOngkir">
                                         <div class="relative flex items-center">
-                                            <span class="absolute left-2.5 text-[10px] text-muted-foreground font-mono pointer-events-none">Rp</span>
-                                            <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background text-foreground font-mono font-medium focus:ring-1 focus:ring-ring shadow-xs" />
+                                            <span class="absolute left-2.5 text-[10px] text-muted-foreground tabular-nums pointer-events-none">Rp</span>
+                                            <input type="text" inputmode="numeric" :value="formatThousand(headerOngkir)" @input="updateHeaderField('headerOngkir', $event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-7 pr-2.5 rounded-lg border border-input bg-background text-foreground tabular-nums font-medium focus:ring-1 focus:ring-ring shadow-xs" />
                                         </div>
                                     </div>
                                 </div>
@@ -2444,17 +2436,17 @@
                                     <div class="flex items-center gap-2 shrink-0">
                                         <input type="hidden" name="data_usulan[adjustment]" :value="headerAdj">
                                         <div class="inline-flex p-0.5 rounded-lg bg-muted border border-border shrink-0 select-none">
-                                            <button type="button" @click="setHeaderAdjSign(1)" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer flex items-center gap-1" :class="headerAdj >= 0 ? 'bg-background text-emerald-600 font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground'">
-                                                <span class="font-bold">+</span> Tambah
+                                            <button type="button" @click="setHeaderAdjSign(1)" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer flex items-center gap-1" :class="headerAdj >= 0 ? 'bg-background text-foreground font-medium shadow-xs' : 'text-muted-foreground hover:text-foreground'">
+                                                <span class="font-medium">+</span> Tambah
                                             </button>
-                                            <button type="button" @click="setHeaderAdjSign(-1)" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer flex items-center gap-1" :class="headerAdj < 0 ? 'bg-background text-destructive font-bold shadow-xs' : 'text-muted-foreground hover:text-foreground'">
-                                                <span class="font-bold">−</span> Kurang
+                                            <button type="button" @click="setHeaderAdjSign(-1)" class="px-2 py-0.5 text-xs font-medium rounded transition cursor-pointer flex items-center gap-1" :class="headerAdj < 0 ? 'bg-background text-destructive font-medium shadow-xs' : 'text-muted-foreground hover:text-foreground'">
+                                                <span class="font-medium">−</span> Kurang
                                             </button>
                                         </div>
                                         <div class="relative w-36">
                                             <div class="relative flex items-center">
-                                                <span class="absolute left-2.5 text-[10px] font-mono font-bold pointer-events-none" :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-emerald-600' : 'text-muted-foreground')" x-text="headerAdj < 0 ? '- Rp' : (headerAdj > 0 ? '+ Rp' : 'Rp')"></span>
-                                                <input type="text" inputmode="numeric" :value="formatThousand(Math.abs(headerAdj))" @input="updateHeaderAdj($event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-10 pr-2.5 rounded-lg border border-input bg-background font-mono font-semibold focus:ring-1 focus:ring-ring shadow-xs" :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-emerald-600' : 'text-foreground')" />
+                                                <span class="absolute left-2.5 text-[10px] tabular-nums font-medium pointer-events-none" :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-foreground' : 'text-muted-foreground')" x-text="headerAdj < 0 ? '- Rp' : (headerAdj > 0 ? '+ Rp' : 'Rp')"></span>
+                                                <input type="text" inputmode="numeric" :value="formatThousand(Math.abs(headerAdj))" @input="updateHeaderAdj($event)" @keydown="handleKeyDown($event)" placeholder="0" class="w-full text-right text-xs py-1.5 pl-10 pr-2.5 rounded-lg border border-input bg-background tabular-nums font-medium focus:ring-1 focus:ring-ring shadow-xs" :class="headerAdj < 0 ? 'text-destructive' : (headerAdj > 0 ? 'text-foreground' : 'text-foreground')" />
                                             </div>
                                         </div>
                                     </div>
@@ -2469,31 +2461,31 @@
                             <div class="space-y-2.5 text-xs">
                                 <div class="flex justify-between text-muted-foreground">
                                     <span>Subtotal Bahan (Kotor):</span>
-                                    <span class="font-mono font-semibold text-foreground" x-text="'Rp ' + formatThousand(subtotalProduk())"></span>
+                                    <span class="tabular-nums font-medium text-foreground" x-text="'Rp ' + formatThousand(subtotalProduk())"></span>
                                 </div>
                                 <div class="flex justify-between text-destructive">
                                     <span>Total Diskon:</span>
-                                    <span class="font-mono font-semibold" x-text="'- Rp ' + formatThousand(totalDiskon())"></span>
+                                    <span class="tabular-nums font-medium" x-text="'- Rp ' + formatThousand(totalDiskon())"></span>
                                 </div>
                                 <div class="flex justify-between text-muted-foreground">
                                     <span>Total PPN:</span>
-                                    <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalPpn())"></span>
+                                    <span class="tabular-nums font-medium text-foreground" x-text="'+ Rp ' + formatThousand(totalPpn())"></span>
                                 </div>
                                 <div class="flex justify-between text-muted-foreground">
                                     <span>Total Ongkos Kirim:</span>
-                                    <span class="font-mono font-semibold text-foreground" x-text="'+ Rp ' + formatThousand(totalOngkir())"></span>
+                                    <span class="tabular-nums font-medium text-foreground" x-text="'+ Rp ' + formatThousand(totalOngkir())"></span>
                                 </div>
                                 <div class="flex justify-between" :class="totalAdj() < 0 ? 'text-destructive' : 'text-muted-foreground'">
                                     <span>Total Adjustment:</span>
-                                    <span class="font-mono font-semibold" :class="totalAdj() < 0 ? 'text-destructive' : 'text-foreground'" x-text="(totalAdj() >= 0 ? '+ Rp ' : '- Rp ') + formatThousand(Math.abs(totalAdj()))"></span>
+                                    <span class="tabular-nums font-medium" :class="totalAdj() < 0 ? 'text-destructive' : 'text-foreground'" x-text="(totalAdj() >= 0 ? '+ Rp ' : '- Rp ') + formatThousand(Math.abs(totalAdj()))"></span>
                                 </div>
                                 <div class="pt-2.5 border-t border-border flex justify-between items-center">
-                                    <span class="font-bold text-foreground">Grand Total Usulan:</span>
-                                    <span class="font-mono font-extrabold text-foreground text-base" x-text="'Rp ' + formatThousand(grandTotal())"></span>
+                                    <span class="font-semibold text-foreground">Grand Total Usulan:</span>
+                                    <span class="tabular-nums font-medium text-foreground text-base" x-text="'Rp ' + formatThousand(grandTotal())"></span>
                                 </div>
-                                <div class="p-2.5 rounded-lg bg-muted/50 border border-border flex items-center justify-between text-[11px]">
+                                <div class="p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800/40 border border-border flex items-center justify-between text-[11px]">
                                     <span class="text-muted-foreground">PO Sebelumnya: <strong class="text-foreground">Rp {{ number_format($po->grand_total, 0, ',', '.') }}</strong></span>
-                                    <span class="font-mono font-bold" :class="grandTotal() - oldGrandTotal > 0 ? 'text-destructive' : (grandTotal() - oldGrandTotal < 0 ? 'text-emerald-600' : 'text-muted-foreground')">
+                                    <span class="tabular-nums font-medium" :class="grandTotal() - oldGrandTotal > 0 ? 'text-destructive' : (grandTotal() - oldGrandTotal < 0 ? 'text-foreground' : 'text-muted-foreground')">
                                         Selisih: <span x-text="(grandTotal() - oldGrandTotal >= 0 ? '+Rp ' : '-Rp ') + formatThousand(Math.abs(grandTotal() - oldGrandTotal))"></span>
                                     </span>
                                 </div>
@@ -2527,12 +2519,12 @@
         <div x-show="openInvalidateModal" class="fixed inset-0 z-[999] bg-black/50 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
             <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-border max-w-sm w-full shadow-2xl overflow-hidden">
                 <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#E8E8E8] dark:border-border flex items-center justify-between">
-                    <h3 class="font-bold text-base text-text-active tracking-tight">Invalidasi Transaksi Lead Time</h3>
+                    <h3 class="font-semibold text-base text-text-active tracking-tight">Invalidasi Transaksi Lead Time</h3>
                     <button type="button" @click="openInvalidateModal = false" class="text-text-muted hover:text-text-active cursor-pointer p-1 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800">✕</button>
                 </div>
                 <form method="POST" action="{{ route('purchasing.lead-time.invalidate', $po->leadTime) }}" class="text-xs">
                     @csrf
-                    <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 space-y-3">
+                    <div class="bg-white dark:bg-gray-900 p-4 space-y-3">
                         <p class="text-xs text-text-muted leading-relaxed">
                             Tindakan ini akan mengeluarkan durasi transaksi ini dari perhitungan rata-rata Lead Time supplier.
                         </p>

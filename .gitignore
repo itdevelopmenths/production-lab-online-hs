@@ -29,3 +29,5 @@ Thumbs.db
 .superpowers/brainstorm/
 .superpowers/sdd/
 /.worktrees/
+graphify-out/
+app/graphify-out/

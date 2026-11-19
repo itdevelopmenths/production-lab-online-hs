@@ -33,10 +33,10 @@
     $variantClasses = match ($normalizedVariant) {
         'primary' => 'text-white bg-gradient-to-b from-[#1e1e1e] to-[#0a0a0a] border-[rgba(255,255,255,0.3)] shadow-[inset_0px_2px_2px_0px_rgba(255,255,255,0.05),inset_0px_2px_2px_0px_rgba(255,255,255,0.08)] hover:from-[#2c2c2c] hover:to-[#141414] hover:border-[rgba(255,255,255,0.4)] active:from-[#0a0a0a] active:to-[#1a1a1a] active:border-[rgba(255,255,255,0.18)] active:shadow-[inset_0px_1px_3px_0px_rgba(0,0,0,0.4)] focus-visible:shadow-[0px_0px_0px_1px_#ffffff,0px_0px_0px_2px_rgba(46,46,46,0.22)] dark:from-white dark:to-gray-100 dark:text-[#0A0A0A] dark:border-white/80 dark:hover:from-gray-100 dark:hover:to-gray-200 disabled:from-[#ededed] disabled:to-[#e3e3e3] disabled:text-[#a3a3a3] disabled:border-[rgba(255,255,255,0.6)] dark:disabled:from-zinc-800 dark:disabled:to-zinc-800 dark:disabled:text-zinc-500',
         'secondary' => 'bg-white text-black dark:bg-zinc-800 dark:text-zinc-100 border-[#e8e8e8] dark:border-zinc-700 hover:bg-[#fafafa] hover:border-[#dedede] dark:hover:bg-zinc-700 active:bg-[#f3f3f3] shadow-theme-xs',
-        'warning' => 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400 dark:hover:bg-amber-500/20',
+        'warning' => 'bg-card text-foreground border-border hover:bg-gray-50 dark:bg-card dark:border-border dark:text-foreground dark:hover:bg-gray-50',
         'danger' => 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/20',
-        'success' => 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/20',
-        'info' => 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500/20',
+        'success' => 'bg-card text-foreground border-border hover:bg-gray-50 dark:bg-card dark:border-border dark:text-foreground dark:hover:bg-gray-50',
+        'info' => 'bg-card text-foreground border-border hover:bg-gray-50 dark:bg-card dark:border-border dark:text-foreground dark:hover:bg-gray-50',
         'ghost' => 'border-transparent bg-transparent text-text-active hover:bg-gray-100 dark:hover:bg-gray-800',
         'link' => 'border-transparent bg-transparent text-text-active underline-offset-4 hover:underline p-0 h-auto shadow-none',
     };

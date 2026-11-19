@@ -20,7 +20,7 @@
         <div class="overflow-x-auto focus:outline-none" tabindex="0" role="region" aria-label="Riwayat Audit Operasional">
             <table class="w-full text-sm">
                 <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 border-b border-[#E8E8E8] dark:border-gray-800">
-                    <tr class="text-text-muted text-[12px] font-semibold">
+                    <tr class="text-text-muted text-[12px] font-medium">
                         <th class="px-4 py-3 text-left w-36">Waktu</th>
                         <th class="px-4 py-3 text-center w-28">Status / Event</th>
                         <th class="px-4 py-3 text-left">Aktivitas &amp; Rincian Perubahan</th>
@@ -31,7 +31,7 @@
                 <tbody class="divide-y divide-[#E8E8E8]/70 dark:divide-gray-800">
                     @foreach($audits as $audit)
                     <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/50 transition-colors">
-                        <td class="px-4 py-3 font-mono text-text-muted whitespace-nowrap align-top text-xs">
+                        <td class="px-4 py-3 tabular-nums text-text-muted whitespace-nowrap align-top text-xs">
                             {{ $audit->created_at ? $audit->created_at->format('d/m/Y H:i:s') : '—' }}
                         </td>
                         <td class="px-4 py-3 text-center whitespace-nowrap align-top">
@@ -41,12 +41,12 @@
                             {!! $audit->formatted_diff !!}
                         </td>
                         <td class="px-4 py-3 text-xs align-top">
-                            <div class="font-semibold text-text-active leading-tight">{{ $audit->user_name ?? 'Sistem' }}</div>
+                            <div class="font-medium text-text-active leading-tight">{{ $audit->user_name ?? 'Sistem' }}</div>
                             @if($audit->user_role)
                                 <div class="text-[10px] text-text-muted capitalize">{{ $audit->user_role }}</div>
                             @endif
                         </td>
-                        <td class="px-4 py-3 font-mono text-text-muted text-[11px] whitespace-nowrap align-top">
+                        <td class="px-4 py-3 tabular-nums text-text-muted text-[11px] whitespace-nowrap align-top">
                             {{ $audit->ip_address ?: '—' }}
                         </td>
                     </tr>

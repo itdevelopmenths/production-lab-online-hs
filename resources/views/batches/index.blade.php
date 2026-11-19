@@ -47,12 +47,12 @@
             order: [],
             ajax: '{{ route("batches.data") }}',
             columns: [
-                { data: 'no_batch', className: 'px-4 py-3.5 font-mono text-xs font-semibold text-[#101828] dark:text-white' },
+                { data: 'no_batch', className: 'px-4 py-3.5 tabular-nums text-xs font-medium text-[#101828] dark:text-white' },
                 { data: 'produk_nama', orderable: false, className: 'px-4 py-3.5 font-medium text-[#101828] dark:text-white' },
-                { data: 'qty_rencana', className: 'px-4 py-3.5 text-right font-mono text-xs tabular-nums' },
-                { data: 'qty_baik', className: 'px-4 py-3.5 text-right font-mono text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums', orderable: false, searchable: false },
-                { data: 'qty_rusak', className: 'px-4 py-3.5 text-right font-mono text-xs font-semibold text-red-600 dark:text-red-400 tabular-nums', orderable: false, searchable: false },
-                { data: 'yield', orderable: false, searchable: false, className: 'px-4 py-3.5 text-center font-mono text-xs font-bold tabular-nums' },
+                { data: 'qty_rencana', className: 'px-4 py-3.5 text-right  text-xs tabular-nums' },
+                { data: 'qty_baik', className: 'px-4 py-3.5 text-right  text-xs font-medium text-foreground dark:text-foreground tabular-nums', orderable: false, searchable: false },
+                { data: 'qty_rusak', className: 'px-4 py-3.5 text-right  text-xs font-medium text-red-600 dark:text-red-400 tabular-nums', orderable: false, searchable: false },
+                { data: 'yield', orderable: false, searchable: false, className: 'px-4 py-3.5 text-center  text-xs font-medium tabular-nums' },
                 { data: 'status', className: 'px-4 py-3.5 text-center', orderable: false },
                 { data: 'tanggal', className: 'px-4 py-3.5 text-xs text-text-muted' },
                 { data: 'action', orderable: false, searchable: false, className: 'px-4 py-3.5 text-center' }

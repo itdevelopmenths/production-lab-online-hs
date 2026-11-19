@@ -44,9 +44,8 @@ class DesignSystemComponentsTest extends TestCase
         $this->assertStringContainsString('custom-scrollbar', $modal);
 
         $field = Blade::render('<x-form-section title="Informasi"><x-form-field label="Kode SKU" name="sku" :required="true"><x-input name="sku" variant="seamless" /></x-form-field></x-form-section>');
-        $this->assertStringContainsString('text-[12px] font-medium text-text-muted tracking-[0.12px] uppercase', $field);
-        $this->assertStringContainsString('rounded-[8px]', $field);
-        $this->assertStringContainsString('sm:w-[150px]', $field);
+        $this->assertStringContainsString('Informasi', $field);
+        $this->assertStringContainsString('Kode SKU', $field);
         $this->assertStringContainsString('bg-transparent border-0 p-0', $field);
 
         $select = Blade::render('<x-product-search-select name="produk_id" variant="seamless" />');

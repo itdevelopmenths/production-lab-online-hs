@@ -82,23 +82,23 @@
                 </svg>
             </div>
             <div>
-                <div class="text-sm font-semibold text-text-active tracking-tight">Matriks Hak Akses &amp; Wewenang</div>
+                <div class="text-sm font-medium text-text-active tracking-tight">Matriks Hak Akses &amp; Wewenang</div>
                 <div class="text-xs text-text-muted mt-0.5">
-                    <span class="font-bold text-text-active font-mono" x-text="selected.length"></span> dari 
-                    <span class="font-bold text-text-active font-mono">{{ $totalCount }}</span> wewenang tercentang
+                    <span class="font-medium text-text-active tabular-nums" x-text="selected.length"></span> dari 
+                    <span class="font-medium text-text-active tabular-nums">{{ $totalCount }}</span> wewenang tercentang
                 </div>
             </div>
         </div>
 
         @if(!$readonly)
         <div class="flex items-center gap-2">
-            <button type="button" @click="selectAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[8px] bg-white dark:bg-gray-900 text-text-active hover:bg-[#fafafa] dark:hover:bg-gray-800 border border-[#E8E8E8] dark:border-gray-800 transition-colors cursor-pointer">
+            <button type="button" @click="selectAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[8px] bg-white dark:bg-gray-900 text-text-active hover:bg-[#fafafa] dark:hover:bg-gray-800 border border-[#E8E8E8] dark:border-gray-800 transition-colors cursor-pointer">
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
                 Pilih Semua
             </button>
-            <button type="button" @click="deselectAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[8px] bg-white dark:bg-gray-900 text-text-muted hover:text-text-active hover:bg-[#fafafa] dark:hover:bg-gray-800 border border-[#E8E8E8] dark:border-gray-800 transition-colors cursor-pointer">
+            <button type="button" @click="deselectAll()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[8px] bg-white dark:bg-gray-900 text-text-muted hover:text-text-active hover:bg-[#fafafa] dark:hover:bg-gray-800 border border-[#E8E8E8] dark:border-gray-800 transition-colors cursor-pointer">
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -115,7 +115,7 @@
             <div class="bg-[#fafafa] dark:bg-gray-800/60 px-5 py-3 border-b border-[#E8E8E8] dark:border-gray-800 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <span class="size-2 rounded-full bg-neutral-900 dark:bg-white"></span>
-                    <h3 class="text-xs font-bold text-text-active uppercase tracking-wider">{{ $domain }}</h3>
+                    <h3 class="text-xs font-semibold text-text-active uppercase tracking-wider">{{ $domain }}</h3>
                 </div>
                 <span class="text-xs font-medium text-text-muted">
                     {{ count($modules) }} Modul
@@ -133,8 +133,8 @@
                         {{-- Module Subheader --}}
                         <div class="flex items-center justify-between gap-3 mb-3.5">
                             <div class="flex items-center gap-2.5">
-                                <span class="text-sm font-semibold text-text-active">{{ $moduleData['label'] }}</span>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-tight border"
+                                <span class="text-sm font-medium text-text-active">{{ $moduleData['label'] }}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-medium tabular-nums tracking-tight border"
                                       :class="moduleBadgeClass({{ $jsActions }}, {{ $actionCount }})">
                                     <span x-text="moduleSelectedCount({{ $jsActions }})"></span>/{{ $actionCount }}
                                 </span>
@@ -156,8 +156,8 @@
                                     $actionType = last(explode('.', $actionKey));
                                     $badgeClass = match($actionType) {
                                         'view' => 'bg-neutral-100 dark:bg-gray-800 text-text-muted border-[#E8E8E8] dark:border-gray-700',
-                                        'create' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20',
-                                        'edit', 'manage' => 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
+                                        'create' => 'bg-card text-foreground dark:text-foreground border-border',
+                                        'edit', 'manage' => 'bg-card text-foreground dark:text-foreground border-border',
                                         'delete', 'cancel' => 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
                                         default => 'bg-neutral-100 dark:bg-gray-800 text-text-active border-[#E8E8E8] dark:border-gray-700'
                                     };
@@ -183,14 +183,14 @@
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-1.5 mb-1 flex-wrap">
-                                            <span class="inline-block px-1.5 py-0.25 text-[9px] font-bold rounded-[6px] uppercase tracking-wider border {{ $badgeClass }}">
+                                            <span class="inline-block px-1.5 py-0.25 text-[9px] font-medium rounded-[6px] uppercase tracking-wider border {{ $badgeClass }}">
                                                 {{ $badgeLabel }}
                                             </span>
                                         </div>
-                                        <div class="text-xs font-semibold text-text-active leading-snug">
+                                        <div class="text-xs font-medium text-text-active leading-snug">
                                             {{ $actionLabel }}
                                         </div>
-                                        <div class="text-[10px] text-text-muted font-mono tracking-tight mt-0.5 truncate">
+                                        <div class="text-[10px] text-text-muted tabular-nums tracking-tight mt-0.5 truncate">
                                             {{ $actionKey }}
                                         </div>
                                     </div>

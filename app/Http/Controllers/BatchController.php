@@ -739,8 +739,23 @@ class BatchController extends Controller
     private function nextNo(): string
     {
         $year = now()->year;
-        $count = BatchProduksi::whereYear('tanggal', $year)->count() + 1;
+        $prefix = "B-{$year}-";
 
-        return sprintf('B-%d-%04d', $year, $count);
+        $last = BatchProduksi::where('no_batch', 'like', $prefix . '%')
+            ->orderByDesc('no_batch')
+            ->value('no_batch');
+
+        $nextSeq = 1;
+        if ($last && preg_match('/-(\d+)$/', $last, $m)) {
+            $nextSeq = ((int) $m[1]) + 1;
+        }
+
+        do {
+            $candidate = sprintf('B-%d-%04d', $year, $nextSeq);
+            if (! BatchProduksi::where('no_batch', $candidate)->exists()) {
+                return $candidate;
+            }
+            $nextSeq++;
+        } while (true);
     }
 }

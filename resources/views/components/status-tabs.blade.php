@@ -6,7 +6,7 @@
 ])
 
 @php
-    $activeTabClasses = 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold';
+    $activeTabClasses = 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium';
     $inactiveTabClasses = 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium';
     $baseTabClasses = 'px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none';
 @endphp
@@ -35,7 +35,7 @@
                 @endif
                 <span>{{ $label }}</span>
                 @if ($count !== null)
-                    <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[12px] font-semibold tabular-nums">
+                    <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[12px] font-medium tabular-nums">
                         {{ $count }}
                     </span>
                 @endif
@@ -61,7 +61,7 @@
                 @endif
                 <span>{{ $label }}</span>
                 @if ($count !== null)
-                    <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[12px] font-semibold tabular-nums">
+                    <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[12px] font-medium tabular-nums">
                         {{ $count }}
                     </span>
                 @endif

@@ -231,7 +231,7 @@
                             confirmButtonText: 'Mengerti'
                         });
                     } else {
-                        alert(`Produk "${nama}" sudah ada di baris lain. Setiap produk hanya boleh dipilih 1 kali.`);
+                        appDialog.alert(`Produk "${nama}" sudah ada di baris lain. Setiap produk hanya boleh dipilih 1 kali.`);
                     }
                 },
                 onProductSelected(item, product, index) {
@@ -385,7 +385,7 @@
             :backUrl="route('transfers.index')"
         />
 
-        <form method="POST" action="{{ route('transfers.store') }}" @submit="onSubmit($event)" class="space-y-6">
+        <form method="POST" action="{{ route('transfers.store') }}" @submit="onSubmit($event)" class="space-y-4">
             @csrf
             @if($stockRequest)
                 <input type="hidden" name="request_id" value="{{ $stockRequest->id }}">
@@ -394,17 +394,17 @@
                 <input type="hidden" name="referensi_batch_id" value="{{ $referensiBatchId }}">
             @endif
 
-            <x-card title="Formulir Transfer / Mutasi Barang" subtitle="Penetapan gudang pengirim, gudang tujuan, dan pemotongan stok pada pengiriman" bodyClass="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-4">
+            <x-card title="Formulir Transfer / Mutasi Barang" subtitle="Penetapan gudang pengirim, gudang tujuan, dan pemotongan stok pada pengiriman" bodyClass="bg-gray-50 dark:bg-gray-950 p-3 sm:p-4 space-y-4">
                 @if($stockRequest)
-                <div class="p-4 rounded-[10px] bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-900 dark:text-blue-200 text-xs flex items-center justify-between gap-3">
+                <div class="p-4 rounded-[10px] bg-card dark:bg-card border border-border dark:border-border text-foreground dark:text-foreground text-xs flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <div class="size-8 rounded-[8px] bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 flex items-center justify-center font-bold shrink-0">
+                        <div class="size-8 rounded-[8px] bg-card dark:bg-card text-foreground dark:text-foreground flex items-center justify-center font-medium shrink-0">
                             RT
                         </div>
                         <div>
-                            <span class="font-bold">Memproses Dokumen Permintaan:</span>
-                            <span class="font-mono bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 py-0.5 rounded-[5px] border border-blue-300 dark:border-blue-500/30 font-semibold ml-1">{{ $stockRequest->no_request }}</span>
-                            <div class="text-[11px] text-blue-700 dark:text-blue-300 mt-0.5">Permintaan dari {{ $stockRequest->gudangPemohon?->nama }} ke {{ $stockRequest->gudangTujuan?->nama }}</div>
+                            <span class="font-medium">Memproses Dokumen Permintaan:</span>
+                            <span class="tabular-nums bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 py-0.5 rounded-[5px] border border-border dark:border-border font-medium ml-1">{{ $stockRequest->no_request }}</span>
+                            <div class="text-[11px] text-foreground dark:text-foreground mt-0.5">Permintaan dari {{ $stockRequest->gudangPemohon?->nama }} ke {{ $stockRequest->gudangTujuan?->nama }}</div>
                         </div>
                     </div>
                     <x-badge variant="completed" :pill="true">Disetujui</x-badge>
@@ -412,15 +412,15 @@
                 @endif
 
                 @if($batch)
-                <div class="p-4 rounded-[10px] bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 text-sky-900 dark:text-sky-200 text-xs flex items-center justify-between gap-3">
+                <div class="p-4 rounded-[10px] bg-card dark:bg-card border border-border dark:border-border text-foreground dark:text-foreground text-xs flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <div class="size-8 rounded-[8px] bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300 flex items-center justify-center font-bold shrink-0">
+                        <div class="size-8 rounded-[8px] bg-card dark:bg-card text-foreground dark:text-foreground flex items-center justify-center font-medium shrink-0">
                             BP
                         </div>
                         <div>
-                            <span class="font-bold">Kirim Produk Jadi dari Batch Produksi:</span>
-                            <span class="font-mono bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 py-0.5 rounded-[5px] border border-sky-300 dark:border-sky-500/30 font-semibold ml-1">{{ $batch->no_batch }}</span>
-                            <div class="text-[11px] text-sky-700 dark:text-sky-300 mt-0.5">Pengiriman hasil produksi dari {{ $batch->gudangOperasional?->nama }} ke {{ $batch->gudangTujuan?->nama ?? 'Fulfillment Pusat' }}</div>
+                            <span class="font-medium">Kirim Produk Jadi dari Batch Produksi:</span>
+                            <span class="tabular-nums bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 py-0.5 rounded-[5px] border border-border dark:border-border font-medium ml-1">{{ $batch->no_batch }}</span>
+                            <div class="text-[11px] text-foreground dark:text-foreground mt-0.5">Pengiriman hasil produksi dari {{ $batch->gudangOperasional?->nama }} ke {{ $batch->gudangTujuan?->nama ?? 'Fulfillment Pusat' }}</div>
                         </div>
                     </div>
                     <x-badge variant="completed" :pill="true">{{ ucfirst($batch->status) }}</x-badge>
@@ -429,7 +429,7 @@
 
                 @if($errors->any())
                 <div class="p-4 rounded-[10px] bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-300 text-xs" role="alert">
-                    <div class="font-bold mb-1">Terdapat kesalahan input:</div>
+                    <div class="font-medium mb-1">Terdapat kesalahan input:</div>
                     <ul class="list-disc list-inside space-y-0.5">
                         @foreach($errors->all() as $err)
                             <li>{{ $err }}</li>
@@ -443,7 +443,7 @@
                     <span class="font-medium" x-text="validationMessage"></span>
                 </div>
 
-                <x-form-section title="Rute Pengiriman & Jenis" :cols="3">
+                <x-form-section card title="Rute Pengiriman & Jenis" :cols="3">
                     <x-form-field label="Jenis Transfer" name="jenis" :required="true">
                         <x-select id="transfer-jenis" name="jenis" variant="seamless" x-model="jenis" @change="onJenisChange()" :required="true">
                             @foreach(\App\Models\Transfer::JENIS_LABELS as $key => $label)
@@ -473,7 +473,7 @@
                 </x-form-section>
                 <p x-show="isSameWarehouse()" x-cloak class="text-[11px] font-medium text-red-600 dark:text-red-400 px-1">Gudang tujuan tidak boleh sama dengan gudang asal.</p>
 
-                <x-form-section title="Catatan Pengiriman" :cols="1">
+                <x-form-section card title="Catatan Pengiriman" :cols="1">
                     <x-form-field label="Catatan" name="catatan" align="top">
                         <x-textarea id="transfer-catatan" name="catatan" variant="seamless" rows="2" placeholder="Catatan ekspedisi, armada angkut, atau instruksi serah terima...">{{ old('catatan') }}</x-textarea>
                     </x-form-field>
@@ -484,7 +484,7 @@
                 <x-slot:header>
                     <div class="flex items-center justify-between w-full">
                         <div>
-                            <h2 class="text-lg font-semibold text-foreground tracking-tight">Rincian Barang Dikirim</h2>
+                            <h2 class="text-lg font-medium text-foreground tracking-tight">Rincian Barang Dikirim</h2>
                             <p class="text-xs text-muted-foreground mt-0.5">Pastikan kuantitas pengiriman tidak melebihi stok yang tersedia di gudang asal</p>
                         </div>
                     </div>
@@ -522,8 +522,8 @@
                                         @if($stockRequest)
                                             <input type="hidden" :name="`items[${index}][request_item_id]`" :value="item.request_item_id">
                                             <input type="hidden" :name="`items[${index}][produk_id]`" :value="item.produk_id">
-                                            <div class="font-semibold text-foreground" x-text="item.nama"></div>
-                                            <div class="font-mono text-[10px] text-muted-foreground" x-text="item.sku"></div>
+                                            <div class="font-medium text-foreground" x-text="item.nama"></div>
+                                            <div class="tabular-nums text-[10px] text-muted-foreground" x-text="item.sku"></div>
                                         @else
                                             <template x-if="item.request_item_id">
                                                 <input type="hidden" :name="`items[${index}][request_item_id]`" :value="item.request_item_id">
@@ -562,9 +562,9 @@
                                                     <div class="flex items-center gap-1.5 truncate flex-1 min-w-0 pointer-events-none">
                                                         <template x-if="selectedItem">
                                                             <div class="flex items-center gap-1.5 truncate">
-                                                                <span class="font-mono text-foreground font-semibold bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
+                                                                <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="selectedItem.sku"></span>
                                                                 <span class="font-medium text-foreground truncate" x-text="selectedItem.nama"></span>
-                                                                <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan || '-'"></span>
+                                                                <span class="text-[9px] tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="selectedItem.satuan || '-'"></span>
                                                             </div>
                                                         </template>
                                                         <template x-if="!selectedItem">
@@ -613,18 +613,18 @@
                                                         <template x-for="p in items" :key="p.id">
                                                             <div
                                                                 @click="isProductSelectedElsewhere(p.id, index) ? alertDuplicate(p) : select(p)"
-                                                                :class="isProductSelectedElsewhere(p.id, index) ? 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed opacity-60' : (selectedId == p.id ? 'bg-muted text-foreground font-semibold' : 'text-foreground hover:bg-muted/50 cursor-pointer')"
+                                                                :class="isProductSelectedElsewhere(p.id, index) ? 'bg-muted/30 text-muted-foreground/60 cursor-not-allowed opacity-60' : (selectedId == p.id ? 'bg-muted text-foreground font-medium' : 'text-foreground hover:bg-muted/50 cursor-pointer')"
                                                                 class="px-3.5 py-2.5 transition flex items-center justify-between gap-2 select-none"
                                                             >
                                                                 <div class="flex items-center gap-2 truncate pointer-events-none">
-                                                                    <span class="font-mono text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="p.sku"></span>
+                                                                    <span class="tabular-nums text-foreground font-medium bg-muted px-1.5 py-0.5 rounded-md border border-border text-[10px]" x-text="p.sku"></span>
                                                                     <span class="truncate font-medium" :class="isProductSelectedElsewhere(p.id, index) ? 'text-muted-foreground' : 'text-foreground'" x-text="p.nama"></span>
                                                                     <template x-if="isProductSelectedElsewhere(p.id, index)">
-                                                                        <span class="text-[9px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Sudah Dipilih</span>
+                                                                        <span class="text-[9px] font-medium text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Sudah Dipilih</span>
                                                                     </template>
                                                                 </div>
                                                                 <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
-                                                                    <span class="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="p.satuan || '-'"></span>
+                                                                    <span class="text-[9px] tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md border border-border" x-text="p.satuan || '-'"></span>
                                                                 </div>
                                                             </div>
                                                         </template>
@@ -645,7 +645,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 align-top pt-3.5">
-                                        <span class="inline-block px-2.5 py-1 bg-muted rounded font-mono font-semibold text-foreground border border-border/60" x-text="displaySatuan(item)"></span>
+                                        <span class="inline-block px-2.5 py-1 bg-muted rounded tabular-nums font-medium text-foreground border border-border/60" x-text="displaySatuan(item)"></span>
                                     </td>
                                     @if($stockRequest)
                                     <td class="px-4 py-3 text-right font-medium text-muted-foreground align-top pt-4">
@@ -654,18 +654,18 @@
                                     @endif
                                     <td class="px-4 py-3 text-right align-top pt-3.5">
                                         <template x-if="!gudangAsalId && item.produk_id">
-                                            <span class="text-[11px] text-amber-600 italic">Pilih gudang asal</span>
+                                            <span class="text-[11px] text-foreground italic">Pilih gudang asal</span>
                                         </template>
                                         <template x-if="gudangAsalId && item.produk_id && item.stok_loading">
                                             <span class="text-[11px] text-muted-foreground">Memuat stok...</span>
                                         </template>
                                         <template x-if="gudangAsalId && item.produk_id && !item.stok_loading && item.stok_error">
-                                            <span class="text-[11px] text-amber-600 font-medium">Gagal cek stok</span>
+                                            <span class="text-[11px] text-foreground font-medium">Gagal cek stok</span>
                                         </template>
                                         <template x-if="gudangAsalId && item.produk_id && !item.stok_loading && !item.stok_error && item.stok_tersedia !== null && item.stok_tersedia !== undefined">
                                             <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded-full font-mono text-[11px] font-semibold border whitespace-nowrap"
-                                                :class="(isExceedingStock(item) || Number(item.stok_tersedia) <= 0) ? 'text-destructive bg-destructive/10 border-destructive/20' : 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'"
+                                                class="inline-flex items-center px-2 py-0.5 rounded-full tabular-nums text-[11px] font-medium border whitespace-nowrap"
+                                                :class="(isExceedingStock(item) || Number(item.stok_tersedia) <= 0) ? 'text-destructive bg-destructive/10 border-destructive/20' : 'text-foreground dark:text-foreground bg-card border-border'"
                                                 x-text="formatQty(item.stok_tersedia) + ' ' + displaySatuan(item)"
                                             ></span>
                                         </template>
@@ -684,14 +684,14 @@
                                                 x-model="item.qty_dikirim"
                                                 :aria-invalid="isExceedingStock(item) ? 'true' : 'false'"
                                                 :class="isExceedingStock(item) ? 'border-destructive focus:ring-destructive/20' : 'border-border focus:ring-primary/20'"
-                                                class="w-full h-9 rounded-lg border bg-card pl-2.5 pr-16 text-xs text-right font-mono font-medium focus:ring-2"
+                                                class="w-full h-9 rounded-lg border bg-card pl-2.5 pr-16 text-xs text-right tabular-nums font-medium focus:ring-2"
                                                 required
                                             >
-                                            <span class="absolute right-2 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-muted-foreground bg-muted border border-border rounded pointer-events-none max-w-[54px] truncate"
+                                            <span class="absolute right-2 px-1.5 py-0.5 text-[10px] tabular-nums font-medium text-muted-foreground bg-muted border border-border rounded pointer-events-none max-w-[54px] truncate"
                                                   x-text="displaySatuan(item) !== '-' ? displaySatuan(item) : 'Unit'"></span>
                                         </div>
                                         <template x-if="isExceedingStock(item)">
-                                            <p class="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-destructive">
+                                            <p class="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-destructive">
                                                 <svg class="size-3 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                                 <span>Melebihi stok tersedia!</span>
                                             </p>
@@ -716,17 +716,17 @@
                 <div class="p-4 bg-muted/20 border-t border-border flex items-center justify-between gap-3">
                     <div>
                         @if(!$stockRequest)
-                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition cursor-pointer">
+                        <button type="button" @click="addItem()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition cursor-pointer">
                             <svg class="size-3.5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             Tambah Baris
                         </button>
                         @endif
                     </div>
                     <div class="flex items-center gap-3">
-                        <button type="submit" name="action" value="save_draft" @click="submitAction = 'save_draft'" :disabled="submitting" class="px-4 py-2 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition cursor-pointer disabled:opacity-50">
+                        <button type="submit" name="action" value="save_draft" @click="submitAction = 'save_draft'" :disabled="submitting" class="px-4 py-2 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted text-foreground transition cursor-pointer disabled:opacity-50">
                             Simpan Sebagai Draft
                         </button>
-                        <button type="submit" name="action" value="ship" @click="submitAction = 'ship'" :disabled="submitting" class="px-4 py-2 text-xs font-semibold rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs cursor-pointer disabled:opacity-50">
+                        <button type="submit" name="action" value="ship" @click="submitAction = 'ship'" :disabled="submitting" class="px-4 py-2 text-xs font-medium rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition shadow-xs cursor-pointer disabled:opacity-50">
                             Kirim Sekarang (In Transit - Potong Stok)
                         </button>
                     </div>

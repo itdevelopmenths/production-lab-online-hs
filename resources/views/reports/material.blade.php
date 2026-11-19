@@ -36,13 +36,13 @@
                 <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800">
                     @forelse($rows as $r)
                     <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
-                        <td class="px-4 py-3 font-mono font-medium text-[#101828] dark:text-white">
+                        <td class="px-4 py-3 tabular-nums font-medium text-[#101828] dark:text-white">
                             {{ $r->produk->sku ?? '-' }}
                         </td>
                         <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
                             {{ $r->produk->nama ?? '-' }}
                         </td>
-                        <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white font-semibold">
+                        <td class="px-4 py-3 text-right tabular-nums text-[#101828] dark:text-white font-medium">
                             {{ number_format($r->total_keluar, 2, ',', '.') }}
                             <span class="text-[#667085] dark:text-gray-400 font-normal text-xs ml-1">{{ $r->produk->satuan ?? '' }}</span>
                         </td>

@@ -11,8 +11,8 @@
             background-color: #f8fafc;
             color: #0f172a;
         }
-        .font-mono {
-            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
         }
         .print-page {
             background-color: #ffffff;
@@ -70,21 +70,21 @@
         <!-- Header: Judul & Nomor Dokumen -->
         <div class="flex items-start justify-between border-b-2 border-gray-900 pb-4 mb-6">
             <div>
-                <h1 class="text-2xl font-extrabold tracking-tight text-gray-950 uppercase">
+                <h1 class="text-2xl font-semibold tracking-tight text-gray-950 uppercase">
                     SURAT JALAN MUTASI
                 </h1>
                 <p class="text-xs text-gray-500 font-medium mt-0.5">
                     Dokumen Pengiriman & Perpindahan Fisik Barang
                 </p>
                 @if($transfer->stockRequest)
-                    <div class="text-[11px] text-gray-600 font-mono mt-1">
+                    <div class="text-[11px] text-gray-600 tabular-nums mt-1">
                         Ref Request: {{ $transfer->stockRequest->no_request }}
                     </div>
                 @endif
             </div>
 
             <div class="text-right">
-                <div class="font-mono text-base font-extrabold text-gray-950 tracking-tight">
+                <div class="tabular-nums text-base font-medium text-gray-950 tracking-tight">
                     {{ $transfer->no_transfer }}
                 </div>
                 <div class="text-xs text-gray-600 mt-1">
@@ -93,7 +93,7 @@
                 </div>
                 <div class="text-xs text-gray-600">
                     <span class="text-gray-500">Status:</span>
-                    <span class="font-bold text-gray-900 uppercase">{{ ucfirst($transfer->status) }}</span>
+                    <span class="font-medium text-gray-900 uppercase">{{ ucfirst($transfer->status) }}</span>
                 </div>
             </div>
         </div>
@@ -102,10 +102,10 @@
         <div class="flex items-center justify-between gap-4 mb-6">
             <!-- Box Dari (Pengirim) -->
             <div class="flex-1 bg-gray-50/70 border border-gray-300 rounded-sm p-3.5">
-                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                <div class="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">
                     DARI (GUDANG ASAL)
                 </div>
-                <div class="text-sm font-bold text-gray-900">
+                <div class="text-sm font-medium text-gray-900">
                     {{ $transfer->gudangAsal?->nama ?? 'Gudang Pusat' }}
                 </div>
                 <div class="text-xs text-gray-500 capitalize">
@@ -114,16 +114,16 @@
             </div>
 
             <!-- Arrow Indicator -->
-            <div class="text-gray-400 font-bold text-lg px-2 shrink-0">
+            <div class="text-gray-400 font-medium text-lg px-2 shrink-0">
                 &rarr;
             </div>
 
             <!-- Box Ke (Penerima) -->
             <div class="flex-1 bg-gray-50/70 border border-gray-300 rounded-sm p-3.5">
-                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                <div class="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">
                     KE (GUDANG TUJUAN)
                 </div>
-                <div class="text-sm font-bold text-gray-900">
+                <div class="text-sm font-medium text-gray-900">
                     {{ $transfer->gudangTujuan?->nama ?? 'Gudang Tujuan' }}
                 </div>
                 <div class="text-xs text-gray-500 capitalize">
@@ -135,7 +135,7 @@
         <!-- Tabel Barang -->
         <div class="mb-6 overflow-hidden border border-gray-300 rounded-sm">
             <table class="w-full text-xs">
-                <thead class="bg-gray-100/90 border-b border-gray-300 text-gray-700 font-bold uppercase text-[10px] tracking-wider">
+                <thead class="bg-gray-100/90 border-b border-gray-300 text-gray-700 font-medium uppercase text-[10px] tracking-wider">
                     <tr>
                         <th class="py-2.5 px-3 text-center w-10 border-r border-gray-200">NO</th>
                         <th class="py-2.5 px-3 text-left w-24 border-r border-gray-200">KODE</th>
@@ -154,21 +154,21 @@
                         <td class="py-2 px-3 text-center border-r border-gray-200 font-medium text-gray-500">
                             {{ $idx + 1 }}
                         </td>
-                        <td class="py-2 px-3 font-mono text-gray-900 border-r border-gray-200 uppercase font-semibold">
+                        <td class="py-2 px-3 tabular-nums text-gray-900 border-r border-gray-200 uppercase font-medium">
                             {{ $item->produk?->sku ?? '—' }}
                         </td>
-                        <td class="py-2 px-3 font-bold text-gray-900 border-r border-gray-200">
+                        <td class="py-2 px-3 font-medium text-gray-900 border-r border-gray-200">
                             {{ $item->produk?->nama ?? '—' }}
                         </td>
-                        <td class="py-2 px-3 text-center border-r border-gray-200 font-mono text-gray-600">
+                        <td class="py-2 px-3 text-center border-r border-gray-200 tabular-nums text-gray-600">
                             {{ $item->produk?->satuan ?? 'unit' }}
                         </td>
-                        <td class="py-2 px-3 text-right font-mono border-r border-gray-200 font-bold text-gray-950">
+                        <td class="py-2 px-3 text-right tabular-nums border-r border-gray-200 font-medium text-gray-950">
                             {{ number_format($qtyDikirim, 2) }}
                         </td>
                         <td class="py-2 px-3 text-gray-500 text-[11px]">
                             @if(($item->qty_rusak ?? 0) > 0)
-                                <span class="text-rose-700 font-semibold">Rusak: {{ number_format($item->qty_rusak, 2) }} ({{ $item->keterangan_rusak }})</span>
+                                <span class="text-rose-700 font-medium">Rusak: {{ number_format($item->qty_rusak, 2) }} ({{ $item->keterangan_rusak }})</span>
                                 @if($item->keterangan)
                                     <div class="text-gray-400 text-[10px]">{{ $item->keterangan }}</div>
                                 @endif
@@ -192,26 +192,26 @@
         <div class="mb-6 space-y-4">
             <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
                 <div class="flex items-center justify-between py-0.5 border-b border-gray-100">
-                    <span class="font-bold text-gray-700 uppercase tracking-wider text-[10px]">TOTAL ITEM</span>
-                    <span class="font-bold text-gray-900">{{ count($transfer->items) }} produk</span>
+                    <span class="font-medium text-gray-700 uppercase tracking-wider text-[10px]">TOTAL ITEM</span>
+                    <span class="font-medium text-gray-900">{{ count($transfer->items) }} produk</span>
                 </div>
                 <div class="flex items-center justify-between py-0.5 border-b border-gray-100">
-                    <span class="font-bold text-gray-700 uppercase tracking-wider text-[10px]">DIBUAT OLEH</span>
+                    <span class="font-medium text-gray-700 uppercase tracking-wider text-[10px]">DIBUAT OLEH</span>
                     <span class="font-medium text-gray-900">{{ $transfer->creator?->name ?? 'Logistik' }}</span>
                 </div>
                 <div class="flex items-center justify-between py-0.5 border-b border-gray-100">
-                    <span class="font-bold text-gray-700 uppercase tracking-wider text-[10px]">DIKIRIM OLEH</span>
+                    <span class="font-medium text-gray-700 uppercase tracking-wider text-[10px]">DIKIRIM OLEH</span>
                     <span class="font-medium text-gray-900">{{ $transfer->sender?->name ?? $transfer->creator?->name ?? 'Staff Gudang' }}</span>
                 </div>
                 <div class="flex items-center justify-between py-0.5 border-b border-gray-100">
-                    <span class="font-bold text-gray-700 uppercase tracking-wider text-[10px]">WAKTU KIRIM</span>
-                    <span class="font-mono text-gray-900">{{ $transfer->waktu_dikirim ? $transfer->waktu_dikirim->format('d/m/Y H:i') : ($transfer->tanggal_transfer ? $transfer->tanggal_transfer->format('d/m/Y') : '—') }}</span>
+                    <span class="font-medium text-gray-700 uppercase tracking-wider text-[10px]">WAKTU KIRIM</span>
+                    <span class="tabular-nums text-gray-900">{{ $transfer->waktu_dikirim ? $transfer->waktu_dikirim->format('d/m/Y H:i') : ($transfer->tanggal_transfer ? $transfer->tanggal_transfer->format('d/m/Y') : '—') }}</span>
                 </div>
             </div>
 
             <!-- Box Catatan -->
             <div class="bg-gray-50/60 border border-gray-300 rounded-sm p-3">
-                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                <div class="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1">
                     CATATAN / INSTRUKSI
                 </div>
                 <p class="text-xs text-gray-800 leading-relaxed">
@@ -224,7 +224,7 @@
         <div class="grid grid-cols-3 gap-6 pt-6 pb-2 text-center text-xs">
             <!-- Kolom 1: Pengirim -->
             <div class="flex flex-col justify-between h-28">
-                <div class="font-bold text-gray-700 uppercase tracking-wider text-[10px]">
+                <div class="font-medium text-gray-700 uppercase tracking-wider text-[10px]">
                     PENGIRIM (GUDANG ASAL)
                 </div>
                 <div class="mt-auto">
@@ -235,18 +235,18 @@
 
             <!-- Kolom 2: Driver / Ekspedisi -->
             <div class="flex flex-col justify-between h-28">
-                <div class="font-bold text-gray-700 uppercase tracking-wider text-[10px]">
+                <div class="font-medium text-gray-700 uppercase tracking-wider text-[10px]">
                     DRIVER / EKSPEDISI
                 </div>
                 <div class="mt-auto">
                     <div class="border-b border-gray-900 w-36 mx-auto mb-1.5"></div>
-                    <div class="text-gray-500 font-mono">( &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; )</div>
+                    <div class="text-gray-500 tabular-nums">( &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; )</div>
                 </div>
             </div>
 
             <!-- Kolom 3: Penerima -->
             <div class="flex flex-col justify-between h-28">
-                <div class="font-bold text-gray-700 uppercase tracking-wider text-[10px]">
+                <div class="font-medium text-gray-700 uppercase tracking-wider text-[10px]">
                     PENERIMA (GUDANG TUJUAN)
                 </div>
                 <div class="mt-auto">

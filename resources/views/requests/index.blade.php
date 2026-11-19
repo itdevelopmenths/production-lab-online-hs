@@ -59,7 +59,7 @@
                 @foreach(['' => 'Semua', 'diajukan' => 'Diajukan', 'disetujui' => 'Disetujui', 'selesai' => 'Selesai'] as $sVal => $sLabel)
                     <button type="button"
                             @click="statusFilter = '{{ $sVal }}'; $('#filterStatus').val('{{ $sVal }}').trigger('change');"
-                            :class="statusFilter === '{{ $sVal }}' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-theme-xs font-semibold' : 'bg-transparent text-text-muted border border-transparent hover:text-text-active font-medium'"
+                            :class="statusFilter === '{{ $sVal }}' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-theme-xs font-medium' : 'bg-transparent text-text-muted border border-transparent hover:text-text-active font-medium'"
                             class="px-2.5 py-1 rounded-[6px] h-full text-xs whitespace-nowrap transition cursor-pointer">
                         {{ $sLabel }}
                     </button>
@@ -95,7 +95,7 @@
             <form method="POST" :action="actionUrl">
                 @csrf
                 <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
-                    <div class="text-xs text-text-muted">Dokumen: <span class="font-mono font-semibold text-text-active" x-text="targetNo"></span></div>
+                    <div class="text-xs text-text-muted">Dokumen: <span class="tabular-nums font-medium text-text-active" x-text="targetNo"></span></div>
                     <x-form-field label="Alasan Penolakan" name="alasan" :required="true" align="top">
                         <textarea name="alasan" x-model="alasan" required rows="3" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0" placeholder="Jelaskan alasan penolakan permintaan..."></textarea>
                     </x-form-field>
@@ -112,7 +112,7 @@
             <form method="POST" :action="actionUrl">
                 @csrf
                 <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
-                    <div class="text-xs text-text-muted">Dokumen: <span class="font-mono font-semibold text-text-active" x-text="targetNo"></span></div>
+                    <div class="text-xs text-text-muted">Dokumen: <span class="tabular-nums font-medium text-text-active" x-text="targetNo"></span></div>
                     <x-form-field label="Alasan (Opsional)" name="alasan" align="top">
                         <textarea name="alasan" x-model="alasan" rows="3" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0" placeholder="Alasan pembatalan..."></textarea>
                     </x-form-field>
@@ -139,12 +139,12 @@
                     }
                 },
                 columns: [
-                    { data: 'no_request', name: 'no_request', className: 'font-mono text-xs font-semibold text-primary-600' },
+                    { data: 'no_request', name: 'no_request', className: 'tabular-nums text-xs font-medium text-primary-600' },
                     { data: 'tanggal_request', name: 'created_at' },
                     { data: 'jenis', name: 'jenis' },
                     { data: 'pemohon', name: 'gudangPemohon.nama' },
                     { data: 'tujuan', name: 'gudangTujuan.nama' },
-                    { data: 'batch_no', name: 'batch.no_batch', className: 'font-mono text-xs' },
+                    { data: 'batch_no', name: 'batch.no_batch', className: 'tabular-nums text-xs' },
                     { data: 'status', name: 'status' },
                     { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center whitespace-nowrap' }
                 ],

@@ -43,7 +43,7 @@
                 @if($batch->transferKirim)
                 <x-button href="{{ route('transfers.show', $batch->transferKirim) }}" variant="secondary" size="xs">
                     <x-slot:icon>
-                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <svg class="w-3.5 h-3.5 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </x-slot:icon>
                     Transfer: {{ $batch->transferKirim->no_transaksi }}
                 </x-button>
@@ -58,44 +58,69 @@
                             Kirim ke Fulfillment
                         </x-button>
                     </form>
-                    <a href="{{ route('transfers.create', ['jenis' => 'kirim_produk_jadi', 'batch_id' => $batch->id]) }}" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-300">
+                    <x-button href="{{ route('transfers.create', ['jenis' => 'kirim_produk_jadi', 'batch_id' => $batch->id]) }}" variant="secondary" size="xs">
                         Buat Transfer Produk Jadi
-                    </a>
+                    </x-button>
                     @endcan
                 @endif
             @endif
         </x-slot:actions>
     </x-page-header>
 
-    <!-- AdminLTE 4 KPI Small Boxes Ribbon (4 Cards) -->
+    <!-- KPI Stat Boxes Ribbon (4 Cards) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         <x-stat-box
             title="Target Rencana"
             :value="\App\Helpers\NumberHelper::formatQty($batch->qty_rencana)"
             :subtitle="($batch->produk?->satuan ?? 'Unit') . ' · Target kuantitas batch'"
-            variant="primary"
-        />
+            iconColor="indigo"
+        >
+            <x-slot:icon>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </x-slot:icon>
+        </x-stat-box>
 
         <x-stat-box
             title="Gudang Operasional"
             :value="$batch->gudangOperasional?->nama ?? 'Belum Ditentukan'"
             subtitle="Sumber penarikan bahan"
-            variant="default"
-        />
+            iconColor="gray"
+        >
+            <x-slot:icon>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </x-slot:icon>
+        </x-stat-box>
 
         <x-stat-box
             title="Gudang Tujuan"
             :value="$batch->gudangTujuan?->nama ?? 'Fulfillment Pusat'"
             subtitle="Tujuan produk jadi"
-            variant="default"
-        />
+            iconColor="gray"
+        >
+            <x-slot:icon>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293h3.172a1 1 0 00.707-.293l2.414-2.414a1 1 0 01.707-.293H20"/></svg>
+            </x-slot:icon>
+        </x-stat-box>
 
+        @php
+            $readinessColor = match($readinessSummary['variant'] ?? 'default') {
+                'success' => 'emerald',
+                'danger' => 'rose',
+                'warning' => 'amber',
+                'primary' => 'blue',
+                default => 'gray',
+            };
+        @endphp
         <x-stat-box
             title="Kesiapan Bahan"
             :value="$readinessSummary['value']"
             :subtitle="$readinessSummary['subtitle']"
-            :variant="$readinessSummary['variant']"
-        />
+            :iconColor="$readinessColor"
+        >
+            <x-slot:icon>
+                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            </x-slot:icon>
+        </x-stat-box>
     </div>
 
     <!-- Sleek Inline Alert Bar (Jika bahan fisik kurang pada status rencana) -->
@@ -128,19 +153,19 @@
                             @foreach($batch->outputs as $out)
                             <tr class="hover:bg-muted/40 transition">
                                 <td class="py-2.5 px-3.5">
-                                    <div class="font-bold text-foreground">{{ $out->produk?->nama }}</div>
-                                    <div class="font-mono text-[11px] text-muted-foreground">{{ $out->produk?->sku }}</div>
+                                    <div class="font-medium text-foreground">{{ $out->produk?->nama }}</div>
+                                    <div class="tabular-nums text-[11px] text-muted-foreground">{{ $out->produk?->sku }}</div>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-foreground">
+                                <td class="py-2.5 px-3 text-right tabular-nums font-medium text-foreground">
                                     {{ \App\Helpers\NumberHelper::formatQty($out->qty_rencana) }} <span class="text-muted-foreground font-normal">{{ $out->produk?->satuan }}</span>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-emerald-700 dark:text-emerald-400">
+                                <td class="py-2.5 px-3 text-right tabular-nums font-medium text-foreground dark:text-foreground">
                                     {{ $out->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($out->qty_baik) . ' ' . $out->produk?->satuan : '-' }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-rose-700 dark:text-rose-400">
+                                <td class="py-2.5 px-3 text-right tabular-nums font-medium text-rose-700 dark:text-rose-400">
                                     {{ $out->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($out->qty_rusak) . ' ' . $out->produk?->satuan : '-' }}
                                 </td>
-                                <td class="py-2.5 px-3 text-center font-mono font-bold">
+                                <td class="py-2.5 px-3 text-center tabular-nums font-medium">
                                     {{ $out->yield() !== null ? number_format($out->yield(), 1) . '%' : '-' }}
                                 </td>
                             </tr>
@@ -160,7 +185,7 @@
             @endphp
             <x-card title="Alokasi Bahan Baku (BOM Explode)" :subtitle="$alokasiSubtitle" :noPadding="true">
                 <x-slot:tools>
-                    <span class="text-xs text-muted-foreground font-mono font-medium">{{ $batch->alokasi->count() }} komponen resep</span>
+                    <span class="text-xs text-muted-foreground tabular-nums font-medium">{{ $batch->alokasi->count() }} komponen resep</span>
                 </x-slot:tools>
 
                 <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Tabel Alokasi Bahan Baku">
@@ -197,15 +222,15 @@
                             @endphp
                             <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition">
                                 <td class="py-2.5 px-3.5">
-                                    <div class="font-bold text-[#101828] dark:text-white">{{ $a->bahan->nama }}</div>
-                                    <div class="font-mono text-[11px] text-text-muted">{{ $a->bahan->sku }}</div>
+                                    <div class="font-medium text-[#101828] dark:text-white">{{ $a->bahan->nama }}</div>
+                                    <div class="tabular-nums text-[11px] text-text-muted">{{ $a->bahan->sku }}</div>
                                 </td>
                                 @if($isBatchSelesai)
-                                <td class="py-2.5 px-3 text-right font-semibold text-[#101828] dark:text-white whitespace-nowrap font-mono tabular-nums">
+                                <td class="py-2.5 px-3 text-right font-medium text-[#101828] dark:text-white whitespace-nowrap tabular-nums">
                                     {{ \App\Helpers\NumberHelper::formatQty($audit['qty_issued'] ?? $a->qty_dialokasikan) }}
                                     <span class="text-text-muted font-sans font-normal">{{ $satuan }}</span>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium text-text-active whitespace-nowrap font-mono tabular-nums">
+                                <td class="py-2.5 px-3 text-right font-medium text-text-active whitespace-nowrap tabular-nums">
                                     @if($audit && $audit['saldo_pasca_issue'] !== null)
                                         {{ \App\Helpers\NumberHelper::formatQty($audit['saldo_pasca_issue']) }}
                                         <span class="text-text-muted font-sans font-normal">{{ $satuan }}</span>
@@ -213,12 +238,12 @@
                                         <span class="text-text-muted font-sans">-</span>
                                     @endif
                                 </td>
-                                <td class="py-2.5 px-3 text-text-muted whitespace-nowrap font-mono text-[11px]">
+                                <td class="py-2.5 px-3 text-text-muted whitespace-nowrap tabular-nums text-[11px]">
                                     {{ $audit && $audit['released_at'] ? $audit['released_at']->format('d/m/Y H:i') : '-' }}
                                 </td>
                                 <td class="py-2.5 px-3 text-right whitespace-nowrap">
                                     @if($audit && $audit['has_opname'])
-                                        <div class="font-semibold text-[#101828] dark:text-white font-mono tabular-nums">
+                                        <div class="font-medium text-[#101828] dark:text-white tabular-nums">
                                             {{ \App\Helpers\NumberHelper::formatQty($audit['opname_aktual']) }}
                                             <span class="text-text-muted font-sans font-normal">{{ $satuan }}</span>
                                         </div>
@@ -226,11 +251,11 @@
                                             $variance = (float) ($audit['opname_variance'] ?? 0);
                                         @endphp
                                         @if(abs($variance) < 0.0001)
-                                            <span class="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">Sesuai BOM</span>
+                                            <span class="text-[10px] font-medium text-foreground dark:text-foreground">Sesuai BOM</span>
                                         @elseif($variance > 0)
-                                            <span class="text-[10px] font-semibold text-amber-700 dark:text-amber-400 font-mono">+{{ \App\Helpers\NumberHelper::formatQty($variance) }} {{ $satuan }}</span>
+                                            <span class="text-[10px] font-medium text-foreground dark:text-foreground tabular-nums">+{{ \App\Helpers\NumberHelper::formatQty($variance) }} {{ $satuan }}</span>
                                         @else
-                                            <span class="text-[10px] font-semibold text-sky-700 dark:text-sky-400 font-mono">-{{ \App\Helpers\NumberHelper::formatQty(abs($variance)) }} {{ $satuan }}</span>
+                                            <span class="text-[10px] font-medium text-foreground dark:text-foreground tabular-nums">-{{ \App\Helpers\NumberHelper::formatQty(abs($variance)) }} {{ $satuan }}</span>
                                         @endif
                                     @else
                                         <span class="text-text-muted">Belum opname</span>
@@ -244,7 +269,7 @@
                                     @endif
                                 </td>
                                 @else
-                                <td class="py-2.5 px-3 text-right font-semibold text-[#101828] dark:text-white">
+                                <td class="py-2.5 px-3 text-right font-medium text-[#101828] dark:text-white">
                                     {{ \App\Helpers\NumberHelper::formatQty($a->qty_dialokasikan) }}
                                     <span class="text-text-muted font-normal">{{ $satuan }}</span>
                                 </td>
@@ -256,7 +281,7 @@
                                         -
                                     @endif
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium {{ ($w['stok_rencana'] ?? 0) < 0 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-text-active' }}">
+                                <td class="py-2.5 px-3 text-right font-medium {{ ($w['stok_rencana'] ?? 0) < 0 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-text-active' }}">
                                     @if($w)
                                         {{ \App\Helpers\NumberHelper::formatQty($w['stok_rencana']) }}
                                         <span class="text-gray-400 font-normal">{{ $satuan }}</span>
@@ -289,7 +314,7 @@
                                 </td>
                                 @endif
                                 <td class="py-2.5 px-3.5 text-center whitespace-nowrap">
-                                    <a href="{{ route('stok.ledger', $a->bahan_id) }}" class="text-foreground hover:underline text-xs font-semibold">
+                                    <a href="{{ route('stok.ledger', $a->bahan_id) }}" class="text-foreground hover:underline text-xs font-medium">
                                         Kartu Stok &rarr;
                                     </a>
                                 </td>
@@ -329,19 +354,19 @@
                             @endphp
                             <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition">
                                 <td class="py-2.5 px-3.5">
-                                    <div class="font-bold text-[#101828] dark:text-white">{{ $rb['nama'] }}</div>
-                                    <div class="font-mono text-[11px] text-text-muted">{{ $rb['sku'] }}</div>
+                                    <div class="font-medium text-[#101828] dark:text-white">{{ $rb['nama'] }}</div>
+                                    <div class="tabular-nums text-[11px] text-text-muted">{{ $rb['sku'] }}</div>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-semibold text-[#101828] dark:text-white">
+                                <td class="py-2.5 px-3 text-right font-medium text-[#101828] dark:text-white">
                                     {{ \App\Helpers\NumberHelper::formatQty($rb['kebutuhan']) }} {{ $rb['satuan'] }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium text-blue-700 dark:text-blue-400">
+                                <td class="py-2.5 px-3 text-right font-medium text-foreground dark:text-foreground">
                                     {{ \App\Helpers\NumberHelper::formatQty($rb['diminta']) }} {{ $rb['satuan'] }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-bold text-emerald-700 dark:text-emerald-400">
+                                <td class="py-2.5 px-3 text-right font-medium text-foreground dark:text-foreground">
                                     {{ \App\Helpers\NumberHelper::formatQty($rb['diterima']) }} {{ $rb['satuan'] }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium {{ $sisa > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-text-muted' }}">
+                                <td class="py-2.5 px-3 text-right font-medium {{ $sisa > 0 ? 'text-foreground dark:text-foreground' : 'text-text-muted' }}">
                                     {{ $sisa > 0 ? \App\Helpers\NumberHelper::formatQty($sisa) . ' ' . $rb['satuan'] : 'Terpenuhi' }}
                                 </td>
                                 <td class="py-2.5 px-3 text-center">
@@ -371,46 +396,46 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
                         <thead>
-                            <tr class="bg-muted/70 border-b border-border text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
-                                <th class="py-2.5 px-3.5">Jenis Dokumen</th>
-                                <th class="py-2.5 px-3">Nomor Transaksi</th>
-                                <th class="py-2.5 px-3">Gudang Asal</th>
-                                <th class="py-2.5 px-3">Gudang Tujuan</th>
-                                <th class="py-2.5 px-3 text-center">Status</th>
-                                <th class="py-2.5 px-3 text-center">Aksi</th>
+                            <tr class="bg-[#f8fafb] dark:bg-gray-800/95 border-b border-[#e8e8e8] dark:border-border text-text-muted font-normal text-xs sm:text-[13px]">
+                                <th class="py-2.5 px-3.5 font-normal">Jenis Dokumen</th>
+                                <th class="py-2.5 px-3 font-normal">Nomor Transaksi</th>
+                                <th class="py-2.5 px-3 font-normal">Gudang Asal</th>
+                                <th class="py-2.5 px-3 font-normal">Gudang Tujuan</th>
+                                <th class="py-2.5 px-3 text-center font-normal">Status</th>
+                                <th class="py-2.5 px-3 text-center font-normal">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-border">
+                        <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             @foreach($batch->stockRequests as $sr)
-                            <tr class="hover:bg-muted/30 transition">
-                                <td class="py-2 px-3.5 font-medium text-amber-700">Request Permintaan</td>
-                                <td class="py-2 px-3 font-mono font-bold text-foreground">{{ $sr->no_request }}</td>
-                                <td class="py-2 px-3 text-muted-foreground">{{ $sr->gudangPemohon?->nama ?? '-' }}</td>
-                                <td class="py-2 px-3 text-muted-foreground">{{ $sr->gudangTujuan?->nama ?? '-' }}</td>
+                            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition">
+                                <td class="py-2 px-3.5 font-medium text-foreground dark:text-foreground">Request Permintaan</td>
+                                <td class="py-2 px-3 tabular-nums font-medium text-[#101828] dark:text-white">{{ $sr->no_request }}</td>
+                                <td class="py-2 px-3 text-text-muted">{{ $sr->gudangPemohon?->nama ?? '-' }}</td>
+                                <td class="py-2 px-3 text-text-muted">{{ $sr->gudangTujuan?->nama ?? '-' }}</td>
                                 <td class="py-2 px-3 text-center">
-                                    <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                    <x-badge variant="warning" size="xs">
                                         {{ ucfirst($sr->status) }}
-                                    </span>
+                                    </x-badge>
                                 </td>
                                 <td class="py-2 px-3 text-center">
-                                    <a href="{{ route('requests.show', $sr) }}" class="text-primary hover:underline font-semibold text-xs">Detail &rarr;</a>
+                                    <a href="{{ route('requests.show', $sr) }}" class="text-text-active hover:underline font-medium text-xs">Detail &rarr;</a>
                                 </td>
                             </tr>
                             @endforeach
 
                             @foreach($batch->modernTransfers as $trf)
-                            <tr class="hover:bg-muted/30 transition">
-                                <td class="py-2 px-3.5 font-medium text-blue-700">Transfer Modern</td>
-                                <td class="py-2 px-3 font-mono font-bold text-foreground">{{ $trf->no_transaksi }}</td>
-                                <td class="py-2 px-3 text-muted-foreground">{{ $trf->gudangAsal?->nama ?? '-' }}</td>
-                                <td class="py-2 px-3 text-muted-foreground">{{ $trf->gudangTujuan?->nama ?? '-' }}</td>
+                            <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition">
+                                <td class="py-2 px-3.5 font-medium text-foreground dark:text-foreground">Transfer Modern</td>
+                                <td class="py-2 px-3 tabular-nums font-medium text-[#101828] dark:text-white">{{ $trf->no_transaksi }}</td>
+                                <td class="py-2 px-3 text-text-muted">{{ $trf->gudangAsal?->nama ?? '-' }}</td>
+                                <td class="py-2 px-3 text-text-muted">{{ $trf->gudangTujuan?->nama ?? '-' }}</td>
                                 <td class="py-2 px-3 text-center">
-                                    <span class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                                    <x-badge variant="info" size="xs">
                                         {{ ucfirst($trf->status) }}
-                                    </span>
+                                    </x-badge>
                                 </td>
                                 <td class="py-2 px-3 text-center">
-                                    <a href="{{ route('transfers.show', $trf) }}" class="text-primary hover:underline font-semibold text-xs">Detail &rarr;</a>
+                                    <a href="{{ route('transfers.show', $trf) }}" class="text-text-active hover:underline font-medium text-xs">Detail &rarr;</a>
                                 </td>
                             </tr>
                             @endforeach
@@ -470,10 +495,10 @@
                             <tr x-data="batchOutputSync({{ $targetOut }}, {{ (int) $defaultBaikOut }}, {{ (int) $defaultRusakOut }})">
                                 <td class="py-2.5 px-3 font-medium text-[#101828] dark:text-white">
                                     <input type="hidden" name="outputs[{{ $index }}][id]" value="{{ $out->id }}">
-                                    <div class="font-bold">{{ $out->produk?->nama }}</div>
-                                    <div class="font-mono text-[10px] text-text-muted">{{ $out->produk?->sku }}</div>
+                                    <div class="font-medium">{{ $out->produk?->nama }}</div>
+                                    <div class="tabular-nums text-[10px] text-text-muted">{{ $out->produk?->sku }}</div>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono text-text-muted whitespace-nowrap">
+                                <td class="py-2.5 px-3 text-right tabular-nums text-text-muted whitespace-nowrap">
                                     {{ \App\Helpers\NumberHelper::formatQty($out->qty_rencana) }} {{ $out->produk?->satuan }}
                                 </td>
                                 <td class="py-2.5 px-3 text-right">
@@ -486,7 +511,7 @@
                                         x-model.number="baik"
                                         @input="syncFromBaik()"
                                         onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                        class="w-full text-right rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none font-mono"
+                                        class="w-full text-right rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums"
                                         required
                                     >
                                 </td>
@@ -500,15 +525,15 @@
                                         x-model.number="rusak"
                                         @input="syncFromRusak()"
                                         onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                        class="w-full text-right rounded-sm border-gray-300 text-xs py-1 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono"
+                                        class="w-full text-right rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums"
                                         required
                                     >
                                 </td>
                                 <td class="py-2 px-3 text-center whitespace-nowrap">
-                                    <span x-show="(baik + rusak) === target" class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-xs border border-emerald-200 font-mono">
+                                    <span x-show="(baik + rusak) === target" class="inline-flex items-center gap-1 text-[11px] font-medium text-foreground bg-card dark:bg-card dark:text-foreground px-2 py-0.5 rounded-[6px] border border-border dark:border-border tabular-nums">
                                         &check; Pas (<span x-text="target"></span>)
                                     </span>
-                                    <span x-show="(baik + rusak) !== target" class="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-xs border border-rose-200 font-mono" x-cloak>
+                                    <span x-show="(baik + rusak) !== target" class="inline-flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-400 px-2 py-0.5 rounded-[6px] border border-rose-200 dark:border-rose-500/20 tabular-nums" x-cloak>
                                         &times; <span x-text="baik + rusak"></span>/<span x-text="target"></span>
                                     </span>
                                 </td>
@@ -528,7 +553,7 @@
                                 <input type="hidden" name="outputs[0][id]" value="{{ $batch->outputs->first()->id }}">
                             @endif
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                <label class="block text-xs font-medium text-text-active mb-1">
                                     Qty Baik ({{ $batch->produk?->satuan ?? 'Pcs' }}) <span class="text-rose-500">*</span>
                                 </label>
                                 <input
@@ -540,12 +565,12 @@
                                     x-model.number="baik"
                                     @input="syncFromBaik()"
                                     onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                    class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-right"
+                                    class="w-full rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums text-right"
                                     required
                                 >
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                <label class="block text-xs font-medium text-text-active mb-1">
                                     Qty Rusak ({{ $batch->produk?->satuan ?? 'Pcs' }})
                                 </label>
                                 <input
@@ -557,30 +582,30 @@
                                     x-model.number="rusak"
                                     @input="syncFromRusak()"
                                     onkeydown="if(event.key === '.' || event.key === ',') event.preventDefault()"
-                                    class="w-full rounded-sm border-gray-300 text-xs py-1.5 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-right"
+                                    class="w-full rounded-[6px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-1.5 px-2 focus:border-[#111111] dark:focus:border-white outline-none tabular-nums text-right"
                                     required
                                 >
                             </div>
                             <div>
-                                <x-button type="submit" variant="success" size="sm" class="w-full">
+                                <x-button type="submit" variant="primary" size="sm" class="w-full">
                                     Simpan Hasil Batch
                                 </x-button>
                             </div>
                         </div>
-                        <div class="flex items-center justify-between text-[11px] text-gray-500 px-0.5 mt-1.5">
-                            <span>Target Rencana: <strong class="font-mono text-gray-800">{{ $targetRencana }} {{ $batch->produk?->satuan ?? 'Pcs' }}</strong></span>
-                            <span :class="(baik + rusak) === target ? 'text-emerald-700 font-semibold' : 'text-rose-600 font-bold'">
-                                Total Input: <span class="font-mono" x-text="baik + rusak"></span> / <span class="font-mono" x-text="target"></span>
-                                <span x-show="(baik + rusak) === target" class="text-emerald-600 ml-1">&check; Pas</span>
-                                <span x-show="(baik + rusak) !== target" class="text-rose-600 ml-1">&times; Wajib sama dengan target</span>
+                        <div class="flex items-center justify-between text-[11px] text-text-muted px-0.5 mt-1.5">
+                            <span>Target Rencana: <strong class="tabular-nums text-text-active">{{ $targetRencana }} {{ $batch->produk?->satuan ?? 'Pcs' }}</strong></span>
+                            <span :class="(baik + rusak) === target ? 'text-foreground dark:text-foreground font-medium' : 'text-rose-600 dark:text-rose-400 font-medium'">
+                                Total Input: <span class="tabular-nums" x-text="baik + rusak"></span> / <span class="tabular-nums" x-text="target"></span>
+                                <span x-show="(baik + rusak) === target" class="text-foreground dark:text-foreground ml-1">&check; Pas</span>
+                                <span x-show="(baik + rusak) !== target" class="text-rose-600 dark:text-rose-400 ml-1">&times; Wajib sama dengan target</span>
                             </span>
                         </div>
                     </div>
                     @endif
                     @if($batch->outputs->count() > 1)
                     <div class="flex justify-end pt-2">
-                        <x-button type="submit" variant="success" size="sm">
-                            Simpan Hasil Batch & Selesaikan
+                        <x-button type="submit" variant="primary" size="sm">
+                            Simpan Hasil Batch &amp; Selesaikan
                         </x-button>
                     </div>
                     @endif
@@ -615,7 +640,7 @@
                                     <input type="hidden" name="items[{{ $index }}][bahan_id]" value="{{ $a->bahan_id }}">
                                     {{ $a->bahan->nama }}
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono text-text-muted">
+                                <td class="py-2.5 px-3 text-right tabular-nums text-text-muted">
                                     {{ rtrim(rtrim(number_format($a->qty_dialokasikan, 2, ',', '.'), '0'), ',') }} {{ $a->bahan->satuan }}
                                 </td>
                                 <td class="py-2.5 px-3 text-right">
@@ -649,8 +674,8 @@
                             @forelse($batch->opname as $op)
                             <tr>
                                 <td class="py-2.5 px-3 font-medium text-[#101828] dark:text-white">{{ $op->bahan?->nama }}</td>
-                                <td class="py-2.5 px-3 text-right font-mono text-text-muted">{{ rtrim(rtrim(number_format($op->pemakaian_teoritis, 2, ',', '.'), '0'), ',') }}</td>
-                                <td class="py-2.5 px-3 text-right font-mono font-semibold text-[#101828] dark:text-white">{{ rtrim(rtrim(number_format($op->pemakaian_aktual, 2, ',', '.'), '0'), ',') }}</td>
+                                <td class="py-2.5 px-3 text-right tabular-nums text-text-muted">{{ rtrim(rtrim(number_format($op->pemakaian_teoritis, 2, ',', '.'), '0'), ',') }}</td>
+                                <td class="py-2.5 px-3 text-right tabular-nums font-medium text-[#101828] dark:text-white">{{ rtrim(rtrim(number_format($op->pemakaian_aktual, 2, ',', '.'), '0'), ',') }}</td>
                                 <td class="py-2.5 px-3 text-text-muted">{{ $op->keterangan ?? '-' }}</td>
                             </tr>
                             @empty
@@ -671,27 +696,27 @@
             <x-card title="Hasil QC & Produksi" variant="primary">
                 <div class="grid grid-cols-2 gap-2.5">
                     <div class="bg-[#FBFBFB] dark:bg-gray-800/50 p-3 rounded-[8px] border border-[#e8e8e8] dark:border-border">
-                        <p class="text-[11px] font-semibold text-text-muted uppercase">Qty Baik</p>
-                        <p class="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 tabular-nums">
+                        <p class="text-[11px] font-medium text-text-muted uppercase">Qty Baik</p>
+                        <p class="text-xl font-medium text-foreground dark:text-foreground mt-0.5 tabular-nums">
                             {{ $batch->qty_baik !== null ? \App\Helpers\NumberHelper::formatQty($batch->qty_baik) : '-' }}
                         </p>
                     </div>
                     <div class="bg-[#FBFBFB] dark:bg-gray-800/50 p-3 rounded-[8px] border border-[#e8e8e8] dark:border-border">
-                        <p class="text-[11px] font-semibold text-text-muted uppercase">Qty Rusak</p>
-                        <p class="text-xl font-bold text-red-600 dark:text-red-400 mt-0.5 tabular-nums">
+                        <p class="text-[11px] font-medium text-text-muted uppercase">Qty Rusak</p>
+                        <p class="text-xl font-medium text-red-600 dark:text-red-400 mt-0.5 tabular-nums">
                             {{ $batch->qty_rusak !== null ? \App\Helpers\NumberHelper::formatQty($batch->qty_rusak) : '-' }}
                         </p>
                     </div>
                 </div>
                 <div class="pt-2.5 mt-2.5 border-t border-[#e8e8e8] dark:border-border flex items-center justify-between text-xs">
                     <span class="text-text-muted">Yield QC</span>
-                    <span class="font-bold text-[#101828] dark:text-white font-mono">
+                    <span class="font-medium text-[#101828] dark:text-white tabular-nums">
                         {{ $batch->yield() !== null ? number_format($batch->yield(), 1) . '%' : '-' }}
                     </span>
                 </div>
                 <div class="flex items-center justify-between text-xs pt-1">
                     <span class="text-text-muted">Defect Rate</span>
-                    <span class="font-bold text-[#101828] dark:text-white font-mono">
+                    <span class="font-medium text-[#101828] dark:text-white tabular-nums">
                         {{ $batch->defectRate() !== null ? number_format($batch->defectRate(), 1) . '%' : '-' }}
                     </span>
                 </div>
@@ -737,12 +762,51 @@
                     @endcan
 
                     @can('batch.cancel')
-                    <form method="POST" action="{{ route('batches.cancel', $batch) }}" onsubmit="return confirm('Batalkan rencana batch ini? Alokasi bahan akan dilepas.');" class="pt-3 mt-3 border-t border-gray-100">
-                        @csrf
-                        <x-button type="submit" variant="link" size="xs" class="w-full text-rose-600 hover:text-rose-800">
+                    <div x-data="{ cancelOpen: false, submitting: false }"
+                         @keydown.escape.window="cancelOpen = false"
+                         class="pt-3 mt-3 border-t border-gray-100 dark:border-border">
+                        <button type="button" @click="cancelOpen = true" class="w-full py-1.5 text-xs font-medium text-rose-600 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300 transition cursor-pointer">
                             Batalkan Batch
-                        </x-button>
-                    </form>
+                        </button>
+
+                        <template x-teleport="body">
+                            <div x-effect="if (cancelOpen) $nextTick(() => document.getElementById('batch-cancel-keep')?.focus())">
+                                <x-modal name="cancelOpen" maxWidth="sm" bodyClass="bg-white dark:bg-gray-900 p-5 sm:p-6 text-sm text-text-base">
+                                    <div class="flex flex-col items-center gap-4 text-center">
+                                        <span class="size-11 rounded-full bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0" aria-hidden="true">
+                                            <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+                                        </span>
+                                        <div class="min-w-0 max-w-76 space-y-2 text-balance">
+                                            <h3 id="batch-cancel-title" class="text-base font-semibold text-text-active tracking-tight leading-snug">
+                                                Batalkan batch {{ $batch->no_batch }}?
+                                            </h3>
+                                            <p class="text-sm text-text-base leading-relaxed">
+                                                Alokasi bahan ({{ $batch->alokasi->count() }} komponen) akan dilepas dan status batch menjadi Dibatalkan.
+                                            </p>
+                                            <p class="text-xs text-text-muted leading-relaxed">
+                                                Stok fisik tidak terpengaruh, karena bahan baru ditarik saat Release &amp; Issue.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <form id="batch-cancel-form" method="POST" action="{{ route('batches.cancel', $batch) }}" @submit="submitting = true">
+                                        @csrf
+                                    </form>
+
+                                    <x-slot:footer>
+                                        <div class="w-full grid grid-cols-2 gap-2">
+                                        <button type="button" id="batch-cancel-keep" @click="cancelOpen = false" class="px-3.5 py-2 text-sm font-medium rounded-lg border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-text-active hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20 dark:focus-visible:ring-white/30">
+                                            Jangan batalkan
+                                        </button>
+                                        <button type="submit" form="batch-cancel-form" :disabled="submitting" class="px-3.5 py-2 text-sm font-medium rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
+                                            <span x-text="submitting ? 'Membatalkan…' : 'Batalkan batch'">Batalkan batch</span>
+                                        </button>
+                                        </div>
+                                    </x-slot:footer>
+                                </x-modal>
+                            </div>
+                        </template>
+                    </div>
                     @endcan
                 @endif
 
@@ -759,7 +823,7 @@
                             </x-slot:icon>
                             Buat Request Bahan (Kekurangan Stok)
                         </x-button>
-                        <p class="text-[10px] text-amber-600 text-center mt-1 font-medium">Bahan belum lengkap saat produksi berlangsung.</p>
+                        <p class="text-[10px] text-foreground text-center mt-1 font-medium">Bahan belum lengkap saat produksi berlangsung.</p>
                     </div>
                     @endcan
                     @endif
@@ -767,22 +831,22 @@
 
                 @if($batch->status === 'selesai')
                     @if($batch->transferKirim)
-                    <div class="py-3 px-3.5 bg-emerald-50 border border-emerald-200 rounded-sm text-xs">
+                    <div class="py-3 px-3.5 bg-card dark:bg-card border border-border dark:border-border rounded-[8px] text-xs">
                         <div class="flex items-center justify-between gap-2 mb-1.5">
-                            <span class="font-bold text-emerald-900 flex items-center gap-1.5">
-                                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span class="font-medium text-foreground dark:text-foreground flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-foreground dark:text-foreground shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Pengiriman Selesai
                             </span>
                             <x-badge variant="success" size="xs">
                                 {{ ucfirst($batch->transferKirim->status) }}
                             </x-badge>
                         </div>
-                        <p class="text-[11px] text-emerald-800 leading-relaxed">
-                            Produk jadi telah dikirim ke fulfillment hub via dokumen <a href="{{ route('transfers.show', $batch->transferKirim) }}" class="font-mono font-bold underline hover:text-emerald-950">{{ $batch->transferKirim->no_transaksi }}</a>.
+                        <p class="text-[11px] text-foreground dark:text-foreground leading-relaxed">
+                            Produk jadi telah dikirim ke fulfillment hub via dokumen <a href="{{ route('transfers.show', $batch->transferKirim) }}" class="tabular-nums font-medium underline hover:text-foreground dark:hover:text-foreground">{{ $batch->transferKirim->no_transaksi }}</a>.
                         </p>
-                        <div class="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between">
-                            <span class="text-[10px] text-emerald-700 font-mono">Tujuan: {{ $batch->gudangTujuan?->nama ?? 'Fulfillment' }}</span>
-                            <a href="{{ route('transfers.show', $batch->transferKirim) }}" class="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1">
+                        <div class="mt-2.5 pt-2 border-t border-border dark:border-border flex items-center justify-between">
+                            <span class="text-[10px] text-foreground dark:text-foreground tabular-nums">Tujuan: {{ $batch->gudangTujuan?->nama ?? 'Fulfillment' }}</span>
+                            <a href="{{ route('transfers.show', $batch->transferKirim) }}" class="text-xs font-medium text-foreground dark:text-foreground hover:text-foreground dark:hover:text-foreground flex items-center gap-1">
                                 Dokumen Transfer &rarr;
                             </a>
                         </div>
@@ -799,7 +863,7 @@
                             </x-button>
                         </form>
                         <div class="mt-2 text-center">
-                            <x-button href="{{ route('transfers.create', ['jenis' => 'kirim_produk_jadi', 'batch_id' => $batch->id]) }}" variant="info" size="sm" class="w-full">
+                            <x-button href="{{ route('transfers.create', ['jenis' => 'kirim_produk_jadi', 'batch_id' => $batch->id]) }}" variant="secondary" size="sm" class="w-full">
                                 Buat Transfer Produk Jadi
                             </x-button>
                         </div>
@@ -820,7 +884,7 @@
                 <div class="space-y-2 text-xs text-text-muted">
                     <div class="flex justify-between">
                         <span>No Batch</span>
-                        <span class="font-mono text-[#101828] dark:text-white font-semibold">{{ $batch->no_batch }}</span>
+                        <span class="tabular-nums text-[#101828] dark:text-white font-medium">{{ $batch->no_batch }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Tipe Produk</span>

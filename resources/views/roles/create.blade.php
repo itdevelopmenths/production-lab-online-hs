@@ -10,16 +10,16 @@
         <form action="{{ route('roles.store') }}" method="POST">
             @csrf
 
-            <div class="space-y-6">
+            <div class="space-y-4">
                 {{-- Form Metadata Peran (AppForm Shell) --}}
-                <div class="bg-[#F5F5F5] dark:bg-gray-950 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 sm:p-5 space-y-5">
-                    <x-form-section title="Informasi Identitas Peran" :cols="2">
+                <div class="bg-gray-50 dark:bg-gray-950 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-3 sm:p-4 space-y-3">
+                    <x-form-section card title="Informasi Identitas Peran" :cols="2">
                         <x-form-field name="display_name" label="Nama Tampilan" :required="true" help="Contoh: Supervisor Produksi, Staff QC Lab, Auditor Finansial">
                             <x-input name="display_name" id="display_name" variant="seamless" value="{{ old('display_name') }}" placeholder="misal: Supervisor QC Lab" :required="true" />
                         </x-form-field>
 
                         <x-form-field name="name" label="Kode Identifikasi (Key)" :required="true" help="Huruf kecil, angka, dan garis bawah (_). Digunakan untuk identifikasi wewenang.">
-                            <x-input name="name" id="name" variant="seamless" value="{{ old('name') }}" placeholder="misal: supervisor_qc" :required="true" class="font-mono" />
+                            <x-input name="name" id="name" variant="seamless" value="{{ old('name') }}" placeholder="misal: supervisor_qc" :required="true" class="tabular-nums" />
                         </x-form-field>
 
                         <div class="md:col-span-2">

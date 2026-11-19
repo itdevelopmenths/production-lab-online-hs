@@ -1151,18 +1151,48 @@ class AnalisaController extends Controller
     private function nextNoPo(): string
     {
         $year = now()->year;
-        $count = PurchaseOrder::whereYear('tanggal', $year)->count() + 1;
+        $prefix = "PO-{$year}-";
 
-        return sprintf('PO-%d-%04d', $year, $count);
+        $last = PurchaseOrder::where('no_po', 'like', $prefix . '%')
+            ->orderByDesc('no_po')
+            ->value('no_po');
+
+        $nextSeq = 1;
+        if ($last && preg_match('/-(\d+)$/', $last, $m)) {
+            $nextSeq = ((int) $m[1]) + 1;
+        }
+
+        do {
+            $candidate = sprintf('PO-%d-%04d', $year, $nextSeq);
+            if (! PurchaseOrder::where('no_po', $candidate)->exists()) {
+                return $candidate;
+            }
+            $nextSeq++;
+        } while (true);
     }
 
     private function nextNoInvoice(): string
     {
         $year = now()->format('Y');
         $month = now()->format('m');
-        $count = PurchaseOrder::whereYear('tanggal', now()->year)->whereMonth('tanggal', now()->month)->count() + 1;
+        $prefix = "INV/PO/{$year}{$month}/";
 
-        return sprintf('INV/PO/%s%s/%04d', $year, $month, $count);
+        $last = PurchaseOrder::where('no_invoice', 'like', $prefix . '%')
+            ->orderByDesc('no_invoice')
+            ->value('no_invoice');
+
+        $nextSeq = 1;
+        if ($last && preg_match('/\/(\d+)$/', $last, $m)) {
+            $nextSeq = ((int) $m[1]) + 1;
+        }
+
+        do {
+            $candidate = sprintf('INV/PO/%s%s/%04d', $year, $month, $nextSeq);
+            if (! PurchaseOrder::where('no_invoice', $candidate)->exists()) {
+                return $candidate;
+            }
+            $nextSeq++;
+        } while (true);
     }
 
     public function selectSupplier(Request $request): JsonResponse

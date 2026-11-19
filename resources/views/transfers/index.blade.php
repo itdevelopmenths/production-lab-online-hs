@@ -43,7 +43,7 @@
                         :aria-expanded="openDefect.toString()"
                         aria-controls="defect-rekap-panel"
                         class="h-8 px-3 rounded-[8px] border border-[#E8E8E8] dark:border-border bg-[#FBFBFB] dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs font-medium text-text-active inline-flex items-center gap-1.5 transition-colors cursor-pointer">
-                    <svg class="size-3.5 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <svg class="size-3.5 text-foreground dark:text-foreground shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <span x-text="openDefect ? 'Sembunyikan Rekap Defect' : 'Rekap Defect'"></span>
                     <svg class="size-3 text-text-muted transition-transform" :class="openDefect ? 'rotate-180' : ''" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
@@ -97,7 +97,7 @@
                     }
                 },
                 columns: [
-                    { data: 'no_transfer', name: 'no_transaksi', className: 'font-mono text-xs font-semibold text-primary-600' },
+                    { data: 'no_transfer', name: 'no_transaksi', className: 'tabular-nums text-xs font-medium text-primary-600' },
                     { data: 'tanggal_transfer', name: 'created_at' },
                     { data: 'jenis', name: 'jenis' },
                     { data: 'asal', name: 'gudangAsal.nama' },

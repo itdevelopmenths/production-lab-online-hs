@@ -57,7 +57,7 @@
                         <template x-if="produkId && gudangId">
                             <div class="p-4 bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                                 <div class="flex items-center justify-between mb-3">
-                                    <span class="text-xs font-semibold text-[#101828] dark:text-white flex items-center gap-1.5">
+                                    <span class="text-xs font-medium text-[#101828] dark:text-white flex items-center gap-1.5">
                                         <svg class="size-4 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                                         Monitoring Saldo Sistem & Estimasi Selisih
                                     </span>
@@ -70,13 +70,13 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
                                     <!-- Card 1: Stok di Sistem -->
                                     <div class="p-3.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-xl border border-[#E8E8E8] dark:border-gray-800">
-                                        <div class="text-[11px] font-semibold text-[#667085] dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                                             <span class="inline-block size-2 rounded-full bg-[#111111] dark:bg-white"></span>
                                             Stok di Sistem
                                         </div>
                                         <div class="mt-1.5 flex items-baseline gap-1.5">
-                                            <span class="text-xl font-bold font-mono text-[#101828] dark:text-white" x-text="hasFetched ? formatQty(systemQty) : '—'"></span>
-                                            <span class="text-xs font-mono text-[#667085] dark:text-gray-400 font-semibold uppercase" x-text="uom || 'Unit'"></span>
+                                            <span class="text-xl font-medium tabular-nums text-[#101828] dark:text-white" x-text="hasFetched ? formatQty(systemQty) : '—'"></span>
+                                            <span class="text-xs tabular-nums text-[#667085] dark:text-gray-400 font-medium uppercase" x-text="uom || 'Unit'"></span>
                                         </div>
                                         <div class="text-[10px] text-[#667085] dark:text-gray-400 mt-0.5">Saldo aktif tercatat sebelum opname</div>
                                     </div>
@@ -85,8 +85,8 @@
                                     <div class="p-3.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-xl border border-[#E8E8E8] dark:border-gray-800">
                                         <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Fisik Diinput</div>
                                         <div class="mt-1.5 flex items-baseline gap-1.5">
-                                            <span class="text-xl font-bold font-mono text-[#101828] dark:text-white" x-text="(physicalQty !== '' && physicalQty !== null) ? formatQty(physicalQty) : '—'"></span>
-                                            <span class="text-xs font-mono text-[#667085] dark:text-gray-400 font-semibold uppercase" x-text="uom || 'Unit'"></span>
+                                            <span class="text-xl font-medium tabular-nums text-[#101828] dark:text-white" x-text="(physicalQty !== '' && physicalQty !== null) ? formatQty(physicalQty) : '—'"></span>
+                                            <span class="text-xs tabular-nums text-[#667085] dark:text-gray-400 font-medium uppercase" x-text="uom || 'Unit'"></span>
                                         </div>
                                         <div class="text-[10px] text-[#667085] dark:text-gray-400 mt-0.5">Hasil hitung aktual yang akan diset</div>
                                     </div>
@@ -95,18 +95,18 @@
                                     <div class="p-3.5 bg-[#F5F5F5] dark:bg-gray-950 rounded-xl border border-[#E8E8E8] dark:border-gray-800 transition-colors">
                                         <div class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Estimasi Deviasi</div>
                                         <div class="mt-1.5 flex items-baseline gap-1.5">
-                                            <span class="text-xl font-bold font-mono"
+                                            <span class="text-xl font-medium tabular-nums"
                                                   :class="varianceClass()"
                                                   x-text="varianceText()"
                                             ></span>
-                                            <span class="text-xs font-mono text-[#667085] dark:text-gray-400 font-semibold uppercase" x-text="uom || 'Unit'"></span>
+                                            <span class="text-xs tabular-nums text-[#667085] dark:text-gray-400 font-medium uppercase" x-text="uom || 'Unit'"></span>
                                         </div>
                                         <div class="text-[10px] mt-0.5 font-medium">
                                             <template x-if="hasFetched && variance() !== null">
                                                 <span>
-                                                    <span x-show="varianceStatus() === 'zero'" class="text-emerald-600 dark:text-emerald-400 font-semibold">Saldo Fisik Sesuai Buku</span>
-                                                    <span x-show="varianceStatus() === 'surplus'" class="text-[#101828] dark:text-white font-semibold">Surplus / Fisik Lebih Banyak</span>
-                                                    <span x-show="varianceStatus() === 'deficit'" class="text-rose-600 dark:text-rose-400 font-semibold">Defisit / Fisik Kurang</span>
+                                                    <span x-show="varianceStatus() === 'zero'" class="text-foreground dark:text-foreground font-medium">Saldo Fisik Sesuai Buku</span>
+                                                    <span x-show="varianceStatus() === 'surplus'" class="text-[#101828] dark:text-white font-medium">Surplus / Fisik Lebih Banyak</span>
+                                                    <span x-show="varianceStatus() === 'deficit'" class="text-rose-600 dark:text-rose-400 font-medium">Defisit / Fisik Kurang</span>
                                                 </span>
                                             </template>
                                             <template x-if="!hasFetched || variance() === null">
@@ -129,14 +129,14 @@
                         <x-form-section title="Hasil Hitung Aktual & Justifikasi" subtitle="Masukkan volume fisik di rak dan alasan bila terdapat selisih">
                             <div class="space-y-4">
                                 <x-form-field name="qty_fisik" label="Kuantitas Fisik Aktual" :required="true" help="Jumlah total hasil stock counting fisik di rak/lokasi penyimpanan">
-                                    <x-input type="number" step="0.01" min="0" name="qty_fisik" x-model="physicalQty" variant="seamless" value="{{ old('qty_fisik') }}" placeholder="0.00" :required="true" class="pr-20 font-mono">
+                                    <x-input type="number" step="0.01" min="0" name="qty_fisik" x-model="physicalQty" variant="seamless" value="{{ old('qty_fisik') }}" placeholder="0.00" :required="true" class="pr-20 tabular-nums">
                                         <span class="absolute right-2.5 inset-y-0 flex items-center pointer-events-none">
-                                            <span class="px-2 py-0.5 text-[11px] font-mono font-bold text-[#101828] dark:text-white bg-gray-100 dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700 rounded-md uppercase tracking-wider" x-text="uom || 'Unit'"></span>
+                                            <span class="px-2 py-0.5 text-[11px] tabular-nums font-medium text-[#101828] dark:text-white bg-gray-100 dark:bg-gray-800 border border-[#E8E8E8] dark:border-gray-700 rounded-md uppercase tracking-wider" x-text="uom || 'Unit'"></span>
                                         </span>
                                     </x-input>
                                     <div x-show="hasFetched" class="mt-1.5 text-[11px] text-[#667085] dark:text-gray-400 flex items-center gap-1 font-medium">
                                         <span>Saldo sistem saat ini:</span>
-                                        <span class="font-mono font-bold text-[#101828] dark:text-white" x-text="formatQty(systemQty) + ' ' + (uom || 'Unit')"></span>
+                                        <span class="tabular-nums font-medium text-[#101828] dark:text-white" x-text="formatQty(systemQty) + ' ' + (uom || 'Unit')"></span>
                                         <span>— masukkan hasil hitung fisik di atas untuk mencatat selisih.</span>
                                     </div>
                                 </x-form-field>
@@ -237,7 +237,7 @@
 
             varianceClass() {
                 const status = this.varianceStatus();
-                if (status === 'zero') return 'text-emerald-600 dark:text-emerald-400';
+                if (status === 'zero') return 'text-foreground dark:text-foreground';
                 if (status === 'surplus') return 'text-foreground';
                 if (status === 'deficit') return 'text-destructive';
                 return 'text-muted-foreground';

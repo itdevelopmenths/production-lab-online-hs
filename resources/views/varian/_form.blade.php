@@ -1,6 +1,6 @@
 @php($v = $varian ?? null)
-<x-form-section title="Spesifikasi Varian" subtitle="Klasifikasi kategori induk dan penamaan varian">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<x-form-section card title="Spesifikasi Varian" subtitle="Klasifikasi kategori induk dan penamaan varian">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
         <x-form-field name="kategori_id" label="Kategori Produk" :required="true" help="Pilih kategori induk yang memayungi varian ini">
             <x-select name="kategori_id" variant="seamless" :required="true">
                 <option value="">— Pilih Kategori Produk —</option>

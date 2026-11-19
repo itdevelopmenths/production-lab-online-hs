@@ -63,7 +63,7 @@
                         <span class="size-8 rounded-[8px] bg-[#F9FAFB] dark:bg-gray-800 border border-[#E8E8E8] dark:border-border text-text-active flex items-center justify-center shrink-0 [&>svg]:size-4">{!! $icon !!}</span>
                     @endif
                     <div class="min-w-0">
-                        <h3 class="font-bold text-base text-text-active tracking-tight leading-snug truncate">{!! $title !!}</h3>
+                        <h3 class="font-semibold text-base text-text-active tracking-tight leading-snug truncate">{!! $title !!}</h3>
                         @if ($subtitle)
                             <p class="text-xs text-text-muted mt-0.5 leading-normal">{!! $subtitle !!}</p>
                         @endif

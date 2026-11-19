@@ -155,21 +155,21 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
     '{{ addslashes((string) $initialAbcId) }}',
     {{ Js::from($supplierListAll) }},
     {{ Js::from($initialSuppliers) }}
-)" class="space-y-4">
+)" class="space-y-3">
 
     <!-- Preview Box -->
     <div class="p-4 bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] flex flex-wrap items-center justify-between gap-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div>
-            <span class="text-[11px] font-bold text-[#667085] dark:text-gray-400 uppercase tracking-wider block">Pratinjau Nama Lengkap Produk:</span>
-            <span class="text-sm font-semibold text-[#101828] dark:text-white font-mono" x-text="fullNamePreview"></span>
+            <span class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider block">Pratinjau Nama Lengkap Produk:</span>
+            <span class="text-sm font-medium text-[#101828] dark:text-white tabular-nums" x-text="fullNamePreview"></span>
         </div>
         <div class="text-right">
             <span class="text-[11px] text-[#667085] dark:text-gray-400 block">Format: Kategori + Nama Dasar + Varian</span>
         </div>
     </div>
 
-    <x-form-section title="Identitas & Klasifikasi Produk" subtitle="Kategori, varian, SKU, tipe barang, dan satuan operasional">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <x-form-section card title="Identitas & Klasifikasi Produk" subtitle="Kategori, varian, SKU, tipe barang, dan satuan operasional">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
             {{-- Kategori Dropdown --}}
             <x-form-field name="kategori_id" label="Kategori Produk" :required="true" help="Pilih kategori induk produk">
                 <select
@@ -286,22 +286,22 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
     <div x-show="tipe !== 'produk_jadi'" x-transition class="border border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 rounded-[12px] p-4 sm:p-5 space-y-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8E8E8] dark:border-gray-800 pb-3">
             <div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-[#101828] dark:text-white flex items-center gap-2">
+                <h3 class="text-sm font-medium text-[#101828] dark:text-white flex items-center gap-2">
                     <svg class="size-4 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                    Daftar Supplier Pemasok (<span class="font-mono text-[#111111] dark:text-white">PRODUK_SUPPLIER</span>)
+                    Daftar Supplier Pemasok (<span class="tabular-nums text-[#111111] dark:text-white">PRODUK_SUPPLIER</span>)
                 </h3>
                 <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-0.5">Hubungkan vendor penyedia bahan baku/kemasan ini beserta status aktifnya.</p>
             </div>
             
             {{-- Dropdown tambah supplier --}}
             <div class="flex items-center gap-2">
-                <select x-model="selectedSupplierToAdd" class="h-9 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-[#F5F5F5] dark:bg-gray-950 px-2.5 py-1.5 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none">
+                <select x-model="selectedSupplierToAdd" class="h-9 text-xs rounded-lg border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-[#101828] dark:text-white focus:border-[#111111] dark:focus:border-white outline-none">
                     <option value="">— Pilih Supplier —</option>
                     <template x-for="s in allSuppliers" :key="s.id">
                         <option :value="s.id" x-text="s.nama + ' (' + (s.kategori || 'lokal').toUpperCase() + ')'" :disabled="assignedSuppliers.some(item => parseInt(item.supplier_id, 10) === parseInt(s.id, 10))"></option>
                     </template>
                 </select>
-                <button type="button" @click="addSupplier()" :disabled="!selectedSupplierToAdd" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[#111111] dark:bg-white text-white dark:text-[#111111] hover:bg-[#292929] dark:hover:bg-gray-100 disabled:opacity-50 transition-colors cursor-pointer">
+                <button type="button" @click="addSupplier()" :disabled="!selectedSupplierToAdd" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-[#111111] dark:bg-white text-white dark:text-[#111111] hover:bg-[#292929] dark:hover:bg-gray-100 disabled:opacity-50 transition-colors cursor-pointer">
                     <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Tambah
                 </button>
@@ -331,15 +331,15 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
                                 <input type="hidden" :name="'supplier_assignments[' + idx + '][status]'" :value="item.status">
                             </td>
                             <td class="px-3 py-2.5">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase border"
-                                      :class="item.kategori === 'impor' ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800/50' : 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/50'"
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase border"
+                                      :class="item.kategori === 'impor' ? 'bg-card dark:bg-card text-foreground dark:text-foreground border-border dark:border-border' : 'bg-card dark:bg-card text-foreground dark:text-foreground border-border dark:border-border'"
                                       x-text="item.kategori || 'lokal'">
                                 </span>
                             </td>
                             <td class="px-3 py-2.5 text-center">
                                 <button type="button" @click="toggleSupplierStatus(idx)" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors cursor-pointer"
-                                        :class="item.status === 'aktif' ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'">
-                                    <span class="size-1.5 rounded-full" :class="item.status === 'aktif' ? 'bg-emerald-500' : 'bg-gray-400'"></span>
+                                        :class="item.status === 'aktif' ? 'bg-card dark:bg-card text-foreground dark:text-foreground border-border dark:border-border' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'">
+                                    <span class="size-1.5 rounded-full" :class="item.status === 'aktif' ? 'bg-gray-400' : 'bg-gray-400'"></span>
                                     <span x-text="item.status === 'aktif' ? 'Aktif' : 'Nonaktif'"></span>
                                 </button>
                             </td>
@@ -361,7 +361,7 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
     </div>
 
     {{-- Status Aktif --}}
-    <x-form-section title="Status Aktivasi Katalog">
+    <x-form-section card title="Status Aktivasi Katalog">
         <x-checkbox name="is_active" label="Status Aktif Katalog" :checked="old('is_active', $p?->is_active ?? true)" help="Hanya produk aktif yang dapat dipilih dalam pembuatan PO dan Batch Produksi" />
     </x-form-section>
 </div>

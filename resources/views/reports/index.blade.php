@@ -20,7 +20,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2">
                             <h5 class="text-sm font-semibold text-[#101828] dark:text-white">Laporan Produksi & Yield</h5>
-                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-semibold">&rarr;</span>
+                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-medium">&rarr;</span>
                         </div>
                         <p class="text-xs text-[#667085] dark:text-gray-400 mt-1 leading-relaxed">Rekapitulasi batch selesai, perbandingan output baik vs rusak, dan persentase yield.</p>
                     </div>
@@ -33,7 +33,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2">
                             <h5 class="text-sm font-semibold text-[#101828] dark:text-white">Laporan Defect & Kerusakan</h5>
-                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-semibold">&rarr;</span>
+                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-medium">&rarr;</span>
                         </div>
                         <p class="text-xs text-[#667085] dark:text-gray-400 mt-1 leading-relaxed">Monitoring batch produksi dan transfer yang mengalami unit rusak/cacat serta defect rate.</p>
                     </div>
@@ -55,7 +55,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2">
                             <h5 class="text-sm font-semibold text-[#101828] dark:text-white">Pemakaian Bahan</h5>
-                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-semibold">&rarr;</span>
+                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-medium">&rarr;</span>
                         </div>
                         <p class="text-xs text-[#667085] dark:text-gray-400 mt-1 leading-relaxed">Akumulasi konsumsi bahan baku dan kemasan yang dikeluarkan untuk proses produksi.</p>
                     </div>
@@ -68,7 +68,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2">
                             <h5 class="text-sm font-semibold text-[#101828] dark:text-white">Variance Opname</h5>
-                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-semibold">&rarr;</span>
+                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-medium">&rarr;</span>
                         </div>
                         <p class="text-xs text-[#667085] dark:text-gray-400 mt-1 leading-relaxed">Analisis deviasi selisih pemakaian teoritis BOM vs realisasi aktual di lantai produksi.</p>
                     </div>
@@ -81,7 +81,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2">
                             <h5 class="text-sm font-semibold text-[#101828] dark:text-white">Pergerakan Fulfillment</h5>
-                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-semibold">&rarr;</span>
+                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-medium">&rarr;</span>
                         </div>
                         <p class="text-xs text-[#667085] dark:text-gray-400 mt-1 leading-relaxed">Log mutasi produk jadi antar gudang pusat dan hub fulfillment cabang.</p>
                     </div>
@@ -103,7 +103,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2">
                             <h5 class="text-sm font-semibold text-[#101828] dark:text-white">Purchasing & Hutang Dagang</h5>
-                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-semibold">&rarr;</span>
+                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-medium">&rarr;</span>
                         </div>
                         <p class="text-xs text-[#667085] dark:text-gray-400 mt-1 leading-relaxed">Rekapitulasi nilai komitmen purchase order, pembayaran termin, dan outstanding hutang.</p>
                     </div>
@@ -116,7 +116,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between gap-2">
                             <h5 class="text-sm font-semibold text-[#101828] dark:text-white">Laporan Lead Time Supplier</h5>
-                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-semibold">&rarr;</span>
+                            <span class="text-[#667085] dark:text-gray-400 group-hover:text-[#101828] dark:group-hover:text-white group-hover:translate-x-0.5 transition text-xs font-medium">&rarr;</span>
                         </div>
                         <p class="text-xs text-[#667085] dark:text-gray-400 mt-1 leading-relaxed">Analisis performa durasi pengiriman supplier 9-stage, deviasi per produk, dan histori PO.</p>
                     </div>

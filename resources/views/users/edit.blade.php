@@ -97,7 +97,7 @@
 
                         {{-- Mode Akses Gudang (LBAC) --}}
                         <div class="border-t border-[#E8E8E8] dark:border-gray-800 pt-5">
-                            <label class="block text-xs font-semibold text-text-active mb-1">
+                            <label class="block text-xs font-medium text-text-active mb-1">
                                 Lingkup Wilayah / Fasilitas Gudang (LBAC)
                             </label>
                             <p class="text-xs text-text-muted mb-4">
@@ -109,7 +109,7 @@
                                        :class="accessType === 'global' ? 'bg-neutral-100/80 dark:bg-gray-800/80 border-neutral-900 dark:border-white' : 'bg-white dark:bg-gray-900 border-[#E8E8E8] dark:border-gray-800 hover:border-gray-400 dark:hover:border-gray-600'">
                                     <input type="radio" name="warehouse_access_type" value="global" x-model="accessType" class="mt-0.5 text-neutral-900 dark:text-white focus:ring-0">
                                     <div class="ml-3">
-                                        <span class="block text-xs font-bold text-text-active">Akses Seluruh Gudang (Global)</span>
+                                        <span class="block text-xs font-medium text-text-active">Akses Seluruh Gudang (Global)</span>
                                         <span class="block text-[11px] text-text-muted mt-0.5 leading-normal">
                                             Pengguna bebas melihat stok dan membuat mutasi di semua fasilitas (Cocok untuk Manager, Direksi, Auditor).
                                         </span>
@@ -120,7 +120,7 @@
                                        :class="accessType === 'restricted' ? 'bg-neutral-100/80 dark:bg-gray-800/80 border-neutral-900 dark:border-white' : 'bg-white dark:bg-gray-900 border-[#E8E8E8] dark:border-gray-800 hover:border-gray-400 dark:hover:border-gray-600'">
                                     <input type="radio" name="warehouse_access_type" value="restricted" x-model="accessType" class="mt-0.5 text-neutral-900 dark:text-white focus:ring-0">
                                     <div class="ml-3">
-                                        <span class="block text-xs font-bold text-text-active">Dibatasi ke Fasilitas Tertentu</span>
+                                        <span class="block text-xs font-medium text-text-active">Dibatasi ke Fasilitas Tertentu</span>
                                         <span class="block text-[11px] text-text-muted mt-0.5 leading-normal">
                                             Pengguna hanya diizinkan melihat data pada gudang-gudang yang dicentang di bawah ini.
                                         </span>
@@ -131,9 +131,9 @@
                             {{-- Checklist Gudang per Tipe --}}
                             <div x-show="accessType === 'restricted'" x-transition class="space-y-4 bg-[#fafafa] dark:bg-gray-950 p-4 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs font-semibold text-text-active">Daftar Fasilitas Gudang yang Diizinkan:</span>
+                                    <span class="text-xs font-medium text-text-active">Daftar Fasilitas Gudang yang Diizinkan:</span>
                                     <span class="text-[11px] text-text-muted">
-                                        <span class="font-bold text-text-active font-mono" x-text="selectedGudangs.length"></span> gudang dipilih
+                                        <span class="font-medium text-text-active tabular-nums" x-text="selectedGudangs.length"></span> gudang dipilih
                                     </span>
                                 </div>
 
@@ -150,7 +150,7 @@
 
                                 @foreach($groupedGudangs as $groupTitle => $groupItems)
                                     <div class="bg-white dark:bg-gray-900 p-3.5 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800">
-                                        <div class="text-[11px] font-semibold text-text-active uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                                        <div class="text-[11px] font-medium text-text-active uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                                             <span class="size-1.5 rounded-full bg-neutral-900 dark:bg-white"></span>
                                             {{ $groupTitle }}
                                         </div>
@@ -168,10 +168,10 @@
                                                             <div class="text-xs font-medium text-text-active truncate flex items-center gap-1">
                                                                 <span>{{ $g->nama }}</span>
                                                                 @if($g->isPusat())
-                                                                    <span class="px-1.5 py-0.5 rounded-[6px] text-[9px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">Pusat</span>
+                                                                    <span class="px-1.5 py-0.5 rounded-[6px] text-[9px] font-medium bg-card text-foreground dark:text-foreground border border-border">Pusat</span>
                                                                 @endif
                                                             </div>
-                                                            <div class="text-[10px] text-text-muted font-mono">{{ $g->kode }}</div>
+                                                            <div class="text-[10px] text-text-muted tabular-nums">{{ $g->kode }}</div>
                                                         </div>
                                                     </label>
                                                     <div x-show="selectedGudangs.includes({{ $g->id }})" class="pl-2">
@@ -218,7 +218,7 @@
                             </div>
                             <button type="button" 
                                     @click="openDirectPerms = !openDirectPerms" 
-                                    class="text-xs font-semibold text-text-active underline whitespace-nowrap cursor-pointer ml-3">
+                                    class="text-xs font-medium text-text-active underline whitespace-nowrap cursor-pointer ml-3">
                                 <span x-text="openDirectPerms ? 'Tutup Matriks Izin' : 'Buka Matriks Wewenang Khusus'"></span>
                             </button>
                         </div>

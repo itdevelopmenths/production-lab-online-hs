@@ -52,7 +52,7 @@
                 type="button"
                 role="tab"
                 @click="activeTab = 'po'; $nextTick(() => { if (dtTable) dtTable.columns.adjust(); })"
-                :class="activeTab === 'po' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
+                :class="activeTab === 'po' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
                 class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
             >
                 <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -65,7 +65,7 @@
                 type="button"
                 role="tab"
                 @click="activeTab = 'ap'; $nextTick(() => { if (dtApTable) dtApTable.columns.adjust(); })"
-                :class="activeTab === 'ap' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
+                :class="activeTab === 'ap' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
                 class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
             >
                 <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
@@ -79,13 +79,13 @@
                 type="button"
                 role="tab"
                 @click="activeTab = 'approval'; $nextTick(() => { if (dtApprovalTable) dtApprovalTable.columns.adjust(); })"
-                :class="activeTab === 'approval' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
+                :class="activeTab === 'approval' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
                 class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
             >
                 <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Antrean Approval
                 @if($pendingApprovalCount > 0)
-                    <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[11px] font-semibold tabular-nums">
+                    <span class="bg-[#f3f4f6] dark:bg-gray-700 text-[#364153] dark:text-gray-200 px-[7px] py-px rounded-full text-[11px] font-medium tabular-nums">
                         {{ $pendingApprovalCount }}
                     </span>
                 @endif
@@ -97,7 +97,7 @@
                 type="button"
                 role="tab"
                 @click="activeTab = 'lead_time'; if (!leadTimeLoaded) { leadTimeLoaded = true; loadLeadTimeData(); }"
-                :class="activeTab === 'lead_time' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-semibold' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
+                :class="activeTab === 'lead_time' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white border border-[#e8e8e8] dark:border-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] font-medium' : 'bg-transparent text-[#6a7282] dark:text-gray-400 border border-transparent hover:text-[#101828] dark:hover:text-white hover:bg-black/[0.03] dark:hover:bg-white/[0.03] font-medium'"
                 class="px-[10px] sm:px-3 py-[4px] text-[13px] sm:text-[14px] leading-[20px] tracking-[-0.154px] gap-[6px] rounded-[6px] h-full inline-flex items-center whitespace-nowrap transition-all cursor-pointer select-none"
             >
                 <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -237,13 +237,13 @@
         @if($canSeeApprovalTab)
         <!-- TAB 3: Antrean Approval -->
         <div x-show="activeTab === 'approval'" x-cloak class="min-h-[480px] space-y-4">
-            <div class="p-3.5 bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-[12px] text-xs flex flex-wrap items-center justify-between gap-3 shadow-theme-xs">
-                <div class="flex items-center gap-2 text-amber-900 dark:text-amber-300">
-                    <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+            <div class="p-3.5 bg-card dark:bg-card border border-border dark:border-border rounded-[12px] text-xs flex flex-wrap items-center justify-between gap-3 shadow-theme-xs">
+                <div class="flex items-center gap-2 text-foreground dark:text-foreground">
+                    <span class="inline-block w-2 h-2 rounded-full bg-gray-400 animate-pulse shrink-0"></span>
                     <span>Antrean ini menyaring dokumen PO yang menunggu persetujuan otorisasi Manager (Stage 2 / Diajukan) dan usulan Revisi Komitmen PO.</span>
                 </div>
-                <div class="shrink-0 font-mono text-xs font-semibold text-amber-800 dark:text-amber-300">
-                    Total Menunggu: <span class="px-2 py-0.5 bg-amber-200/80 dark:bg-amber-500/20 rounded font-bold">{{ $pendingApprovalCount }}</span>
+                <div class="shrink-0 tabular-nums text-xs font-medium text-foreground dark:text-foreground">
+                    Total Menunggu: <span class="px-2 py-0.5 bg-card dark:bg-card rounded font-medium">{{ $pendingApprovalCount }}</span>
                 </div>
             </div>
 
@@ -253,7 +253,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs">
                         <thead>
-                            <tr class="bg-amber-50/80 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-amber-900 dark:text-amber-300 text-xs">
+                            <tr class="bg-card dark:bg-card border-b border-border dark:border-border text-foreground dark:text-foreground text-xs">
                                 <th class="px-3 py-2.5 text-left font-normal">No PO / Invoice</th>
                                 <th class="px-3 py-2.5 text-left font-normal">Supplier</th>
                                 <th class="px-3 py-2.5 text-left font-normal">Revisi Ke</th>
@@ -265,13 +265,13 @@
                         <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
                             @foreach($pendingRevisis as $rev)
                             <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition">
-                                <td class="px-3 py-2.5 font-mono font-bold text-[#101828] dark:text-white">
+                                <td class="px-3 py-2.5 tabular-nums font-medium text-[#101828] dark:text-white">
                                     {{ $rev->purchaseOrder?->no_invoice ?: $rev->purchaseOrder?->no_po }}
                                     <span class="block text-[10px] text-text-muted font-normal">PO: {{ $rev->purchaseOrder?->no_po }}</span>
                                 </td>
                                 <td class="px-3 py-2.5 text-[#101828] dark:text-gray-200">{{ $rev->purchaseOrder?->supplier?->nama ?? '—' }}</td>
-                                <td class="px-3 py-2.5 font-mono">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-500/30">
+                                <td class="px-3 py-2.5 tabular-nums">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-card dark:bg-card text-foreground dark:text-foreground border border-border dark:border-border">
                                         Rev #{{ $rev->revisi_ke }}
                                     </span>
                                 </td>
@@ -319,7 +319,7 @@
             {{-- Header & Sub-toolbar --}}
             <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-gray-900 p-4 rounded-[12px] border border-[#e8e8e8] dark:border-border shadow-theme-xs">
                 <div>
-                    <h3 class="text-sm font-bold text-[#101828] dark:text-white">Analisis Lead Time & Performa Supplier (PRD v2.4)</h3>
+                    <h3 class="text-sm font-semibold text-[#101828] dark:text-white">Analisis Lead Time & Performa Supplier (PRD v2.4)</h3>
                     <p class="text-xs text-text-muted mt-0.5">Ringkasan performa pemenuhan pesanan Level-1 (Supplier), Level-2 (Produk), Breakdown 8 Stage, dan Audit Log Transaksi</p>
                 </div>
                 <div>
@@ -412,7 +412,7 @@
         <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#e8e8e8] dark:border-border shadow-2xl max-w-2xl w-full overflow-hidden">
             <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#e8e8e8] dark:border-border flex items-center justify-between">
                 <div>
-                    <h3 class="text-base font-bold text-[#101828] dark:text-white tracking-tight">Breakdown Performa Stage</h3>
+                    <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Breakdown Performa Stage</h3>
                     <p class="text-xs text-text-muted" id="modalStageSupplierName">Supplier: —</p>
                 </div>
                 <button type="button" onclick="closeStageBreakdownModal()" class="text-text-muted hover:text-text-active p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">✕</button>
@@ -446,7 +446,7 @@
         <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#e8e8e8] dark:border-border shadow-2xl max-w-md w-full overflow-hidden">
             <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#e8e8e8] dark:border-border flex items-center justify-between">
                 <div>
-                    <h3 class="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5 tracking-tight">
+                    <h3 class="text-base font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5 tracking-tight">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         Batalkan Validitas Lead Time PO
                     </h3>
@@ -477,7 +477,7 @@
         <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#e8e8e8] dark:border-border shadow-2xl max-w-sm w-full overflow-hidden">
             <div class="px-4 py-3 bg-white dark:bg-gray-900 border-b border-[#e8e8e8] dark:border-border flex items-center justify-between">
                 <div>
-                    <h3 class="text-base font-bold text-[#101828] dark:text-white tracking-tight">Ubah Tanggal PO & ETA</h3>
+                    <h3 class="text-base font-semibold text-[#101828] dark:text-white tracking-tight">Ubah Tanggal PO & ETA</h3>
                     <p class="text-xs text-text-muted" id="modalPoNumber">PO-XXXX</p>
                 </div>
                 <button type="button" onclick="closeQuickDateModal()" class="text-text-muted hover:text-text-active p-1.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">✕</button>
@@ -519,24 +519,24 @@
             let label = data.replace(/_/g, ' ');
 
             if (norm.includes('batal')) {
-                badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 font-semibold';
+                badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 font-medium';
                 dotClass = 'bg-rose-500';
                 label = 'Batal';
             } else if (norm.includes('overdue')) {
-                badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 font-bold';
+                badgeClass = 'bg-rose-50 text-rose-700 border-rose-200 font-medium';
                 dotClass = 'bg-rose-600 animate-pulse';
                 label = 'Overdue';
             } else if (norm.includes('belum')) {
-                badgeClass = 'bg-amber-50 text-amber-800 border-amber-200 font-semibold';
-                dotClass = 'bg-amber-500';
+                badgeClass = 'bg-card text-foreground border-border font-medium';
+                dotClass = 'bg-gray-400';
                 label = 'Belum Lunas';
             } else if (norm.includes('parsial')) {
-                badgeClass = 'bg-blue-50 text-blue-700 border-blue-200 font-semibold';
-                dotClass = 'bg-blue-500';
+                badgeClass = 'bg-card text-foreground border-border font-medium';
+                dotClass = 'bg-gray-400';
                 label = 'Parsial';
             } else if (norm.includes('lunas')) {
-                badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold';
-                dotClass = 'bg-emerald-600';
+                badgeClass = 'bg-card text-foreground border-border font-medium';
+                dotClass = 'bg-gray-400';
                 label = 'Lunas';
             }
 
@@ -549,12 +549,12 @@
         function renderStatusPoBadge(data) {
             let color = 'bg-muted text-foreground border-border';
             let norm = (data || '').toLowerCase();
-            if (norm.includes('diajukan')) color = 'bg-amber-100 text-amber-800 border-amber-300';
+            if (norm.includes('diajukan')) color = 'bg-card text-foreground border-border';
             if (norm.includes('disetujui')) color = 'bg-primary/10 text-primary border-primary/20';
-            if (norm.includes('gudang')) color = 'bg-blue-100 text-blue-800 border-blue-200';
-            if (norm.includes('selesai')) color = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+            if (norm.includes('gudang')) color = 'bg-card text-foreground border-border';
+            if (norm.includes('selesai')) color = 'bg-card text-foreground border-border';
             if (norm.includes('batal')) color = 'bg-rose-100 text-rose-800 border-rose-200';
-            return `<span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${color}">${data}</span>`;
+            return `<span class="px-2 py-0.5 rounded text-[10px] font-medium border ${color}">${data}</span>`;
         }
 
         // ==========================================
@@ -582,15 +582,15 @@
                     render: function(data, type, row) {
                         let invTitle = data && data !== '—' ? data : row.no_po;
                         let sub = row.no_po && row.no_po !== invTitle ? `<span class="block text-[10px] text-muted-foreground font-normal">PO: ${row.no_po}</span>` : '';
-                        let revisiBadge = row.has_pending_revisi ? `<span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">Revisi Menunggu</span>` : '';
-                        return `<span class="font-mono font-bold text-foreground">${invTitle}</span>${sub}${revisiBadge}`;
+                        let revisiBadge = row.has_pending_revisi ? `<span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-medium bg-card text-foreground border border-border">Revisi Menunggu</span>` : '';
+                        return `<span class="tabular-nums font-medium text-foreground">${invTitle}</span>${sub}${revisiBadge}`;
                     }
                 },
                 { data: 'supplier_nama', orderable: false },
                 { data: 'gudang_nama', orderable: false },
-                { data: 'tanggal', className: 'font-mono' },
-                { data: 'eta', className: 'font-mono' },
-                { data: 'tgl_aktual_tiba', className: 'font-mono' },
+                { data: 'tanggal', className: 'tabular-nums' },
+                { data: 'eta', className: 'tabular-nums' },
+                { data: 'tgl_aktual_tiba', className: 'tabular-nums' },
                 {
                     data: 'status',
                     render: function(data) {
@@ -603,21 +603,21 @@
                     render: function(data, type, row) {
                         let state = row.stage_badge_state || 'berjalan';
                         let colorClass = 'bg-muted text-muted-foreground border-border';
-                        if (state === 'selesai') colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold';
-                        if (state === 'berjalan') colorClass = 'bg-blue-50 text-blue-700 border-blue-200 font-semibold';
-                        if (state === 'terlambat') colorClass = 'bg-rose-50 text-rose-700 border-rose-300 font-bold';
-                        if (state === 'dikembalikan') colorClass = 'bg-amber-50 text-amber-800 border-amber-300 font-bold';
+                        if (state === 'selesai') colorClass = 'bg-card text-foreground border-border font-medium';
+                        if (state === 'berjalan') colorClass = 'bg-card text-foreground border-border font-medium';
+                        if (state === 'terlambat') colorClass = 'bg-rose-50 text-rose-700 border-rose-300 font-medium';
+                        if (state === 'dikembalikan') colorClass = 'bg-card text-foreground border-border font-medium';
                         return `<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] border ${colorClass}">${data}</span>`;
                     }
                 },
                 {
                     data: 'sla',
                     orderable: false,
-                    className: 'font-mono text-xs',
+                    className: 'tabular-nums text-xs',
                     render: function(data, type, row) {
                         if (!data || data === '—') return '—';
                         if (row.stage_badge_state === 'terlambat' || String(data).includes('⚠️')) {
-                            return `<span class="text-rose-600 font-bold">${data}</span>`;
+                            return `<span class="text-rose-600 font-medium">${data}</span>`;
                         }
                         return `<span class="text-foreground">${data}</span>`;
                     }
@@ -661,44 +661,44 @@
                         render: function(data, type, row) {
                             let invTitle = data && data !== '—' ? data : row.no_po;
                             let sub = row.no_po && row.no_po !== invTitle ? `<span class="block text-[10px] text-muted-foreground font-normal">PO: ${row.no_po}</span>` : '';
-                            return `<span class="font-mono font-bold text-foreground">${invTitle}</span>${sub}`;
+                            return `<span class="tabular-nums font-medium text-foreground">${invTitle}</span>${sub}`;
                         }
                     },
                     { data: 'supplier_nama', orderable: false },
-                    { data: 'tanggal', className: 'font-mono' },
+                    { data: 'tanggal', className: 'tabular-nums' },
                     { data: 'skema_bayar' },
                     {
                         data: 'total_nilai',
-                        className: 'text-right font-mono text-foreground',
+                        className: 'text-right tabular-nums text-foreground',
                         render: function(data) { return `Rp ${data}`; }
                     },
                     {
                         data: 'total_dibayar',
-                        className: 'text-right font-mono text-emerald-600 font-semibold',
+                        className: 'text-right tabular-nums text-foreground font-medium',
                         render: function(data) { return `Rp ${data}`; }
                     },
                     {
                         data: 'sisa',
-                        className: 'text-right font-mono font-bold',
+                        className: 'text-right tabular-nums font-medium',
                         render: function(data, type, row) {
                             if (data === '—' || data === null || data === undefined) return '—';
                             const statusNorm = (row.status_pembayaran || '').toLowerCase().trim();
                             if (statusNorm.includes('batal')) {
-                                return `<span class="text-muted-foreground font-semibold font-mono">Rp 0</span>`;
+                                return `<span class="text-muted-foreground font-medium tabular-nums">Rp 0</span>`;
                             }
                             const isLunas = data === '0' || statusNorm === 'lunas';
                             if (isLunas) {
-                                return `<span class="text-emerald-600 font-semibold font-mono">Rp 0</span>`;
+                                return `<span class="text-foreground font-medium tabular-nums">Rp 0</span>`;
                             }
-                            return `<span class="text-rose-600 font-bold font-mono">Rp ${data}</span>`;
+                            return `<span class="text-rose-600 font-medium tabular-nums">Rp ${data}</span>`;
                         }
                     },
                     {
                         data: 'jatuh_tempo_terdekat',
-                        className: 'font-mono text-xs',
+                        className: 'tabular-nums text-xs',
                         render: function(data, type, row) {
                             if (row.status_pembayaran === 'overdue') {
-                                return `<span class="text-rose-600 font-bold inline-flex items-center gap-1">⚠️ ${data}</span>`;
+                                return `<span class="text-rose-600 font-medium inline-flex items-center gap-1">⚠️ ${data}</span>`;
                             }
                             return `<span class="text-foreground">${data}</span>`;
                         }
@@ -745,18 +745,18 @@
                     render: function(data, type, row) {
                         let invTitle = data && data !== '—' ? data : row.no_po;
                         let sub = row.no_po && row.no_po !== invTitle ? `<span class="block text-[10px] text-muted-foreground font-normal">PO: ${row.no_po}</span>` : '';
-                        return `<span class="font-mono font-bold text-amber-900">${invTitle}</span>${sub}`;
+                        return `<span class="tabular-nums font-medium text-foreground">${invTitle}</span>${sub}`;
                     }
                 },
                 { data: 'supplier_nama', orderable: false },
                 { data: 'gudang_nama', orderable: false },
-                { data: 'tanggal', className: 'font-mono' },
-                { data: 'eta', className: 'font-mono' },
+                { data: 'tanggal', className: 'tabular-nums' },
+                { data: 'eta', className: 'tabular-nums' },
                 {
                     data: 'status',
                     render: function(data, type, row) {
                         let label = row.stage_label || 'Menunggu Approval';
-                        return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">${label}</span>`;
+                        return `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-card text-foreground border border-border">${label}</span>`;
                     }
                 },
                 {
@@ -766,7 +766,7 @@
                     className: 'text-center',
                     render: function(data, type, row) {
                         return `<div class="flex items-center justify-center gap-1.5">
-                            <a href="{{ url('purchasing') }}/${row.id}" class="inline-flex items-center px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-semibold transition shadow-2xs">
+                            <a href="{{ url('purchasing') }}/${row.id}" class="inline-flex items-center px-2 py-1 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded text-[11px] font-medium transition shadow-2xs">
                                 Review & Approve &rarr;
                             </a>
                         </div>`;
@@ -795,7 +795,7 @@
             })
             .catch(err => {
                 console.error(err);
-                $('#bodyLtSupplier').html('<tr><td colspan="6" class="px-4 py-8 text-center text-rose-500 font-semibold">Gagal memuat data lead time supplier.</td></tr>');
+                $('#bodyLtSupplier').html('<tr><td colspan="6" class="px-4 py-8 text-center text-rose-500 font-medium">Gagal memuat data lead time supplier.</td></tr>');
             });
     }
 
@@ -808,14 +808,14 @@
         let html = '';
         suppliers.forEach(s => {
             html += `<tr class="hover:bg-muted/40 transition">
-                <td class="px-4 py-3 font-semibold text-foreground">${s.supplier_nama}</td>
+                <td class="px-4 py-3 font-medium text-foreground">${s.supplier_nama}</td>
                 <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground uppercase">${s.kategori || '—'}</span></td>
-                <td class="px-4 py-3 text-center font-mono font-bold">${s.jumlah_transaksi} PO</td>
-                <td class="px-4 py-3 text-right font-mono font-semibold text-foreground">
+                <td class="px-4 py-3 text-center tabular-nums font-medium">${s.jumlah_transaksi} PO</td>
+                <td class="px-4 py-3 text-right tabular-nums font-medium text-foreground">
                     ${s.average_lt_hari} hari
                     <span class="text-[10px] text-muted-foreground font-normal">(${s.average_lt_jam} jam)</span>
                 </td>
-                <td class="px-4 py-3 text-right font-mono font-bold text-amber-700">
+                <td class="px-4 py-3 text-right tabular-nums font-medium text-foreground">
                     ${s.max_lt_hari} hari
                 </td>
                 <td class="px-4 py-3 text-center">
@@ -838,15 +838,15 @@
         produkList.forEach(p => {
             html += `<tr class="hover:bg-muted/40 transition">
                 <td class="px-4 py-3 font-medium text-foreground">${p.supplier_nama}</td>
-                <td class="px-4 py-3 font-mono font-semibold text-primary">${p.sku}</td>
+                <td class="px-4 py-3 tabular-nums font-medium text-primary">${p.sku}</td>
                 <td class="px-4 py-3 font-medium text-foreground">${p.nama_produk}</td>
                 <td class="px-4 py-3 text-center text-muted-foreground uppercase text-[10px]">${p.satuan || '—'}</td>
-                <td class="px-4 py-3 text-center font-mono">${p.jumlah_transaksi} PO</td>
-                <td class="px-4 py-3 text-right font-mono font-semibold text-foreground">
+                <td class="px-4 py-3 text-center tabular-nums">${p.jumlah_transaksi} PO</td>
+                <td class="px-4 py-3 text-right tabular-nums font-medium text-foreground">
                     ${p.average_lt_hari} hari
                     <span class="text-[10px] text-muted-foreground font-normal">(${p.average_lt_jam} jam)</span>
                 </td>
-                <td class="px-4 py-3 text-right font-mono font-bold text-amber-700">${p.max_lt_hari} hari</td>
+                <td class="px-4 py-3 text-right tabular-nums font-medium text-foreground">${p.max_lt_hari} hari</td>
             </tr>`;
         });
         $('#bodyLtProduk').html(html);
@@ -861,27 +861,27 @@
         let html = '';
         transaksiList.forEach(t => {
             let statusBadge = t.is_valid
-                ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Valid</span>'
-                : `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200" title="${t.alasan_tidak_valid || ''}">Dibatalkan</span>`;
+                ? '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-card text-foreground border border-border">Valid</span>'
+                : `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-200" title="${t.alasan_tidak_valid || ''}">Dibatalkan</span>`;
 
             let actionBtn = '—';
             if (canInvalidateLt && t.is_valid) {
-                actionBtn = `<button type="button" onclick="openInvalidateLtModal('${t.po_id}', '${t.no_po}')" class="px-2 py-1 text-[11px] font-semibold text-destructive hover:bg-destructive/10 rounded transition cursor-pointer">
+                actionBtn = `<button type="button" onclick="openInvalidateLtModal('${t.po_id}', '${t.no_po}')" class="px-2 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/10 rounded transition cursor-pointer">
                     Invalidate
                 </button>`;
             }
 
             html += `<tr class="hover:bg-muted/40 transition">
-                <td class="px-3 py-2.5 font-mono font-bold text-foreground">
+                <td class="px-3 py-2.5 tabular-nums font-medium text-foreground">
                     <a href="{{ url('purchasing') }}/${t.po_id}" class="hover:underline text-primary">${t.no_invoice && t.no_invoice !== '—' ? t.no_invoice : t.no_po}</a>
                     <span class="block text-[10px] text-muted-foreground font-normal">PO: ${t.no_po}</span>
                 </td>
                 <td class="px-3 py-2.5 text-foreground">${t.supplier_nama}</td>
-                <td class="px-3 py-2.5 font-mono text-[11px] text-muted-foreground">${t.waktu_selesai}</td>
-                <td class="px-3 py-2.5 text-right font-mono font-bold text-foreground">${t.total_lt_hari} hr <span class="text-[10px] font-normal text-muted-foreground">(${t.total_lt_jam} j)</span></td>
-                <td class="px-3 py-2.5 text-right font-mono text-muted-foreground">${t.lt_internal_hari} hr</td>
-                <td class="px-3 py-2.5 text-right font-mono text-muted-foreground">${t.lt_supplier_hari} hr</td>
-                <td class="px-3 py-2.5 text-right font-mono text-muted-foreground">${t.lt_logistik_hari} hr</td>
+                <td class="px-3 py-2.5 tabular-nums text-[11px] text-muted-foreground">${t.waktu_selesai}</td>
+                <td class="px-3 py-2.5 text-right tabular-nums font-medium text-foreground">${t.total_lt_hari} hr <span class="text-[10px] font-normal text-muted-foreground">(${t.total_lt_jam} j)</span></td>
+                <td class="px-3 py-2.5 text-right tabular-nums text-muted-foreground">${t.lt_internal_hari} hr</td>
+                <td class="px-3 py-2.5 text-right tabular-nums text-muted-foreground">${t.lt_supplier_hari} hr</td>
+                <td class="px-3 py-2.5 text-right tabular-nums text-muted-foreground">${t.lt_logistik_hari} hr</td>
                 <td class="px-3 py-2.5 text-center">${statusBadge}</td>
                 <td class="px-3 py-2.5 text-center">${actionBtn}</td>
             </tr>`;
@@ -901,10 +901,10 @@
             supplierStages.forEach(st => {
                 rows += `<tr>
                     <td class="px-3 py-2.5 font-medium text-foreground">${st.stage_label}</td>
-                    <td class="px-3 py-2.5 text-center font-mono">${st.jumlah_transaksi} PO</td>
-                    <td class="px-3 py-2.5 text-right font-mono font-semibold">${st.average_hari} hr</td>
-                    <td class="px-3 py-2.5 text-right font-mono text-muted-foreground">${st.average_jam} j</td>
-                    <td class="px-3 py-2.5 text-right font-mono font-bold text-amber-700">${st.max_hari} hr</td>
+                    <td class="px-3 py-2.5 text-center tabular-nums">${st.jumlah_transaksi} PO</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-medium">${st.average_hari} hr</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums text-muted-foreground">${st.average_jam} j</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums font-medium text-foreground">${st.max_hari} hr</td>
                 </tr>`;
             });
         }
@@ -959,15 +959,15 @@
                         showConfirmButton: false
                     });
                 } else {
-                    alert(data.message);
+                    appDialog.alert(data.message, { tone: 'danger', title: 'Gagal' });
                 }
             } else {
-                alert(data.message || 'Gagal membatalkan validitas lead time.');
+                appDialog.alert(data.message || 'Gagal membatalkan validitas lead time.', { tone: 'danger', title: 'Gagal' });
             }
         })
         .catch(err => {
             btn.prop('disabled', false).text('Batalkan Validitas');
-            alert('Terjadi kesalahan koneksi.');
+            appDialog.alert('Terjadi kesalahan koneksi.', { tone: 'danger', title: 'Gagal' });
         });
     }
 
@@ -1018,15 +1018,15 @@
                         showConfirmButton: false
                     });
                 } else {
-                    alert(data.message);
+                    appDialog.alert(data.message, { tone: 'danger', title: 'Gagal' });
                 }
             } else {
-                alert(data.message || 'Gagal menyimpan perubahan.');
+                appDialog.alert(data.message || 'Gagal menyimpan perubahan.', { tone: 'danger', title: 'Gagal' });
             }
         })
         .catch(err => {
             btn.prop('disabled', false).text('Simpan Perubahan');
-            alert('Terjadi kesalahan koneksi.');
+            appDialog.alert('Terjadi kesalahan koneksi.', { tone: 'danger', title: 'Gagal' });
         });
     }
     </script>

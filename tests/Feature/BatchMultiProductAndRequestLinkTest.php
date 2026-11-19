@@ -214,5 +214,42 @@ class BatchMultiProductAndRequestLinkTest extends TestCase
         $this->assertStringContainsString(":class=\"open ? 'z-[9999]' : 'z-10'\"", $html);
         $this->assertStringContainsString('class="absolute left-0 top-full z-[9999] mt-1.5 w-full min-w-64 sm:min-w-80 max-w-[calc(100vw-2rem)]', $html);
     }
+
+    public function test_batch_creation_generates_unique_no_batch_without_collision(): void
+    {
+        $year = now()->year;
+        $pj = Produk::where('tipe', 'produk_jadi')->whereHas('bom')->firstOrFail();
+
+        // Simulasikan kondisi database seperti di server user di mana B-YYYY-0002 sudah ada
+        BatchProduksi::create([
+            'no_batch' => sprintf('B-%d-0002', $year),
+            'produk_id' => $pj->id,
+            'qty_rencana' => 50,
+            'gudang_operasional_id' => $this->gudangOp->id,
+            'status' => 'rencana',
+            'tanggal' => now(),
+            'created_by' => $this->operasional->id,
+        ]);
+
+        // Request POST /batch untuk membuat batch baru
+        $response = $this->actingAs($this->operasional)->post(route('batches.store'), [
+            'tanggal' => now()->format('Y-m-d'),
+            'gudang_operasional_id' => $this->gudangOp->id,
+            'outputs' => [
+                [
+                    'produk_id' => $pj->id,
+                    'qty_rencana' => 100,
+                    'catatan' => null,
+                ],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $newBatch = BatchProduksi::where('qty_rencana', 100)->latest('id')->first();
+        $this->assertNotNull($newBatch);
+        // Harus bernilai B-YYYY-0003 karena 0002 sudah ada
+        $this->assertEquals(sprintf('B-%d-0003', $year), $newBatch->no_batch);
+        $response->assertRedirect(route('batches.show', $newBatch));
+    }
 }
 

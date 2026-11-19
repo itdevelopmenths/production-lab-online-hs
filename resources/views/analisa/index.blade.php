@@ -15,7 +15,7 @@
                             </button>
 
                             <!-- Fase 1: Generate -->
-                            <button type="button" @click="generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-[#292929] dark:bg-white dark:hover:bg-gray-100 text-white dark:text-[#111111] disabled:opacity-50 text-xs font-semibold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors cursor-pointer" title="Generate working data analisa dari master">
+                            <button type="button" @click="generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-[#292929] dark:bg-white dark:hover:bg-gray-100 text-white dark:text-[#111111] disabled:opacity-50 text-xs font-medium rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors cursor-pointer" title="Generate working data analisa dari master">
                                 <svg x-show="!generating" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 <svg x-show="generating" class="animate-spin size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 <span x-text="generating ? 'Menghitung Engine...' : 'Generate Analisa'"></span>
@@ -29,7 +29,7 @@
                             @endcan
 
                             @can('analisa.create_po')
-                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-colors cursor-pointer">
+                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 text-xs font-medium rounded-xl shadow-sm transition-colors cursor-pointer">
                                 <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 <span>Buat PO (<span x-text="selectedOrderCount()"></span>)</span>
                             </button>
@@ -46,7 +46,7 @@
                             </button>
 
                             <!-- Fase 1: Generate -->
-                            <button type="button" @click="generateImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-[#292929] dark:bg-white dark:hover:bg-gray-100 text-white dark:text-[#111111] disabled:opacity-50 text-xs font-semibold rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors cursor-pointer" title="Generate working data analisa impor">
+                            <button type="button" @click="generateImpor()" :disabled="generating" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#111111] hover:bg-[#292929] dark:bg-white dark:hover:bg-gray-100 text-white dark:text-[#111111] disabled:opacity-50 text-xs font-medium rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-colors cursor-pointer" title="Generate working data analisa impor">
                                 <svg x-show="!generating" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 <svg x-show="generating" class="animate-spin size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 <span x-text="generating ? 'Menghitung Engine Impor...' : 'Generate Analisa Impor'"></span>
@@ -60,7 +60,7 @@
                             @endcan
 
                             @can('analisa.create_po')
-                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-colors cursor-pointer">
+                            <button type="button" @click="goToCreatePo()" x-show="selectedOrderCount() > 0" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 text-xs font-medium rounded-xl shadow-sm transition-colors cursor-pointer">
                                 <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 <span>Buat PO Impor (<span x-text="selectedOrderCount()"></span>)</span>
                             </button>
@@ -85,7 +85,7 @@
                 <template x-for="t in tabs" :key="t.key">
                     <button type="button"
                         @click="tab = t.key; load()"
-                        :class="tab === t.key ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-semibold' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                        :class="tab === t.key ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
                         class="px-3.5 py-1.5 text-xs rounded-[7px] transition-all flex items-center gap-1.5 cursor-pointer select-none font-medium"
                     >
                         <span x-text="t.label"></span>
@@ -95,14 +95,14 @@
             
             <div class="text-xs text-[#667085] dark:text-gray-400 flex items-center gap-2">
                 <template x-if="(tab === 'lokal' || tab === 'impor') && meta.last_generated_at">
-                    <div class="flex items-center gap-1.5 text-[11px] bg-white dark:bg-gray-900 text-[#101828] dark:text-gray-200 px-3 py-1.5 rounded-lg border border-[#E8E8E8] dark:border-gray-800 font-mono shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <span class="inline-block size-2 rounded-full bg-emerald-500"></span>
+                    <div class="flex items-center gap-1.5 text-[11px] bg-white dark:bg-gray-900 text-[#101828] dark:text-gray-200 px-3 py-1.5 rounded-lg border border-[#E8E8E8] dark:border-gray-800 tabular-nums shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                        <span class="inline-block size-2 rounded-full bg-gray-400"></span>
                         <span>Di-generate: <strong x-text="meta.last_generated_at"></strong> (<span x-text="meta.last_generated_by"></span>)</span>
                     </div>
                 </template>
                 <template x-if="!( (tab === 'lokal' || tab === 'impor') && meta.last_generated_at )">
                     <div class="flex items-center gap-1.5">
-                        <span class="inline-block size-2 rounded-full bg-emerald-500"></span>
+                        <span class="inline-block size-2 rounded-full bg-gray-400"></span>
                         <span>Data Real-time Sistem</span>
                     </div>
                 </template>
@@ -113,17 +113,17 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-start justify-between gap-3">
                 <div>
-                    <p class="text-[11px] font-semibold text-[#667085] dark:text-gray-400 uppercase tracking-wider">Total Item</p>
-                    <p class="text-[28px] leading-tight font-semibold tracking-tight font-mono text-[#101828] dark:text-white mt-1.5" x-text="rows.length"></p>
+                    <p class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Total Item</p>
+                    <p class="text-[28px] leading-tight font-medium tracking-tight tabular-nums text-[#101828] dark:text-white mt-1.5" x-text="rows.length"></p>
                 </div>
-                <div class="size-8 rounded-lg flex items-center justify-center shrink-0" style="background-color: rgba(17, 17, 17, 0.08); color: #111111;">
+                <div class="size-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
                     <svg class="size-4 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                 </div>
             </div>
             <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-start justify-between gap-3">
                 <div>
-                    <p class="text-[11px] font-semibold text-[#667085] dark:text-gray-400 uppercase tracking-wider">Perlu Tindakan / Order</p>
-                    <p class="text-[28px] leading-tight font-semibold tracking-tight font-mono text-rose-600 dark:text-rose-400 mt-1.5" x-text="kpiOrderCount()"></p>
+                    <p class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Perlu Tindakan / Order</p>
+                    <p class="text-[28px] leading-tight font-medium tracking-tight tabular-nums text-rose-600 dark:text-rose-400 mt-1.5" x-text="kpiOrderCount()"></p>
                 </div>
                 <div class="size-8 rounded-lg flex items-center justify-center shrink-0" style="background-color: rgba(239, 68, 68, 0.12); color: #EF4444;">
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -131,19 +131,19 @@
             </div>
             <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-start justify-between gap-3">
                 <div>
-                    <p class="text-[11px] font-semibold text-[#667085] dark:text-gray-400 uppercase tracking-wider">Status Aman</p>
-                    <p class="text-[28px] leading-tight font-semibold tracking-tight font-mono text-emerald-600 dark:text-emerald-400 mt-1.5" x-text="kpiAmanCount()"></p>
+                    <p class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Status Aman</p>
+                    <p class="text-[28px] leading-tight font-medium tracking-tight tabular-nums text-foreground dark:text-foreground mt-1.5" x-text="kpiAmanCount()"></p>
                 </div>
-                <div class="size-8 rounded-lg flex items-center justify-center shrink-0" style="background-color: rgba(16, 185, 129, 0.12); color: #10B981;">
+                <div class="size-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
             </div>
             <div class="bg-white dark:bg-gray-900 rounded-[12px] border border-[#E8E8E8] dark:border-gray-800 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-start justify-between gap-3">
                 <div>
-                    <p class="text-[11px] font-semibold text-[#667085] dark:text-gray-400 uppercase tracking-wider">Total Qty Rekomendasi</p>
-                    <p class="text-[28px] leading-tight font-semibold tracking-tight font-mono text-[#101828] dark:text-white mt-1.5" x-text="kpiTotalOrderQty()"></p>
+                    <p class="text-[11px] font-medium text-[#667085] dark:text-gray-400 uppercase tracking-wider">Total Qty Rekomendasi</p>
+                    <p class="text-[28px] leading-tight font-medium tracking-tight tabular-nums text-[#101828] dark:text-white mt-1.5" x-text="kpiTotalOrderQty()"></p>
                 </div>
-                <div class="size-8 rounded-lg flex items-center justify-center shrink-0" style="background-color: rgba(59, 130, 246, 0.12); color: #3B82F6;">
+                <div class="size-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 </div>
             </div>
@@ -200,7 +200,7 @@
             <div class="flex flex-wrap items-center gap-3 text-xs">
                 <template x-if="(tab === 'lokal' && lokalSubTab === 'rekomendasi') || (tab === 'impor' && imporSubTab === 'rekomendasi')">
                     <div class="flex items-center gap-2 border-r border-[#E8E8E8] dark:border-gray-800 pr-3">
-                        <button type="button" @click="selectAllPerluOrder()" class="px-2.5 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 rounded-lg border border-rose-200 dark:border-rose-800/50 transition cursor-pointer">
+                        <button type="button" @click="selectAllPerluOrder()" class="px-2.5 py-1.5 text-xs font-medium text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 rounded-lg border border-rose-200 dark:border-rose-800/50 transition cursor-pointer">
                             Pilih Perlu Order (<span x-text="kpiOrderCount()"></span>)
                         </button>
                         <button type="button" @click="selectAllFiltered()" class="px-2.5 py-1.5 text-xs font-medium text-[#101828] dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg border border-[#E8E8E8] dark:border-gray-700 transition cursor-pointer">
@@ -516,11 +516,11 @@
               }
               await this.load();
             } else {
-              alert(data.message || 'Gagal memilih supplier');
+              appDialog.alert(data.message || 'Gagal memilih supplier', { tone: 'danger', title: 'Gagal' });
             }
           } catch (e) {
             console.error('Failed to select supplier', e);
-            alert('Terjadi kesalahan koneksi saat memilih supplier.');
+            appDialog.alert('Terjadi kesalahan koneksi saat memilih supplier.', { tone: 'danger', title: 'Gagal' });
           } finally {
             this.savingSelectSupplier = false;
           }
@@ -549,12 +549,12 @@
         badge(s){
           const st = String(s || '').toLowerCase();
           if (st === 'order' || st === 'po') {
-            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 uppercase tracking-wide">ORDER</span>';
+            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 uppercase tracking-wide">ORDER</span>';
           }
           if (st === 'aman' || st === 'tidak') {
-            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 uppercase tracking-wide">AMAN</span>';
+            return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-card dark:bg-card text-foreground dark:text-foreground border border-border dark:border-border uppercase tracking-wide">AMAN</span>';
           }
-          return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 uppercase tracking-wide">${st}</span>`;
+          return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 uppercase tracking-wide">${st}</span>`;
         },
         kpiOrderCount(){
           return this.rows.filter(r => {
@@ -838,8 +838,8 @@
         },
         abcBadgeClass(abc){
           const v = String(abc || '').toLowerCase();
-          if (v === 'wajib_a' || v === 'a') return 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50';
-          if (v === 'b') return 'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50';
+          if (v === 'wajib_a' || v === 'a') return 'bg-card dark:bg-card text-foreground dark:text-foreground border border-border dark:border-border';
+          if (v === 'b') return 'bg-card dark:bg-card text-foreground dark:text-foreground border border-border dark:border-border';
           return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700';
         },
         openSnapshotModal(item){
@@ -1715,7 +1715,7 @@
                 }
 
                 if (colKey === 'sku') {
-                  return `<td class="px-4 py-3 text-xs font-mono font-semibold text-[#101828] dark:text-white ${align}">${val ?? '-'}</td>`;
+                  return `<td class="px-4 py-3 text-xs tabular-nums text-[#101828] dark:text-white ${align}">${val ?? '-'}</td>`;
                 }
 
                 if (colKey === 'nama' || colKey === 'item_label') {
@@ -1723,7 +1723,7 @@
                 }
 
                 if (align === 'text-right') {
-                  return `<td class="px-4 py-3 text-sm font-mono text-[#101828] dark:text-gray-200 ${align}">${this.fmt(val, colKey)}</td>`;
+                  return `<td class="px-4 py-3 text-sm tabular-nums text-[#101828] dark:text-gray-200 ${align}">${this.fmt(val, colKey)}</td>`;
                 }
 
                 return `<td class="px-4 py-3 text-sm text-[#667085] dark:text-gray-300 ${align}">${this.fmt(val, colKey)}</td>`;

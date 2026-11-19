@@ -9,7 +9,7 @@
 
 <div class="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3.5 border-b border-[#E8E8E8] dark:border-border">
     <div class="min-w-0 flex-1">
-        <h1 class="text-base sm:text-lg font-bold text-[#101828] dark:text-white tracking-tight leading-tight">{!! $title !!}</h1>
+        <h1 class="text-base sm:text-lg font-semibold text-[#101828] dark:text-white tracking-tight leading-tight">{!! $title !!}</h1>
         @if ($subtitle)
             <p class="text-xs text-[#6A7282] dark:text-gray-400 mt-0.5 leading-normal">{!! $subtitle !!}</p>
         @endif

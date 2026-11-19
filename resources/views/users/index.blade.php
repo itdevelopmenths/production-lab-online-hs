@@ -22,7 +22,7 @@
                     <svg class="size-4 text-[#667085] dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                     </svg>
-                    <span class="text-xs font-semibold text-[#101828] dark:text-white">Filter Data Pengguna:</span>
+                    <span class="text-xs font-medium text-[#101828] dark:text-white">Filter Data Pengguna:</span>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2.5">
@@ -101,7 +101,7 @@
                     render: function(data, type, row) {
                         var initial = data ? data.charAt(0).toUpperCase() : '?';
                         return '<div class="flex items-center gap-2.5">' +
-                                    '<div class="size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold shrink-0">' + initial + '</div>' +
+                                    '<div class="size-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium shrink-0">' + initial + '</div>' +
                                     '<div class="min-w-0">' +
                                         '<div class="font-medium text-foreground leading-tight">' + data + '</div>' +
                                     '</div>' +
@@ -109,7 +109,7 @@
                     }
                 },
                 { data: 'email', name: 'email', render: function(data) {
-                    return '<span class="font-mono text-muted-foreground text-xs">' + data + '</span>';
+                    return '<span class="tabular-nums text-muted-foreground text-xs">' + data + '</span>';
                 }},
                 { data: 'divisi_badge', name: 'divisi', orderable: true, searchable: false },
                 { data: 'roles_label', name: 'roles_label', orderable: false, searchable: false },

@@ -79,7 +79,7 @@
                         };
                     @endphp
                     <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors {{ $po->status === 'dibatalkan' ? 'opacity-60 bg-gray-50 dark:bg-gray-900/40' : '' }}">
-                        <td class="px-4 py-3 font-mono font-semibold text-[#101828] dark:text-white">
+                        <td class="px-4 py-3 tabular-nums font-medium text-[#101828] dark:text-white">
                             @can('purchasing.view')
                                 <a href="{{ route('purchasing.show', $po) }}" class="underline decoration-gray-400 hover:decoration-current">{{ $po->no_po }}</a>
                             @else
@@ -99,25 +99,25 @@
                                 <span class="text-[#667085] dark:text-gray-400">—</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white font-medium">
+                        <td class="px-4 py-3 text-right tabular-nums text-[#101828] dark:text-white font-medium">
                             @if($canSeePrice)
                                 Rp {{ number_format($poNilai, 0, ',', '.') }}
                             @else
-                                <span class="text-[#667085] dark:text-gray-400 font-mono">Rp ••••••</span>
+                                <span class="text-[#667085] dark:text-gray-400 tabular-nums">Rp ••••••</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-medium">
+                        <td class="px-4 py-3 text-right tabular-nums text-foreground dark:text-foreground font-medium">
                             @if($canSeePrice)
                                 Rp {{ number_format($poDibayar, 0, ',', '.') }}
                             @else
-                                <span class="text-[#667085] dark:text-gray-400 font-mono">Rp ••••••</span>
+                                <span class="text-[#667085] dark:text-gray-400 tabular-nums">Rp ••••••</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-right font-mono font-semibold {{ $poSisa > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[#667085] dark:text-gray-400' }}">
+                        <td class="px-4 py-3 text-right tabular-nums font-medium {{ $poSisa > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[#667085] dark:text-gray-400' }}">
                             @if($canSeePrice)
                                 Rp {{ number_format($poSisa, 0, ',', '.') }}
                             @else
-                                <span class="text-[#667085] dark:text-gray-400 font-mono">Rp ••••••</span>
+                                <span class="text-[#667085] dark:text-gray-400 tabular-nums">Rp ••••••</span>
                             @endif
                         </td>
                     </tr>

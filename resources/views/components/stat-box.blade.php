@@ -25,17 +25,17 @@
     };
 
     $iconBoxClasses = match ($colorKey) {
-        'emerald' => 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-        'blue' => 'bg-sky-50 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400',
-        'amber' => 'bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400',
+        'emerald' => 'bg-card dark:bg-card text-foreground dark:text-foreground',
+        'blue' => 'bg-card dark:bg-card text-foreground dark:text-foreground',
+        'amber' => 'bg-card dark:bg-card text-foreground dark:text-foreground',
         'rose' => 'bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400',
-        'purple' => 'bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400',
+        'purple' => 'bg-card dark:bg-card text-foreground dark:text-foreground',
         'gray' => 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
-        default => 'bg-[#eef2ff] dark:bg-indigo-500/15 text-[#4f39f6] dark:text-indigo-400',
+        default => 'bg-[#eef2ff] dark:bg-card text-[#4f39f6] dark:text-foreground',
     };
 
     $trendClasses = $trendType === 'up'
-        ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/80 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20'
+        ? 'text-foreground bg-card border border-border dark:text-foreground dark:bg-card dark:border-border'
         : 'text-red-700 bg-red-50 border border-red-200/80 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20';
 @endphp
 
@@ -47,7 +47,7 @@
                 @if ($prefix)
                     <span class="text-sm font-medium text-[#6a7282] dark:text-gray-400">{{ $prefix }}</span>
                 @endif
-                <p class="text-[28px] leading-[1.4] font-semibold text-[#101828] dark:text-white tracking-[-0.308px] break-words tabular-nums">{{ $value }}</p>
+                <p class="text-[28px] leading-[1.4] font-medium text-[#101828] dark:text-white tracking-[-0.308px] break-words tabular-nums">{{ $value }}</p>
             </div>
             @if ($subtitle)
                 <p class="text-[#6a7282] dark:text-gray-400 mt-1 text-[12px] leading-[18px]">{!! $subtitle !!}</p>
@@ -75,7 +75,7 @@
             @endif
 
             @if ($trend)
-                <span class="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums {{ $trendClasses }}">
+                <span class="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full tabular-nums {{ $trendClasses }}">
                     {{ $trend }}
                 </span>
             @endif

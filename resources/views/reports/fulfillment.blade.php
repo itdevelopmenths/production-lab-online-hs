@@ -42,7 +42,7 @@
                         $isMasuk = strtolower($r->tipe) === 'in';
                     @endphp
                     <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition-colors">
-                        <td class="px-4 py-3 font-mono text-[#667085] dark:text-gray-400">
+                        <td class="px-4 py-3 tabular-nums text-[#667085] dark:text-gray-400">
                             {{ $r->tanggal->format('d/m/Y') }}
                         </td>
                         <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">
@@ -58,10 +58,10 @@
                                 <x-badge variant="warning" size="xs" :pill="true">KELUAR</x-badge>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-right font-mono font-medium {{ $isMasuk ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
+                        <td class="px-4 py-3 text-right tabular-nums font-medium {{ $isMasuk ? 'text-foreground dark:text-foreground' : 'text-foreground dark:text-foreground' }}">
                             {{ $isMasuk ? '+' : '-' }}{{ number_format($r->qty, 0, ',', '.') }}
                         </td>
-                        <td class="px-4 py-3 text-right font-mono text-[#101828] dark:text-white font-semibold">
+                        <td class="px-4 py-3 text-right tabular-nums text-[#101828] dark:text-white font-medium">
                             {{ number_format($r->saldo_setelah, 0, ',', '.') }}
                         </td>
                     </tr>
