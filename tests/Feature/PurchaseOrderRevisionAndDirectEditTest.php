@@ -287,7 +287,8 @@ class PurchaseOrderRevisionAndDirectEditTest extends TestCase
 
     public function test_revision_approval_card_displays_old_vs_new_deltas_and_hides_prices_from_gudang(): void
     {
-        $po = $this->createSamplePo(PoStage::STAGE_4);
+        // Gudang baru dapat melihat PO sejak Tahap 5 (PO Terbit).
+        $po = $this->createSamplePo(PoStage::STAGE_5);
         $originalItem = $po->items->first();
         $gudang = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
 
@@ -562,7 +563,8 @@ class PurchaseOrderRevisionAndDirectEditTest extends TestCase
 
     public function test_revision_history_card_displays_all_statuses_and_hides_prices_from_gudang(): void
     {
-        $po = $this->createSamplePo(PoStage::STAGE_4);
+        // Gudang baru dapat melihat PO sejak Tahap 5 (PO Terbit).
+        $po = $this->createSamplePo(PoStage::STAGE_5);
         $originalItem = $po->items->first();
         $gudang = User::where('email', 'gudang@heavenscent.id')->firstOrFail();
 

@@ -615,6 +615,9 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_grn_05_stock_mutation_isolated_to_specified_warehouse(): void
     {
+        // Cakupan gudang kini ditegakkan backend: beri user gudang akses eksplisit ke kedua gudang.
+        $this->gudangUser->gudangs()->attach([$this->gudangPusat->id, $this->gudangLab->id]);
+
         $po = $this->createTestPo(['status' => 'dikirim_ke_gudang', 'gudang_id' => $this->gudangLab->id]);
         $item = $po->items->first();
         $stokService = app(StokService::class);
@@ -643,6 +646,9 @@ class PurchasingComprehensiveQATest extends TestCase
      */
     public function test_grn_06_goods_receipt_strictly_routes_to_po_location_even_if_tampered_and_view_is_locked(): void
     {
+        // Cakupan gudang kini ditegakkan backend: beri user gudang akses eksplisit ke kedua gudang.
+        $this->gudangUser->gudangs()->attach([$this->gudangPusat->id, $this->gudangLab->id]);
+
         $po = $this->createTestPo(['status' => 'dikirim_ke_gudang', 'gudang_id' => $this->gudangLab->id]);
         $item = $po->items->first();
         $stokService = app(StokService::class);

@@ -16,12 +16,14 @@ use App\Models\SupplierLtSummary;
 use App\Models\SupplierProdukLtStageSummary;
 use App\Models\SupplierProdukLtSummary;
 use App\Models\Uom;
+use App\Services\Authorization\LocationScopeService;
 use App\Services\Purchasing\PurchasingCostCalculator;
 use App\Services\Purchasing\PurchasingPaymentService;
 use App\Services\Purchasing\PurchasingStageService;
 use App\Services\Purchasing\SupplierLeadTimeService;
 use App\Services\StokService;
 use App\Support\UiTableHelper;
+use App\Traits\ResolvesGudangOnlyUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +34,8 @@ use Yajra\DataTables\Facades\DataTables;
 
 class PurchasingController extends Controller
 {
+    use ResolvesGudangOnlyUser;
+
     public function __construct(
         private readonly StokService $stok,
         private readonly PurchasingCostCalculator $calculator,
@@ -120,19 +124,9 @@ class PurchasingController extends Controller
             $query->whereHas('supplier', fn ($q) => $q->where('kategori', $request->kategori_supplier));
         }
 
-        // Gudang hanya melihat PO jika legacy status gudang ATAU stage_aktif null ATAU melewati Stage 5
-        $isGudang = ! $canEditUser && $user->can('purchasing.receive');
-        if ($isGudang) {
-            $query->where(function ($q) {
-                $q->whereNull('purchase_orders.stage_aktif')
-                  ->orWhereIn('purchase_orders.status', ['dikirim_ke_gudang', 'diterima', 'selesai'])
-                  ->orWhereIn('purchase_orders.stage_aktif', [
-                      PoStage::STAGE_6,
-                      PoStage::STAGE_7,
-                      PoStage::STAGE_8,
-                      PoStage::LEGACY_STAGE_PENGEMASAN,
-                  ]);
-            });
+        // Gudang hanya melihat PO legacy, status legacy gudang, atau yang sudah mencapai Tahap 5 (PO Terbit).
+        if ($this->isGudangOnly($user)) {
+            $query->visibleToGudang();
         }
 
         $query->latest('purchase_orders.created_at');
@@ -604,6 +598,11 @@ class PurchasingController extends Controller
     public function show(PurchaseOrder $purchaseOrder)
     {
         $this->authorize('purchasing.view');
+        abort_if(
+            $this->isGudangOnly(auth()->user()) && ! $purchaseOrder->isVisibleToGudang(),
+            403,
+            'Anda tidak memiliki akses ke PO ini pada tahap saat ini.'
+        );
         $purchaseOrder->load([
             'supplier',
             'gudang',
@@ -731,6 +730,13 @@ class PurchasingController extends Controller
         if (! $targetGudangId) {
             $targetGudangId = Gudang::where('status', 'aktif')->first()?->id;
         }
+
+        // Batasi penerimaan ke gudang yang boleh diakses user (gudang efektif setelah fallback).
+        abort_unless(
+            app(LocationScopeService::class)->canAccessWarehouse(auth()->user(), $targetGudangId ? (int) $targetGudangId : null),
+            403,
+            'Anda tidak memiliki akses ke gudang tujuan PO ini.'
+        );
 
         DB::transaction(function () use ($data, $purchaseOrder, $targetGudangId) {
             $bardat = BarangDatang::create([

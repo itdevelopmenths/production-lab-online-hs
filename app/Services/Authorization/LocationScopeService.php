@@ -48,13 +48,13 @@ class LocationScopeService
      */
     public function canAccessWarehouse(User $user, ?int $warehouseId): bool
     {
-        if ($warehouseId === null) {
-            return false;
-        }
-
         $allowedIds = $this->getAccessibleWarehouseIds($user);
         if ($allowedIds === null) {
             return true;
+        }
+
+        if ($warehouseId === null) {
+            return false;
         }
 
         return in_array((int) $warehouseId, $allowedIds, true);

@@ -77,6 +77,45 @@ class PurchaseOrder extends Model
             : $this->stages()->exists();
     }
 
+    /**
+     * Tahap aktif sejak ketika PO terlihat oleh user gudang (tanpa hak edit).
+     */
+    public const GUDANG_VISIBLE_STAGES = [
+        PoStage::STAGE_5,
+        PoStage::STAGE_6,
+        PoStage::STAGE_7,
+        PoStage::STAGE_8,
+        PoStage::LEGACY_STAGE_PENGEMASAN,
+    ];
+
+    /**
+     * Status legacy yang membuat PO terlihat oleh gudang.
+     */
+    public const GUDANG_VISIBLE_STATUSES = ['dikirim_ke_gudang', 'diterima', 'selesai'];
+
+    /**
+     * PO terlihat oleh gudang jika: PO legacy (tanpa baris tahap), ATAU status legacy gudang,
+     * ATAU tahap aktif sudah mencapai Tahap 5 (PO Terbit) atau setelahnya.
+     */
+    public function scopeVisibleToGudang(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where(function ($q) {
+            $q->whereDoesntHave('stages')
+                ->orWhereIn('purchase_orders.status', self::GUDANG_VISIBLE_STATUSES)
+                ->orWhereIn('purchase_orders.stage_aktif', self::GUDANG_VISIBLE_STAGES);
+        });
+    }
+
+    /**
+     * Aturan yang sama dengan scopeVisibleToGudang untuk satu instance.
+     */
+    public function isVisibleToGudang(): bool
+    {
+        return ! $this->usesStageFlow()
+            || in_array($this->status, self::GUDANG_VISIBLE_STATUSES, true)
+            || in_array($this->stage_aktif, self::GUDANG_VISIBLE_STAGES, true);
+    }
+
     public function pengiriman(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(PoPengiriman::class, 'po_id');

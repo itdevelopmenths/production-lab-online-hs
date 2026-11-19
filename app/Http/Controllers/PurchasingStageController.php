@@ -6,9 +6,11 @@ use App\Models\PoLeadTime;
 use App\Models\PoRevisi;
 use App\Models\PoStage;
 use App\Models\PurchaseOrder;
+use App\Services\Authorization\LocationScopeService;
 use App\Services\Purchasing\PurchaseOrderRevisionService;
 use App\Services\Purchasing\PurchasingStageService;
 use App\Services\Purchasing\SupplierLeadTimeService;
+use App\Traits\ResolvesGudangOnlyUser;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +18,8 @@ use Illuminate\Http\Request;
 
 class PurchasingStageController extends Controller
 {
+    use ResolvesGudangOnlyUser;
+
     protected PurchasingStageService $stageService;
     protected PurchaseOrderRevisionService $revisionService;
     protected SupplierLeadTimeService $leadTimeService;
@@ -62,18 +66,23 @@ class PurchasingStageController extends Controller
 
             case PoStage::STAGE_6:
                 abort_unless(auth()->user()->can('purchasing.edit') || auth()->user()->can('purchasing.receive'), 403);
+                if (! auth()->user()->can('purchasing.edit')) {
+                    $this->ensureGudangAccess($purchaseOrder);
+                }
                 $shippingData = $request->input('shipping', []);
                 $this->stageService->completeStage6($purchaseOrder, auth()->user(), $shippingData, $waktuSelesai, $catatan);
                 break;
 
             case PoStage::STAGE_7:
                 $this->authorize('purchasing.receive');
+                $this->ensureGudangAccess($purchaseOrder);
                 $physicalCheckData = $request->input('physical_check', []);
                 $this->stageService->completeStage7($purchaseOrder, auth()->user(), $physicalCheckData, $waktuSelesai, $catatan);
                 break;
 
             case PoStage::STAGE_8:
                 $this->authorize('purchasing.receive');
+                $this->ensureGudangAccess($purchaseOrder);
                 $existingResi = trim($purchaseOrder->pengiriman?->no_resi ?? '');
                 if ($existingResi === '') {
                     $request->validate([
@@ -277,5 +286,24 @@ class PurchasingStageController extends Controller
 
         return back()->with('success', 'Data lead time transaksi telah diinvalidasi.');
     }
-}
 
+    /**
+     * Visibilitas PO untuk user gudang murni, lalu cakupan gudang tujuan PO.
+     */
+    private function ensureGudangAccess(PurchaseOrder $po): void
+    {
+        $user = auth()->user();
+
+        abort_if(
+            $this->isGudangOnly($user) && ! $po->isVisibleToGudang(),
+            403,
+            'Anda tidak memiliki akses ke PO ini pada tahap saat ini.'
+        );
+
+        abort_unless(
+            app(LocationScopeService::class)->canAccessWarehouse($user, $po->gudang_id),
+            403,
+            'Anda tidak memiliki akses ke gudang tujuan PO ini.'
+        );
+    }
+}
