@@ -44,7 +44,7 @@
                                     @if ($row['badge'])
                                         <x-badge :variant="$row['varian']" :dot="true" :pill="true" size="sm">{{ $row['badge'] }}</x-badge>
                                     @endif
-                                    @if ($row['terlambat'] && ! str_contains((string) $row['badge'], 'Terlambat'))
+                                    @if ($row['terlambat'])
                                         <x-badge variant="danger" :dot="true" :pill="true" size="sm">Terlambat</x-badge>
                                     @endif
                                     @if ($row['umur'])
@@ -58,7 +58,7 @@
                                     @if ($row['badge'])
                                         <x-badge :variant="$row['varian']" :dot="true" :pill="true" size="sm">{{ $row['badge'] }}</x-badge>
                                     @endif
-                                    @if ($row['terlambat'] && ! str_contains((string) $row['badge'], 'Terlambat'))
+                                    @if ($row['terlambat'])
                                         <x-badge variant="danger" :dot="true" :pill="true" size="sm">Terlambat</x-badge>
                                     @endif
                                 </div>
