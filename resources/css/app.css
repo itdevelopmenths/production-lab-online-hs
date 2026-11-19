@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
-/* Font self-hosted (dibundel Vite, same-origin + cache immutable) */
+/* ── 1. FONT DEFINITIONS (Zero-Flash Local Inter & JetBrains Mono) ── */
+@import '@fontsource/inter/latin-300.css';
 @import '@fontsource/inter/latin-400.css';
 @import '@fontsource/inter/latin-500.css';
 @import '@fontsource/inter/latin-600.css';
@@ -13,193 +14,430 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../views/**/*.blade.php';
+@source '../../app/Support/UiTableHelper.php';
 
+@custom-variant dark (&:is(.dark *));
+
+/* ── 2. SEMANTIC CSS VARIABLES (LIGHT & DARK + BACKWARD-COMPAT BRIDGE) ── */
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Blueprint Semantic Variables */
+  --color-bg-active: #F2F2F2;
+  --color-border-active: #DEDEDE;
+  --color-border-focus: #111111;
+  --color-text-active: #111111;
+  --color-text-muted: #6A7282;
+  --color-text-placeholder: #999999;
+
+  --bg: #FFFFFF;
+  --bg-2: #FBFBFB;
+  --bg-3: #F5F5F5;
+  --canvas: #F9FAFB;
+
+  --text: #111111;
+  --text-base: #101828;
+  --text-muted: var(--color-text-muted);
+  --text-subtle: #888888;
+
+  --border: #E8E8E8;
+  --border-2: #DEDEDE;
+
+  --primary: #000000;
+  --primary-rgb: 0, 0, 0;
+  --nav-bg: rgba(255, 255, 255, 0.85);
+
+  /* Production Lab Backward-Compatible Token Bridge */
+  --hs-background: #F9FAFB;
+  --hs-foreground: #101828;
+  --hs-card: #FFFFFF;
+  --hs-card-foreground: #101828;
+  --hs-primary: #000000;
+  --hs-primary-foreground: #FFFFFF;
+  --hs-muted: #F5F5F5;
+  --hs-muted-foreground: #6A7282;
+  --hs-accent: #F2F2F2;
+  --hs-accent-foreground: #111111;
+  --hs-border: #E8E8E8;
+  --hs-input: #E8E8E8;
+  --hs-ring: #111111;
+  --hs-destructive: #F04438;
+  --hs-destructive-foreground: #FFFFFF;
+
+  background-color: var(--hs-background);
+}
+
+.dark {
+  --color-bg-active: #111111;
+  --color-border-active: #383838;
+  --color-border-focus: #FFFFFF;
+  --color-text-active: #FFFFFF;
+  --color-text-muted: #9CA3AF;
+  --color-text-placeholder: #737373;
+
+  --bg: #0A0A0A;
+  --bg-2: #141414;
+  --bg-3: #1A1A1A;
+  --canvas: #030712;
+
+  --text: #FFFFFF;
+  --text-base: #EDEDED;
+  --text-muted: var(--color-text-muted);
+  --text-subtle: #737373;
+
+  --border: #262626;
+  --border-2: #383838;
+
+  --primary: #FFFFFF;
+  --primary-rgb: 255, 255, 255;
+  --nav-bg: rgba(10, 10, 10, 0.85);
+
+  /* Production Lab Backward-Compatible Token Bridge (Dark) */
+  --hs-background: #030712;
+  --hs-foreground: #FFFFFF;
+  --hs-card: #111827;
+  --hs-card-foreground: #FFFFFF;
+  --hs-primary: #FFFFFF;
+  --hs-primary-foreground: #0A0A0A;
+  --hs-muted: #1A1A1A;
+  --hs-muted-foreground: #9CA3AF;
+  --hs-accent: #1F2937;
+  --hs-accent-foreground: #FFFFFF;
+  --hs-border: #262626;
+  --hs-input: #262626;
+  --hs-ring: #FFFFFF;
+  --hs-destructive: #F97066;
+  --hs-destructive-foreground: #0A0A0A;
+}
+
+/* ── 3. TAILWIND V4 @theme MAPPING ── */
 @theme {
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
-    --text-xs: max(0.75rem, 10.5px);
+  --font-*: initial;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    --color-background: oklch(0.985 0 0);
-    --color-foreground: oklch(0.145 0 0);
-    --color-card: oklch(1 0 0);
-    --color-card-foreground: oklch(0.145 0 0);
-    --color-primary: oklch(0.205 0 0);
-    --color-primary-foreground: oklch(0.985 0 0);
-    --color-muted: oklch(0.97 0 0);
-    --color-muted-foreground: oklch(0.52 0 0);
-    --color-accent: oklch(0.96 0 0);
-    --color-accent-foreground: oklch(0.205 0 0);
-    --color-border: oklch(0.922 0 0);
-    --color-input: oklch(0.922 0 0);
-    --color-ring: oklch(0.708 0 0);
-    --color-destructive: oklch(0.577 0.245 27.325);
-    --color-destructive-foreground: oklch(0.985 0 0);
+  /* Blueprint Direct Tokens */
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-bg-active: var(--color-bg-active);
+  --color-border: var(--hs-border);
+  --color-border-2: var(--border-2);
+  --color-border-active: var(--color-border-active);
+  --color-border-focus: var(--color-border-focus);
+  --color-text: var(--text);
+  --color-text-base: var(--text-base);
+  --color-text-active: var(--color-text-active);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-placeholder: var(--color-text-placeholder);
+  --color-text-subtle: var(--text-subtle);
 
-    --radius-lg: 0.75rem;
-    --radius-md: 0.5rem;
-    --radius-sm: 0.375rem;
+  /* Semantic Bridge Tokens (Existing Views Compatibility) */
+  --color-background: var(--hs-background);
+  --color-foreground: var(--hs-foreground);
+  --color-card: var(--hs-card);
+  --color-card-foreground: var(--hs-card-foreground);
+  --color-primary: var(--hs-primary);
+  --color-primary-foreground: var(--hs-primary-foreground);
+  --color-muted: var(--hs-muted);
+  --color-muted-foreground: var(--hs-muted-foreground);
+  --color-accent: var(--hs-accent);
+  --color-accent-foreground: var(--hs-accent-foreground);
+  --color-input: var(--hs-input);
+  --color-ring: var(--hs-ring);
+  --color-destructive: var(--hs-destructive);
+  --color-destructive-foreground: var(--hs-destructive-foreground);
 
-    /* Semantic color compatibility */
-    --color-gold-50: #fefce8;
-    --color-gold-100: #fef9c3;
-    --color-gold-200: #fef08a;
-    --color-gold-300: #fde047;
-    --color-gold-400: #facc15;
-    --color-gold-500: #c9a227;
-    --color-gold-600: #a16207;
-    --color-gold-700: #854d0e;
-    --color-gold-800: #713f12;
-    --color-gold-900: #422006;
+  /* Breakpoints */
+  --breakpoint-*: initial;
+  --breakpoint-2xsm: 375px;
+  --breakpoint-xsm: 425px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  --breakpoint-3xl: 2000px;
 
-    --color-primary-50: #f4f4f5;
-    --color-primary-100: #e4e4e7;
-    --color-primary-200: #d4d4d8;
-    --color-primary-300: #a1a1aa;
-    --color-primary-400: #71717a;
-    --color-primary-500: #27272a;
-    --color-primary-600: #18181b;
-    --color-primary-700: #09090b;
-    --color-primary-800: #040405;
-    --color-primary-900: #000000;
+  /* Type Tokens */
+  --text-xs: max(0.75rem, 10.5px);
+  --text-theme-xl: 20px;
+  --text-theme-xl--line-height: 30px;
+  --text-theme-sm: 14px;
+  --text-theme-sm--line-height: 20px;
+  --text-theme-xs: 12px;
+
+  /* Radius Tokens */
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.375rem;
+
+  /* Monochrome Brand Scale */
+  --color-brand-25: #FCFCFC;
+  --color-brand-50: #F9F9F9;
+  --color-brand-100: #F2F2F2;
+  --color-brand-200: #EAEAEA;
+  --color-brand-300: #D5D5D5;
+  --color-brand-400: #A4A4A4;
+  --color-brand-500: #000000;
+  --color-brand-600: #000000;
+  --color-brand-700: #000000;
+  --color-brand-800: #000000;
+  --color-brand-900: #000000;
+  --color-brand-950: #000000;
+
+  /* Legacy Primary Neutral Scale (Compat) */
+  --color-primary-50: #f4f4f5;
+  --color-primary-100: #e4e4e7;
+  --color-primary-200: #d4d4d8;
+  --color-primary-300: #a1a1aa;
+  --color-primary-400: #71717a;
+  --color-primary-500: #27272a;
+  --color-primary-600: #18181b;
+  --color-primary-700: #09090b;
+  --color-primary-800: #040405;
+  --color-primary-900: #000000;
+
+  /* Half-step OKLCH Grays */
+  --color-gray-150: oklch(94.75% .0045 264.537);
+  --color-gray-250: oklch(90% .008 261.435);
+  --color-gray-350: oklch(78.95% .016 259.832);
+  --color-gray-450: oklch(62.9% .0245 262.845);
+  --color-gray-550: oklch(49.85% .0285 260.583);
+  --color-gray-650: oklch(40.95% .032 258.268);
+  --color-gray-750: oklch(32.55% .0335 258.291);
+  --color-gray-850: oklch(24.4% .0335 260.757);
+
+  /* Semantic Colors */
+  --color-success-50: #ecfdf3;
+  --color-success-500: #17B26A;
+  --color-success-600: #039855;
+
+  --color-error-50: #fef3f2;
+  --color-error-500: #F04438;
+  --color-error-600: #d92d20;
+
+  --color-warning-50: #fffaeb;
+  --color-warning-500: #F79009;
+  --color-warning-600: #dc6803;
+
+  --color-blue-light-50: #f0f9ff;
+  --color-blue-light-500: #0ba5ec;
+
+  --color-orange-50: #fff6ed;
+  --color-orange-500: #fb6514;
+
+  /* Elevation Shadows */
+  --shadow-theme-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.02);
+  --shadow-theme-sm: 0px 2px 4px 0px rgba(16, 24, 40, 0.03);
+  --shadow-theme-md: 0px 12px 16px -4px rgba(16, 24, 40, 0.04), 0px 4px 6px -2px rgba(16, 24, 40, 0.02);
+  --shadow-theme-lg: 0px 24px 32px -8px rgba(16, 24, 40, 0.04), 0px 8px 12px -4px rgba(16, 24, 40, 0.03);
+  --shadow-theme-xl: 0px 32px 64px -12px rgba(16, 24, 40, 0.08);
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(70, 95, 255, 0.08);
 }
 
+/* ── 4. BASE LAYER & BOUNDED FLUID SCALING ── */
 @layer base {
-    *,
-    ::before,
-    ::after {
-        border-color: var(--color-border);
-    }
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border);
+  }
 
-    @media screen and (min-width: 64rem) {
-        html.hs-app-shell {
-            font-size: clamp(0.8125rem, calc(0.5rem + 0.4167vw), 1rem);
-        }
-    }
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
 
-    @media print {
-        html.hs-app-shell {
-            font-size: 100%;
-        }
+  /* Bounded fluid viewport scaling on desktop app-shell */
+  @media screen and (min-width: 64rem) {
+    html.hs-app-shell {
+      font-size: clamp(0.8125rem, calc(0.5rem + 0.4167vw), 1rem);
     }
+  }
 
-    body {
-        background-color: var(--color-background);
-        color: var(--color-foreground);
-        font-family: var(--font-sans);
+  @media print {
+    html.hs-app-shell {
+      font-size: 100%;
     }
+  }
+
+  body {
+    background-color: var(--hs-background);
+    color: var(--hs-foreground);
+    font-family: var(--font-body);
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
-/* DevScore DataTable & Table Styling */
+/* ── 5. UTILITIES (Glass, Scrollbars, Sidebar Active Tab) ── */
+@utility glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: var(--nav-bg);
+}
+
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.4);
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.6);
+  }
+}
+
+.sidebar-active-tab {
+  background-color: #111111 !important;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg viewBox='0 0 232 44' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'><rect x='0' y='0' height='100%' width='100%' fill='url(%23grad)' opacity='0.5'/><defs><radialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(4.5373e-15 5.4214 -16.991 -5.8638e-13 116 26.714)'><stop stop-color='rgba(84,84,84,1)' offset='0'/><stop stop-color='rgba(84,84,84,0)' offset='1'/></radialGradient></defs></svg>"),
+    linear-gradient(90deg, rgb(17, 17, 17) 0%, rgb(17, 17, 17) 100%) !important;
+  border: 1px solid #525252 !important;
+  box-shadow: 0px 0px 0px 1px #212121 !important;
+  color: #FFFFFF !important;
+}
+
+/* ── 6. HEAVEN SCENT 4-ZONE DATATABLES STYLING (DUAL-THEME) ── */
 .dataTables_wrapper {
-    @apply text-sm text-foreground w-full;
-    position: relative;
-    clear: both;
+  @apply text-sm text-[#101828] dark:text-white w-full;
+  position: relative;
+  clear: both;
 }
 
-/* Header toolbar: Search and Page Length */
+/* Zone 2 — Toolbar: Search & Page Length */
 .dt-layout-header {
-    @apply flex flex-col sm:flex-row sm:flex-wrap justify-between items-center px-4 py-2.5 border-b border-border gap-2.5 bg-muted/20;
+  @apply flex flex-col sm:flex-row sm:flex-wrap justify-between items-center px-5 py-3 border-b border-[#e8e8e8] dark:border-border gap-3 bg-white dark:bg-gray-900;
 }
 
 .dataTables_wrapper .dataTables_length {
-    @apply flex items-center text-xs font-normal text-muted-foreground gap-2 normal-case tracking-normal;
-    float: none !important;
+  @apply flex items-center text-xs font-normal text-[#6a7282] dark:text-gray-400 gap-2 normal-case tracking-normal;
+  float: none !important;
 }
 
 .dataTables_wrapper .dataTables_length label {
-    @apply inline-flex items-center gap-2 text-xs font-normal text-muted-foreground normal-case;
+  @apply inline-flex items-center gap-2 text-xs font-normal text-[#6a7282] dark:text-gray-400 normal-case;
 }
 
 .dataTables_wrapper .dataTables_length select {
-    @apply rounded-md border border-input shadow-2xs focus:ring-1 focus:ring-primary/20 text-xs px-2 py-1 bg-background outline-none transition cursor-pointer text-foreground h-8;
+  @apply h-8 sm:h-9 min-w-[54px] rounded-[4px] border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 px-2 py-1 text-xs text-[#101828] dark:text-white outline-none transition cursor-pointer focus:border-black dark:focus:border-white shadow-theme-xs;
 }
 
 .dataTables_wrapper .dataTables_filter {
-    @apply flex items-center text-xs font-normal text-muted-foreground gap-2 normal-case tracking-normal;
-    float: none !important;
+  @apply flex items-center text-xs font-normal text-[#6a7282] dark:text-gray-400 gap-2 normal-case tracking-normal;
+  float: none !important;
 }
 
 .dataTables_wrapper .dataTables_filter label {
-    @apply inline-flex items-center gap-2 text-xs font-normal text-muted-foreground normal-case;
+  @apply inline-flex items-center gap-2 text-xs font-normal text-[#6a7282] dark:text-gray-400 normal-case;
 }
 
 .dataTables_wrapper .dataTables_filter input {
-    @apply rounded-md border border-input shadow-2xs focus:ring-1 focus:ring-primary/20 text-xs px-2.5 py-1 bg-background outline-none transition w-full sm:w-52 min-w-0 text-foreground placeholder:text-muted-foreground h-8;
+  @apply h-[32px] w-full sm:w-64 min-w-0 bg-white dark:bg-gray-900 border border-[#e8e8e8] dark:border-border rounded-[8px] px-3 py-1.5 text-xs text-[#101828] dark:text-white placeholder:text-text-placeholder outline-none transition focus:border-brand-500 dark:focus:border-white shadow-theme-xs;
 }
 
 /* Fallback when dt-layout-header is not used */
 .dataTables_wrapper:not(:has(.dt-layout-header)) {
-    @apply p-3;
+  @apply p-4;
 }
 .dataTables_wrapper:not(:has(.dt-layout-header)) .dataTables_length {
-    float: left !important;
-    margin-bottom: 0.75rem !important;
+  float: left !important;
+  margin-bottom: 0.75rem !important;
 }
 .dataTables_wrapper:not(:has(.dt-layout-header)) .dataTables_filter {
-    float: right !important;
-    margin-bottom: 0.75rem !important;
+  float: right !important;
+  margin-bottom: 0.75rem !important;
 }
 .dataTables_wrapper:not(:has(.dt-layout-header))::after {
-    content: "";
-    display: table;
-    clear: both;
+  content: "";
+  display: table;
+  clear: both;
 }
 
-/* Table styling with spacious breathing room */
+/* Zone 3 — Table Content */
 table.dataTable {
-    @apply w-full border-collapse !border-b-0 text-xs;
-    margin: 0 !important;
+  @apply w-full border-collapse !border-b-0 text-[14px];
+  margin: 0 !important;
 }
 
 table.dataTable thead th,
 table.dataTable thead td {
-    @apply bg-muted/40 border-b border-border text-muted-foreground font-semibold px-3 py-2 text-left text-[11px] uppercase tracking-wider select-none whitespace-nowrap;
+  @apply sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 backdrop-blur-md border-y border-[#e8e8e8] dark:border-border text-[#6a7282] dark:text-gray-400 font-normal px-3 py-2.5 text-left text-xs sm:text-[13px] select-none whitespace-nowrap;
 }
 
 table.dataTable thead th.sorting,
 table.dataTable thead th.sorting_asc,
 table.dataTable thead th.sorting_desc {
-    @apply !pr-6 cursor-pointer;
+  @apply !pr-6 cursor-pointer;
+}
+
+table.dataTable thead th.sorting_asc,
+table.dataTable thead th.sorting_desc {
+  @apply text-blue-600 dark:text-blue-400 font-medium;
 }
 
 table.dataTable tbody th,
 table.dataTable tbody td {
-    @apply border-b border-border/50 px-3 py-2 align-middle bg-card text-xs text-foreground transition-colors leading-normal tabular-nums;
+  @apply border-b border-[#e8e8e8]/70 dark:border-gray-800/60 px-3 py-3 align-middle bg-white dark:bg-gray-900 text-[14px] leading-[20px] font-normal tracking-[-0.154px] text-[#101828] dark:text-white transition-colors tabular-nums;
 }
 
 table.dataTable.no-footer {
-    @apply !border-b-0;
+  @apply !border-b-0;
 }
 
 table.dataTable.hover tbody tr:hover,
 table.dataTable.display tbody tr:hover,
 table.dataTable tbody tr:hover td {
-    @apply bg-muted/30;
+  @apply bg-gray-50/80 dark:bg-gray-800/30;
 }
 
 table.dataTable tbody td.dataTables_empty {
-    @apply !py-12 !px-3 text-center text-muted-foreground font-normal text-xs;
+  @apply !py-12 !px-3 text-center text-[#6a7282] dark:text-gray-400 font-normal text-xs;
 }
 
-/* Footer toolbar: Info and Pagination */
+/* Zone 4 — Footer Toolbar: Info & Pagination */
 .dt-layout-footer {
-    @apply flex flex-col sm:flex-row sm:flex-wrap justify-between items-center px-4 py-2 bg-muted/10 border-t border-border gap-2 text-xs text-muted-foreground rounded-b-lg;
+  @apply flex flex-col sm:flex-row sm:flex-wrap justify-between items-center pt-3 px-5 py-3 bg-white dark:bg-gray-900 border-t border-[#e8e8e8] dark:border-border gap-3 text-xs text-[#6a7282] dark:text-gray-400 rounded-b-[12px];
 }
 
 .dataTables_wrapper .dataTables_info {
-    @apply text-xs text-muted-foreground font-normal;
-    float: none !important;
-    padding-top: 0 !important;
+  @apply text-xs text-[#6a7282] dark:text-gray-400 font-normal;
+  float: none !important;
+  padding-top: 0 !important;
 }
 
 .dataTables_wrapper .dataTables_paginate {
-    @apply flex items-center gap-1;
-    float: none !important;
-    padding-top: 0 !important;
+  @apply flex items-center gap-1;
+  float: none !important;
+  padding-top: 0 !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button {
-    @apply inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-md border border-border text-xs font-medium text-foreground bg-card cursor-pointer hover:bg-accent transition leading-tight select-none shadow-2xs;
-    margin: 0 !important;
+  @apply inline-flex items-center justify-center w-8 h-8 sm:min-w-[36px] sm:h-9 px-2 rounded-[4px] border border-[#e8e8e8] dark:border-border text-xs font-medium text-[#101828] dark:text-white bg-white dark:bg-gray-900 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition leading-tight select-none shadow-theme-xs;
+  margin: 0 !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button.current,
@@ -208,111 +446,157 @@ table.dataTable tbody td.dataTables_empty {
 .dataTables_wrapper .dataTables_paginate .paginate_button.current:active,
 .dataTables_wrapper .dataTables_paginate .paginate_button.current a,
 .dataTables_wrapper .dataTables_paginate .paginate_button.current span {
-    @apply border-primary text-primary-foreground shadow-sm font-semibold;
-    color: var(--color-primary-foreground, #fafafa) !important;
-    background-color: var(--color-primary, #18181b) !important;
-    background: var(--color-primary, #18181b) !important;
-    border-color: var(--color-primary, #18181b) !important;
+  @apply shadow-sm font-semibold relative overflow-hidden;
+  color: var(--hs-primary-foreground) !important;
+  background: var(--hs-primary) !important;
+  border-color: var(--hs-primary) !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
 .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover,
 .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:active {
-    @apply cursor-not-allowed text-muted-foreground/60 bg-muted/40 border-border shadow-none opacity-50;
+  @apply cursor-not-allowed text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-900/50 border-[#e8e8e8] dark:border-gray-800 shadow-none opacity-50;
 }
 
 /* Base Card Wrapper untuk Semua Tabel */
 .table-wrapper {
-    @apply bg-card rounded-xl shadow-xs border border-border overflow-hidden;
-    min-height: 280px;
+  @apply bg-white dark:bg-gray-900 rounded-[12px] shadow-theme-xs border border-[#e8e8e8] dark:border-border overflow-hidden;
+  min-height: 280px;
 }
 
 /* Processing State */
 div.dataTables_wrapper {
-    min-height: 260px;
-    position: relative;
+  min-height: 260px;
+  position: relative;
 }
 
 div.dataTables_wrapper div.dataTables_processing {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 20;
-    margin: 0 !important;
-    padding: 10px 20px !important;
-    background: rgba(255, 255, 255, 0.95) !important;
-    backdrop-filter: blur(4px);
-    border: 1px solid var(--color-border) !important;
-    border-radius: var(--radius-lg) !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    font-size: 0.8125rem !important;
-    font-weight: 500 !important;
-    color: var(--color-foreground) !important;
-    display: flex !important;
-    align-items: center;
-    gap: 8px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  margin: 0 !important;
+  padding: 10px 20px !important;
+  background: var(--hs-card) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--hs-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-theme-md);
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  color: var(--hs-foreground) !important;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
 }
 
 div.dataTables_wrapper div.dataTables_processing::before {
-    content: "";
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--color-border);
-    border-top-color: var(--color-primary);
-    border-radius: 50%;
-    animation: dt-spin 0.6s linear infinite;
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--hs-border);
+  border-top-color: var(--hs-primary);
+  border-radius: 50%;
+  animation: dt-spin 0.6s linear infinite;
 }
 
 @keyframes dt-spin {
-    to { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
-/* Custom Slim Light Scrollbar for DevScore Sidebar */
+/* Custom Slim Scrollbar for Sidebar */
 aside nav,
 .sidebar-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(150, 150, 150, 0.2) transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 150, 150, 0.2) transparent;
 }
 
 aside nav::-webkit-scrollbar,
 .sidebar-scroll::-webkit-scrollbar {
-    width: 4px;
+  width: 4px;
 }
 
 aside nav::-webkit-scrollbar-track,
 .sidebar-scroll::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 aside nav::-webkit-scrollbar-thumb,
 .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: rgba(150, 150, 150, 0.2);
-    border-radius: 9999px;
+  background: rgba(150, 150, 150, 0.25);
+  border-radius: 9999px;
 }
 
 aside nav::-webkit-scrollbar-thumb:hover,
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(150, 150, 150, 0.4);
+  background: rgba(150, 150, 150, 0.45);
 }
 
-:root {
-    background-color: var(--color-background);
+/* ── 7. SWEETALERT2 DUAL-THEME OVERRIDES ── */
+.swal2-popup {
+  background: #FFFFFF !important;
+  border: 1px solid #E8E8E8 !important;
+  border-radius: 12px !important;
+  color: #101828 !important;
+  box-shadow: var(--shadow-theme-lg) !important;
+  font-family: var(--font-body) !important;
 }
 
-/* Native Modal Dialog scroll containment & backdrop */
+.dark .swal2-popup {
+  background: #111827 !important;
+  border-color: #262626 !important;
+  color: #FFFFFF !important;
+}
+
+.swal2-title {
+  color: inherit !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.swal2-html-container {
+  color: var(--color-text-muted) !important;
+}
+
+.swal2-confirm {
+  background: #000000 !important;
+  color: #FFFFFF !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+}
+
+.dark .swal2-confirm {
+  background: #FFFFFF !important;
+  color: #0A0A0A !important;
+}
+
+.swal2-cancel {
+  background: #F5F5F5 !important;
+  color: #101828 !important;
+  border: 1px solid #E8E8E8 !important;
+  border-radius: 6px !important;
+}
+
+.dark .swal2-cancel {
+  background: #1F2937 !important;
+  color: #F3F4F6 !important;
+  border-color: #374151 !important;
+}
+
+/* ── 8. NATIVE MODAL DIALOG SCROLL CONTAINMENT & BACKDROP ── */
 dialog:modal {
-    overscroll-behavior: contain;
-    margin: auto;
-    padding: 0;
-    border: 0;
-    background: transparent;
+  overscroll-behavior: contain;
+  margin: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 dialog::backdrop {
-    overflow: hidden;
-    overscroll-behavior: contain;
-    background: rgb(0 0 0 / 0.45);
-    backdrop-filter: blur(2px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(4px);
 }

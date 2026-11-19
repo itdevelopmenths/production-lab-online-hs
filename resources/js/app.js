@@ -4,6 +4,49 @@ import Swal from 'sweetalert2';
 window.Alpine = Alpine;
 window.Swal = Swal;
 
+window.hsTheme = {
+    current() {
+        try {
+            const stored = localStorage.getItem('hs.theme');
+            if (stored === 'dark' || stored === 'light') {
+                return stored;
+            }
+        } catch (e) {}
+
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+    },
+
+    isDark() {
+        return this.current() === 'dark' || document.documentElement.classList.contains('dark');
+    },
+
+    set(mode) {
+        const next = mode === 'dark' ? 'dark' : 'light';
+        const isDark = next === 'dark';
+
+        try {
+            localStorage.setItem('hs.theme', next);
+        } catch (e) {}
+
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.style.colorScheme = next;
+
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+            meta.setAttribute('content', isDark ? '#030712' : '#F9FAFB');
+        }
+
+        window.dispatchEvent(new CustomEvent('hs-theme-changed', { detail: { theme: next } }));
+        return next;
+    },
+
+    toggle() {
+        return this.set(this.isDark() ? 'light' : 'dark');
+    },
+};
+
 window.productSearchSelect = function(config) {
     return {
         open: false,
