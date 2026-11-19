@@ -14,6 +14,7 @@ use App\Models\Transfer;
 use App\Models\User;
 use App\Services\AnalisaService;
 use App\Services\Authorization\LocationScopeService;
+use App\Services\DashboardPipelineService;
 use App\Services\StokService;
 use App\Services\TransferService;
 use App\Support\Dashboard\Rupiah;
@@ -28,7 +29,8 @@ class DashboardController extends Controller
         private readonly AnalisaService $analisa,
         private readonly StokService $stokService,
         private readonly LocationScopeService $locationScope,
-        private readonly TransferService $transferService
+        private readonly TransferService $transferService,
+        private readonly DashboardPipelineService $pipeline
     ) {
     }
 
@@ -75,6 +77,7 @@ class DashboardController extends Controller
 
         return view('dashboard', array_merge([
             'generatedAt' => now(),
+            'alur' => $this->pipeline->forRole($role, $user),
             'user' => $user,
             'role' => $role,
             'defectAnalytics' => $defectAnalytics,
