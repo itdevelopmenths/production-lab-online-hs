@@ -37,6 +37,17 @@ trait SeedsDemandRequests
     }
 
     /**
+     * Pemakaian bahan di batch produksi sehingga ADU Lokal (total 4 bulan ÷ 120, sesuai Excel) = $aduLokal per hari.
+     */
+    protected function seedLokalDemand(Produk $produk, float $aduLokal): KartuStok
+    {
+        $days = app(DemandAduService::class)->window()['days'];
+        $hariLokal = DemandAduService::WINDOW_MONTHS * DemandAduService::HARI_PER_BULAN_LOKAL;
+
+        return $this->seedPusatDemand($produk, $aduLokal * $hariLokal / $days);
+    }
+
+    /**
      * ADU penjualan produk jadi di Gudang Fulfillment = $adu per hari (menggantikan input fulfillment lain produk tsb).
      */
     protected function seedProduksiDemand(Produk $produk, float $adu): AnalisaFulfillmentInput

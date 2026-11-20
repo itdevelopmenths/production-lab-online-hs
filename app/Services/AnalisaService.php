@@ -662,9 +662,11 @@ class AnalisaService
                 }
 
                 $bufferDays = self::roundLeadTimeDays(max(0.0, $maxLt - $avgLt) + $tambahanHari);
-                $safetyStock = round($aduRaw * $bufferDays);
-                $minimumStock = round($aduRaw * $avgLt);
-                $targetStock = (int) floor($aduRaw * ($avgLt + $bufferDays + $reviewPeriod) + 0.0001);
+                // ADU ETA bergantung lead time supplier (pivot komposisi baru selama menunggu barang tiba).
+                $aduEtaSupplier = self::hitungAduEta($aduRaw, (float) ($ai->adu_pivot ?? 0), $avgLt);
+                $safetyStock = round($aduEtaSupplier * $bufferDays);
+                $minimumStock = round($aduEtaSupplier * $avgLt);
+                $targetStock = (int) floor($aduEtaSupplier * ($avgLt + $bufferDays + $reviewPeriod) + 0.0001);
 
                 $rows[] = [
                     'row_key' => $pid . '_' . ($sid ?? 'none'),
@@ -689,7 +691,8 @@ class AnalisaService
                     'out' => (float) round($out),
                     'adu' => (float) round($aduRaw, 2),
                     'adu_base' => round($aduRaw, 4),
-                    'adu_eta' => round($aduRaw, 4),
+                    'adu_pivot' => round((float) ($ai->adu_pivot ?? 0), 4),
+                    'adu_eta' => round($aduEtaSupplier, 4),
                     'review_period' => $reviewPeriod,
                     'klasifikasi_abc' => $ai->klasifikasi_abc,
                     'klasifikasi_abc_id' => $ai->klasifikasi_abc_id,
@@ -752,7 +755,7 @@ class AnalisaService
             $tambahanAbc = (float) ($currentImpor?->tambahan_buffer_hari ?? 0);
         } else {
             $inputLokal = AnalisaLokalInput::where('produk_id', $produk->id)->first();
-            $adu = (float) ($currentLokal?->adu ?? $this->pusatAdu($produk->id));
+            $adu = (float) ($currentLokal?->adu ?? $this->pusatAduLokal($produk->id));
             $reviewPeriod = (int) ($currentLokal?->review_period ?? $inputLokal?->review_period ?? 15);
         }
         if ($reviewPeriod <= 0) {
@@ -954,7 +957,8 @@ class AnalisaService
             // 3. Analisa Lokal (Working Table)
             $existingInput = AnalisaLokalInput::where('produk_id', $p->id)->first();
 
-            $adu = (float) ($demandMap[(int) $p->id]['adu'] ?? 0.0);
+            // ADU lokal sesuai Excel: (pemakaian 4 bulan ÷ 4) ÷ 30
+            $adu = (float) ($demandMap[(int) $p->id]['adu_lokal'] ?? 0.0);
             $terjual = $adu * 30; // ekuivalen rata-rata per bulan (ADU otomatis dari permintaan produksi)
             $reviewPeriod = (int) ($existingInput?->review_period ?? $existingAnalisa?->review_period ?? 15);
             if ($reviewPeriod <= 0) {
@@ -1071,14 +1075,15 @@ class AnalisaService
             $safetyStockHari = max(0, $totalMax - $totalAvg) + $tambahanBuffer;
         }
 
-        $adu = $this->pusatAdu((int) $input->produk_id);
-        $batasMinimum = round($adu * ($totalAvg + $safetyStockHari));
-        $targetStock = round($adu * ($totalAvg + $safetyStockHari + (int) $input->review_period));
+        $adu = $this->pusatAduLokal((int) $input->produk_id);
+        // Desimal penuh seperti Excel (konsisten dengan generateLokal); pembulatan hanya di qty order (MOQ).
+        $batasMinimum = $adu * ($totalAvg + $safetyStockHari);
+        $targetStock = $adu * ($totalAvg + $safetyStockHari + (int) $input->review_period);
 
         // Sesuai Excel Analisa Lokal: ORDER bila Stok + Akan Datang ≤ Target Stock.
         $tersedia = (float) $input->stok_saat_ini + (float) $input->akan_datang;
         $isOrder = $targetStock > 0 && $tersedia <= $targetStock;
-        $selisih = round($tersedia - $targetStock);
+        $selisih = $tersedia - $targetStock;
         $qtyOrder = $isOrder ? $this->bulatkanMoq(abs($selisih), $moq) : 0;
 
         return [
@@ -1222,6 +1227,54 @@ class AnalisaService
      * @param  int|null  $userId    User ID pembuat generate
      * @return array{generated_count: int, timestamp: string, items: array}
      */
+    /**
+     * Total out 4 bulan per grup pivot impor: Σ pemakaian seluruh SKU yang memakai grup_pivot yang sama.
+     *
+     * @return array<string, float>
+     */
+    public function imporGrupPivotOutTotals(): array
+    {
+        $grupMap = AnalisaImpor::whereNotNull('grup_pivot')->where('grup_pivot', '!=', '')
+            ->pluck('grup_pivot', 'produk_id');
+        if ($grupMap->isEmpty()) {
+            return [];
+        }
+
+        $demand = $this->demand()->aduBahanPusat($grupMap->keys()->map(fn ($id) => (int) $id)->all());
+        $totals = [];
+        foreach ($grupMap as $pid => $grup) {
+            $key = self::normalizeGrupPivot($grup);
+            $totals[$key] = ($totals[$key] ?? 0.0) + (float) ($demand[(int) $pid]['total'] ?? 0.0);
+        }
+
+        return $totals;
+    }
+
+    public static function normalizeGrupPivot(?string $grup): string
+    {
+        return strtolower(trim((string) $grup));
+    }
+
+    /**
+     * ADU Pivot (komposisi baru) = % pivot × total out grup ÷ jumlah hari. 0 bila SKU tidak ikut grup pivot.
+     *
+     * @param  array<string, float>  $grupOutTotals
+     */
+    public static function hitungAduPivot(?string $grup, ?float $persen, array $grupOutTotals, int $jumlahHari): float
+    {
+        if ($persen === null || $persen <= 0 || $jumlahHari <= 0 || trim((string) $grup) === '') {
+            return 0.0;
+        }
+
+        return $persen * (float) ($grupOutTotals[self::normalizeGrupPivot($grup)] ?? 0.0) / $jumlahHari;
+    }
+
+    /** ADU ETA = ADU Base + ADU Pivot × Lead Time / 30 (Excel Analisa Import, sheet P50). */
+    public static function hitungAduEta(float $aduBase, float $aduPivot, float $ltAvg): float
+    {
+        return $aduBase + ($aduPivot * $ltAvg / 30);
+    }
+
     public function generateImpor(?int $produkId = null, ?int $userId = null): array
     {
         $query = Produk::query()
@@ -1251,6 +1304,8 @@ class AnalisaService
 
         $generated = [];
         $now = now();
+        // Total out 4 bulan per grup pivot (mis. seluruh warna botol P50) untuk ADU Pivot komposisi baru.
+        $grupOutTotals = $this->imporGrupPivotOutTotals();
 
         foreach ($products as $p) {
             $meta = AnalisaImporMeta::where('produk_id', $p->id)->first();
@@ -1309,9 +1364,14 @@ class AnalisaService
             $periodeAkhir = $win['end']->toDateString();
             $jumlahHari = $win['days'];
 
-            // Hitung ADU murni per produk (tidak bergantung pada supplier / lead time)
+            // ADU Base = out produk ini / jumlah hari (komposisi saat ini, Excel "Pivot 3").
             $aduBase = $jumlahHari > 0 ? ($out / $jumlahHari) : 0;
-            $aduEta = $aduBase;
+            // ADU Pivot = % komposisi baru × total out grup / jumlah hari (Excel "Pivot 4").
+            $grupPivot = $existingAnalisa?->grup_pivot;
+            $persenPivot = $existingAnalisa?->persentase_pivot !== null ? (float) $existingAnalisa->persentase_pivot : null;
+            $aduPivot = self::hitungAduPivot($grupPivot, $persenPivot, $grupOutTotals, $jumlahHari);
+            // ADU ETA = ADU Base + ADU Pivot × Lead Time / 30 (laju kebutuhan saat barang tiba).
+            $aduEta = self::hitungAduEta($aduBase, $aduPivot, $ltAvg);
 
             $totalSafetyStock = round($aduEta * $bufferDays);
             $totalMinStock = round($aduEta * $ltAvg);
@@ -1347,6 +1407,7 @@ class AnalisaService
                     'jumlah_hari_periode' => $jumlahHari,
                     'adu_base' => $aduBase,
                     'adu_eta' => $aduEta,
+                    'adu_pivot' => $aduPivot,
                     'lead_time' => $ltAvg,
                     'review_period' => $reviewPeriod,
                     'klasifikasi_abc' => $klasifikasiAbc,
@@ -1569,7 +1630,7 @@ class AnalisaService
         $akanDatang = 0.0;
 
         foreach ($rows as $r) {
-            $adu = round((float) $r->terjual_rata_rata_4bulan / 30);
+            $adu = (float) $r->terjual_rata_rata_4bulan / 30; // tanpa pembulatan, sesuai Excel
             $batasMin = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi);
             $target = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi + (int) $r->review_period);
 
@@ -1780,6 +1841,12 @@ class AnalisaService
         return (float) $this->pusatDemand($produkId)['adu'];
     }
 
+    /** ADU bahan lokal sesuai Excel: (pemakaian 4 bulan ÷ 4) ÷ 30. */
+    private function pusatAduLokal(int $produkId): float
+    {
+        return (float) ($this->demand()->aduBahanPusat([$produkId])[$produkId]['adu_lokal'] ?? 0.0);
+    }
+
     /** Bulatkan ke atas ke kelipatan MOQ. */
     private function bulatkanMoq(float $qty, float $moq): float
     {
@@ -1839,7 +1906,7 @@ class AnalisaService
         // 3. Profil Produk Jadi (Fulfillment)
         $ffInputs = AnalisaFulfillmentInput::all();
         foreach ($ffInputs as $r) {
-            $adu = round((float) $r->terjual_rata_rata_4bulan / 30);
+            $adu = (float) $r->terjual_rata_rata_4bulan / 30; // tanpa pembulatan, sesuai Excel
             $batasMin = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi);
             $key = "{$r->produk_id}_{$r->gudang_id}";
             $byProductGudang[$key] = $batasMin;

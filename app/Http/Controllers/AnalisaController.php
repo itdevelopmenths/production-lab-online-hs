@@ -44,14 +44,25 @@ class AnalisaController extends Controller
     ) {
     }
 
-    public function index()
+    /** Sub menu Analisa Stok (sidebar) -> tab halaman analisa. */
+    public const TABS = [
+        'lokal' => 'Bahan Baku Lokal',
+        'impor' => 'Bahan Baku Impor',
+        'produksi' => 'Produk Jadi (Gudang Produksi)',
+        'fulfillment' => 'Produk Jadi (Fulfillment)',
+        'riwayat' => 'Log Riwayat Snapshot',
+    ];
+
+    public function index(Request $request)
     {
         $this->authorize('analisa.view');
 
         $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
         $gudang = Gudang::active()->orderBy('nama')->get(['id', 'nama', 'tipe']);
+        $tab = array_key_exists((string) $request->query('tab'), self::TABS) ? (string) $request->query('tab') : 'lokal';
+        $tabLabel = self::TABS[$tab];
 
-        return view('analisa.index', compact('suppliers', 'gudang'));
+        return view('analisa.index', compact('suppliers', 'gudang', 'tab', 'tabLabel'));
     }
 
     /**
@@ -494,6 +505,9 @@ class AnalisaController extends Controller
             'stok_saat_ini' => ['nullable', 'numeric', 'min:0'],
             'inbound_before_eta' => ['nullable', 'numeric', 'min:0'],
             'harga_per_satuan' => ['nullable', 'numeric', 'min:0'],
+            // Pivot komposisi baru (Excel P50 "Pivot 4"): nama grup + % komposisi baru (0-100).
+            'grup_pivot' => ['nullable', 'string', 'max:50'],
+            'persentase_pivot' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         if ($validator->fails()) {
@@ -506,6 +520,7 @@ class AnalisaController extends Controller
 
         $data = $validator->validated();
         $prodId = (int) $data['produk_id'];
+        $grupSebelum = AnalisaImpor::where('produk_id', $prodId)->value('grup_pivot');
         $produk = Produk::findOrFail($prodId);
         if (! $produk->is_active || $produk->tipe === 'produk_jadi') {
             return response()->json([
@@ -514,7 +529,7 @@ class AnalisaController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($prodId, $produk, $data) {
+        DB::transaction(function () use ($prodId, $produk, $data, $grupSebelum) {
             if (! AnalisaService::isImporProfile($produk->profil_analisa)) {
                 $produk->profil_analisa = 'impor';
                 $produk->save();
@@ -592,6 +607,13 @@ class AnalisaController extends Controller
             if (array_key_exists('harga_per_satuan', $data) && $data['harga_per_satuan'] !== null) {
                 $ai->harga_per_satuan = $data['harga_per_satuan'];
             }
+            if (array_key_exists('grup_pivot', $data)) {
+                $grup = trim((string) $data['grup_pivot']);
+                $ai->grup_pivot = $grup === '' ? null : $grup;
+            }
+            if (array_key_exists('persentase_pivot', $data)) {
+                $ai->persentase_pivot = $data['persentase_pivot'] === null ? null : ((float) $data['persentase_pivot'] / 100);
+            }
             $ai->save();
 
             // Jika produk memiliki varian di AnalisaImporMeta, sinkronkan juga ke meta
@@ -616,6 +638,17 @@ class AnalisaController extends Controller
 
             // Hitung ulang analisa impor produk ini
             $this->analisa->generateImpor($prodId, auth()->id());
+
+            // Total out grup pivot berubah -> hitung ulang SKU lain dalam grup lama/baru.
+            $grupTerkait = array_filter(array_unique([
+                AnalisaService::normalizeGrupPivot($grupSebelum),
+                AnalisaService::normalizeGrupPivot($ai->grup_pivot),
+            ]));
+            if (! empty($grupTerkait)) {
+                AnalisaImpor::whereNotNull('grup_pivot')->where('produk_id', '!=', $prodId)->get(['produk_id', 'grup_pivot'])
+                    ->filter(fn ($row) => in_array(AnalisaService::normalizeGrupPivot($row->grup_pivot), $grupTerkait, true))
+                    ->each(fn ($row) => $this->analisa->generateImpor((int) $row->produk_id, auth()->id()));
+            }
         });
 
         return response()->json([
@@ -664,6 +697,8 @@ class AnalisaController extends Controller
             ->select('poi.produk_id', DB::raw('SUM(poi.qty) as total_inbound'))
             ->pluck('total_inbound', 'poi.produk_id');
 
+        $grupOutTotals = $this->analisa->imporGrupPivotOutTotals();
+
         $rows = [];
         foreach ($imporList as $ai) {
             $lt = $ltMap->get($ai->produk_id);
@@ -686,6 +721,10 @@ class AnalisaController extends Controller
                 'jumlah_hari_periode' => (int) ($ai->jumlah_hari_periode ?: 122),
                 'adu_base' => (float) $ai->adu_base,
                 'adu_eta' => (float) $ai->adu_eta,
+                'adu_pivot' => (float) $ai->adu_pivot,
+                'grup_pivot' => $ai->grup_pivot,
+                'persentase_pivot' => $ai->persentase_pivot !== null ? round((float) $ai->persentase_pivot * 100, 2) : null,
+                'grup_out_total' => (float) ($grupOutTotals[AnalisaService::normalizeGrupPivot($ai->grup_pivot)] ?? 0),
                 'klasifikasi_abc' => $ai->klasifikasi_abc,
                 'klasifikasi_abc_id' => $ai->klasifikasi_abc_id,
                 'klasifikasi_abc_nama' => $ai->klasifikasiAbc?->nama ?? ($ai->klasifikasi_abc_id ? strtoupper($ai->klasifikasi_abc) : 'Default (Belum Diset)'),

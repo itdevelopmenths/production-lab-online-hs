@@ -59,17 +59,8 @@
 
         {{-- ============ TAB + STATUS DATA ============ --}}
         <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-            <div class="inline-flex flex-wrap items-center gap-1 p-1 bg-[#f3f4f6] dark:bg-gray-900 rounded-[8px] border border-[#E8E8E8] dark:border-gray-800" role="tablist">
-                <template x-for="t in tabs" :key="t.key">
-                    <button type="button" role="tab" :aria-selected="tab === t.key"
-                        @click="tab = t.key; load()"
-                        :class="tab === t.key ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                        class="px-3.5 py-1.5 text-xs transition-all cursor-pointer select-none font-medium rounded-[6px]"
-                    >
-                        <span x-text="t.label"></span>
-                    </button>
-                </template>
-            </div>
+            {{-- Pindah tab lewat sub menu "Analisa Stok" di sidebar --}}
+            <h2 class="text-sm font-semibold text-[#101828] dark:text-white">{{ $tabLabel }}</h2>
 
             <p class="text-[11px] text-[#667085] dark:text-gray-400 tabular-nums">
                 <template x-if="(tab === 'lokal' || tab === 'impor') && meta.last_generated_at">
@@ -201,7 +192,8 @@
     <script>
     function analisa(){
       return {
-        tab: 'lokal',
+        // Tab dipilih lewat sub menu sidebar Analisa Stok (?tab=...).
+        tab: @js($tab),
         lokalSubTab: 'rekomendasi',
         imporSubTab: 'rekomendasi',
         rows: [],
@@ -340,7 +332,11 @@
           current_stok_aktual: null,
           current_inbound: null,
           empirical_avg_lt: null,
-          empirical_max_lt: null
+          empirical_max_lt: null,
+          grup_pivot: '',
+          persentase_pivot: null,
+          grup_pivot_awal: '',
+          grup_out_total: 0
         },
         loading: true,
         generating: false,
@@ -1081,7 +1077,7 @@
           }
         },
         ffGudangAdu(g){
-          return Math.round((Number(g.terjual_rata_rata_4bulan) || 0) / 30);
+          return (Number(g.terjual_rata_rata_4bulan) || 0) / 30;
         },
         ffGudangTarget(g){
           return this.ffGudangAdu(g) * ((Number(g.lead_time_distribusi) || 0) + (Number(g.buffer_distribusi) || 0) + (Number(g.review_period) || 0));
@@ -1244,6 +1240,10 @@
             current_inbound: item.current_inbound !== undefined ? Number(item.current_inbound) : (item.parent_inbound !== undefined ? item.parent_inbound : (item.inbound_before_eta || 0)),
             empirical_avg_lt: item.empirical_avg_lt !== undefined && item.empirical_avg_lt !== null ? Number(item.empirical_avg_lt) : null,
             empirical_max_lt: item.empirical_max_lt !== undefined && item.empirical_max_lt !== null ? Number(item.empirical_max_lt) : null,
+            grup_pivot: item.grup_pivot || '',
+            grup_pivot_awal: item.grup_pivot || '',
+            persentase_pivot: item.persentase_pivot !== undefined && item.persentase_pivot !== null ? Number(item.persentase_pivot) : null,
+            grup_out_total: Number(item.grup_out_total) || 0,
           };
 
           if (!this.manualImporForm.klasifikasi_abc_id && item.klasifikasi_abc_id === null) {
@@ -1354,7 +1354,11 @@
             const j = await res.json();
             if (res.ok && j.success) {
               this.showAddSkuModal = false;
-              this.tab = target;
+              if (this.tab !== target) {
+                // Pindah ke sub menu (tab) tujuan supaya sidebar ikut aktif.
+                window.location.href = '{{ route('analisa.index') }}?tab=' + encodeURIComponent(target);
+                return;
+              }
               await this.load();
               Swal.fire({ icon: 'success', title: 'Berhasil', text: j.message, timer: 1600, showConfirmButton: false });
             } else {
@@ -1419,11 +1423,23 @@
 
           return this.formatNumber(base);
         },
+        simulasiImporAduPivotRaw(){
+          // ADU Pivot = % komposisi baru × total out grup ÷ jumlah hari (Excel P50 "Pivot 4").
+          // Total out grup hanya diketahui untuk grup yang sudah tersimpan; grup baru dihitung saat simpan.
+          const f = this.manualImporForm;
+          const pct = Number(f.persentase_pivot) || 0;
+          const days = this.simulasiImporJumlahHari();
+          const sameGrup = String(f.grup_pivot || '').trim().toLowerCase() === String(f.grup_pivot_awal || '').trim().toLowerCase();
+          if (!pct || !String(f.grup_pivot || '').trim() || days <= 0 || !sameGrup) return 0;
+          return (pct / 100) * (Number(f.grup_out_total) || 0) / days;
+        },
         simulasiImporAduEtaRaw(){
           const out = Number(this.manualImporForm.out) || 0;
           const days = this.simulasiImporJumlahHari();
-          // ADU murni per produk (tidak bergantung pada supplier / lead time)
-          return days > 0 ? (out / days) : 0;
+          const base = days > 0 ? (out / days) : 0;
+          // ADU ETA = ADU Base + ADU Pivot × Lead Time / 30
+          const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
+          return base + this.simulasiImporAduPivotRaw() * avgLt / 30;
         },
         simulasiImporAduEta(){
           return this.formatNumber(this.simulasiImporAduEtaRaw());
@@ -1490,6 +1506,8 @@
               stok_saat_ini: Number(this.manualImporForm.stok_saat_ini) || 0,
               inbound_before_eta: Number(this.manualImporForm.inbound_before_eta) || 0,
               harga_per_satuan: Number(this.manualImporForm.harga_per_satuan) || 0,
+              grup_pivot: String(this.manualImporForm.grup_pivot || '').trim() || null,
+              persentase_pivot: (this.manualImporForm.persentase_pivot === '' || this.manualImporForm.persentase_pivot === null) ? null : Number(this.manualImporForm.persentase_pivot),
             };
             const res = await fetch('{{ route('analisa.update-manual-impor') }}', {
               method: 'POST',

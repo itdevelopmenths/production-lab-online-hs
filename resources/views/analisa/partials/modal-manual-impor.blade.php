@@ -142,6 +142,37 @@
                 </div>
             </div>
 
+            <!-- Group 2b: Pivot Komposisi Baru (Excel P50 "Pivot 4") -->
+            <div class="space-y-3">
+                <h4 class="text-xs font-semibold text-[#101828] dark:text-white uppercase tracking-wider pb-1.5 border-b border-[#E8E8E8] dark:border-gray-800 flex items-center gap-1.5">
+                    <span>Pivot Komposisi Baru (opsional)</span>
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">Grup Pivot</label>
+                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">SKU dengan nama grup sama berbagi total out (mis. <span class="font-medium">P50 HS</span> untuk semua warna botol).</p>
+                        <input type="text" maxlength="50" x-model="manualImporForm.grup_pivot" placeholder="mis. P50 HS" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none rounded-[6px]">
+                    </div>
+                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
+                        <label class="font-medium text-[#101828] dark:text-white block mb-1">% Komposisi Baru</label>
+                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Porsi SKU ini pada komposisi baru grup. Kosongkan bila tidak ada.</p>
+                        <div class="relative flex items-center">
+                            <input type="number" step="0.01" min="0" max="100" x-model.number="manualImporForm.persentase_pivot" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-8 outline-none rounded-[6px]">
+                            <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">%</span>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
+                        <div class="font-medium text-[#101828] dark:text-white mb-1">ADU ETA</div>
+                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">ADU Base + ADU Pivot × Lead Time ÷ 30</p>
+                        <div class="tabular-nums text-[#101828] dark:text-white">
+                            <div>ADU Pivot: <span class="font-medium" x-text="formatNumber(simulasiImporAduPivotRaw())"></span></div>
+                            <div>ADU ETA: <span class="font-medium" x-text="formatNumber(simulasiImporAduEtaRaw())"></span></div>
+                        </div>
+                        <p class="text-[10px] text-[#667085] dark:text-gray-400 mt-1" x-show="String(manualImporForm.grup_pivot || '').trim().toLowerCase() !== String(manualImporForm.grup_pivot_awal || '').trim().toLowerCase()">Grup baru: ADU Pivot dihitung saat disimpan.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Group 3: Stok Fisik, Inbound & Harga -->
             <div class="space-y-3">
                 <h4 class="text-xs font-semibold text-[#101828] dark:text-white uppercase tracking-wider pb-1.5 border-b border-[#E8E8E8] dark:border-gray-800 flex items-center gap-1.5">

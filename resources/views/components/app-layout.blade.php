@@ -248,13 +248,27 @@
                             @endcanany
 
                             @can('analisa.view')
-                            <li class="w-full" x-show="!menuQuery || 'analisa stok kpi analitik'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('analisa.index') }}" :active="request()->routeIs('analisa.*')">
+                            @php
+                                $analisaTabAktif = request()->routeIs('analisa.index')
+                                    ? (array_key_exists((string) request()->query('tab'), \App\Http\Controllers\AnalisaController::TABS) ? (string) request()->query('tab') : 'lokal')
+                                    : null;
+                            @endphp
+                            <li class="w-full">
+                                <x-nav-group
+                                    title="Analisa Stok"
+                                    :active="request()->routeIs('analisa.*')"
+                                    keywords="analisa stok kpi analitik bahan baku lokal impor produk jadi gudang produksi fulfillment log riwayat snapshot">
                                     <x-slot:icon>
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                                     </x-slot:icon>
-                                    Analisa Stok
-                                </x-nav-item>
+                                    @foreach (\App\Http\Controllers\AnalisaController::TABS as $tabKey => $tabNama)
+                                    <div x-show="!menuQuery || @js(strtolower('analisa stok ' . $tabNama)).includes(menuQuery.toLowerCase())">
+                                        <x-nav-item href="{{ route('analisa.index', ['tab' => $tabKey]) }}" :active="$analisaTabAktif === $tabKey" :isChild="true">
+                                            {{ $tabNama }}
+                                        </x-nav-item>
+                                    </div>
+                                    @endforeach
+                                </x-nav-group>
                             </li>
                             @endcan
                         </ul>

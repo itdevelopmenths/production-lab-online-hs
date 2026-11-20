@@ -36,26 +36,37 @@ class DemandAduService
         return ['start' => $start, 'end' => $end, 'days' => max(1, (int) $days)];
     }
 
+    /** Pembagi ADU bahan lokal (Excel Analisa Lokal): rata-rata per bulan ÷ 30 = total 4 bulan ÷ 120. */
+    public const HARI_PER_BULAN_LOKAL = 30;
+
     /**
      * ADU Gudang Pusat per bahan: pemakaian riil di batch produksi, fallback proyeksi BOM.
+     *  - adu       : total ÷ jumlah hari jendela sebenarnya (dipakai Analisa Impor, Excel ÷122).
+     *  - adu_lokal : (total ÷ 4 bulan) ÷ 30 (dipakai Analisa Lokal, sesuai Excel "Terjual rata-rata ÷ 30").
      *
      * @param  array<int, int>|null  $produkIds  null = semua produk
-     * @return array<int, array{total: float, adu: float, sumber: string}>
+     * @return array<int, array{total: float, adu: float, adu_lokal: float, sumber: string}>
      */
     public function aduBahanPusat(?array $produkIds = null, ?CarbonInterface $end = null): array
     {
         $w = $this->window($end);
         $out = [];
+        $hariLokal = self::WINDOW_MONTHS * self::HARI_PER_BULAN_LOKAL;
 
         foreach ($this->pemakaianProduksi($produkIds, $w) as $pid => $total) {
             if ($total > 0) {
-                $out[$pid] = ['total' => $total, 'adu' => $total / $w['days'], 'sumber' => self::SUMBER_PEMAKAIAN];
+                $out[$pid] = [
+                    'total' => $total,
+                    'adu' => $total / $w['days'],
+                    'adu_lokal' => $total / $hariLokal,
+                    'sumber' => self::SUMBER_PEMAKAIAN,
+                ];
             }
         }
 
         foreach ($this->proyeksiBom($produkIds) as $pid => $adu) {
             if (! isset($out[$pid]) && $adu > 0) {
-                $out[$pid] = ['total' => $adu * $w['days'], 'adu' => $adu, 'sumber' => self::SUMBER_BOM];
+                $out[$pid] = ['total' => $adu * $w['days'], 'adu' => $adu, 'adu_lokal' => $adu, 'sumber' => self::SUMBER_BOM];
             }
         }
 
@@ -63,7 +74,7 @@ class DemandAduService
     }
 
     /**
-     * ADU produk jadi dari Analisa Fulfillment: Σ pembulatan(terjual rata-rata/bulan ÷ 30) per gudang fulfillment.
+     * ADU produk jadi dari Analisa Fulfillment: Σ (terjual rata-rata/bulan ÷ 30) per gudang fulfillment, tanpa pembulatan.
      *
      * @param  array<int, int>|null  $produkIds  null = semua produk jadi di analisa fulfillment
      * @return array<int, array{adu: float, terjual_bulanan: float, jumlah_gudang: int}>
@@ -79,7 +90,7 @@ class DemandAduService
             $pid = (int) $r->produk_id;
             $terjual = (float) $r->terjual_rata_rata_4bulan;
             $out[$pid] ??= ['adu' => 0.0, 'terjual_bulanan' => 0.0, 'jumlah_gudang' => 0];
-            $out[$pid]['adu'] += round($terjual / 30);
+            $out[$pid]['adu'] += $terjual / 30; // tanpa pembulatan, sesuai Excel
             $out[$pid]['terjual_bulanan'] += $terjual;
             $out[$pid]['jumlah_gudang']++;
         }

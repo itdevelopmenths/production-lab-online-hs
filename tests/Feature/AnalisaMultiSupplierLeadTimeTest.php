@@ -409,7 +409,7 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
         ]);
 
         // ADU 100 per hari dari permintaan bahan baku Gudang Produksi
-        $this->seedPusatDemand($this->produkLokal, 100);
+        $this->seedLokalDemand($this->produkLokal, 100);
         \App\Models\AnalisaLokalInput::create([
             'produk_id' => $this->produkLokal->id,
             'terjual_rata_rata_4bulan' => 0,

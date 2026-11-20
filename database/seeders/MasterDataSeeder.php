@@ -62,7 +62,9 @@ class MasterDataSeeder extends Seeder
         // ADU bahan = total bahan keluar ber-referensi batch_produksi / jumlah hari jendela (DemandAduService).
         // Riwayat pemakaian contoh dicatat langsung di kartu stok (tanpa mengubah saldo stok).
         $days = app(\App\Services\DemandAduService::class)->window()['days'];
-        foreach ([[$alk, 39303.25 / 30], [$btl, 47312 / 122]] as [$produkDemand, $aduDemand]) {
+        // ALK-01 (lokal): terjual rata-rata 39.303,25/bulan -> total 4 bulan; ADU lokal = total ÷ 120.
+        // BTL-P50 (impor): ADU 47.312/122 per hari sepanjang jendela.
+        foreach ([[$alk, 39303.25 * 4 / $days], [$btl, 47312 / 122]] as [$produkDemand, $aduDemand]) {
             $sudahAda = \App\Models\KartuStok::where('produk_id', $produkDemand->id)
                 ->where('referensi_tipe', 'batch_produksi')->where('catatan', 'Seed pemakaian produksi')->exists();
             if (! $sudahAda) {

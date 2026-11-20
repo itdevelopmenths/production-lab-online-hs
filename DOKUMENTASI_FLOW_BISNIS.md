@@ -367,9 +367,9 @@ ADU (*Average Daily Usage*) dihitung berantai mengikuti alur Excel analisa, dari
 
 | Tingkat | Barang | Sumber ADU | Dipakai untuk |
 | :--- | :--- | :--- | :--- |
-| **1. Gudang Fulfillment** | Produk jadi | Input **Terjual rata-rata/bulan** per gudang: $\text{ADU}_g = \text{pembulatan}(\text{Terjual}_g / 30)$ | Kebutuhan kirim ke fulfillment (5.3) |
+| **1. Gudang Fulfillment** | Produk jadi | Input **Terjual rata-rata/bulan** per gudang: $\text{ADU}_g = \text{Terjual}_g / 30$ (tanpa pembulatan, sesuai Excel) | Kebutuhan kirim ke fulfillment (5.3) |
 | **2. Gudang Produksi** | Produk jadi | $\text{ADU} = \sum_g \text{ADU}_g$ seluruh gudang fulfillment | Rekomendasi produksi (batch) |
-| **3. Gudang Pusat** | Bahan baku & kemasan | Pemakaian bahan di **batch produksi**: $\text{ADU} = \dfrac{\sum \text{Qty Bahan Keluar (Issue Batch)}}{\text{Jumlah Hari Jendela}}$ | Analisa Bahan Lokal (5.1) & Impor (5.2) |
+| **3. Gudang Pusat** | Bahan baku & kemasan | Pemakaian bahan di **batch produksi** 4 bulan ($P$). Lokal: $\text{ADU} = (P / 4) / 30$ (sesuai Excel "Terjual rata-rata ÷ 30"). Impor: $\text{ADU Base} = P / \text{Jumlah Hari Jendela}$ (Excel ÷122) | Analisa Bahan Lokal (5.1) & Impor (5.2) |
 
 - Pemakaian bahan = kartu stok **keluar** ber-referensi `batch_produksi` (tercatat otomatis saat batch di-*release*), untuk produk bertipe bahan/kemas.
 - **Bahan tanpa riwayat pemakaian 4 bulan** (mis. varian baru) memakai proyeksi BOM: $\text{ADU}_{\text{bahan}} = \sum_{pj} \text{ADU}_{pj} \times \text{Takaran per Unit}_{pj,\text{bahan}}$. Begitu ada pemakaian riil, angka pemakaian yang dipakai.
@@ -410,7 +410,7 @@ Untuk setiap produk jadi (gudang produksi = gudang operasional batch terakhir pr
    $$\text{Batas Minimum} = \text{ADU} \times \big(LT_{\text{avg}} + \text{Safety Stock (Hari)}\big)$$
 4. **Target Stock (Stok Ideal Maksimum):**
    $$\text{Target Stock} = \text{ADU} \times \big(LT_{\text{avg}} + \text{Safety Stock (Hari)} + RP\big)$$
-5. **Stok Tersedia & Selisih terhadap Target Stock** (mengikuti Excel Analisa Lokal):
+5. **Stok Tersedia & Selisih terhadap Target Stock** (mengikuti Excel Analisa Lokal; Batas Minimum, Target, dan Selisih memakai desimal penuh, pembulatan hanya pada kelipatan MOQ):
    $$\text{Stok Tersedia} = S_{\text{now}} + S_{\text{in}}$$
    $\text{Selisih} = \text{Stok Tersedia} - \text{Target Stock}$
 6. **Penentuan Status Order:**
@@ -455,8 +455,10 @@ Bahan impor memiliki karakteristik waktu pengiriman yang panjang, sehingga selam
    $$\text{Buffer Days} = \text{pembulatan 1 desimal}\Big(\max(0,\; LT_{\text{max}} - LT_{\text{avg}}) + B_{\text{ABC}}\Big)$$
 2. **ADU Base & ADU ETA:**
    $$\text{ADU Base} = \frac{\text{Out}}{D_{\text{periode}}}$$
-   $$\text{ADU ETA} = \text{ADU Base}$$
-   (Excel memakai $\text{ADU Base} + LT_{\text{avg}}/RP$ yang satuannya tidak konsisten, sehingga sistem memakai ADU Base murni. Penyesuaian komposisi varian baru / pivot warna belum diterapkan.)
+   $\text{ADU Pivot} = \%\text{Komposisi Baru} \times \frac{\sum \text{Out Grup Pivot}}{D_{\text{periode}}}$
+   $\text{ADU ETA} = \text{ADU Base} + \text{ADU Pivot} \times \frac{LT_{\text{avg}}}{30}$
+   - Mengikuti sheet P50 Excel ("Pivot 3" = komposisi saat ini / ADU Base, "Pivot 4" = komposisi baru). SKU yang diberi **Grup Pivot** yang sama (mis. semua warna botol P50) berbagi total out grup; warna baru tanpa riwayat tetap punya ADU ETA dari porsi komposisi barunya.
+   - Diisi di modal Input Manual Impor (Grup Pivot + % Komposisi Baru). Tanpa pivot: $\text{ADU ETA} = \text{ADU Base}$ (rumus Excel non-P50 $\text{ADU} + LT/RP$ tidak dipakai karena satuannya tidak konsisten).
 3. **Safety Stock, Minimum Stock & Target Stock Impor:**
    $$\text{Safety Stock (Unit)} = \text{pembulatan}\big(\text{ADU ETA} \times \text{Buffer Days}\big)$$
    $$\text{Minimum Stock (Batas Minimum)} = \text{pembulatan}\big(\text{ADU ETA} \times LT_{\text{avg}}\big)$$
@@ -475,7 +477,7 @@ Bahan impor memiliki karakteristik waktu pengiriman yang panjang, sehingga selam
 > - **Data Awal:** $\text{Out} = 47.312\text{ pcs}$, $D_{\text{periode}} = 122\text{ hari}$, $LT_{\text{avg}} = 81,8\text{ hari}$, $LT_{\text{max}} = 114\text{ hari}$, Kelas ABC = `A` ($B_{\text{ABC}} = +4\text{ hari}$), $RP = 30\text{ hari}$, $\text{Stok Saat Ini} = 8.000\text{ pcs}$, $\text{PO Berjalan} = 0$, $\text{MOQ} = 1.000\text{ pcs}$, $\text{Harga} = \text{Rp } 1.500$.
 > - **Buffer Days:** $(114 - 81,8) + 4 = \mathbf{36,2\text{ hari}}$.
 > - **ADU Base:** $47.312 / 122 = 387,8033\text{ pcs/hari}$.
-> - **ADU ETA:** $387,8033 + (81,8 / 30) = 387,8033 + 2,7267 = \mathbf{390,53\text{ pcs/hari}}$.
+> - **ADU ETA (tanpa pivot):** $\mathbf{387,80\text{ pcs/hari}}$. Contoh dengan pivot (Excel Biru Clear): $19,39 + 3,878 \times 81,75 / 30 = 29,96$.
 > - **Minimum Stock:** $\text{pembulatan}(390,53 \times 81,8) = \mathbf{31.945\text{ pcs}}$.
 > - **Target Stock:** $\lfloor 390,53 \times (81,8 + 36,2 + 30) \rfloor = \lfloor 390,53 \times 148 \rfloor = \mathbf{57.798\text{ pcs}}$.
 > - **Proyeksi:** $8.000 + 0 - 31.945 = \mathbf{-23.945\text{ pcs}}$.
@@ -488,7 +490,7 @@ Bahan impor memiliki karakteristik waktu pengiriman yang panjang, sehingga selam
 
 Untuk setiap gudang Fulfillment $g \in \{\text{Pusat, Surabaya, Solo, ...}\}$:
 1. **Perhitungan Tingkat Cabang/Gudang ($g$):**
-   $$\text{ADU}_g = \text{pembulatan}\left(\frac{\text{Terjual Rata-Rata 4 Bulan}_g}{30}\right)$$
+   $\text{ADU}_g = \frac{\text{Terjual Rata-Rata 4 Bulan}_g}{30} \quad \text{(tanpa pembulatan, sesuai Excel)}$
    $$\text{Batas Minimum}_g = \text{ADU}_g \times (\text{Waktu Distribusi}_g + \text{Buffer Distribusi}_g)$$
    $$\text{Target Stock}_g = \text{ADU}_g \times (\text{Waktu Distribusi}_g + \text{Buffer Distribusi}_g + \text{Review Period}_g)$$
 2. **Penggabungan Tingkat Nasional (`ALL`):**
