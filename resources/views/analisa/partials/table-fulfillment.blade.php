@@ -2,7 +2,7 @@
 <div x-show="tab === 'fulfillment' || tab === 'produksi'">
     <x-card class="tbl-modern" 
         title="Tabel Analisa Produk Jadi" 
-        subtitle="Fulfillment: batas aman per gudang cabang. Gudang Produksi: ADU dari permintaan produk jadi Fulfillment (4 bulan) dan lead time batch." 
+        subtitle="Fulfillment: ADU penjualan & kebutuhan kirim per produk (gabungan gudang fulfillment). Gudang Produksi: ADU = Σ ADU Fulfillment, lead time batch, dan rekomendasi produksi."
         :noPadding="true"
     >
         <x-slot:icon>
@@ -23,7 +23,7 @@
                 <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 text-xs font-medium border-b border-[#E8E8E8] dark:border-gray-800">
                     <tr id="ahead"></tr>
                 </thead>
-                <tbody id="abody" class="divide-y divide-[#E8E8E8] dark:divide-gray-800 bg-white dark:bg-gray-900"></tbody>
+                <tbody id="abody" @click="onAnalisaTableClick($event)" class="divide-y divide-[#E8E8E8] dark:divide-gray-800 bg-white dark:bg-gray-900"></tbody>
             </table>
         </div>
 

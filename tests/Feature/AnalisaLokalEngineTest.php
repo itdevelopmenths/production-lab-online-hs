@@ -71,7 +71,7 @@ class AnalisaLokalEngineTest extends TestCase
         $this->assertNotNull($analisa);
         $this->assertEquals(13, $analisa->total_average_lead_time);
         $this->assertEquals(11, $analisa->safety_stock);
-        // ADU otomatis dari permintaan bahan baku Produksi->Pusat (seeder): 39303.25 / 30 = 1310.1083
+        // ADU otomatis dari pemakaian bahan di batch produksi (seeder): 39303.25 / 30 = 1310.1083
         $this->assertEqualsWithDelta(1310.1083, (float) $analisa->adu, 0.001);
         // Batas Minimum = 1310.1083 * (13 + 11) = 31442.60
         $this->assertEqualsWithDelta(31442.60, (float) $analisa->batas_minimum, 0.05);
@@ -84,15 +84,15 @@ class AnalisaLokalEngineTest extends TestCase
         $this->assertNotNull($rek);
         $this->assertEquals(8000, (float) $rek->stok_saat_ini);
         $this->assertEquals(0, (float) $rek->akan_datang);
-        // Selisih = 8000 - 31442.60 = -23442.60
-        $this->assertEqualsWithDelta(-23442.60, (float) $rek->selisih, 0.01);
+        // Sesuai Excel: ORDER bila Stok + Akan Datang <= Target. Selisih = 8000 - 51094.23 = -43094.23
+        $this->assertEqualsWithDelta(-43094.23, (float) $rek->selisih, 0.05);
         $this->assertEquals('order', $rek->status);
-        // MOQ ALK-01 = 5000 -> CEILING(23442.60, 5000) = 25000
-        $this->assertEquals(25000, (float) $rek->rumus_moq);
-        // Rekomendasi order (base UOM factor 1) = 25000
-        $this->assertEquals(25000, (float) $rek->rekomendasi_order);
-        // Harga ml = 526 -> Total Nominal = 25000 * 526 = 13,150,000
-        $this->assertEquals(25000 * 526, (float) $rek->total_nominal_order);
+        // MOQ ALK-01 = 5000 -> CEILING(43094.23, 5000) = 45000
+        $this->assertEquals(45000, (float) $rek->rumus_moq);
+        // Rekomendasi order (base UOM factor 1) = 45000
+        $this->assertEquals(45000, (float) $rek->rekomendasi_order);
+        // Harga ml = 526 -> Total Nominal = 45000 * 526
+        $this->assertEquals(45000 * 526, (float) $rek->total_nominal_order);
     }
 
     public function test_api_generate_lokal_endpoint(): void
@@ -237,9 +237,9 @@ class AnalisaLokalEngineTest extends TestCase
 
         $rek = RekomendasiOrderLokal::where('produk_id', $this->alkohol->id)->first();
         $this->assertNotNull($rek);
-        $this->assertEquals(25000, (float) $rek->rumus_moq);
-        // 25000 ml / 1000 = 25 jerigen
-        $this->assertEquals(25, (float) $rek->rekomendasi_order);
+        $this->assertEquals(45000, (float) $rek->rumus_moq);
+        // 45000 ml / 1000 = 45 jerigen
+        $this->assertEquals(45, (float) $rek->rekomendasi_order);
     }
 
     public function test_create_draft_po_from_selected_rekomendasi_order(): void

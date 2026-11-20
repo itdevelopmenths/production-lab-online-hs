@@ -7,23 +7,22 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
- * ADU (Average Daily Usage) per gudang yang dihitung dari PERMINTAAN barang (requests)
- * selama 4 bulan terakhir:
+ * Sumber ADU (Average Daily Usage) berantai, mengikuti alur Excel analisa:
  *
- *  - Gudang Pusat (bahan baku): permintaan bahan baku (request_bahan) dari Gudang Produksi.
- *    ADU = total qty diminta / jumlah hari jendela, per produk.
- *  - Gudang Produksi (operasional): permintaan produk jadi (request_produk_jadi) dari Gudang Fulfillment.
- *    ADU = total qty diminta / jumlah hari jendela, per produk per gudang produksi pengirim.
- *
- * Dalam tabel `requests`, gudang_asal_id = gudang pemohon dan gudang_tujuan_id = gudang pengirim.
- * Hanya request berstatus disetujui / diproses / selesai yang dihitung (qty_diminta).
- * Tanggal request = waktu disetujui (fallback tanggal dibuat).
+ *  1. Produk jadi (Gudang Fulfillment): ADU penjualan per gudang = pembulatan(Terjual rata-rata/bulan ÷ 30),
+ *     diinput di Analisa Fulfillment. ADU produk jadi = Σ ADU seluruh gudang fulfillment.
+ *  2. Gudang Produksi: memakai ADU produk jadi di atas untuk menentukan kebutuhan produksi.
+ *  3. Bahan baku/kemas (Gudang Pusat): ADU = pemakaian bahan riil di batch produksi
+ *     (kartu stok keluar ber-referensi batch_produksi) selama 4 bulan ÷ jumlah hari jendela.
+ *     Bahan tanpa riwayat pemakaian memakai proyeksi BOM: Σ (ADU produk jadi × takaran per unit).
  */
 class DemandAduService
 {
     public const WINDOW_MONTHS = 4;
 
-    public const COUNTED_STATUS = ['disetujui', 'diproses', 'selesai'];
+    public const SUMBER_PEMAKAIAN = 'pemakaian_produksi';
+
+    public const SUMBER_BOM = 'proyeksi_bom';
 
     /**
      * @return array{start: Carbon, end: Carbon, days: int}
@@ -38,73 +37,104 @@ class DemandAduService
     }
 
     /**
-     * ADU Gudang Pusat per produk dari request bahan baku yang dikirim Gudang Pusat (bahan_baku).
+     * ADU Gudang Pusat per bahan: pemakaian riil di batch produksi, fallback proyeksi BOM.
      *
      * @param  array<int, int>|null  $produkIds  null = semua produk
-     * @return array<int, array{total: float, adu: float}>
+     * @return array<int, array{total: float, adu: float, sumber: string}>
      */
     public function aduBahanPusat(?array $produkIds = null, ?CarbonInterface $end = null): array
     {
         $w = $this->window($end);
-
-        $rows = $this->baseQuery('request_bahan', ['bahan_baku'], $w)
-            ->when($produkIds !== null, fn ($q) => $q->whereIn('ri.produk_id', $produkIds))
-            ->select('ri.produk_id', DB::raw('SUM(ri.qty_diminta) as total'))
-            ->groupBy('ri.produk_id')
-            ->get();
-
         $out = [];
-        foreach ($rows as $r) {
-            $total = (float) $r->total;
-            $out[(int) $r->produk_id] = ['total' => $total, 'adu' => $total / $w['days']];
+
+        foreach ($this->pemakaianProduksi($produkIds, $w) as $pid => $total) {
+            if ($total > 0) {
+                $out[$pid] = ['total' => $total, 'adu' => $total / $w['days'], 'sumber' => self::SUMBER_PEMAKAIAN];
+            }
+        }
+
+        foreach ($this->proyeksiBom($produkIds) as $pid => $adu) {
+            if (! isset($out[$pid]) && $adu > 0) {
+                $out[$pid] = ['total' => $adu * $w['days'], 'adu' => $adu, 'sumber' => self::SUMBER_BOM];
+            }
         }
 
         return $out;
     }
 
     /**
-     * ADU Gudang Produksi per produk jadi dari request produk jadi yang dikirim Gudang Produksi (operasional).
+     * ADU produk jadi dari Analisa Fulfillment: Σ pembulatan(terjual rata-rata/bulan ÷ 30) per gudang fulfillment.
      *
-     * @param  array<int, int>|null  $produkIds  null = semua produk
-     * @return array<string, array{produk_id: int, gudang_id: int, total: float, adu: float}>  key "{produk_id}_{gudang_id}"
+     * @param  array<int, int>|null  $produkIds  null = semua produk jadi di analisa fulfillment
+     * @return array<int, array{adu: float, terjual_bulanan: float, jumlah_gudang: int}>
      */
-    public function aduProdukJadiProduksi(?array $produkIds = null, ?CarbonInterface $end = null): array
+    public function aduProdukJadi(?array $produkIds = null): array
     {
-        $w = $this->window($end);
-
-        $rows = $this->baseQuery('request_produk_jadi', ['operasional'], $w)
-            ->when($produkIds !== null, fn ($q) => $q->whereIn('ri.produk_id', $produkIds))
-            ->select('ri.produk_id', 'r.gudang_tujuan_id as gudang_id', DB::raw('SUM(ri.qty_diminta) as total'))
-            ->groupBy('ri.produk_id', 'r.gudang_tujuan_id')
-            ->get();
+        $rows = DB::table('analisa_fulfillment_input')
+            ->when($produkIds !== null, fn ($q) => $q->whereIn('produk_id', $produkIds))
+            ->get(['produk_id', 'terjual_rata_rata_4bulan']);
 
         $out = [];
         foreach ($rows as $r) {
-            $total = (float) $r->total;
-            $out[$r->produk_id . '_' . $r->gudang_id] = [
-                'produk_id' => (int) $r->produk_id,
-                'gudang_id' => (int) $r->gudang_id,
-                'total' => $total,
-                'adu' => $total / $w['days'],
-            ];
+            $pid = (int) $r->produk_id;
+            $terjual = (float) $r->terjual_rata_rata_4bulan;
+            $out[$pid] ??= ['adu' => 0.0, 'terjual_bulanan' => 0.0, 'jumlah_gudang' => 0];
+            $out[$pid]['adu'] += round($terjual / 30);
+            $out[$pid]['terjual_bulanan'] += $terjual;
+            $out[$pid]['jumlah_gudang']++;
         }
 
         return $out;
     }
 
     /**
-     * @param  array<int, string>  $tipePengirim
+     * Total qty bahan keluar untuk batch produksi dalam jendela.
+     *
+     * @param  array<int, int>|null  $produkIds
      * @param  array{start: Carbon, end: Carbon, days: int}  $w
+     * @return array<int, float>
      */
-    private function baseQuery(string $jenis, array $tipePengirim, array $w)
+    private function pemakaianProduksi(?array $produkIds, array $w): array
     {
-        return DB::table('request_items as ri')
-            ->join('requests as r', 'r.id', '=', 'ri.request_id')
-            ->join('gudang as g', 'g.id', '=', 'r.gudang_tujuan_id')
-            ->where('r.jenis', $jenis)
-            ->whereIn('r.status', self::COUNTED_STATUS)
-            ->whereIn('g.tipe', $tipePengirim)
-            ->whereRaw('COALESCE(r.disetujui_pada, r.created_at) >= ?', [$w['start']->toDateTimeString()])
-            ->whereRaw('COALESCE(r.disetujui_pada, r.created_at) <= ?', [$w['end']->toDateTimeString()]);
+        return DB::table('kartu_stok as ks')
+            ->join('produk as p', 'p.id', '=', 'ks.produk_id')
+            ->where('ks.referensi_tipe', 'batch_produksi')
+            ->where('ks.tipe', 'out')
+            ->where('p.tipe', '!=', 'produk_jadi')
+            // Batas pakai datetime: kolom date bisa tersimpan sebagai 'Y-m-d H:i:s' (cast Eloquent / SQLite).
+            ->whereBetween('ks.tanggal', [$w['start']->toDateTimeString(), $w['end']->toDateTimeString()])
+            ->when($produkIds !== null, fn ($q) => $q->whereIn('ks.produk_id', $produkIds))
+            ->groupBy('ks.produk_id')
+            ->get(['ks.produk_id', DB::raw('SUM(ks.qty) as total')])
+            ->mapWithKeys(fn ($r) => [(int) $r->produk_id => (float) $r->total])
+            ->all();
+    }
+
+    /**
+     * Proyeksi ADU bahan dari BOM: Σ (ADU produk jadi × takaran bahan per unit).
+     *
+     * @param  array<int, int>|null  $produkIds
+     * @return array<int, float>
+     */
+    private function proyeksiBom(?array $produkIds): array
+    {
+        $boms = DB::table('bom')
+            ->when($produkIds !== null, fn ($q) => $q->whereIn('bahan_id', $produkIds))
+            ->get(['produk_jadi_id', 'bahan_id', 'qty_per_unit']);
+        if ($boms->isEmpty()) {
+            return [];
+        }
+
+        $aduPj = $this->aduProdukJadi($boms->pluck('produk_jadi_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
+
+        $out = [];
+        foreach ($boms as $b) {
+            $adu = (float) ($aduPj[(int) $b->produk_jadi_id]['adu'] ?? 0.0);
+            if ($adu > 0) {
+                $out[(int) $b->bahan_id] = ($out[(int) $b->bahan_id] ?? 0.0) + $adu * (float) $b->qty_per_unit;
+            }
+        }
+
+        return $out;
     }
 }

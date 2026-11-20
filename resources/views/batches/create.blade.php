@@ -20,13 +20,14 @@
             }
         }
         if (empty($initialRows)) {
-            $singlePid = old('produk_id', '');
+            // Prefill dari rekomendasi Analisa Gudang Produksi (?produk_id=&qty_rencana=&gudang_operasional_id=).
+            $singlePid = old('produk_id', request()->query('produk_id', ''));
             $p = $singlePid ? $produk->firstWhere('id', (int) $singlePid) : null;
             $hasBomForRow = !empty($singlePid) && isset($bomMap[$singlePid]) && count($bomMap[$singlePid]) > 0;
             $initialRows[] = [
                 '_uid' => 1,
                 'produk_id' => $singlePid,
-                'qty_rencana' => old('qty_rencana', ''),
+                'qty_rencana' => old('qty_rencana', request()->query('qty_rencana', '')),
                 'satuan' => $p?->satuan ?? '',
                 'error' => (!empty($singlePid) && !$hasBomForRow)
                     ? 'Produk "' . ($p?->nama ?? 'yang dipilih') . '" ditolak karena belum memiliki formula BOM.'
@@ -75,7 +76,7 @@
                             <x-form-field label="Gudang Bahan" name="gudang_operasional_id" help="Gudang asal pengambilan stok bahan baku saat batch dirilis">
                                 <x-select name="gudang_operasional_id" variant="seamless" placeholder="— Pilih Gudang Bahan —">
                                     @foreach($gudangOp as $g)
-                                        <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" @selected(old('gudang_operasional_id') == $g->id)>{{ $g->nama }}</option>
+                                        <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" @selected(old('gudang_operasional_id', request()->query('gudang_operasional_id')) == $g->id)>{{ $g->nama }}</option>
                                     @endforeach
                                 </x-select>
                             </x-form-field>

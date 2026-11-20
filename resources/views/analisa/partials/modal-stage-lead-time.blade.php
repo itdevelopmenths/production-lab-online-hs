@@ -63,23 +63,10 @@
                                 <input type="number" step="0.1" min="0" x-model.number="stageForm.max.perencanaan" class="w-24 text-center px-2.5 py-1.5 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none rounded-[6px]">
                             </td>
                         </tr>
-                        <!-- 2. Persetujuan Manager -->
+                        <!-- 2. Konfirmasi Supplier -->
                         <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition">
                             <td class="py-2.5 px-4 font-sans">
-                                <div class="font-medium text-[#101828] dark:text-white">2. Persetujuan Manager</div>
-                                <div class="text-[10px] text-[#667085] dark:text-gray-400 font-normal">Waktu persetujuan PO oleh manager</div>
-                            </td>
-                            <td class="py-2.5 px-4 text-center">
-                                <input type="number" step="0.1" min="0" x-model.number="stageForm.average.approval" class="w-24 text-center px-2.5 py-1.5 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none rounded-[6px]">
-                            </td>
-                            <td class="py-2.5 px-4 text-center">
-                                <input type="number" step="0.1" min="0" x-model.number="stageForm.max.approval" class="w-24 text-center px-2.5 py-1.5 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none rounded-[6px]">
-                            </td>
-                        </tr>
-                        <!-- 3. Konfirmasi Supplier -->
-                        <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition">
-                            <td class="py-2.5 px-4 font-sans">
-                                <div class="font-medium text-[#101828] dark:text-white">3. Konfirmasi Supplier</div>
+                                <div class="font-medium text-[#101828] dark:text-white">2. Konfirmasi Supplier</div>
                                 <div class="text-[10px] text-[#667085] dark:text-gray-400 font-normal">Konfirmasi kesanggupan & ketersediaan supplier</div>
                             </td>
                             <td class="py-2.5 px-4 text-center">
@@ -87,6 +74,19 @@
                             </td>
                             <td class="py-2.5 px-4 text-center">
                                 <input type="number" step="0.1" min="0" x-model.number="stageForm.max.supplier_confirm" class="w-24 text-center px-2.5 py-1.5 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none rounded-[6px]">
+                            </td>
+                        </tr>
+                        <!-- 3. Persetujuan Manager -->
+                        <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition">
+                            <td class="py-2.5 px-4 font-sans">
+                                <div class="font-medium text-[#101828] dark:text-white">3. Persetujuan Manager</div>
+                                <div class="text-[10px] text-[#667085] dark:text-gray-400 font-normal">Waktu persetujuan PO oleh manager</div>
+                            </td>
+                            <td class="py-2.5 px-4 text-center">
+                                <input type="number" step="0.1" min="0" x-model.number="stageForm.average.approval" class="w-24 text-center px-2.5 py-1.5 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none rounded-[6px]">
+                            </td>
+                            <td class="py-2.5 px-4 text-center">
+                                <input type="number" step="0.1" min="0" x-model.number="stageForm.max.approval" class="w-24 text-center px-2.5 py-1.5 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none rounded-[6px]">
                             </td>
                         </tr>
                         <!-- 4. Pembayaran / DP -->

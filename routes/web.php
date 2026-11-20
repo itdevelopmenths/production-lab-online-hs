@@ -212,6 +212,12 @@ Route::middleware('auth')->group(function () {
         Route::post('add-sku', [AnalisaController::class, 'addSku'])
             ->middleware('can:analisa.manage')->name('add-sku');
         Route::get('fulfillment/data', [AnalisaController::class, 'fulfillmentData'])->name('fulfillment.data');
+        Route::middleware('can:analisa.manage')->prefix('fulfillment')->name('fulfillment.')->group(function () {
+            Route::get('available-produk', [AnalisaController::class, 'fulfillmentAvailableProduk'])->name('available-produk');
+            Route::get('produk/{produk}', [AnalisaController::class, 'fulfillmentDetail'])->name('detail');
+            Route::post('save', [AnalisaController::class, 'fulfillmentSave'])->name('save');
+            Route::delete('produk/{produk}', [AnalisaController::class, 'fulfillmentDestroy'])->name('destroy');
+        });
         Route::get('produksi/data', [AnalisaController::class, 'produksiData'])->name('produksi.data');
         Route::get('riwayat/data', [AnalisaController::class, 'riwayatData'])->name('riwayat.data');
         Route::post('generate-lokal', [AnalisaController::class, 'generateLokal'])

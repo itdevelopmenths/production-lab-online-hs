@@ -8,6 +8,11 @@
             <x-slot:actions>
                 <div class="flex flex-wrap items-center gap-2">
                     @can('analisa.manage')
+                    <button type="button" x-show="tab === 'fulfillment'" @click="openFulfillmentModal()" class="inline-flex items-center gap-1.5 h-9 px-4 text-xs font-medium transition-colors cursor-pointer btn-glossy rounded-[6px]" title="Tambah produk jadi ke Analisa Fulfillment">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>Tambah Produk</span>
+                    </button>
+
                     <button type="button" x-show="tab === 'lokal' || tab === 'impor'" @click="openAddSkuModal(tab)" class="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium transition-colors cursor-pointer btn-soft rounded-[6px]" title="Tambah atau pindahkan SKU ke Analisa Lokal / Impor">
                         <svg class="size-3.5 text-[#667085] dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         <span>Tambah SKU</span>
@@ -187,6 +192,9 @@
         @include('analisa.partials.modal-add-sku')
         @include('analisa.partials.modal-compare-supplier')
         @include('analisa.partials.modal-varian')
+        @can('analisa.manage')
+        @include('analisa.partials.modal-fulfillment')
+        @endcan
     </div>
 
     @push('scripts')
@@ -251,6 +259,9 @@
           auto_average: null,
           auto_max: null
         },
+        showFulfillmentModal: false,
+        savingFulfillment: false,
+        ffForm: { mode: 'add', q: '', options: [], produk: null, gudang: [], loadingDetail: false },
         showManualLokalModal: false,
         savingManualLokal: false,
         manualLokalForm: {
@@ -383,7 +394,10 @@
             ['akan_datang', 'Akan Datang', 'text-right'],
             ['selisih', 'Selisih', 'text-right'],
             ['status', 'Status', 'text-center'],
-            ['qty_produksi', 'Qty Produksi', 'text-right']
+            ['qty_produksi', 'Qty Produksi', 'text-right'],
+            @can('batch.create')
+            ['buat_batch', 'Aksi', 'text-right'],
+            @endcan
           ],
           fulfillment: [
             ['sku', 'SKU', 'text-left'],
@@ -395,7 +409,10 @@
             ['stok_all', 'Stok Total', 'text-right'],
             ['selisih', 'Selisih', 'text-right'],
             ['status', 'Status', 'text-center'],
-            ['qty_order', 'Qty Order', 'text-right']
+            ['qty_order', 'Kebutuhan Kirim', 'text-right'],
+            @can('analisa.manage')
+            ['aksi', 'Aksi', 'text-right'],
+            @endcan
           ],
           riwayat: [
             ['tanggal', 'Tanggal', 'text-left'],
@@ -874,7 +891,7 @@
         },
         copyAutoStages(){
           if (!this.stageForm.auto_average) return;
-          const stages = ['perencanaan', 'approval', 'supplier_confirm', 'payment', 'po', 'pengiriman', 'unloading', 'input'];
+          const stages = ['perencanaan', 'supplier_confirm', 'approval', 'payment', 'po', 'pengiriman', 'unloading', 'input'];
           stages.forEach(st => {
             if (this.stageForm.auto_average[st] !== undefined) {
               this.stageForm.average[st] = Number(this.stageForm.auto_average[st]) || 0;
@@ -1005,17 +1022,144 @@
           const maxLt = Number(this.manualLokalForm.total_max_lead_time) || 0;
           const buffer = Number(this.manualLokalForm.tambahan_buffer_hari) || 0;
           const ss = maxLt > 0 ? (Math.max(0, maxLt - avgLt) + buffer) : (Number(this.manualLokalForm.safety_stock) || 0);
-          const batasMin = Math.round(adu * (avgLt + ss));
+          // Sesuai Excel: ORDER bila Stok + Akan Datang ≤ Target Stock.
+          const rp = Number(this.manualLokalForm.review_period) || 15;
+          const target = adu * (avgLt + ss + rp);
           const stok = Number(this.manualLokalForm.stok_saat_ini) || 0;
           const akanDatang = Number(this.manualLokalForm.akan_datang) || 0;
           const tersedia = stok + akanDatang;
-          if (tersedia > batasMin) {
+          if (target <= 0 || tersedia > target) {
             return '0 ' + (this.manualLokalForm.satuan || '');
           }
-          const selisih = Math.abs(tersedia - batasMin);
+          const selisih = Math.abs(tersedia - target);
           const moq = Number(this.manualLokalForm.satuan_order_moq) || 1;
           const roundedOrder = moq > 1 ? Math.ceil(selisih / moq) * moq : Math.ceil(selisih);
           return this.formatNumber(Math.round(roundedOrder)) + ' ' + (this.manualLokalForm.satuan || '');
+        },
+        ffHeaders(){
+          return { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' };
+        },
+        async openFulfillmentModal(produkId = null){
+          this.ffForm = { mode: produkId ? 'edit' : 'add', q: '', options: [], produk: null, gudang: [], loadingDetail: false };
+          this.showFulfillmentModal = true;
+          if (produkId) {
+            await this.loadFulfillmentDetail(produkId);
+          } else {
+            await this.searchFulfillmentProduk();
+          }
+        },
+        async searchFulfillmentProduk(){
+          try {
+            const url = new URL('{{ route('analisa.fulfillment.available-produk') }}', window.location.origin);
+            if (this.ffForm.q) url.searchParams.set('q', this.ffForm.q);
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            const j = await res.json();
+            this.ffForm.options = j.data || [];
+          } catch (e) {
+            this.ffForm.options = [];
+          }
+        },
+        async pickFulfillmentProduk(p){
+          await this.loadFulfillmentDetail(p.id);
+        },
+        async loadFulfillmentDetail(produkId){
+          this.ffForm.loadingDetail = true;
+          try {
+            const url = '{{ route('analisa.fulfillment.detail', ['produk' => '__ID__']) }}'.replace('__ID__', produkId);
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            const j = await res.json();
+            this.ffForm.produk = j.produk;
+            this.ffForm.gudang = j.gudang || [];
+            // Produk baru: centang semua gudang sebagai default.
+            if (!this.ffForm.gudang.some(g => g.aktif)) {
+              this.ffForm.gudang.forEach(g => { g.aktif = true; });
+            }
+          } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Gagal Memuat', text: 'Data gudang tidak dapat dimuat.', confirmButtonColor: '#111111' });
+          } finally {
+            this.ffForm.loadingDetail = false;
+          }
+        },
+        ffGudangAdu(g){
+          return Math.round((Number(g.terjual_rata_rata_4bulan) || 0) / 30);
+        },
+        ffGudangTarget(g){
+          return this.ffGudangAdu(g) * ((Number(g.lead_time_distribusi) || 0) + (Number(g.buffer_distribusi) || 0) + (Number(g.review_period) || 0));
+        },
+        ffSimulasi(){
+          const aktif = (this.ffForm.gudang || []).filter(g => g.aktif);
+          const min = aktif.reduce((s, g) => s + this.ffGudangAdu(g) * ((Number(g.lead_time_distribusi) || 0) + (Number(g.buffer_distribusi) || 0)), 0);
+          const target = aktif.reduce((s, g) => s + this.ffGudangTarget(g), 0);
+          const stokAll = aktif.reduce((s, g) => s + (Number(g.stok_saat_ini) || 0) + (Number(g.akan_datang) || 0), 0);
+          const moq = Number(this.ffForm.produk?.moq) || 1;
+          const order = stokAll <= target ? Math.ceil(Math.abs(stokAll - target) / moq) * moq : 0;
+          return [
+            { label: 'Batas Min', value: this.formatNumber(min) },
+            { label: 'Target', value: this.formatNumber(target) },
+            { label: 'Stok + Akan Datang', value: this.formatNumber(stokAll) },
+            { label: stokAll <= target ? 'Qty Order' : 'Status', value: stokAll <= target ? this.formatNumber(order) : 'AMAN' },
+          ];
+        },
+        async saveFulfillment(){
+          const gudang = this.ffForm.gudang.filter(g => g.aktif).map(g => ({
+            gudang_id: g.gudang_id,
+            terjual_rata_rata_4bulan: Number(g.terjual_rata_rata_4bulan) || 0,
+            lead_time_distribusi: Number(g.lead_time_distribusi) || 0,
+            buffer_distribusi: Number(g.buffer_distribusi) || 0,
+            review_period: Number(g.review_period) || 0,
+          }));
+          if (gudang.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Pilih Gudang', text: 'Centang minimal satu gudang fulfillment.', confirmButtonColor: '#111111' });
+            return;
+          }
+          this.savingFulfillment = true;
+          try {
+            const res = await fetch('{{ route('analisa.fulfillment.save') }}', {
+              method: 'POST',
+              headers: this.ffHeaders(),
+              body: JSON.stringify({ produk_id: this.ffForm.produk.id, gudang })
+            });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              this.showFulfillmentModal = false;
+              Swal.fire({ icon: 'success', title: 'Tersimpan', text: j.message, confirmButtonColor: '#111111' });
+              await this.load();
+            } else {
+              Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: j.message || 'Periksa kembali isian.', confirmButtonColor: '#111111' });
+            }
+          } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Tidak dapat terhubung ke server.', confirmButtonColor: '#111111' });
+          } finally {
+            this.savingFulfillment = false;
+          }
+        },
+        async deleteFulfillment(produkId){
+          const row = this.rows.find(r => Number(r.produk_id) === Number(produkId));
+          const ok = await Swal.fire({
+            icon: 'warning',
+            title: 'Keluarkan dari Analisa?',
+            text: `${row?.nama || 'Produk ini'} akan dihapus dari Analisa Fulfillment di semua gudang. Data stok tidak terpengaruh.`,
+            showCancelButton: true,
+            confirmButtonText: 'Keluarkan',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#111111'
+          });
+          if (!ok.isConfirmed) return;
+          const url = '{{ route('analisa.fulfillment.destroy', ['produk' => '__ID__']) }}'.replace('__ID__', produkId);
+          const res = await fetch(url, { method: 'DELETE', headers: this.ffHeaders() });
+          const j = await res.json().catch(() => ({}));
+          if (res.ok && j.success) {
+            await this.load();
+          } else {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: j.message || 'Tidak dapat menghapus.', confirmButtonColor: '#111111' });
+          }
+        },
+        onAnalisaTableClick(e){
+          const btn = e.target.closest('[data-ff-action]');
+          if (!btn) return;
+          const id = Number(btn.dataset.produkId);
+          if (btn.dataset.ffAction === 'edit') this.openFulfillmentModal(id);
+          if (btn.dataset.ffAction === 'delete') this.deleteFulfillment(id);
         },
         async saveManualLokal(){
           this.savingManualLokal = true;
@@ -1670,6 +1814,26 @@
 
                 if (colKey === 'status') {
                   return `<td class="px-4 py-3 text-sm ${align}">${this.badge(val)}</td>`;
+                }
+
+                if (colKey === 'buat_batch') {
+                  if (r.status !== 'order' || !(Number(r.qty_produksi) > 0)) {
+                    return `<td class="px-4 py-3 text-xs text-[#667085] dark:text-gray-500 ${align}">-</td>`;
+                  }
+                  const url = new URL('{{ route('batches.create') }}', window.location.origin);
+                  url.searchParams.set('produk_id', r.produk_id);
+                  url.searchParams.set('qty_rencana', r.qty_produksi);
+                  if (r.gudang_id) url.searchParams.set('gudang_operasional_id', r.gudang_id);
+                  return `<td class="px-4 py-3 text-xs whitespace-nowrap ${align}">
+                    <a href="${url.toString()}" class="px-2 py-1 btn-soft rounded-[6px]" title="Buka form Rencana Batch dengan produk, qty, dan gudang terisi">Buat Draft Batch</a>
+                  </td>`;
+                }
+
+                if (colKey === 'aksi') {
+                  return `<td class="px-4 py-3 text-xs whitespace-nowrap ${align}">
+                    <button type="button" data-ff-action="edit" data-produk-id="${r.produk_id}" class="px-2 py-1 btn-soft rounded-[6px] cursor-pointer">Edit</button>
+                    <button type="button" data-ff-action="delete" data-produk-id="${r.produk_id}" class="ml-1 px-2 py-1 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-[6px] cursor-pointer">Hapus</button>
+                  </td>`;
                 }
 
                 if (colKey === 'sku') {

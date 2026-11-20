@@ -58,24 +58,25 @@ class MasterDataSeeder extends Seeder
             }
         }
 
-        // ===== Demand ADU Gudang Pusat: permintaan bahan baku Gudang Produksi -> Pusat (4 bulan terakhir) =====
-        // ADU dihitung otomatis dari request_bahan berstatus disetujui/diproses/selesai (DemandAduService).
+        // ===== Demand ADU Gudang Pusat: pemakaian bahan di batch produksi (4 bulan terakhir) =====
+        // ADU bahan = total bahan keluar ber-referensi batch_produksi / jumlah hari jendela (DemandAduService).
+        // Riwayat pemakaian contoh dicatat langsung di kartu stok (tanpa mengubah saldo stok).
         $days = app(\App\Services\DemandAduService::class)->window()['days'];
-        $seedUser = \App\Models\User::query()->orderBy('id')->first();
         foreach ([[$alk, 39303.25 / 30], [$btl, 47312 / 122]] as [$produkDemand, $aduDemand]) {
-            $req = \App\Models\StockRequest::firstOrCreate(
-                ['no_request' => 'REQ-SEED-' . $produkDemand->sku],
-                [
-                    'jenis' => 'request_bahan',
-                    'gudang_asal_id' => $gOps->id,
-                    'gudang_tujuan_id' => $gBahan->id,
-                    'status' => 'selesai',
-                    'disetujui_pada' => now(),
-                    'created_by' => $seedUser?->id,
-                ]
-            );
-            if ($req->wasRecentlyCreated) {
-                $req->items()->create(['produk_id' => $produkDemand->id, 'qty_diminta' => round($aduDemand * $days, 2)]);
+            $sudahAda = \App\Models\KartuStok::where('produk_id', $produkDemand->id)
+                ->where('referensi_tipe', 'batch_produksi')->where('catatan', 'Seed pemakaian produksi')->exists();
+            if (! $sudahAda) {
+                \App\Models\KartuStok::create([
+                    'tanggal' => now()->toDateString(),
+                    'produk_id' => $produkDemand->id,
+                    'gudang_id' => $gOps->id,
+                    'tipe' => 'out',
+                    'qty' => round($aduDemand * $days, 2),
+                    'saldo_setelah' => 0,
+                    'referensi_tipe' => 'batch_produksi',
+                    'referensi_id' => null,
+                    'catatan' => 'Seed pemakaian produksi',
+                ]);
             }
         }
 
@@ -84,7 +85,8 @@ class MasterDataSeeder extends Seeder
             'terjual_rata_rata_4bulan' => 39303.25, 'review_period' => 15,
             'stok_saat_ini' => 8000, 'akan_datang' => 0, 'harga_per_satuan' => 526,
         ]);
-        $stages = ['perencanaan' => [1, 2], 'approval' => [1, 2], 'supplier_confirm' => [2, 3], 'payment' => [1, 2], 'po' => [1, 1], 'pengemasan' => [2, 4], 'pengiriman' => [3, 6], 'unloading' => [1, 1], 'input' => [1, 1]];
+        // Urutan alur PO: konfirmasi supplier sebelum approval. Tahap pengemasan dihapus (digabung ke pengiriman).
+        $stages = ['perencanaan' => [1, 2], 'supplier_confirm' => [2, 3], 'approval' => [1, 2], 'payment' => [1, 2], 'po' => [1, 1], 'pengiriman' => [5, 10], 'unloading' => [1, 1], 'input' => [1, 1]];
         foreach ($stages as $tahap => [$avg, $max]) {
             LeadTimeStage::firstOrCreate(['produk_id' => $alk->id, 'skenario' => 'average', 'tahap' => $tahap], ['jumlah_hari' => $avg]);
             LeadTimeStage::firstOrCreate(['produk_id' => $alk->id, 'skenario' => 'max', 'tahap' => $tahap], ['jumlah_hari' => $max, 'tambahan_buffer_hari' => $tahap === 'input' ? 2 : null]);

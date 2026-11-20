@@ -361,29 +361,27 @@ Bagian ini menjelaskan **seluruh rumus perhitungan** yang digunakan oleh sistem 
 
 ---
 
-### 5.0 Sumber ADU per Gudang (Dihitung Otomatis dari Permintaan Barang)
+### 5.0 Sumber ADU Berantai (Fulfillment → Produksi → Gudang Pusat)
 
-ADU (*Average Daily Usage*) tidak lagi diinput manual. Sistem menghitungnya dari **permintaan barang (Request)** selama **4 bulan terakhir** (jendela bergulir, dihitung dari hari ini mundur 4 bulan, inklusif):
+ADU (*Average Daily Usage*) dihitung berantai mengikuti alur Excel analisa, dari kebutuhan riil (penjualan dan pemakaian), bukan dari dokumen permintaan antar gudang. Jendela pemakaian = **4 bulan terakhir** (bergulir, inklusif, $\approx 122\text{–}124$ hari).
 
-$$\text{ADU} = \frac{\sum \text{Qty Diminta}}{\text{Jumlah Hari Jendela}} \quad (\approx 122\text{–}124\text{ hari})$$
-
-| Gudang | Jenis Barang | Permintaan yang Dihitung | Pemohon → Pengirim |
+| Tingkat | Barang | Sumber ADU | Dipakai untuk |
 | :--- | :--- | :--- | :--- |
-| **Gudang Pusat** (bahan baku) | Bahan baku & kemasan | Request Bahan Baku | Gudang Produksi → Gudang Pusat |
-| **Gudang Produksi** | Produk jadi | Request Produk Jadi | Gudang Fulfillment → Gudang Produksi |
-| **Gudang Fulfillment** | Produk jadi | Input penjualan per gudang (seperti 5.3) | - |
+| **1. Gudang Fulfillment** | Produk jadi | Input **Terjual rata-rata/bulan** per gudang: $\text{ADU}_g = \text{pembulatan}(\text{Terjual}_g / 30)$ | Kebutuhan kirim ke fulfillment (5.3) |
+| **2. Gudang Produksi** | Produk jadi | $\text{ADU} = \sum_g \text{ADU}_g$ seluruh gudang fulfillment | Rekomendasi produksi (batch) |
+| **3. Gudang Pusat** | Bahan baku & kemasan | Pemakaian bahan di **batch produksi**: $\text{ADU} = \dfrac{\sum \text{Qty Bahan Keluar (Issue Batch)}}{\text{Jumlah Hari Jendela}}$ | Analisa Bahan Lokal (5.1) & Impor (5.2) |
 
-- Hanya request berstatus **Disetujui, Diproses, atau Selesai** yang dihitung, memakai kuantitas yang **diminta** (`qty_diminta`). Draft, Diajukan, Ditolak, dan Dibatalkan diabaikan.
-- Tanggal request = waktu disetujui (jika kosong, tanggal dibuat).
-- ADU Gudang Pusat dipakai oleh Analisa Bahan Lokal (5.1) dan Impor (5.2). Input manual "terjual 4 bulan" dan "out" sudah tidak dipakai.
+- Pemakaian bahan = kartu stok **keluar** ber-referensi `batch_produksi` (tercatat otomatis saat batch di-*release*), untuk produk bertipe bahan/kemas.
+- **Bahan tanpa riwayat pemakaian 4 bulan** (mis. varian baru) memakai proyeksi BOM: $\text{ADU}_{\text{bahan}} = \sum_{pj} \text{ADU}_{pj} \times \text{Takaran per Unit}_{pj,\text{bahan}}$. Begitu ada pemakaian riil, angka pemakaian yang dipakai.
 
 #### Analisa Barang Jadi di Gudang Produksi
-Untuk setiap produk jadi dan Gudang Produksi pengirim:
-$$\text{ADU} = \frac{\sum \text{Qty Request Produk Jadi (4 bulan)}}{\text{Jumlah Hari Jendela}}$$
+Untuk setiap produk jadi (gudang produksi = gudang operasional batch terakhir produk tsb; jika belum ada, gudang operasional aktif pertama):
+- $\text{ADU} = \sum_g \text{ADU}_g$ dari Analisa Fulfillment.
 - **Lead Time Produksi** rata-rata dan maksimum diambil dari batch yang sudah selesai: durasi = waktu rencana batch dibuat sampai batch diselesaikan (hari, 1 desimal).
 - $\text{Safety Stock (Hari)} = \max(0, LT_{\text{max}} - LT_{\text{avg}})$
 - $\text{Batas Minimum} = \text{ADU} \times (LT_{\text{avg}} + \text{Safety})$, $\text{Target Stock} = \text{ADU} \times (LT_{\text{avg}} + \text{Safety} + 15)$
-- Stok tersedia = stok fisik + rencana batch aktif. Status **ORDER** jika stok tersedia $\le$ Batas Minimum, dan rekomendasi produksi dibulatkan ke kelipatan MOQ produk jadi.
+- Stok tersedia = stok fisik di Gudang Produksi + rencana batch aktif (rencana/release). Status **ORDER** (perlu produksi) jika stok tersedia $\le$ **Target Stock**; rekomendasi produksi = $\lceil |\text{Stok Tersedia} - \text{Target}| / \text{MOQ} \rceil \times \text{MOQ}$.
+- Tombol **Buat Draft Batch** membuka form Rencana Batch dengan produk, qty, dan gudang produksi terisi dari rekomendasi.
 - Produk yang belum punya batch selesai memakai lead time 0 (Batas Minimum 0) sampai ada riwayat batch.
 - Batas minimum di layar **Stok & Mutasi** kini per gudang: bahan hanya dibandingkan di Gudang Pusat, produk jadi di Gudang Produksi memakai angka di atas, dan di Gudang Fulfillment memakai angka per gudang pada 5.3.
 
@@ -392,7 +390,7 @@ $$\text{ADU} = \frac{\sum \text{Qty Request Produk Jadi (4 bulan)}}{\text{Jumlah
 ### 5.1 Rumus Analisa Bahan Lokal
 
 #### Daftar Variabel Input:
-- $T_{\text{4bln}}$ = Ekuivalen pemakaian per bulan, yaitu $\text{ADU} \times 30$, dengan ADU dari permintaan produksi 4 bulan terakhir (lihat 5.0).
+- $T_{\text{4bln}}$ = Ekuivalen pemakaian per bulan, yaitu $\text{ADU} \times 30$, dengan ADU dari pemakaian bahan di batch produksi 4 bulan terakhir (lihat 5.0).
 - $RP$ = *Review Period* / periode tinjau ulang stok (standar = $15\text{ hari}$).
 - $LT_{\text{avg}}$ = Total Rata-Rata Waktu Kirim (*Average Lead Time*) dari 8 tahap pengadaan (dalam hari, dibulatkan 1 angka di belakang koma).
 - $LT_{\text{max}}$ = Total Waktu Kirim Terlama (*Max Lead Time*) dari 8 tahap pengadaan (dalam hari, dibulatkan 1 angka di belakang koma).
@@ -412,11 +410,11 @@ $$\text{ADU} = \frac{\sum \text{Qty Request Produk Jadi (4 bulan)}}{\text{Jumlah
    $$\text{Batas Minimum} = \text{ADU} \times \big(LT_{\text{avg}} + \text{Safety Stock (Hari)}\big)$$
 4. **Target Stock (Stok Ideal Maksimum):**
    $$\text{Target Stock} = \text{ADU} \times \big(LT_{\text{avg}} + \text{Safety Stock (Hari)} + RP\big)$$
-5. **Stok Tersedia & Selisih terhadap Batas Minimum:**
+5. **Stok Tersedia & Selisih terhadap Target Stock** (mengikuti Excel Analisa Lokal):
    $$\text{Stok Tersedia} = S_{\text{now}} + S_{\text{in}}$$
-   $$\text{Selisih} = \text{Stok Tersedia} - \text{Batas Minimum}$$
+   $\text{Selisih} = \text{Stok Tersedia} - \text{Target Stock}$
 6. **Penentuan Status Order:**
-   $$\text{Status} = \begin{cases} \text{\textbf{ORDER}}, & \text{jika } \text{Stok Tersedia} \le \text{Batas Minimum } (\text{Selisih} \le 0) \\ \text{\textbf{TIDAK}}, & \text{jika } \text{Stok Tersedia} > \text{Batas Minimum } (\text{Selisih} > 0) \end{cases}$$
+   $$\text{Status} = \begin{cases} \text{\textbf{ORDER}}, & \text{jika } \text{Stok Tersedia} \le \text{Target Stock } (\text{Selisih} \le 0) \\ \text{\textbf{TIDAK}}, & \text{jika } \text{Stok Tersedia} > \text{Target Stock } (\text{Selisih} > 0) \end{cases}$$
 7. **Kuantitas Rekomendasi Order (Pembulatan ke Atas Kelipatan MOQ):**
    $$\text{Rekomendasi MOQ (Satuan Dasar)} = \begin{cases} \left\lceil \dfrac{|\text{Selisih}|}{\text{MOQ}} \right\rceil \times \text{MOQ}, & \text{jika Status} = \text{ORDER} \\ 0, & \text{jika Status} = \text{TIDAK} \end{cases}$$
 8. **Konversi ke Satuan Beli & Total Nominal Order:**
@@ -430,9 +428,9 @@ $$\text{ADU} = \frac{\sum \text{Qty Request Produk Jadi (4 bulan)}}{\text{Jumlah
 > - **Langkah 2 (ADU):** $39.303,25 / 30 = 1.310,1083\text{ ml/hari}$.
 > - **Langkah 3 (Batas Minimum):** $1.310,1083 \times (13 + 11) = 1.310,1083 \times 24 = \mathbf{31.442,60\text{ ml}}$.
 > - **Langkah 4 (Target Stock):** $1.310,1083 \times (13 + 11 + 15) = 1.310,1083 \times 39 = \mathbf{51.094,22\text{ ml}}$.
-> - **Langkah 5 (Selisih & Status):** $\text{Stok Tersedia} = 8.000\text{ ml}$. Karena $8.000 \le 31.442,60$, maka $\text{Selisih} = 8.000 - 31.442,60 = \mathbf{-23.442,60\text{ ml}} \implies \text{Status: \textbf{ORDER}}$.
-> - **Langkah 6 (Pembulatan MOQ 5.000 ml):** $\lceil 23.442,60 / 5.000 \rceil \times 5.000 = 5 \times 5.000 = \mathbf{25.000\text{ ml}}$.
-> - **Langkah 7 (Total Nominal):** $25.000 \times \text{Rp } 526 = \mathbf{\text{Rp } 13.150.000}$.
+> - **Langkah 5 (Selisih & Status):** $\text{Stok Tersedia} = 8.000\text{ ml}$. Karena $8.000 \le 51.094,22$ (Target), maka $\text{Selisih} = 8.000 - 51.094,22 = \mathbf{-43.094,22\text{ ml}} \implies \text{Status: \textbf{ORDER}}$.
+> - **Langkah 6 (Pembulatan MOQ 5.000 ml):** $\lceil 43.094,22 / 5.000 \rceil \times 5.000 = 9 \times 5.000 = \mathbf{45.000\text{ ml}}$.
+> - **Langkah 7 (Total Nominal):** $45.000 \times \text{Rp } 526 = \mathbf{\text{Rp } 23.670.000}$.
 
 ---
 
@@ -457,7 +455,8 @@ Bahan impor memiliki karakteristik waktu pengiriman yang panjang, sehingga selam
    $$\text{Buffer Days} = \text{pembulatan 1 desimal}\Big(\max(0,\; LT_{\text{max}} - LT_{\text{avg}}) + B_{\text{ABC}}\Big)$$
 2. **ADU Base & ADU ETA:**
    $$\text{ADU Base} = \frac{\text{Out}}{D_{\text{periode}}}$$
-   $$\text{ADU ETA} = \text{ADU Base} + \left(\frac{LT_{\text{avg}}}{RP}\right)$$
+   $$\text{ADU ETA} = \text{ADU Base}$$
+   (Excel memakai $\text{ADU Base} + LT_{\text{avg}}/RP$ yang satuannya tidak konsisten, sehingga sistem memakai ADU Base murni. Penyesuaian komposisi varian baru / pivot warna belum diterapkan.)
 3. **Safety Stock, Minimum Stock & Target Stock Impor:**
    $$\text{Safety Stock (Unit)} = \text{pembulatan}\big(\text{ADU ETA} \times \text{Buffer Days}\big)$$
    $$\text{Minimum Stock (Batas Minimum)} = \text{pembulatan}\big(\text{ADU ETA} \times LT_{\text{avg}}\big)$$
@@ -494,7 +493,10 @@ Untuk setiap gudang Fulfillment $g \in \{\text{Pusat, Surabaya, Solo, ...}\}$:
    $$\text{Target Stock}_g = \text{ADU}_g \times (\text{Waktu Distribusi}_g + \text{Buffer Distribusi}_g + \text{Review Period}_g)$$
 2. **Penggabungan Tingkat Nasional (`ALL`):**
    $$\text{Batas Minimum Total} = \sum_g \text{Batas Minimum}_g, \qquad \text{Target Stock Total} = \sum_g \text{Target Stock}_g$$
-   $$\text{Stok Gabungan (All)} = \sum_g \text{Stok Saat Ini}_g + \text{Stok Akan Datang}_{\text{Fulfillment Pusat}}$$
+   $$\text{Stok Gabungan (All)} = \sum_g \left(\text{Stok Saat Ini}_g + \text{Stok Akan Datang}_g\right)$$
+   - **Stok Saat Ini** diambil live dari saldo stok gudang $g$.
+   - **Stok Akan Datang** diambil live: transfer berstatus *dikirim* (in-transit) menuju gudang $g$ + rencana batch produksi aktif (*rencana/release*) dengan tujuan gudang $g$.
+   - Parameter yang diinput manual per gudang (menu Analisa Stok → tab Produk Jadi (Fulfillment) → **Tambah Produk / Edit**): Terjual Rata-Rata 4 Bulan, Waktu Distribusi, Buffer Distribusi, Review Period.
    $$\text{Selisih} = \text{Stok Gabungan (All)} - \text{Target Stock Total}$$
 3. **Keputusan Kebutuhan Produksi:**
    - Jika $\text{Stok Gabungan (All)} \le \text{Target Stock Total} \implies \text{Status: \textbf{ORDER}}$.

@@ -765,21 +765,122 @@ class AnalisaController extends Controller
     {
         $this->authorize('analisa.view');
 
-        $grouped = AnalisaFulfillmentInput::with(['produk:id,sku,nama,satuan_order_moq', 'gudang:id,nama'])
-            ->get()->groupBy('produk_id');
+        return response()->json(['data' => $this->analisa->fulfillmentRows()]);
+    }
 
-        $rows = $grouped->map(function ($rows, $produkId) {
-            $produk = $rows->first()->produk;
-            $hasil = $this->analisa->fulfillment($rows, (float) ($produk?->satuan_order_moq ?? 1));
+    /**
+     * Daftar produk jadi untuk ditambahkan ke Analisa Fulfillment, plus stok live per gudang fulfillment.
+     */
+    public function fulfillmentAvailableProduk(Request $request): JsonResponse
+    {
+        $this->authorize('analisa.manage');
 
-            return array_merge([
-                'produk_id' => $produkId,
-                'sku' => $produk?->sku,
-                'nama' => $produk?->nama,
-            ], $hasil);
-        })->values();
+        $query = Produk::query()->active()->where('tipe', 'produk_jadi');
+        if ($search = trim((string) $request->input('q', ''))) {
+            foreach (array_filter(explode(' ', strtolower($search))) as $word) {
+                $query->where(function ($sub) use ($word) {
+                    $sub->whereRaw('LOWER(sku) LIKE ?', ["%{$word}%"])
+                        ->orWhereRaw('LOWER(nama) LIKE ?', ["%{$word}%"]);
+                });
+            }
+        }
 
-        return response()->json(['data' => $rows]);
+        $items = $query->orderBy('nama')->limit(60)->get(['id', 'sku', 'nama', 'satuan', 'satuan_order_moq']);
+        $sudahAda = AnalisaFulfillmentInput::whereIn('produk_id', $items->pluck('id'))->pluck('produk_id')->flip();
+
+        return response()->json([
+            'success' => true,
+            'data' => $items->map(fn ($p) => [
+                'id' => $p->id,
+                'sku' => $p->sku,
+                'nama' => $p->nama,
+                'satuan' => $p->satuan,
+                'moq' => (float) ($p->satuan_order_moq ?: 1),
+                'di_analisa' => $sudahAda->has($p->id),
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Stok live & parameter tersimpan satu produk jadi di setiap gudang fulfillment aktif (untuk modal).
+     */
+    public function fulfillmentDetail(Produk $produk): JsonResponse
+    {
+        $this->authorize('analisa.manage');
+
+        $gudang = Gudang::active()->whereIn('tipe', Gudang::TIPE_FULFILLMENT)->orderByDesc('is_pusat')->orderBy('nama')
+            ->get(['id', 'nama', 'is_pusat']);
+        $inputs = AnalisaFulfillmentInput::where('produk_id', $produk->id)->get()->keyBy('gudang_id');
+        $live = $this->analisa->fulfillmentLiveStock([$produk->id], $gudang->pluck('id')->map(fn ($id) => (int) $id)->all());
+
+        return response()->json([
+            'success' => true,
+            'produk' => [
+                'id' => $produk->id,
+                'sku' => $produk->sku,
+                'nama' => $produk->nama,
+                'satuan' => $produk->satuan,
+                'moq' => (float) ($produk->satuan_order_moq ?: 1),
+            ],
+            'gudang' => $gudang->map(function ($g) use ($inputs, $live, $produk) {
+                $in = $inputs->get($g->id);
+                $key = "{$produk->id}_{$g->id}";
+
+                return [
+                    'gudang_id' => $g->id,
+                    'nama' => $g->nama,
+                    'is_pusat' => (bool) $g->is_pusat,
+                    'aktif' => $in !== null,
+                    'terjual_rata_rata_4bulan' => (float) ($in->terjual_rata_rata_4bulan ?? 0),
+                    'lead_time_distribusi' => (int) ($in->lead_time_distribusi ?? 0),
+                    'buffer_distribusi' => (int) ($in->buffer_distribusi ?? 0),
+                    'review_period' => (int) ($in->review_period ?? 15),
+                    'stok_saat_ini' => (float) ($live['stok'][$key] ?? 0),
+                    'akan_datang' => (float) ($live['akan_datang'][$key] ?? 0),
+                ];
+            })->values(),
+        ]);
+    }
+
+    /**
+     * Simpan parameter Analisa Fulfillment (terjual 4 bulan, lead time, buffer, review period) per gudang.
+     */
+    public function fulfillmentSave(Request $request): JsonResponse
+    {
+        $this->authorize('analisa.manage');
+
+        $data = $request->validate([
+            'produk_id' => ['required', 'integer', 'exists:produk,id'],
+            'gudang' => ['required', 'array', 'min:1'],
+            'gudang.*.gudang_id' => ['required', 'integer', 'distinct', 'exists:gudang,id'],
+            'gudang.*.terjual_rata_rata_4bulan' => ['required', 'numeric', 'min:0'],
+            'gudang.*.lead_time_distribusi' => ['required', 'integer', 'min:0'],
+            'gudang.*.buffer_distribusi' => ['required', 'integer', 'min:0'],
+            'gudang.*.review_period' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $produk = Produk::findOrFail((int) $data['produk_id']);
+        $this->analisa->saveFulfillmentInputs($produk, $data['gudang']);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Analisa Fulfillment '{$produk->sku}' berhasil disimpan.",
+        ]);
+    }
+
+    /**
+     * Keluarkan satu produk jadi dari Analisa Fulfillment (semua gudang).
+     */
+    public function fulfillmentDestroy(Produk $produk): JsonResponse
+    {
+        $this->authorize('analisa.manage');
+
+        AnalisaFulfillmentInput::where('produk_id', $produk->id)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "'{$produk->sku}' dikeluarkan dari Analisa Fulfillment.",
+        ]);
     }
 
     public function produksiData(): JsonResponse
@@ -869,11 +970,8 @@ class AnalisaController extends Controller
                     $n++;
                 }
             } else {
-                $grouped = AnalisaFulfillmentInput::with(['produk', 'gudang'])->get()->groupBy('produk_id');
-                foreach ($grouped as $rows) {
-                    $produk = $rows->first()->produk;
-                    $h = $this->analisa->fulfillment($rows, (float) ($produk?->satuan_order_moq ?? 1));
-                    $this->simpanRiwayat($tipe, $produk?->sku ?? '-', $h['batas_minimum_total'], $h['target_stock_total'], $h['status'], $h['qty_order']);
+                foreach ($this->analisa->fulfillmentRows() as $h) {
+                    $this->simpanRiwayat($tipe, $h['sku'] ?? '-', $h['batas_minimum_total'], $h['target_stock_total'], $h['status'], $h['qty_order']);
                     $n++;
                 }
             }

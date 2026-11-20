@@ -33,10 +33,11 @@ class LeadTimeLokalStage extends Model
         'input' => 'float',
     ];
 
+    /** Urutan tahap mengikuti alur PO: konfirmasi supplier sebelum approval. */
     public const STAGE_COLUMNS = [
         'perencanaan',
-        'approval',
         'supplier_confirm',
+        'approval',
         'payment',
         'po',
         'pengiriman',

@@ -996,9 +996,10 @@ class AnalisaService
                 ? (float) $existingInput->akan_datang
                 : $akanDatangDb;
 
+            // Sesuai Excel Analisa Lokal: ORDER bila Stok + Akan Datang ≤ Target Stock; qty menutup sampai Target.
             $tersedia = $stokSaatIni + $akanDatang;
-            $isOrder = $tersedia <= $batasMinimum;
-            $selisih = $tersedia - $batasMinimum;
+            $isOrder = $targetStock > 0 && $tersedia <= $targetStock;
+            $selisih = $tersedia - $targetStock;
             $status = $isOrder ? 'order' : 'tidak';
 
             $moq = (float) ($p->satuan_order_moq ?: 1);
@@ -1074,9 +1075,10 @@ class AnalisaService
         $batasMinimum = round($adu * ($totalAvg + $safetyStockHari));
         $targetStock = round($adu * ($totalAvg + $safetyStockHari + (int) $input->review_period));
 
+        // Sesuai Excel Analisa Lokal: ORDER bila Stok + Akan Datang ≤ Target Stock.
         $tersedia = (float) $input->stok_saat_ini + (float) $input->akan_datang;
-        $isOrder = $tersedia <= $batasMinimum;
-        $selisih = round($tersedia - $batasMinimum);
+        $isOrder = $targetStock > 0 && $tersedia <= $targetStock;
+        $selisih = round($tersedia - $targetStock);
         $qtyOrder = $isOrder ? $this->bulatkanMoq(abs($selisih), $moq) : 0;
 
         return [
@@ -1515,15 +1517,12 @@ class AnalisaService
 
             // 3. Finalisasi Produk Jadi Fulfillment
             if ($tipe === 'produk_jadi_fulfillment' || $tipe === 'all') {
-                $grouped = AnalisaFulfillmentInput::with(['produk', 'gudang'])->get()->groupBy('produk_id');
-                foreach ($grouped as $rows) {
-                    $produk = $rows->first()->produk;
-                    $h = $this->fulfillment($rows, (float) ($produk?->satuan_order_moq ?? 1));
+                foreach ($this->fulfillmentRows() as $h) {
                     RiwayatAnalisa::create([
                         'session_id' => $sessionId,
                         'tanggal' => $today,
                         'tipe' => 'produk_jadi_fulfillment',
-                        'item_label' => $produk?->sku ?? '-',
+                        'item_label' => $h['sku'] ?? '-',
                         'batas_minimum' => (float) $h['batas_minimum_total'],
                         'target_stock' => (float) $h['target_stock_total'],
                         'status' => $h['status'],
@@ -1531,7 +1530,7 @@ class AnalisaService
                         'dicatat_oleh' => $actorId,
                         'is_locked' => true,
                         'detail_payload' => [
-                            'nama' => $produk?->nama,
+                            'nama' => $h['nama'],
                             'stok_total' => (float) $h['stok_total'],
                             'akan_datang' => (float) $h['akan_datang'],
                             'per_gudang' => $h['per_gudang'],
@@ -1555,8 +1554,14 @@ class AnalisaService
      * @param  \Illuminate\Support\Collection<int,AnalisaFulfillmentInput>  $rows  baris per gudang untuk satu produk jadi
      * @return array<string,mixed>
      */
-    public function fulfillment($rows, float $moq = 1): array
+    public function fulfillment($rows, float $moq = 1, ?array $live = null): array
     {
+        $rows = collect($rows);
+        $live ??= $this->fulfillmentLiveStock(
+            $rows->pluck('produk_id')->map(fn ($id) => (int) $id)->unique()->values()->all(),
+            $rows->pluck('gudang_id')->map(fn ($id) => (int) $id)->unique()->values()->all()
+        );
+
         $perGudang = [];
         $batasMinTotal = 0.0;
         $targetTotal = 0.0;
@@ -1568,18 +1573,28 @@ class AnalisaService
             $batasMin = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi);
             $target = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi + (int) $r->review_period);
 
+            // Stok & Akan Datang diambil live dari ledger stok, transfer in-transit, dan rencana batch aktif.
+            $key = "{$r->produk_id}_{$r->gudang_id}";
+            $stokGudang = (float) ($live['stok'][$key] ?? 0.0);
+            $akanGudang = (float) ($live['akan_datang'][$key] ?? 0.0);
+
             $batasMinTotal += $batasMin;
             $targetTotal += $target;
-            $stokTotal += (float) $r->stok_saat_ini;
-            // Akan Datang hanya diambil dari gudang penerima langsung (fulfillment_pusat).
-            $akanDatang += (float) ($r->akan_datang ?? 0);
+            $stokTotal += $stokGudang;
+            $akanDatang += $akanGudang;
 
             $perGudang[] = [
+                'gudang_id' => (int) $r->gudang_id,
                 'gudang' => $r->gudang?->nama,
+                'terjual_rata_rata_4bulan' => (float) $r->terjual_rata_rata_4bulan,
+                'lead_time_distribusi' => (int) $r->lead_time_distribusi,
+                'buffer_distribusi' => (int) $r->buffer_distribusi,
+                'review_period' => (int) $r->review_period,
                 'adu' => $adu,
                 'batas_minimum' => $batasMin,
                 'target_stock' => $target,
-                'stok_saat_ini' => (float) $r->stok_saat_ini,
+                'stok_saat_ini' => $stokGudang,
+                'akan_datang' => $akanGudang,
             ];
         }
 
@@ -1600,6 +1615,148 @@ class AnalisaService
             // Sinyal kebutuhan produksi tambahan (bukan PO ke supplier).
             'qty_order' => $qtyOrder,
         ];
+    }
+
+    /**
+     * Seluruh baris Analisa Produk Jadi Fulfillment (satu baris per produk, level ALL),
+     * dengan stok & akan datang live dihitung sekali untuk semua produk.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function fulfillmentRows(): array
+    {
+        $inputs = AnalisaFulfillmentInput::with(['produk:id,sku,nama,satuan,satuan_order_moq', 'gudang:id,nama'])->get();
+        if ($inputs->isEmpty()) {
+            return [];
+        }
+
+        $live = $this->fulfillmentLiveStock(
+            $inputs->pluck('produk_id')->map(fn ($id) => (int) $id)->unique()->values()->all(),
+            $inputs->pluck('gudang_id')->map(fn ($id) => (int) $id)->unique()->values()->all()
+        );
+
+        $out = [];
+        foreach ($inputs->groupBy('produk_id') as $produkId => $rows) {
+            $produk = $rows->first()->produk;
+            $moq = (float) ($produk?->satuan_order_moq ?: 1);
+
+            $out[] = array_merge([
+                'produk_id' => (int) $produkId,
+                'sku' => $produk?->sku,
+                'nama' => $produk?->nama,
+                'satuan' => $produk?->satuan,
+                'moq' => $moq,
+            ], $this->fulfillment($rows, $moq, $live));
+        }
+
+        usort($out, fn ($a, $b) => strcmp((string) $a['nama'], (string) $b['nama']));
+
+        return $out;
+    }
+
+    /**
+     * Stok live per produk_gudang untuk Analisa Fulfillment:
+     *  - stok: saldo fisik di tabel stok.
+     *  - akan_datang: transfer berstatus dikirim (in-transit) menuju gudang tersebut
+     *    + rencana batch produksi aktif (rencana/release) dengan tujuan gudang tersebut.
+     *
+     * @param  array<int, int>  $produkIds
+     * @param  array<int, int>  $gudangIds
+     * @return array{stok: array<string, float>, akan_datang: array<string, float>}
+     */
+    public function fulfillmentLiveStock(array $produkIds, array $gudangIds): array
+    {
+        $stok = [];
+        $akan = [];
+        if (empty($produkIds) || empty($gudangIds)) {
+            return ['stok' => $stok, 'akan_datang' => $akan];
+        }
+
+        $add = function (array &$map, $produkId, $gudangId, $qty): void {
+            $key = (int) $produkId . '_' . (int) $gudangId;
+            $map[$key] = ($map[$key] ?? 0.0) + (float) $qty;
+        };
+
+        foreach (Stok::whereIn('produk_id', $produkIds)->whereIn('gudang_id', $gudangIds)
+            ->get(['produk_id', 'gudang_id', 'qty_saat_ini']) as $st) {
+            $add($stok, $st->produk_id, $st->gudang_id, $st->qty_saat_ini);
+        }
+
+        foreach (DB::table('transfer_items as ti')
+            ->join('transfers as t', 't.id', '=', 'ti.transfer_id')
+            ->where('t.status', 'dikirim')
+            ->whereIn('ti.produk_id', $produkIds)
+            ->whereIn('t.gudang_tujuan_id', $gudangIds)
+            ->groupBy('ti.produk_id', 't.gudang_tujuan_id')
+            ->get(['ti.produk_id', 't.gudang_tujuan_id as gudang_id', DB::raw('SUM(ti.qty_dikirim) as total')]) as $r) {
+            $add($akan, $r->produk_id, $r->gudang_id, $r->total);
+        }
+
+        $gudangOutput = 'COALESCE(bpo.gudang_tujuan_rencana_id, bp.gudang_tujuan_rencana_id)';
+        foreach (DB::table('batch_produksi_outputs as bpo')
+            ->join('batch_produksi as bp', 'bp.id', '=', 'bpo.batch_id')
+            ->whereIn('bp.status', ['rencana', 'release'])
+            ->whereIn('bpo.produk_id', $produkIds)
+            ->whereIn(DB::raw($gudangOutput), $gudangIds)
+            ->groupBy('bpo.produk_id', DB::raw($gudangOutput))
+            ->get(['bpo.produk_id', DB::raw("{$gudangOutput} as gudang_id"), DB::raw('SUM(bpo.qty_rencana) as total')]) as $r) {
+            $add($akan, $r->produk_id, $r->gudang_id, $r->total);
+        }
+
+        // Batch legacy (single-product) yang belum punya baris output.
+        foreach (DB::table('batch_produksi as bp')
+            ->whereIn('bp.status', ['rencana', 'release'])
+            ->whereIn('bp.produk_id', $produkIds)
+            ->whereIn('bp.gudang_tujuan_rencana_id', $gudangIds)
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))->from('batch_produksi_outputs as bpo')->whereColumn('bpo.batch_id', 'bp.id');
+            })
+            ->groupBy('bp.produk_id', 'bp.gudang_tujuan_rencana_id')
+            ->get(['bp.produk_id', 'bp.gudang_tujuan_rencana_id as gudang_id', DB::raw('SUM(bp.qty_rencana) as total')]) as $r) {
+            $add($akan, $r->produk_id, $r->gudang_id, $r->total);
+        }
+
+        return ['stok' => $stok, 'akan_datang' => $akan];
+    }
+
+    /**
+     * Simpan parameter Analisa Fulfillment satu produk jadi untuk sekumpulan gudang fulfillment.
+     * Gudang yang tidak dikirim akan dihapus dari analisa produk tersebut.
+     *
+     * @param  array<int, array{gudang_id:int, terjual_rata_rata_4bulan:float|int, lead_time_distribusi:int, buffer_distribusi:int, review_period:int}>  $gudangRows
+     */
+    public function saveFulfillmentInputs(Produk $produk, array $gudangRows): void
+    {
+        if ($produk->tipe !== 'produk_jadi') {
+            throw ValidationException::withMessages(['produk_id' => 'Analisa Fulfillment hanya untuk produk jadi.']);
+        }
+        if (empty($gudangRows)) {
+            throw ValidationException::withMessages(['gudang' => 'Pilih minimal satu gudang fulfillment.']);
+        }
+
+        $gudangIds = array_map(fn ($g) => (int) $g['gudang_id'], $gudangRows);
+        $validGudang = \App\Models\Gudang::whereIn('id', $gudangIds)
+            ->whereIn('tipe', \App\Models\Gudang::TIPE_FULFILLMENT)
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+        if (count(array_diff($gudangIds, $validGudang)) > 0) {
+            throw ValidationException::withMessages(['gudang' => 'Gudang yang dipilih harus bertipe Fulfillment.']);
+        }
+
+        DB::transaction(function () use ($produk, $gudangRows, $gudangIds) {
+            AnalisaFulfillmentInput::where('produk_id', $produk->id)->whereNotIn('gudang_id', $gudangIds)->delete();
+
+            foreach ($gudangRows as $g) {
+                AnalisaFulfillmentInput::updateOrCreate(
+                    ['produk_id' => $produk->id, 'gudang_id' => (int) $g['gudang_id']],
+                    [
+                        'terjual_rata_rata_4bulan' => (float) $g['terjual_rata_rata_4bulan'],
+                        'lead_time_distribusi' => (int) $g['lead_time_distribusi'],
+                        'buffer_distribusi' => (int) $g['buffer_distribusi'],
+                        'review_period' => (int) $g['review_period'],
+                    ]
+                );
+            }
+        });
     }
 
     private function demand(): DemandAduService
@@ -1709,6 +1866,9 @@ class AnalisaService
      */
     public const PRODUKSI_REVIEW_PERIOD = 15;
 
+    /** Jendela ADU (bulan) untuk menampilkan total permintaan produk jadi 4 bulan. */
+    public const BULAN_JENDELA_ADU = 4;
+
     /**
      * Statistik lead time produksi per produk jadi dari batch selesai:
      * durasi = waktu rencana batch dibuat -> waktu batch diselesaikan (hari, 1 desimal half-up).
@@ -1768,15 +1928,70 @@ class AnalisaService
     }
 
     /**
+     * Gudang Produksi tempat produk jadi diproduksi: gudang operasional batch terakhir produk tsb,
+     * fallback gudang operasional aktif pertama.
+     *
+     * @param  array<int, int>  $produkIds
+     * @return array<int, int>  produk_id => gudang_id
+     */
+    private function gudangProduksiMap(array $produkIds): array
+    {
+        $map = [];
+        foreach (DB::table('batch_produksi as bp')
+            ->leftJoin('batch_produksi_outputs as bpo', 'bpo.batch_id', '=', 'bp.id')
+            ->whereNotNull('bp.gudang_operasional_id')
+            ->where('bp.status', '!=', 'dibatalkan')
+            ->where(function ($q) use ($produkIds) {
+                $q->whereIn('bp.produk_id', $produkIds)->orWhereIn('bpo.produk_id', $produkIds);
+            })
+            ->orderByDesc('bp.created_at')
+            ->get(['bp.produk_id', 'bpo.produk_id as output_produk_id', 'bp.gudang_operasional_id']) as $r) {
+            foreach ([$r->output_produk_id, $r->produk_id] as $pid) {
+                if ($pid !== null && in_array((int) $pid, $produkIds, true) && ! isset($map[(int) $pid])) {
+                    $map[(int) $pid] = (int) $r->gudang_operasional_id;
+                }
+            }
+        }
+
+        $default = \App\Models\Gudang::active()->where('tipe', 'operasional')->orderBy('id')->value('id');
+        foreach ($produkIds as $pid) {
+            if (! isset($map[$pid]) && $default) {
+                $map[$pid] = (int) $default;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
      * Analisa barang jadi di Gudang Produksi (operasional).
-     * ADU = permintaan produk jadi dari Gudang Fulfillment selama 4 bulan / jumlah hari jendela.
+     * ADU = Σ ADU penjualan seluruh Gudang Fulfillment (dari Analisa Fulfillment).
      * Lead time = rata-rata dan maksimum durasi batch (rencana -> selesai); safety = max - avg.
+     * ORDER (perlu produksi) bila Stok + Rencana Batch ≤ Target; qty menutup sampai Target.
      *
      * @return array<int, array<string, mixed>>
      */
     public function produksi(): array
     {
-        $demand = $this->demand()->aduProdukJadiProduksi();
+        $aduPj = $this->demand()->aduProdukJadi();
+        if (empty($aduPj)) {
+            return [];
+        }
+
+        $gudangMapProduk = $this->gudangProduksiMap(array_map('intval', array_keys($aduPj)));
+        $demand = [];
+        foreach ($aduPj as $pid => $d) {
+            $gid = $gudangMapProduk[(int) $pid] ?? null;
+            if ($gid === null) {
+                continue;
+            }
+            $demand["{$pid}_{$gid}"] = [
+                'produk_id' => (int) $pid,
+                'gudang_id' => $gid,
+                'total' => (float) $d['terjual_bulanan'] * self::BULAN_JENDELA_ADU,
+                'adu' => (float) $d['adu'],
+            ];
+        }
         if (empty($demand)) {
             return [];
         }
@@ -1804,6 +2019,19 @@ class AnalisaService
             ->get(['bpo.produk_id', 'bp.gudang_operasional_id as gudang_id', DB::raw('SUM(bpo.qty_rencana) as total')]) as $r) {
             $akanDatang["{$r->produk_id}_{$r->gudang_id}"] = (float) $r->total;
         }
+        // Batch legacy (single-product) tanpa baris output.
+        foreach (DB::table('batch_produksi as bp')
+            ->whereIn('bp.status', ['rencana', 'release'])
+            ->whereIn('bp.produk_id', $produkIds)
+            ->whereIn('bp.gudang_operasional_id', $gudangIds)
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))->from('batch_produksi_outputs as bpo')->whereColumn('bpo.batch_id', 'bp.id');
+            })
+            ->groupBy('bp.produk_id', 'bp.gudang_operasional_id')
+            ->get(['bp.produk_id', 'bp.gudang_operasional_id as gudang_id', DB::raw('SUM(bp.qty_rencana) as total')]) as $r) {
+            $key = "{$r->produk_id}_{$r->gudang_id}";
+            $akanDatang[$key] = ($akanDatang[$key] ?? 0.0) + (float) $r->total;
+        }
 
         $rows = [];
         foreach ($demand as $key => $d) {
@@ -1821,8 +2049,8 @@ class AnalisaService
             $stok = (float) ($stokMap[$key] ?? 0.0);
             $akan = (float) ($akanDatang[$key] ?? 0.0);
             $tersedia = $stok + $akan;
-            $selisih = $tersedia - $batasMinimum;
-            $isOrder = $batasMinimum > 0 && $tersedia <= $batasMinimum;
+            $selisih = $tersedia - $target;
+            $isOrder = $target > 0 && $tersedia <= $target;
             $moq = (float) ($produk?->satuan_order_moq ?: 1);
 
             $rows[] = [
@@ -1904,9 +2132,8 @@ class AnalisaService
                 ->count();
         }
 
-        $ffOrder = AnalisaFulfillmentInput::with(['gudang', 'produk'])->get()
-            ->groupBy('produk_id')
-            ->filter(fn ($rows) => $this->fulfillment($rows)['status'] === 'order')
+        $ffOrder = collect($this->fulfillmentRows())
+            ->filter(fn ($row) => $row['status'] === 'order')
             ->count();
 
         return [

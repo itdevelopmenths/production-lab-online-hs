@@ -18,8 +18,10 @@ class LeadTimeStage extends Model
     ];
 
     public const TAHAP = [
-        'perencanaan', 'approval', 'supplier_confirm', 'payment', 'po',
-        'pengemasan', 'pengiriman', 'unloading', 'input',
+        // Urutan mengikuti alur PO: konfirmasi supplier sebelum approval. Pengemasan dihapus
+        // (data lama pengemasan digabung ke pengiriman saat migrasi ke lead_time_lokal_stage).
+        'perencanaan', 'supplier_confirm', 'approval', 'payment', 'po',
+        'pengiriman', 'unloading', 'input',
     ];
 
     public function produk(): BelongsTo

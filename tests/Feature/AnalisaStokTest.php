@@ -47,8 +47,9 @@ class AnalisaStokTest extends TestCase
         $this->assertEquals(22, $hasil['total_max_lead_time']);
         $this->assertEquals(11, $hasil['safety_stock_hari']);
         $this->assertEquals('order', $hasil['status']);
-        $this->assertEquals(25000, $hasil['qty_order']); // 23442.6 rounded up to MOQ 5000 = 25000
-        $this->assertEquals(25000 * 526, $hasil['total_nominal_order']);
+        // Sesuai Excel: selisih terhadap Target (8000 - 51094) = -43094 -> MOQ 5000 = 45000
+        $this->assertEquals(45000, $hasil['qty_order']);
+        $this->assertEquals(45000 * 526, $hasil['total_nominal_order']);
 
         // Test API Endpoint
         $purchasing = User::where('email', 'purchasing@heavenscent.id')->firstOrFail();
@@ -59,7 +60,7 @@ class AnalisaStokTest extends TestCase
         $response->assertJsonFragment([
             'sku' => $input->produk->sku,
             'status' => 'order',
-            'qty_order' => 25000,
+            'qty_order' => 45000,
         ]);
     }
 
@@ -155,14 +156,14 @@ class AnalisaStokTest extends TestCase
     // 🔍 2. BOUNDARY / EDGE-CASE SCENARIOS
     // ==========================================
 
-    public function test_boundary_case_stock_exactly_at_batas_minimum_triggers_order(): void
+    public function test_boundary_case_stock_exactly_at_target_stock_triggers_order(): void
     {
         $analisaService = app(AnalisaService::class);
         $input = AnalisaLokalInput::with('produk')->firstOrFail();
 
-        // Calculate exact Batas Minimum for current parameters
+        // Pemicu ORDER mengikuti Excel: Stok + Akan Datang <= Target Stock
         $hasil = $analisaService->lokal($input);
-        $exactBatasMin = $hasil['batas_minimum'];
+        $exactBatasMin = $hasil['target_stock'];
 
         // Case A: Exactly Equal -> triggers 'order'
         $input->stok_saat_ini = $exactBatasMin;
@@ -185,7 +186,7 @@ class AnalisaStokTest extends TestCase
         $hasil = $analisaService->lokal($input);
 
         // Difference of only 1 unit should round up to full MOQ of 5,000
-        $input->stok_saat_ini = $hasil['batas_minimum'] - 1;
+        $input->stok_saat_ini = $hasil['target_stock'] - 1;
         $input->akan_datang = 0;
         $res = $analisaService->lokal($input);
         $this->assertEquals('order', $res['status']);
@@ -201,8 +202,9 @@ class AnalisaStokTest extends TestCase
         $analisaService = app(AnalisaService::class);
         $input = AnalisaLokalInput::with('produk')->firstOrFail();
 
-        // Tidak ada permintaan bahan baku dari Gudang Produksi -> ADU 0
-        \App\Models\StockRequestItem::query()->delete();
+        // Tidak ada pemakaian bahan di batch produksi maupun proyeksi BOM -> ADU 0
+        \App\Models\KartuStok::where('referensi_tipe', 'batch_produksi')->delete();
+        \App\Models\AnalisaFulfillmentInput::query()->delete();
         $input->stok_saat_ini = 0;
         $input->akan_datang = 0;
 

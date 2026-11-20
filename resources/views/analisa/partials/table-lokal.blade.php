@@ -23,7 +23,7 @@
         <div x-show="lokalSubTab === 'rekomendasi'">
             <x-card class="tbl-modern" 
                 title="Tabel Rekomendasi Pemesanan Bahan Lokal (rekomendasi_order_lokal)" 
-                subtitle="Kalkulasi selisih stok, batas minimum, pembulatan kelipatan MOQ, dan rekomendasi order dalam satuan beli"
+                subtitle="ORDER bila Stok + Akan Datang ≤ Target Stock. Selisih terhadap Target dibulatkan ke kelipatan MOQ, lalu dikonversi ke satuan beli"
                 :noPadding="true"
             >
                 <x-slot:icon>
@@ -470,7 +470,7 @@
 
             <x-card class="tbl-modern" 
                 title="Tabel Rincian 8 Tahap Lead Time (lead_time_lokal_stage)" 
-                subtitle="Perencanaan, Persetujuan, Konfirmasi Supplier, Pembayaran, PO Terbit, Pengiriman, Unloading, dan Input Sistem"
+                subtitle="Perencanaan, Konfirmasi Supplier, Persetujuan, Pembayaran, PO Terbit, Pengiriman, Unloading, dan Input Sistem"
                 :noPadding="true"
             >
                 <x-slot:icon>
@@ -485,8 +485,8 @@
                                 <th class="py-3 px-2">Supplier</th>
                                 <th class="py-3 px-2">Skenario</th>
                                 <th class="py-3 px-2 text-right">Rencana</th>
-                                <th class="py-3 px-2 text-right">Setuju</th>
                                 <th class="py-3 px-2 text-right">Konfirmasi</th>
+                                <th class="py-3 px-2 text-right">Setuju</th>
                                 <th class="py-3 px-2 text-right">Bayar</th>
                                 <th class="py-3 px-2 text-right">PO</th>
                                 <th class="py-3 px-2 text-right">Kirim</th>
@@ -529,8 +529,8 @@
                                         </td>
                                         <td class="py-2.5 px-2 tabular-nums uppercase text-[10px] font-medium text-[#667085] dark:text-gray-400" x-text="type"></td>
                                         <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].perencanaan : 0)"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].approval : 0)"></td>
                                         <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].supplier_confirm : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].approval : 0)"></td>
                                         <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].payment : 0)"></td>
                                         <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].po : 0)"></td>
                                         <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].pengiriman : 0)"></td>
