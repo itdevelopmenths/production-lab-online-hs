@@ -1624,6 +1624,7 @@ class AnalisaService
         );
 
         $perGudang = [];
+        $aduTotal = 0.0;
         $batasMinTotal = 0.0;
         $targetTotal = 0.0;
         $stokTotal = 0.0;
@@ -1639,6 +1640,7 @@ class AnalisaService
             $stokGudang = (float) ($live['stok'][$key] ?? 0.0);
             $akanGudang = (float) ($live['akan_datang'][$key] ?? 0.0);
 
+            $aduTotal += $adu;
             $batasMinTotal += $batasMin;
             $targetTotal += $target;
             $stokTotal += $stokGudang;
@@ -1666,6 +1668,7 @@ class AnalisaService
 
         return [
             'per_gudang' => $perGudang,
+            'adu_total' => $aduTotal,
             'batas_minimum_total' => $batasMinTotal,
             'target_stock_total' => $targetTotal,
             'stok_total' => $stokTotal,

@@ -97,7 +97,7 @@
                 </template>
             </div>
             <p x-show="ffForm.produk" class="text-[11px] text-[#667085] dark:text-gray-400">
-                ADU = pembulatan(Terjual / 30). Batas Min = ADU × (Lead Time + Buffer). Target = ADU × (Lead Time + Buffer + Review).
+                ADU = Terjual / 30 (tanpa pembulatan). Batas Min = ADU × (Lead Time + Buffer). Target = ADU × (Lead Time + Buffer + Review).
                 ORDER bila Stok + Akan Datang ≤ Target; Qty dibulatkan ke atas ke kelipatan batch (MOQ di Master Produk).
             </p>
         </div>

@@ -398,6 +398,7 @@
           fulfillment: [
             ['sku', 'SKU', 'text-left'],
             ['nama', 'Nama Produk', 'text-left'],
+            ['adu_total', 'ADU', 'text-right'],
             ['batas_minimum_total', 'Batas Min', 'text-right'],
             ['target_stock_total', 'Target', 'text-right'],
             ['stok_total', 'Stok Saat Ini', 'text-right'],
@@ -513,6 +514,9 @@
           if (typeof v === 'number') {
             if (colName === 'total_nominal_order') {
               return 'Rp ' + Math.round(v).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+            }
+            if (colName === 'adu_total') {
+              return v.toLocaleString('id-ID', { maximumFractionDigits: 2 });
             }
             return Math.round(v).toLocaleString('id-ID', { maximumFractionDigits: 0 });
           }
