@@ -222,7 +222,7 @@ flowchart LR
     S1["1. Perencanaan\n(Purchasing)"] --> S2["2. Konfirmasi\nSupplier\n(Purchasing)"]
     S2 --> S3{"3. Approval\n(Manager)"}
     S3 -- "Ditolak\n(Putaran Baru)" --> S2
-    S3 -- "Disetujui\n(PO Terkunci)" --> S4["4. Pembayaran / DP\natau Lanjut Tempo\n(Purchasing)"]
+    S3 -- "Disetujui\n(PO Terkunci)" --> S4["4. Pembayaran / DP\natau Lanjut tanpa DP\n(Purchasing)"]
     S4 --> S5["5. PO Terbit\n(Purchasing)"]
     S5 --> S6["6. Pengiriman\n(Purchasing)"]
     S6 --> S7["7. Unloading\ndi Gudang\n(Gudang)"]
@@ -234,7 +234,7 @@ flowchart LR
 | **1** | **Perencanaan** | Purchasing | Staf Purchasing membuat PO. PO masih dapat diedit penuh. Saat tahap selesai, Konfirmasi Supplier dimulai pada waktu yang sama. |
 | **2** | **Konfirmasi Supplier** | Purchasing | Mencatat konfirmasi kesanggupan kuantitas, harga, nomor referensi supplier, dan estimasi kedatangan (ETA). PO masih dapat diedit penuh pada tahap ini. |
 | **3** | **Approval** | Manager | Manager memeriksa harga, jumlah, dan termin pembayaran. Jika **Setuju**, PO **terkunci** dan lanjut ke Pembayaran. Jika **Tolak** dengan alasan wajib, dokumen kembali ke **Konfirmasi Supplier** dan sistem membuka **Putaran Baru**. |
-| **4** | **Pembayaran** | Purchasing | Dua jalur penyelesaian:<br>1. **Tombol "Dibayarkan":** Wajib sudah mencatat minimal 1 pembayaran (DP/Termin/Pelunasan) dengan nominal $> 0$.<br>2. **Tombol "Lanjut Tempo":** Khusus PO berskema **Tempo**, boleh lanjut tanpa bayar uang muka di awal. Pembayaran hanya dapat dicatat setelah PO disetujui Manager. |
+| **4** | **Pembayaran** | Purchasing | Dua jalur penyelesaian:<br>1. **Tombol "Dibayarkan":** Wajib sudah mencatat minimal 1 pembayaran (DP/Termin/Pelunasan) dengan nominal $> 0$.<br>2. **Tombol "Lanjut tanpa DP":** Berlaku untuk semua skema bayar (Cash/Termin/Tempo), boleh lanjut tanpa uang muka; pembayaran dicatat menyusul. Pembayaran hanya dapat dicatat setelah PO disetujui Manager. |
 | **5** | **PO Terbit** | Purchasing | Dokumen PO resmi dikirimkan kepada supplier sebagai perintah pemenuhan pesanan. |
 | **6** | **Pengiriman** | Purchasing | Barang diserahkan ke ekspedisi. **Wajib mengisi nama Ekspedisi**, serta moda pengiriman (darat/laut/udara), nomor resi, nomor kontainer, dan perkiraan tanggal tiba. |
 | **7** | **Unloading (Bongkar Muat)** | Gudang | Barang tiba di Gudang Pusat. Petugas gudang membongkar muatan dan mencatat jumlah fisik kedatangan beserta kondisinya (Baik/Rusak) dan selisihnya. **Saldo stok sistem belum bertambah pada tahap ini!** |

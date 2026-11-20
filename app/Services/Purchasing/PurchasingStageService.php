@@ -397,12 +397,8 @@ class PurchasingStageService
             $this->validatePendingRevision($po);
             $current = $this->validateExpectedStage($po, PoStage::STAGE_4);
 
-            if ($po->skema_bayar !== 'tempo') {
-                throw ValidationException::withMessages([
-                    'skema_bayar' => "Tombol 'Lanjut Tempo' hanya berlaku untuk PO dengan skema pembayaran Tempo.",
-                ]);
-            }
-
+            // Lanjut tanpa DP berlaku untuk semua skema bayar (cash/termin/tempo);
+            // pembayaran dicatat menyusul di panel Status Pembayaran.
             $selesai = $waktuSelesai ? Carbon::parse($waktuSelesai) : now();
             $this->validateTimeWindow($current->waktu_mulai, $selesai);
 
@@ -413,7 +409,7 @@ class PurchasingStageService
                 'pic_user_id' => $actor->id,
                 'dicatat_oleh' => $actor->id,
                 'dicatat_pada' => now(),
-                'catatan' => $catatan ?: 'Lanjut skema tempo tanpa uang muka',
+                'catatan' => $catatan ?: 'Lanjut tanpa DP (pembayaran menyusul)',
             ]);
 
             // Buka Stage 5

@@ -1339,10 +1339,10 @@
                                 @csrf
                                 <div>
                                     <label class="po-label">Catatan (opsional)</label>
-                                    <textarea name="catatan" rows="2" placeholder="Catatan untuk Manager" class="po-field"></textarea>
+                                    <textarea name="catatan" rows="2" placeholder="Catatan perencanaan (opsional)" class="po-field"></textarea>
                                 </div>
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
-                                    Ajukan ke Manager
+                                    Lanjut ke Konfirmasi Supplier
                                 </x-button>
                             </form>
                             @else
@@ -1398,7 +1398,7 @@
                                     <input type="hidden" name="confirmation[items][{{ $it->id }}][harga_konfirmasi]" value="{{ $it->harga_total }}">
                                 @endforeach
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
-                                    Konfirmasi Supplier
+                                    Konfirmasi Supplier &amp; Ajukan ke Manager
                                 </x-button>
                             </form>
                             @else
@@ -1430,14 +1430,13 @@
                                     </div>
                                 @endif
 
-                                @if($po->skema_bayar !== 'cash')
-                                    <form method="POST" action="{{ route('purchasing.stages.lanjut-tempo', $po) }}">
-                                        @csrf
-                                        <x-button type="submit" variant="outline" size="sm" class="w-full">
-                                            Lanjut dengan Tempo
-                                        </x-button>
-                                    </form>
-                                @endif
+                                <form method="POST" action="{{ route('purchasing.stages.lanjut-tempo', $po) }}">
+                                    @csrf
+                                    <x-button type="submit" variant="outline" size="sm" class="w-full">
+                                        Lanjut tanpa DP
+                                    </x-button>
+                                </form>
+                                <p class="text-[11px] text-muted-foreground leading-tight">Pembayaran tetap bisa dicatat menyusul di panel Status Pembayaran.</p>
                             </div>
                             @else
                             <p class="text-xs text-muted-foreground italic">Menunggu konfirmasi pembayaran.</p>
@@ -1770,7 +1769,7 @@
                                 <span>Pembayaran belum tersedia</span>
                             </div>
                             <p class="text-[11px] leading-relaxed">
-                                Pembayaran tersedia setelah PO disetujui Manager (Tahap 2 selesai).
+                                Pembayaran tersedia setelah PO disetujui Manager (Tahap Approval selesai).
                             </p>
                         </div>
                     @elseif(!$po->isLunas() && !$po->isCancelled())

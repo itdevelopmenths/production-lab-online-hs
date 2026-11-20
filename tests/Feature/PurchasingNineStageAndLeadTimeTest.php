@@ -720,6 +720,29 @@ class PurchasingNineStageAndLeadTimeTest extends TestCase
     }
 
     /**
+     * Stage 4 'Lanjut tanpa DP' juga berlaku untuk PO skema cash.
+     */
+    public function test_stage_4_lanjut_tanpa_dp_allowed_for_cash_po(): void
+    {
+        $po = $this->createSamplePo('cash');
+        $po->stage_aktif = PoStage::STAGE_4;
+        $po->save();
+        $po->stages()->create([
+            'stage' => PoStage::STAGE_4,
+            'urutan' => 4,
+            'putaran' => 1,
+            'status' => 'berjalan',
+            'waktu_mulai' => now()->subHours(2),
+        ]);
+
+        $this->stageService->completeStage4Tempo($po, $this->purchasing);
+        $po->refresh();
+
+        $this->assertEquals(PoStage::STAGE_5, $po->stage_aktif);
+        $this->assertEquals(0, $po->payments()->count());
+    }
+
+    /**
      * TC-30: Dual-level lead time calculation (Supplier level vs Supplier-Produk level).
      */
     public function test_tc30_dual_level_lead_time_updates_both_levels(): void

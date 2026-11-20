@@ -163,10 +163,10 @@ class PurchasingStageController extends Controller
         $this->stageService->completeStage4Tempo($purchaseOrder, auth()->user(), $waktuSelesai, $catatan);
 
         if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => 'Stage 4 diselesaikan via skema tempo.']);
+            return response()->json(['success' => true, 'message' => 'Tahap Pembayaran dilanjutkan tanpa DP.']);
         }
 
-        return back()->with('success', 'Stage 4 diselesaikan via skema tempo.');
+        return back()->with('success', 'Tahap Pembayaran dilanjutkan tanpa DP.');
     }
 
     /**
