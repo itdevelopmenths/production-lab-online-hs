@@ -596,8 +596,10 @@ class SkuKlasifikasiAbcTest extends TestCase
         $this->assertEquals($abcB->id, $sku->klasifikasi_abc_id);
         $this->assertEquals($abcB->id, $ai->klasifikasi_abc_id);
         $this->assertEquals('b', $ai->klasifikasi_abc);
-        $this->assertEquals(5000, (float) $ai->out);
-        $this->assertEquals(1200, (float) $ai->stok_saat_ini);
+        // Out dihitung otomatis dari pemakaian batch (bukan input manual); SKU baru tanpa pemakaian = 0.
+        $this->assertEquals(0, (float) $ai->out);
+        // Stok/inbound manual hanya koreksi sekali pakai: update berikutnya kembali ke stok live (SKU baru = 0).
+        $this->assertEquals(0, (float) $ai->stok_saat_ini);
         $this->assertEquals(1500, (float) $ai->harga_per_satuan);
 
         // Explicit null clears ABC on both AnalisaImpor and Produk without re-attaching to Class C

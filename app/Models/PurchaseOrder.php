@@ -112,6 +112,34 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Tahap setelah approval Manager (PO sudah terkunci & pasti dipesan), sebelum stok diposting.
+     */
+    public const STAGES_DISETUJUI_BELUM_DITERIMA = [
+        PoStage::STAGE_4,
+        PoStage::STAGE_5,
+        PoStage::STAGE_6,
+        PoStage::STAGE_7,
+        PoStage::STAGE_8,
+        PoStage::LEGACY_STAGE_PENGEMASAN,
+    ];
+
+    /**
+     * PO "akan datang" untuk analisa & stok berjalan: sudah disetujui Manager, belum selesai/batal.
+     * Draft, konfirmasi supplier, dan menunggu approval TIDAK dihitung karena belum pasti dipesan.
+     * Sama dengan isApprovedForPayment(), termasuk PO legacy tanpa baris tahap.
+     */
+    public function scopeDisetujuiBelumDiterima(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query
+            ->whereNotIn('purchase_orders.status', ['selesai', 'dibatalkan'])
+            ->where(function ($q) {
+                $q->whereIn('purchase_orders.status', ['disetujui', 'dikirim_ke_gudang'])
+                    ->orWhereIn('purchase_orders.stage_aktif', self::STAGES_DISETUJUI_BELUM_DITERIMA)
+                    ->orWhere(fn ($legacy) => $legacy->where('purchase_orders.status', 'berjalan')->whereDoesntHave('stages'));
+            });
+    }
+
+    /**
      * Aturan yang sama dengan scopeVisibleToGudang untuk satu instance.
      */
     public function isVisibleToGudang(): bool

@@ -56,10 +56,22 @@ class PurchasingPaymentService
             }
 
             if (! empty($data['termin_id'])) {
-                $ownsTermin = $lockedPo->termins()->where('id', $data['termin_id'])->exists();
-                if (! $ownsTermin) {
+                $targetTermin = $lockedPo->termins()->where('id', $data['termin_id'])->first();
+                if (! $targetTermin) {
                     throw ValidationException::withMessages([
                         'termin_id' => 'Termin pembayaran tidak valid atau bukan milik Purchase Order ini.',
+                    ]);
+                }
+
+                // Termin wajib dibayar berurutan: termin sebelumnya harus lunas lebih dulu.
+                $terminBelumLunas = $lockedPo->termins()
+                    ->where('termin_ke', '<', $targetTermin->termin_ke)
+                    ->orderBy('termin_ke')
+                    ->get()
+                    ->first(fn ($t) => $t->sisaNominal() > 0.0001);
+                if ($terminBelumLunas) {
+                    throw ValidationException::withMessages([
+                        'termin_id' => "Termin {$targetTermin->termin_ke} belum dapat dibayar. Lunasi Termin {$terminBelumLunas->termin_ke} terlebih dahulu.",
                     ]);
                 }
             }

@@ -1,8 +1,8 @@
 {{-- Section: Log Riwayat Snapshot (riwayat_analisa) --}}
 <template x-if="tab === 'riwayat'">
-    <x-card class="tbl-modern" 
-        title="Log Riwayat Snapshot Analisa (riwayat_analisa)" 
-        subtitle="Audit trail arsip historis snapshot terkunci (locked) lengkap dengan kode sesi batch finalisasi" 
+    <x-card class="tbl-modern"
+        title="Log Riwayat Snapshot Analisa"
+        subtitle="Arsip snapshot terkunci, dikelompokkan per bulan lalu per sesi finalisasi"
         :noPadding="true"
     >
         <x-slot:icon>
@@ -16,6 +16,48 @@
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             <span class="text-xs">Memuat data riwayat snapshot...</span>
+        </div>
+
+        {{-- Pengelompokan: Bulan → Sesi finalisasi --}}
+        <div x-show="!loading" class="px-3 sm:px-4 py-3 border-b border-[#E8E8E8] dark:border-gray-800 space-y-3">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <label for="riwayat-bulan" class="text-[11px] text-[#667085] dark:text-gray-400">Bulan</label>
+                <select id="riwayat-bulan" :value="riwayatBulan" @change="pilihRiwayatBulan($event.target.value)"
+                        class="h-8 min-w-48 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs text-[#101828] dark:text-gray-200 px-2.5 rounded-[6px] focus:outline-none focus:ring-1 focus:ring-gray-400">
+                    <template x-if="(riwayatInfo.bulan_list || []).length === 0">
+                        <option value="">Belum ada snapshot</option>
+                    </template>
+                    <template x-for="b in (riwayatInfo.bulan_list || [])" :key="b.key">
+                        <option :value="b.key" :selected="b.key === riwayatBulan" x-text="`Analisa ${b.label} (${b.jumlah_sesi} sesi, ${b.jumlah_item} item)`"></option>
+                    </template>
+                </select>
+                <span class="text-[11px] text-[#667085] dark:text-gray-400 tabular-nums" x-show="(riwayatInfo.sessions || []).length > 0">
+                    <span x-text="(riwayatInfo.sessions || []).length"></span> sesi finalisasi di <span class="font-medium text-[#101828] dark:text-gray-200" x-text="riwayatInfo.bulan_label"></span>
+                </span>
+            </div>
+
+            <div class="flex flex-wrap gap-2" x-show="(riwayatInfo.sessions || []).length > 0" role="group" aria-label="Pilih sesi finalisasi">
+                <button type="button" @click="riwayatSession = 'all'; page = 1"
+                        :aria-pressed="riwayatSession === 'all'"
+                        :class="riwayatSession === 'all' ? 'border-[#111111] dark:border-white bg-[#111111] dark:bg-white text-white dark:text-[#111111]' : 'border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-[#101828] dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'"
+                        class="px-3 py-2 text-left border transition cursor-pointer rounded-[8px]">
+                    <span class="block text-xs font-medium">Semua sesi</span>
+                    <span class="block text-[11px] opacity-70 tabular-nums" x-text="`${rows.length} item`"></span>
+                </button>
+                <template x-for="s in (riwayatInfo.sessions || [])" :key="s.key">
+                    <button type="button" @click="pilihRiwayatSesi(s.key)"
+                            :aria-pressed="riwayatSession === s.key"
+                            :title="s.session_id"
+                            :class="riwayatSession === s.key ? 'border-[#111111] dark:border-white bg-[#111111] dark:bg-white text-white dark:text-[#111111]' : 'border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-[#101828] dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'"
+                            class="px-3 py-2 text-left border transition cursor-pointer rounded-[8px] max-w-full">
+                        <span class="block text-xs font-medium tabular-nums">
+                            <span x-text="s.tanggal"></span><span x-show="s.waktu" x-text="' · ' + s.waktu"></span><span x-text="' · ' + s.pencatat"></span>
+                        </span>
+                        <span class="block text-[11px] opacity-70 truncate" x-text="(s.tipe_labels || []).join(', ')"></span>
+                        <span class="block text-[11px] opacity-70 tabular-nums" x-text="`${s.jumlah_item} item · ${s.jumlah_order} perlu order`"></span>
+                    </button>
+                </template>
+            </div>
         </div>
 
         <div x-show="!loading" tabindex="0" role="region" aria-label="Log Riwayat Snapshot Analisa" class="overflow-x-auto">

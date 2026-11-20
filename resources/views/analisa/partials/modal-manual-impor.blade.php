@@ -183,7 +183,7 @@
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Stok Fisik Saat Ini
                         </label>
-                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Stok riil di gudang impor.</p>
+                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Koreksi sekali pakai. Checking berikutnya kembali ke stok Gudang Bahan Baku.</p>
                         <div class="relative flex items-center">
                             <input type="number" step="0.01" min="0" x-model.number="manualImporForm.stok_saat_ini" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none rounded-[6px]">
                             <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>
@@ -204,7 +204,7 @@
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Inbound Sebelum ETA
                         </label>
-                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">PO dalam perjalanan sebelum tiba.</p>
+                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">PO disetujui yang belum tiba. Koreksi sekali pakai.</p>
                         <div class="relative flex items-center">
                             <input type="number" step="0.01" min="0" x-model.number="manualImporForm.inbound_before_eta" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none rounded-[6px]">
                             <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none" x-text="manualImporForm.satuan"></span>

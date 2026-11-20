@@ -29,6 +29,11 @@ class AnalisaStokTest extends TestCase
         parent::setUp();
         $this->seed();
         Model::preventLazyLoading(true);
+
+        // Contoh PRD ALK-01 memakai Stok Saat Ini 8.000 ml. Analisa bahan membaca stok live Gudang Bahan Baku,
+        // jadi saldo GD-PUSAT diset 8.000 (seeder mengisi 500.000 untuk kebutuhan test produksi).
+        $alk = Produk::where('sku', 'ALK-01')->firstOrFail();
+        app(\App\Services\StokService::class)->setAbsolut($alk->id, Gudang::where('kode', 'GD-PUSAT')->value('id'), 8000, 'Fixture contoh PRD');
     }
 
     // ==========================================
@@ -163,7 +168,9 @@ class AnalisaStokTest extends TestCase
 
         // Pemicu ORDER mengikuti Excel: Stok + Akan Datang <= Target Stock
         $hasil = $analisaService->lokal($input);
-        $exactBatasMin = $hasil['target_stock'];
+        // Kolom stok_saat_ini ber-cast decimal:2; Target ALK-01 = 51094.225 akan dibulatkan KE ATAS (.23)
+        // dan melewati target. Pakai pembulatan ke bawah 2 desimal = nilai terbesar yang masih <= Target.
+        $exactBatasMin = floor($hasil['target_stock'] * 100) / 100;
 
         // Case A: Exactly Equal -> triggers 'order'
         $input->stok_saat_ini = $exactBatasMin;

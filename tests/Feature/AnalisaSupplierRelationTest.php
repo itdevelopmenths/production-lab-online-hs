@@ -134,8 +134,9 @@ class AnalisaSupplierRelationTest extends TestCase
         $response->assertSee('Glass Bottle Import Co.');
         $response->assertSee('r.supplier_nama');
         $response->assertSee('stg.supplier_nama');
-        $response->assertSee('Generate Analisa');
-        $response->assertSee('Checking (Generate Ulang)');
+        // Analisa dihitung otomatis saat dibuka: tombol Generate/Checking diganti Muat Ulang.
+        $response->assertSee('Muat Ulang');
+        $response->assertDontSee('Checking (Generate Ulang)');
         $response->assertSee('Finalisasi ke Riwayat');
     }
 
@@ -203,8 +204,9 @@ class AnalisaSupplierRelationTest extends TestCase
         $input = \App\Models\AnalisaLokalInput::where('produk_id', $this->alkohol->id)->first();
         $this->assertNotNull($input);
         $this->assertEquals(10, $input->review_period);
-        $this->assertEquals(150, $input->stok_saat_ini);
         $this->assertEquals(250, $input->harga_per_satuan);
+        // Stok manual = koreksi sekali pakai, tidak disimpan permanen ke input.
+        $this->assertNotEquals(150, (float) $input->stok_saat_ini);
 
         $lt = \App\Models\LeadTimeLokal::where('produk_id', $this->alkohol->id)->first();
         $this->assertNotNull($lt);
@@ -220,6 +222,12 @@ class AnalisaSupplierRelationTest extends TestCase
         $this->assertNotNull($rek);
         $this->assertEquals(150, (float) $rek->stok_saat_ini);
         $this->assertEquals(250, (float) $rek->harga_ml_pcs);
+
+        // Checking/Generate berikutnya kembali ke stok live Gudang Bahan Baku.
+        app(\App\Services\AnalisaService::class)->generateLokal($this->alkohol->id, $this->purchasing->id);
+        $liveStok = app(\App\Services\AnalisaService::class)->stokGudangBahanBaku($this->alkohol->id);
+        $this->assertEquals($liveStok, (float) $rek->fresh()->stok_saat_ini);
+        $this->assertEquals(250, (float) $rek->fresh()->harga_ml_pcs, 'Harga manual tetap tersimpan.');
     }
 
     public function test_update_manual_impor_updates_parameters_and_triggers_live_recalculation(): void

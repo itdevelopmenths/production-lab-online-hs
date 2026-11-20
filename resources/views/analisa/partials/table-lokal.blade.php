@@ -35,7 +35,7 @@
                         <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 text-xs font-medium border-b border-[#E8E8E8] dark:border-gray-800">
                             <tr>
                                 <th class="py-3 px-2 text-center w-10">
-                                    <input type="checkbox" @change="toggleSelectCurrentPage($event)" :checked="isCurrentPageAllSelected()" class="rounded border-[#E8E8E8] dark:border-gray-700 text-[#111111] dark:text-white focus:ring-0 cursor-pointer">
+                                    <input type="checkbox" @change="toggleSelectAllFiltered($event)" :checked="isAllFilteredSelected()" :indeterminate="isSomeFilteredSelected()" title="Pilih semua hasil (semua halaman)" class="rounded border-[#E8E8E8] dark:border-gray-700 text-[#111111] dark:text-white focus:ring-0 cursor-pointer">
                                 </th>
                                 <th class="py-3 px-2.5">Bahan Baku</th>
                                 <th class="py-3 px-2.5">Supplier</th>

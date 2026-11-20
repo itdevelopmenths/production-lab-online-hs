@@ -21,8 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // fetch() halaman (Accept: application/json) juga butuh error JSON, mis. 422 validasi di modal Analisa.
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
         // CSRF Token Mismatch (HTTP 419)

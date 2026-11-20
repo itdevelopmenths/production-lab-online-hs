@@ -880,17 +880,55 @@ class AnalisaService
      * @param  int|null  $userId    User ID pembuat generate
      * @return array{generated_count: int, timestamp: string, items: array}
      */
-    public function generateLokal(?int $produkId = null, ?int $userId = null): array
+    /**
+     * Stok Saat Ini untuk analisa bahan: saldo fisik di gudang bertipe bahan_baku saja (GD-PUSAT dst.).
+     * Stok bahan di Lab/Operasional tidak dihitung: sudah dialokasikan untuk produksi dan
+     * pemakaiannya sudah menjadi sumber ADU, kekurangannya diisi lewat Request/Transfer.
+     */
+    public function stokGudangBahanBaku(int $produkId): float
+    {
+        return (float) Stok::where('produk_id', $produkId)
+            ->whereIn('gudang_id', \App\Models\Gudang::where('tipe', 'bahan_baku')->select('id'))
+            ->sum('qty_saat_ini');
+    }
+
+    /**
+     * Akan Datang ke Gudang Bahan Baku (satuan dasar):
+     *  - PO yang sudah disetujui Manager & belum diposting (draft / menunggu approval tidak dihitung),
+     *  - transfer berstatus dikirim (in-transit) menuju gudang bahan baku, mis. retur bahan dari Lab.
+     */
+    public function akanDatangGudangBahanBaku(int $produkId): float
+    {
+        $gudangBahanBaku = \App\Models\Gudang::where('tipe', 'bahan_baku')->select('id');
+
+        $po = (float) PurchaseOrderItem::where('produk_id', $produkId)
+            ->whereHas('purchaseOrder', fn ($q) => $q->disetujuiBelumDiterima()
+                ->where(fn ($g) => $g->whereNull('purchase_orders.gudang_id')
+                    ->orWhereIn('purchase_orders.gudang_id', $gudangBahanBaku)))
+            ->sum('qty');
+
+        $transfer = (float) DB::table('transfer_items as ti')
+            ->join('transfers as t', 't.id', '=', 'ti.transfer_id')
+            ->where('t.status', 'dikirim')
+            ->where('ti.produk_id', $produkId)
+            ->whereIn('t.gudang_tujuan_id', \App\Models\Gudang::where('tipe', 'bahan_baku')->select('id'))
+            ->sum('ti.qty_dikirim');
+
+        return $po + $transfer;
+    }
+
+    /**
+     * @param  array<int, array{stok_saat_ini?: float, akan_datang?: float}>  $overrides  koreksi manual sekali pakai per produk
+     */
+    public function generateLokal(?int $produkId = null, ?int $userId = null, array $overrides = []): array
     {
         $query = Produk::query()->where('is_active', true);
         if ($produkId) {
             $query->where('id', $produkId);
         } else {
             $query->whereIn('tipe', ['bahan', 'kemas'])
-                ->where(function ($q) {
-                    $q->where('profil_analisa', 'lokal')
-                      ->orWhereNull('profil_analisa');
-                });
+                // Keanggotaan eksplisit: SKU baru tidak otomatis masuk; daftarkan lewat Add SKU.
+                ->where('profil_analisa', 'lokal');
         }
 
         $products = $query->orderBy('nama')->get();
@@ -986,19 +1024,16 @@ class AnalisaService
             );
 
             // 4. Rekomendasi Order Lokal
-            $stokDb = (float) Stok::where('produk_id', $p->id)->sum('qty_saat_ini');
-            $stokSaatIni = ($existingInput && $existingInput->stok_saat_ini !== null)
-                ? (float) $existingInput->stok_saat_ini
-                : $stokDb;
-
-            $akanDatangDb = (float) PurchaseOrderItem::where('produk_id', $p->id)
-                ->whereHas('purchaseOrder', function ($q) {
-                    $q->whereIn('status', ['draft', 'berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
-                      ->whereNotIn('status', ['selesai', 'dibatalkan']);
-                })->sum('qty');
-            $akanDatang = ($existingInput && $existingInput->akan_datang !== null)
-                ? (float) $existingInput->akan_datang
-                : $akanDatangDb;
+            // Stok & akan datang selalu live dari Gudang Bahan Baku. Koreksi manual (dari modal Input Manual)
+            // hanya berlaku untuk perhitungan ini; Checking/Generate berikutnya kembali membaca data live.
+            $override = $overrides[(int) $p->id] ?? [];
+            $stokSaatIni = array_key_exists('stok_saat_ini', $override)
+                ? (float) $override['stok_saat_ini']
+                : $this->stokGudangBahanBaku((int) $p->id);
+            $akanDatang = array_key_exists('akan_datang', $override)
+                ? (float) $override['akan_datang']
+                : $this->akanDatangGudangBahanBaku((int) $p->id);
+            // Kolom stok_saat_ini / akan_datang lama di analisa_lokal_input sengaja diabaikan (tidak lagi dipakai).
 
             // Sesuai Excel Analisa Lokal: ORDER bila Stok + Akan Datang ≤ Target Stock; qty menutup sampai Target.
             $tersedia = $stokSaatIni + $akanDatang;
@@ -1081,7 +1116,15 @@ class AnalisaService
         $targetStock = $adu * ($totalAvg + $safetyStockHari + (int) $input->review_period);
 
         // Sesuai Excel Analisa Lokal: ORDER bila Stok + Akan Datang ≤ Target Stock.
-        $tersedia = (float) $input->stok_saat_ini + (float) $input->akan_datang;
+        // Stok & akan datang live dari Gudang Bahan Baku. Nilai tersimpan di kolom input lama diabaikan;
+        // hanya koreksi in-memory (atribut diubah tapi belum disimpan) yang dipakai, mis. simulasi.
+        $stok = $input->isDirty('stok_saat_ini') && $input->stok_saat_ini !== null
+            ? (float) $input->stok_saat_ini
+            : $this->stokGudangBahanBaku((int) $input->produk_id);
+        $akan = $input->isDirty('akan_datang') && $input->akan_datang !== null
+            ? (float) $input->akan_datang
+            : $this->akanDatangGudangBahanBaku((int) $input->produk_id);
+        $tersedia = $stok + $akan;
         $isOrder = $targetStock > 0 && $tersedia <= $targetStock;
         $selisih = $tersedia - $targetStock;
         $qtyOrder = $isOrder ? $this->bulatkanMoq(abs($selisih), $moq) : 0;
@@ -1173,10 +1216,8 @@ class AnalisaService
             $minimumStock = round($aduEta * $ltAvg);
             $targetStock = round($aduEta * ($ltAvg + $bufferDays + $reviewPeriod));
 
-            $stokDb = (float) Stok::where('produk_id', $meta->produk_id)->sum('qty_saat_ini');
-            $inboundDb = (float) PurchaseOrderItem::where('produk_id', $meta->produk_id)
-                ->whereHas('purchaseOrder', fn ($q) => $q->whereIn('status', ['draft', 'berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])->whereNotIn('status', ['selesai', 'dibatalkan']))
-                ->sum('qty');
+            $stokDb = $this->stokGudangBahanBaku((int) $meta->produk_id);
+            $inboundDb = $this->akanDatangGudangBahanBaku((int) $meta->produk_id);
 
             $proyeksi = round($stokDb + $inboundDb - $minimumStock);
             $selisih = round($proyeksi - $targetStock);
@@ -1275,7 +1316,10 @@ class AnalisaService
         return $aduBase + ($aduPivot * $ltAvg / 30);
     }
 
-    public function generateImpor(?int $produkId = null, ?int $userId = null): array
+    /**
+     * @param  array<int, array{stok_saat_ini?: float, inbound_before_eta?: float}>  $overrides  koreksi manual sekali pakai per produk
+     */
+    public function generateImpor(?int $produkId = null, ?int $userId = null, array $overrides = []): array
     {
         $query = Produk::query()
             ->where('is_active', true)
@@ -1284,20 +1328,8 @@ class AnalisaService
         if ($produkId) {
             $query->where('id', $produkId);
         } else {
-            $metaIds = AnalisaImporMeta::pluck('produk_id');
-            $query->where(function ($q) use ($metaIds) {
-                $q->whereIn('profil_analisa', self::IMPOR_PROFILES)
-                  ->orWhere(function ($legacy) use ($metaIds) {
-                      $legacy->whereNull('profil_analisa')
-                          ->where(function ($sub) use ($metaIds) {
-                              $sub->whereHas('leadTimeImpor')
-                                  ->orWhereHas('analisaImpor');
-                              if ($metaIds->isNotEmpty()) {
-                                  $sub->orWhereIn('id', $metaIds);
-                              }
-                          });
-                  });
-            });
+            // Keanggotaan eksplisit (profil_analisa impor). SKU lama ber-profil NULL sudah di-backfill migrasi.
+            $query->whereIn('profil_analisa', self::IMPOR_PROFILES);
         }
 
         $products = $query->orderBy('nama')->get();
@@ -1377,15 +1409,14 @@ class AnalisaService
             $totalMinStock = round($aduEta * $ltAvg);
             $totalTargetStock = (int) floor($aduEta * ($ltAvg + $bufferDays + $reviewPeriod) + 0.0001);
 
-            $stokDb = (float) Stok::where('produk_id', $p->id)->sum('qty_saat_ini');
-            $totalStok = round($existingAnalisa ? (float) $existingAnalisa->stok_saat_ini : $stokDb);
-
-            $akanDatangDb = (float) PurchaseOrderItem::where('produk_id', $p->id)
-                ->whereHas('purchaseOrder', function ($q) {
-                    $q->whereIn('status', ['draft', 'berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
-                      ->whereNotIn('status', ['selesai', 'dibatalkan']);
-                })->sum('qty');
-            $totalInbound = round($existingAnalisa ? (float) $existingAnalisa->inbound_before_eta : $akanDatangDb);
+            // Stok & inbound selalu live dari Gudang Bahan Baku; koreksi manual hanya untuk perhitungan ini.
+            $override = $overrides[(int) $p->id] ?? [];
+            $totalStok = round(array_key_exists('stok_saat_ini', $override)
+                ? (float) $override['stok_saat_ini']
+                : $this->stokGudangBahanBaku((int) $p->id));
+            $totalInbound = round(array_key_exists('inbound_before_eta', $override)
+                ? (float) $override['inbound_before_eta']
+                : $this->akanDatangGudangBahanBaku((int) $p->id));
 
             $totalProyeksi = round($totalStok + $totalInbound - $totalMinStock);
             $selisih = round($totalProyeksi - $totalTargetStock);
@@ -1461,6 +1492,14 @@ class AnalisaService
         $count = 0;
         $actorId = $userId ?? auth()->id();
         $today = now()->toDateString();
+
+        // Arsipkan angka terbaru: hitung ulang lokal/impor dulu (data kerja bisa tertinggal sejak terakhir dibuka).
+        if ($tipe === 'bahan_lokal' || $tipe === 'all') {
+            $this->generateLokal(null, $actorId);
+        }
+        if ($tipe === 'bahan_impor' || $tipe === 'all') {
+            $this->generateImpor(null, $actorId);
+        }
 
         DB::transaction(function () use ($tipe, $sessionId, $actorId, $today, &$count) {
             // 1. Finalisasi Bahan Lokal
@@ -1576,7 +1615,44 @@ class AnalisaService
                 }
             }
 
-            // 3. Finalisasi Produk Jadi Fulfillment
+            // 3. Finalisasi Produk Jadi Produksi (kebutuhan produksi di Gudang Produksi)
+            if ($tipe === 'produk_jadi_produksi' || $tipe === 'all') {
+                foreach ($this->produksi() as $h) {
+                    RiwayatAnalisa::create([
+                        'session_id' => $sessionId,
+                        'tanggal' => $today,
+                        'tipe' => 'produk_jadi_produksi',
+                        'item_label' => $h['sku'] ?? '-',
+                        'average_lt_dipakai' => (float) $h['lead_time_average'],
+                        'max_lt_dipakai' => (float) $h['lead_time_max'],
+                        'sumber_lt' => 'batch_produksi',
+                        'batas_minimum' => (float) $h['batas_minimum'],
+                        'target_stock' => (float) $h['target_stock'],
+                        'status' => $h['status'],
+                        'qty_order' => (float) $h['qty_produksi'],
+                        'dicatat_oleh' => $actorId,
+                        'is_locked' => true,
+                        'detail_payload' => [
+                            'nama' => $h['nama'],
+                            'gudang_id' => $h['gudang_id'],
+                            'gudang_nama' => $h['gudang_nama'],
+                            'adu' => (float) $h['adu'],
+                            'average_lt' => (float) $h['lead_time_average'],
+                            'max_lt' => (float) $h['lead_time_max'],
+                            'jumlah_batch_selesai' => (int) $h['jumlah_batch_selesai'],
+                            'safety_stock_hari' => (float) $h['safety_stock_hari'],
+                            'review_period' => (int) $h['review_period'],
+                            'stok_saat_ini' => (float) $h['stok_saat_ini'],
+                            'akan_datang' => (float) $h['akan_datang'],
+                            'selisih' => (float) $h['selisih'],
+                            'qty_produksi' => (float) $h['qty_produksi'],
+                        ],
+                    ]);
+                    $count++;
+                }
+            }
+
+            // 4. Finalisasi Produk Jadi Fulfillment
             if ($tipe === 'produk_jadi_fulfillment' || $tipe === 'all') {
                 foreach ($this->fulfillmentRows() as $h) {
                     RiwayatAnalisa::create([
@@ -2222,10 +2298,8 @@ class AnalisaService
         return Produk::query()
             ->where('is_active', true)
             ->whereIn('tipe', ['bahan', 'kemas'])
-            ->where(function ($q) {
-                $q->where('profil_analisa', 'lokal')
-                  ->orWhereNull('profil_analisa');
-            })
+            // Keanggotaan eksplisit: hanya SKU yang didaftarkan (Add SKU) ke profil lokal.
+            ->where('profil_analisa', 'lokal')
             ->pluck('id')
             ->all();
     }
@@ -2238,10 +2312,8 @@ class AnalisaService
         return Produk::query()
             ->where('is_active', true)
             ->whereIn('tipe', ['bahan', 'kemas'])
-            ->where(function ($q) {
-                $q->whereIn('profil_analisa', self::IMPOR_PROFILES)
-                  ->orWhereNull('profil_analisa');
-            })
+            // Keanggotaan eksplisit: hanya SKU yang didaftarkan (Add SKU) ke profil impor.
+            ->whereIn('profil_analisa', self::IMPOR_PROFILES)
             ->pluck('id')
             ->all();
     }

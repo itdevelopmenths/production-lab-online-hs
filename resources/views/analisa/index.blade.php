@@ -18,10 +18,11 @@
                         <span>Tambah SKU</span>
                     </button>
 
-                    <button type="button" x-show="tab === 'lokal' || tab === 'impor'" @click="tab === 'impor' ? generateImpor() : generateLokal()" :disabled="generating" class="inline-flex items-center gap-1.5 h-9 px-4 disabled:opacity-50 text-xs font-medium transition-colors cursor-pointer btn-glossy rounded-[6px]" title="Generate working data analisa dari master">
-                        <svg x-show="!generating" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        <svg x-show="generating" class="animate-spin size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <span x-text="generating ? 'Menghitung…' : (tab === 'impor' ? 'Generate Analisa Impor' : 'Generate Analisa')"></span>
+                    {{-- Analisa dihitung ulang otomatis setiap tab dibuka; tombol ini hanya memuat ulang (hitung ulang sekarang). --}}
+                    <button type="button" x-show="tab === 'lokal' || tab === 'impor'" @click="load(true)" :disabled="loading" class="inline-flex items-center gap-1.5 h-9 px-4 disabled:opacity-50 text-xs font-medium transition-colors cursor-pointer btn-glossy rounded-[6px]" title="Hitung ulang dengan stok Gudang Bahan Baku & PO disetujui saat ini">
+                        <svg x-show="!loading" class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <svg x-show="loading" class="animate-spin size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span x-text="loading ? 'Menghitung…' : 'Muat Ulang'"></span>
                     </button>
                     @endcan
 
@@ -32,15 +33,6 @@
                             <svg class="size-3.5 text-[#667085] dark:text-gray-400 transition-transform" :class="menuOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div x-show="menuOpen" x-cloak x-transition.opacity.duration.100ms role="menu" class="absolute right-0 top-full mt-1.5 z-30 w-72 p-1.5 bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-700 rounded-xl shadow-[0_8px_24px_rgba(16,24,40,0.10)]">
-                            @can('analisa.manage')
-                            <button type="button" role="menuitem" x-show="tab === 'lokal' || tab === 'impor'" @click="menuOpen = false; tab === 'impor' ? checkingImpor() : checkingLokal()" :disabled="generating" class="w-full flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer rounded-lg">
-                                <svg class="size-4 mt-0.5 shrink-0 text-[#667085] dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                                <span>
-                                    <span class="block text-xs font-medium text-[#101828] dark:text-white">Checking (Generate Ulang)</span>
-                                    <span class="block text-[11px] text-[#667085] dark:text-gray-400 mt-0.5">Hitung ulang dengan stok fisik &amp; PO berjalan saat ini.</span>
-                                </span>
-                            </button>
-                            @endcan
                             @can('analisa.snapshot')
                             <button type="button" role="menuitem" @click="menuOpen = false; confirmFinalisasi()" class="w-full flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer rounded-lg">
                                 <svg class="size-4 mt-0.5 shrink-0 text-[#667085] dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
@@ -64,7 +56,7 @@
 
             <p class="text-[11px] text-[#667085] dark:text-gray-400 tabular-nums">
                 <template x-if="(tab === 'lokal' || tab === 'impor') && meta.last_generated_at">
-                    <span>Terakhir di-generate <strong class="font-medium text-[#101828] dark:text-gray-200" x-text="meta.last_generated_at"></strong> oleh <span x-text="meta.last_generated_by"></span></span>
+                    <span>Dihitung otomatis saat dibuka · terakhir <strong class="font-medium text-[#101828] dark:text-gray-200" x-text="meta.last_generated_at"></strong></span>
                 </template>
                 <template x-if="!((tab === 'lokal' || tab === 'impor') && meta.last_generated_at)">
                     <span>Data real-time sistem</span>
@@ -278,6 +270,10 @@
         showManualImporModal: false,
         savingManualImpor: false,
         klasifikasiAbcList: [],
+        // Log Riwayat: dikelompokkan Bulan → Sesi finalisasi → item
+        riwayatBulan: '',
+        riwayatSession: 'all',
+        riwayatInfo: { bulan: '', bulan_label: '', bulan_list: [], sessions: [] },
         showAddSkuModal: false,
         savingAddSku: false,
         loadingAvailableAnalisaSkus: false,
@@ -579,7 +575,19 @@
               list = list.filter(r => String(r.supplier_id) === sf);
             }
           }
+          if (this.tab === 'riwayat' && this.riwayatSession !== 'all') {
+            list = list.filter(r => r.session_key === this.riwayatSession);
+          }
           return list;
+        },
+        pilihRiwayatBulan(bulan){
+          this.riwayatBulan = bulan;
+          this.riwayatSession = 'all';
+          this.load();
+        },
+        pilihRiwayatSesi(key){
+          this.riwayatSession = this.riwayatSession === key ? 'all' : key;
+          this.page = 1;
         },
         paginatedRows(){
           const list = this.filteredRows();
@@ -732,19 +740,23 @@
           }
           return [1, '...', current - 1, current, current + 1, '...', total];
         },
-        isCurrentPageAllSelected(){
-          const pageItems = this.paginatedRows();
-          if (pageItems.length === 0) return false;
-          const key = 'id';
-          return pageItems.every(r => this.selectedItemIds.includes(r[key]));
+        // Centang header berlaku untuk seluruh hasil filter (semua halaman), bukan hanya halaman aktif.
+        isAllFilteredSelected(){
+          const items = this.filteredRows();
+          if (items.length === 0) return false;
+          return items.every(r => this.selectedItemIds.includes(r.id));
         },
-        toggleSelectCurrentPage(e){
-          const key = 'id';
-          const pageItemIds = this.paginatedRows().map(r => r[key]);
+        isSomeFilteredSelected(){
+          const items = this.filteredRows();
+          const n = items.filter(r => this.selectedItemIds.includes(r.id)).length;
+          return n > 0 && n < items.length;
+        },
+        toggleSelectAllFiltered(e){
+          const filteredIds = this.filteredRows().map(r => r.id);
           if (e.target.checked) {
-            this.selectedItemIds = Array.from(new Set([...this.selectedItemIds, ...pageItemIds]));
+            this.selectedItemIds = Array.from(new Set([...this.selectedItemIds, ...filteredIds]));
           } else {
-            this.selectedItemIds = this.selectedItemIds.filter(id => !pageItemIds.includes(id));
+            this.selectedItemIds = this.selectedItemIds.filter(id => !filteredIds.includes(id));
           }
         },
         filteredOrderRows(){
@@ -984,6 +996,7 @@
             review_period: item.review_period || 15,
             tambahan_buffer_hari: item.tambahan_buffer_hari || 0,
             stok_saat_ini: item.stok_saat_ini || 0,
+            stok_saat_ini_awal: item.stok_saat_ini || 0,
             harga_ml_pcs: item.harga_per_satuan || 0,
             total_avg_lead_time: item.total_avg_lead_time || 0,
             total_max_lead_time: item.total_max_lead_time || 0,
@@ -1169,7 +1182,9 @@
               terjual_rata_rata_4bulan: Number(this.manualLokalForm.terjual_rata_rata_4bulan) || 0,
               review_period: Number(this.manualLokalForm.review_period) || 15,
               tambahan_buffer_hari: Number(this.manualLokalForm.tambahan_buffer_hari) || 0,
-              stok_saat_ini: Number(this.manualLokalForm.stok_saat_ini) || 0,
+              // Koreksi stok sekali pakai: hanya dikirim bila diubah user, agar stok live tidak tertimpa nilai lama.
+              stok_saat_ini: (Number(this.manualLokalForm.stok_saat_ini) || 0) !== (Number(this.manualLokalForm.stok_saat_ini_awal) || 0)
+                ? (Number(this.manualLokalForm.stok_saat_ini) || 0) : null,
               harga_ml_pcs: Number(this.manualLokalForm.harga_ml_pcs) || 0,
             };
             const res = await fetch('{{ route('analisa.update-manual-lokal') }}', {
@@ -1237,6 +1252,8 @@
             klasifikasi_abc_id: item.klasifikasi_abc_id ? String(item.klasifikasi_abc_id) : '',
             stok_saat_ini: item.parent_stok !== undefined ? item.parent_stok : (item.stok_saat_ini || 0),
             inbound_before_eta: item.parent_inbound !== undefined ? item.parent_inbound : (item.inbound_before_eta || 0),
+            stok_saat_ini_awal: item.parent_stok !== undefined ? item.parent_stok : (item.stok_saat_ini || 0),
+            inbound_awal: item.parent_inbound !== undefined ? item.parent_inbound : (item.inbound_before_eta || 0),
             harga_per_satuan: item.harga_per_satuan || 0,
             satuan_order_moq: Number(item.satuan_order_moq) || 1,
             current_hpp: item.current_hpp !== undefined ? Number(item.current_hpp) : (item.harga_per_satuan || 0),
@@ -1507,8 +1524,11 @@
               review_period: Number(this.manualImporForm.review_period) || 30,
               klasifikasi_abc: this.manualImporForm.klasifikasi_abc_id ? (this.manualImporForm.klasifikasi_abc || null) : null,
               klasifikasi_abc_id: this.manualImporForm.klasifikasi_abc_id ? Number(this.manualImporForm.klasifikasi_abc_id) : null,
-              stok_saat_ini: Number(this.manualImporForm.stok_saat_ini) || 0,
-              inbound_before_eta: Number(this.manualImporForm.inbound_before_eta) || 0,
+              // Koreksi stok/inbound sekali pakai: hanya dikirim bila diubah user.
+              stok_saat_ini: (Number(this.manualImporForm.stok_saat_ini) || 0) !== (Number(this.manualImporForm.stok_saat_ini_awal) || 0)
+                ? (Number(this.manualImporForm.stok_saat_ini) || 0) : null,
+              inbound_before_eta: (Number(this.manualImporForm.inbound_before_eta) || 0) !== (Number(this.manualImporForm.inbound_awal) || 0)
+                ? (Number(this.manualImporForm.inbound_before_eta) || 0) : null,
               harga_per_satuan: Number(this.manualImporForm.harga_per_satuan) || 0,
               grup_pivot: String(this.manualImporForm.grup_pivot || '').trim() || null,
               persentase_pivot: (this.manualImporForm.persentase_pivot === '' || this.manualImporForm.persentase_pivot === null) ? null : Number(this.manualImporForm.persentase_pivot),
@@ -1707,14 +1727,18 @@
           const tipeMap = {
             lokal: 'bahan_lokal',
             impor: 'bahan_impor',
+            produksi: 'produk_jadi_produksi',
             fulfillment: 'produk_jadi_fulfillment'
           };
           const tipeName = {
             lokal: 'Bahan Baku Lokal',
             impor: 'Bahan Baku Impor',
-            fulfillment: 'Produk Jadi Fulfillment'
+            produksi: 'Produk Jadi (Produksi)',
+            fulfillment: 'Produk Jadi (Fulfillment)'
           };
-          const namaTipe = tipeName[this.tab] || 'Aktif';
+          // Jangan pernah jatuh ke 'all' diam-diam: tab tanpa pemetaan tidak boleh memfinalisasi semua analisa.
+          if (!tipeMap[this.tab]) return;
+          const namaTipe = tipeName[this.tab];
 
           Swal.fire({
             title: 'Finalisasi Analisa ke Riwayat?',
@@ -1727,7 +1751,7 @@
             cancelButtonText: 'Batal'
           }).then((result) => {
             if (result.isConfirmed) {
-              this.finalisasi(tipeMap[this.tab] || 'all');
+              this.finalisasi(tipeMap[this.tab]);
             }
           });
         },
@@ -1751,6 +1775,9 @@
                 confirmButtonColor: '#111111'
               }).then(() => {
                 this.tab = 'riwayat';
+                // Tampilkan bulan & sesi yang baru saja difinalisasi.
+                this.riwayatBulan = '';
+                this.riwayatSession = j.session_id || 'all';
                 this.load();
               });
             } else {
@@ -1770,7 +1797,7 @@
             });
           }
         },
-        async load(){
+        async load(force = false){
           this.loading = true;
           try {
             if (this.klasifikasiAbcList.length === 0) {
@@ -1781,9 +1808,24 @@
                 }).catch(() => {});
             }
 
-            const res = await fetch(this.urls[this.tab]);
+            let url = this.urls[this.tab];
+            if (this.tab === 'riwayat' && this.riwayatBulan) {
+              url += (url.includes('?') ? '&' : '?') + 'bulan=' + encodeURIComponent(this.riwayatBulan);
+            }
+            if (force && (this.tab === 'lokal' || this.tab === 'impor')) {
+              url += (url.includes('?') ? '&' : '?') + 'refresh=1';
+            }
+            const res = await fetch(url);
             const j = await res.json();
             this.rows = j.data || [];
+            if (this.tab === 'riwayat') {
+              this.riwayatInfo = j.riwayat || { bulan: '', bulan_label: '', bulan_list: [], sessions: [] };
+              this.riwayatBulan = this.riwayatInfo.bulan || '';
+              const keys = (this.riwayatInfo.sessions || []).map(s => s.key);
+              if (this.riwayatSession !== 'all' && !keys.includes(this.riwayatSession)) {
+                this.riwayatSession = 'all';
+              }
+            }
             this.tables = j.tables || { rekomendasi: [], analisa: [], lead_time: [], stages: [] };
             if (j.meta) {
               this.meta = j.meta;

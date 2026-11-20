@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Gudang;
 use App\Models\KartuStok;
 use App\Models\Produk;
+use App\Models\PurchaseOrder;
 use App\Models\Stok;
 use App\Services\AnalisaService;
 use App\Services\Authorization\LocationScopeService;
@@ -89,8 +90,8 @@ class StokController extends Controller
 
         $inboundPo = DB::table('purchase_order_items as poi')
             ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
-            ->whereIn('po.status', ['berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
-            ->whereNotIn('po.status', ['selesai', 'dibatalkan'])
+            // PO yang sudah disetujui Manager & belum diposting (sama dengan AnalisaService::akanDatangGudangBahanBaku).
+            ->whereIn('poi.po_id', PurchaseOrder::query()->disetujuiBelumDiterima()->select('purchase_orders.id'))
             ->select('poi.produk_id', DB::raw('SUM(poi.qty) as total_inbound'))
             ->groupBy('poi.produk_id')
             ->pluck('total_inbound', 'poi.produk_id');

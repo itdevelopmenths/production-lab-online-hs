@@ -37,6 +37,37 @@ class AnalisaLokalEngineTest extends TestCase
         $this->alkohol = Produk::where('sku', 'ALK-01')->firstOrFail();
         $this->supplier = Supplier::where('kategori', 'lokal')->firstOrFail();
         $this->gudang = Gudang::where('tipe', 'bahan_baku')->firstOrFail();
+
+        // Contoh PRD: Stok Saat Ini ALK-01 = 8.000 ml, dibaca live dari Gudang Bahan Baku.
+        app(\App\Services\StokService::class)->setAbsolut($this->alkohol->id, $this->gudang->id, 8000, 'Fixture contoh PRD');
+    }
+
+    public function test_stok_lab_dan_po_belum_disetujui_tidak_dihitung_di_analisa_lokal(): void
+    {
+        $lab = Gudang::where('tipe', 'operasional')->firstOrFail();
+        app(\App\Services\StokService::class)->setAbsolut($this->alkohol->id, $lab->id, 15000, 'Stok bahan di Lab');
+
+        // PO draft (belum disetujui) tidak boleh dihitung sebagai akan datang.
+        $draft = PurchaseOrder::create([
+            'no_po' => 'PO-TEST-DRAFT', 'supplier_id' => $this->supplier->id, 'gudang_id' => $this->gudang->id,
+            'tanggal' => now()->toDateString(), 'status' => 'draft', 'stage_aktif' => 'perencanaan', 'status_pembayaran' => 'belum_lunas', 'skema_bayar' => 'cash', 'subtotal_produk' => 5260000, 'grand_total' => 5260000, 'created_by' => $this->purchasing->id,
+        ]);
+        $draft->stages()->create(['stage' => 'perencanaan', 'urutan' => 1, 'putaran' => 1, 'status' => 'berjalan', 'waktu_mulai' => now(), 'dicatat_oleh' => $this->purchasing->id, 'dicatat_pada' => now()]);
+        PurchaseOrderItem::create(['po_id' => $draft->id, 'produk_id' => $this->alkohol->id, 'qty' => 10000, 'harga_total' => 5260000, 'hpp_per_satuan' => 526]);
+
+        // PO yang sudah lewat approval (tahap Pembayaran) dihitung.
+        $disetujui = PurchaseOrder::create([
+            'no_po' => 'PO-TEST-OK', 'supplier_id' => $this->supplier->id, 'gudang_id' => $this->gudang->id,
+            'tanggal' => now()->toDateString(), 'status' => 'berjalan', 'stage_aktif' => 'pembayaran', 'status_pembayaran' => 'belum_lunas', 'skema_bayar' => 'cash', 'subtotal_produk' => 2630000, 'grand_total' => 2630000, 'created_by' => $this->purchasing->id,
+        ]);
+        $disetujui->stages()->create(['stage' => 'pembayaran', 'urutan' => 4, 'putaran' => 1, 'status' => 'berjalan', 'waktu_mulai' => now(), 'dicatat_oleh' => $this->purchasing->id, 'dicatat_pada' => now()]);
+        PurchaseOrderItem::create(['po_id' => $disetujui->id, 'produk_id' => $this->alkohol->id, 'qty' => 5000, 'harga_total' => 2630000, 'hpp_per_satuan' => 526]);
+
+        app(AnalisaService::class)->generateLokal($this->alkohol->id, $this->purchasing->id);
+
+        $rek = RekomendasiOrderLokal::where('produk_id', $this->alkohol->id)->firstOrFail();
+        $this->assertEquals(8000, (float) $rek->stok_saat_ini, 'Stok Lab 15.000 tidak ikut dihitung.');
+        $this->assertEquals(5000, (float) $rek->akan_datang, 'Hanya PO yang sudah disetujui yang dihitung.');
     }
 
     public function test_generate_lokal_persists_to_all_four_tables_with_accurate_formulas(): void

@@ -80,7 +80,7 @@ flowchart LR
     FFP["🏪 3A. Fulfillment Pusat\n(FF-PUSAT)"]
     FFC["🛍️ 3B. Fulfillment Cabang\n(FF-SBY, FF-SOLO, dll.)"]
 
-    SUP -- "Purchase Order (PO)\nTahap 1 s/d 9" --> GDP
+    SUP -- "Purchase Order (PO)\nTahap 1 s/d 8" --> GDP
     GDP -- "Permintaan Bahan &\nTransfer Pemenuhan" --> GDO
     GDO -- "Batch Produksi\n(Ubah Bahan jadi Parfum)" --> GDO
     GDO -- "Transfer Kirim\nProduk Jadi" --> FFP
@@ -184,7 +184,7 @@ Sebelum transaksi operasional dijalankan, data induk harus disiapkan di kelompok
 
 ### Modul 2: Analisa Stok, Klasifikasi ABC & Komparasi Multi-Supplier
 
-Menu **Analisa Stok** adalah pusat perhitungan otomatis yang memiliki **4 Tab Utama**:
+Menu **Analisa Stok** adalah pusat perhitungan otomatis. Tab Lokal & Impor **dihitung ulang otomatis setiap dibuka** (hasil < 60 detik dipakai ulang; tombol **Muat Ulang** memaksa hitung ulang), dan **anggota analisa harus didaftarkan eksplisit** lewat **Tambah SKU** atau field *Profil Analisa* di master Produk. Bahan baru tidak otomatis masuk. Tab Produk Jadi (Produksi) otomatis mengikuti daftar Fulfillment. Tab utama:
 
 #### 1. Tab Lokal
 Terbagi menjadi 4 tampilan informasi yang saling terhubung:
@@ -202,7 +202,8 @@ Terbagi menjadi 4 tampilan informasi yang saling terhubung:
 - Jika berstatus `ORDER`, artinya **Laboratorium Operasional perlu menjadwalkan Batch Produksi baru**.
 
 #### 4. Tab Riwayat Snapshot
-- Ketika pengguna mengklik tombol **"Finalisasi ke Riwayat"**, sistem mengunci seluruh angka analisa saat itu sebagai arsip permanen dan bukti historis mengapa suatu PO diterbitkan pada tanggal tersebut.
+- Ketika pengguna mengklik tombol **"Finalisasi ke Riwayat"** di tab Lokal, Impor, Produksi, atau Fulfillment, sistem menghitung ulang lalu mengunci angka analisa tab tersebut sebagai arsip permanen (satu **sesi** finalisasi) dan bukti historis mengapa suatu PO/batch dibuat pada tanggal tersebut.
+- Riwayat dikelompokkan **Bulan → Sesi finalisasi → Item** (mis. "Analisa November 2026" → sesi 21/11 14:05 oleh Rina, 112 item). Pilih bulan untuk melihat seluruh snapshot bulan itu, lalu klik kartu sesi untuk menyaring itemnya.
 
 #### Fitur Unggulan di Modul Analisa Stok:
 - **Perbandingan Multi-Supplier:** Satu bahan baku dapat disuplai oleh beberapa pemasok. Pengguna dapat membuka jendela perbandingan untuk melihat simulasi *Average Lead Time*, *Max Lead Time*, *Batas Minimum*, dan *Target Stock* dari masing-masing pemasok berdasarkan rekam jejak PO nyata, lalu memilih pemasok terbaik.
@@ -395,8 +396,9 @@ Untuk setiap produk jadi (gudang produksi = gudang operasional batch terakhir pr
 - $LT_{\text{avg}}$ = Total Rata-Rata Waktu Kirim (*Average Lead Time*) dari 8 tahap pengadaan (dalam hari, dibulatkan 1 angka di belakang koma).
 - $LT_{\text{max}}$ = Total Waktu Kirim Terlama (*Max Lead Time*) dari 8 tahap pengadaan (dalam hari, dibulatkan 1 angka di belakang koma).
 - $B_{\text{hari}}$ = Tambahan Hari Pengaman (Buffer Hari) manual.
-- $S_{\text{now}}$ = Saldo stok fisik saat ini di gudang.
-- $S_{\text{in}}$ = Stok yang sedang dipesan dari PO aktif (PO yang belum selesai/dibatalkan).
+- $S_{\text{now}}$ = Saldo stok fisik saat ini di **gudang bertipe Bahan Baku** (`GD-PUSAT` dst.). Stok bahan di Gudang Operasional/Lab **tidak** dihitung: sudah dialokasikan untuk produksi, pemakaiannya menjadi sumber ADU, dan kekurangannya diisi lewat Request/Transfer.
+- $S_{\text{in}}$ = Akan datang ke Gudang Bahan Baku: qty (satuan dasar) PO yang **sudah disetujui Manager** dan belum diposting (tahap Pembayaran s/d Input Sistem) + transfer berstatus *dikirim* menuju gudang bahan baku (mis. retur bahan dari Lab). PO draft, konfirmasi supplier, dan menunggu approval **tidak** dihitung.
+- Koreksi manual Stok Saat Ini / Inbound di modal Input Manual hanya berlaku **sekali hitung**; perhitungan berikutnya kembali membaca data live. Aturan stok yang sama berlaku untuk Analisa Impor (5.2).
 - $\text{MOQ}$ = *Minimum Order Quantity* / jumlah minimal pemesanan dalam satuan dasar.
 - $F_{\text{konv}}$ = Faktor konversi satuan beli ke satuan dasar (standar = $1$).
 - $H$ = Harga beli per satuan dasar.
@@ -512,7 +514,7 @@ Pada layar **Stok & Mutasi**, setiap baris barang pada suatu gudang dihitung seb
 
 1. **Stok Aktual:** Saldo fisik saat ini yang ada di rak gudang.
 2. **Stok Berjalan:**
-   $$\text{Stok Berjalan} = \begin{cases} \text{Pesanan PO Aktif} + \text{Transfer Sedang Dikirim (In-Transit)}, & \text{untuk Bahan Baku/Kemas di Gudang Pusat} \\ \text{Transfer Sedang Dikirim (In-Transit)}, & \text{untuk Bahan Baku/Kemas di Gudang Lain} \\ \text{Transfer Sedang Dikirim (In-Transit)} + \text{Target Rencana Batch Aktif}, & \text{untuk Produk Jadi} \end{cases}$$
+   $$\text{Stok Berjalan} = \begin{cases} \text{Pesanan PO Disetujui (belum diposting)} + \text{Transfer Sedang Dikirim (In-Transit)}, & \text{untuk Bahan Baku/Kemas di Gudang Pusat} \\ \text{Transfer Sedang Dikirim (In-Transit)}, & \text{untuk Bahan Baku/Kemas di Gudang Lain} \\ \text{Transfer Sedang Dikirim (In-Transit)} + \text{Target Rencana Batch Aktif}, & \text{untuk Produk Jadi} \end{cases}$$
 3. **Status Peringatan Stok (`ORDER` vs `AMAN`):**
    $$\text{Selisih Stok} = (\text{Stok Aktual} + \text{Stok Berjalan}) - \text{Batas Minimum}$$
    $$\text{Status} = \begin{cases} \text{\textbf{ORDER} (Merah)}, & \text{jika } \text{Batas Minimum} > 0 \text{ dan } \text{Selisih Stok} \le 0 \\ \text{\textbf{AMAN} (Hijau)}, & \text{selain itu} \end{cases}$$

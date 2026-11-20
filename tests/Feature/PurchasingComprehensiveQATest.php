@@ -772,6 +772,63 @@ class PurchasingComprehensiveQATest extends TestCase
     }
 
     /**
+     * TC-PAY-03b: Termin wajib dibayar berurutan.
+     * Membayar Termin 2 secara spesifik saat Termin 1 belum lunas harus ditolak.
+     */
+    public function test_pay_03b_targeted_termin_payment_rejected_when_earlier_termin_unpaid(): void
+    {
+        $po = $this->createTestPo(['grand_total' => 2000000, 'skema_bayar' => 'termin', 'status' => 'dikirim_ke_gudang']);
+        $termin1 = $po->termins()->create([
+            'termin_ke' => 1,
+            'tanggal_tempo' => now()->addDays(5),
+            'nominal_tagihan' => 1000000,
+            'nominal_dibayar' => 0,
+            'status' => 'belum_dibayar',
+        ]);
+        $termin2 = $po->termins()->create([
+            'termin_ke' => 2,
+            'tanggal_tempo' => now()->addDays(15),
+            'nominal_tagihan' => 1000000,
+            'nominal_dibayar' => 0,
+            'status' => 'belum_dibayar',
+        ]);
+
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.pay', $po), [
+                'skema' => 'termin',
+                'tanggal_bayar' => now()->toDateString(),
+                'nominal' => 1000000,
+                'termin_id' => $termin2->id,
+            ])
+            ->assertSessionHasErrors('termin_id');
+
+        $this->assertEquals(0, (float) $termin1->fresh()->nominal_dibayar);
+        $this->assertEquals(0, (float) $termin2->fresh()->nominal_dibayar);
+        $this->assertEquals(0, $po->payments()->count());
+
+        // Setelah Termin 1 lunas, Termin 2 boleh dibayar secara spesifik.
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.pay', $po), [
+                'skema' => 'termin',
+                'tanggal_bayar' => now()->toDateString(),
+                'nominal' => 1000000,
+                'termin_id' => $termin1->id,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($this->purchasing)
+            ->post(route('purchasing.pay', $po), [
+                'skema' => 'termin',
+                'tanggal_bayar' => now()->toDateString(),
+                'nominal' => 1000000,
+                'termin_id' => $termin2->id,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals('lunas', $termin2->fresh()->status);
+    }
+
+    /**
      * TC-PAY-04: Alokasi pembayaran termin otomatis secara berurutan (FIFO):
      * Pembayaran tanpa termin_id mengalir ke termin tertua yang belum lunas.
      */

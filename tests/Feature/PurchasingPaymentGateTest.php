@@ -176,9 +176,8 @@ class PurchasingPaymentGateTest extends TestCase
     }
 
     /**
-     * bootstrap/app.php only forces JSON rendering for api/* paths, so a
-     * ValidationException on this web route redirects back with errors even
-     * for postJson (no 422). The gate must still reject the payment.
+     * Request JSON (fetch / postJson) mendapat 422 JSON validasi (bootstrap/app.php merender JSON
+     * untuk request yang expectsJson). Gate tetap menolak pembayaran.
      */
     public function test_blocked_payment_via_json_request_is_still_rejected(): void
     {
@@ -186,7 +185,8 @@ class PurchasingPaymentGateTest extends TestCase
 
         $this->actingAs($this->purchasing)
             ->postJson(route('purchasing.pay', $po), $this->payload())
-            ->assertSessionHasErrors('status');
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('status');
 
         $this->assertSame(0, Payment::where('po_id', $po->id)->count());
     }

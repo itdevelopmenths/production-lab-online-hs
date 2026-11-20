@@ -1839,9 +1839,11 @@
                                 <label for="pay_termin_id" class="block text-xs font-medium text-foreground mb-1.5">Target Termin (Opsional)</label>
                                 <select id="pay_termin_id" name="termin_id" @change="onTerminChange($event)" class="w-full border border-input bg-background text-xs py-2 px-3 focus:border-ring focus:ring-1 focus:ring-ring outline-none transition rounded-[6px]">
                                     <option value="">— Alokasikan Otomatis (FIFO) —</option>
-                                    @foreach($po->termins->where('status', '!=', 'lunas') as $tOpt)
-                                        <option value="{{ $tOpt->id }}" data-sisa="{{ $tOpt->sisaNominal() }}">
-                                            Termin {{ $tOpt->termin_ke }} (Sisa: Rp {{ number_format($tOpt->sisaNominal(), 0, ',', '.') }})
+                                    @php $firstUnpaidTerminKe = $po->termins->where('status', '!=', 'lunas')->min('termin_ke'); @endphp
+                                    @foreach($po->termins->where('status', '!=', 'lunas')->sortBy('termin_ke') as $tOpt)
+                                        @php $terminTerkunci = $tOpt->termin_ke > $firstUnpaidTerminKe; @endphp
+                                        <option value="{{ $tOpt->id }}" data-sisa="{{ $tOpt->sisaNominal() }}" @disabled($terminTerkunci)>
+                                            Termin {{ $tOpt->termin_ke }} (Sisa: Rp {{ number_format($tOpt->sisaNominal(), 0, ',', '.') }}){{ $terminTerkunci ? ' — lunasi Termin '.$firstUnpaidTerminKe.' dulu' : '' }}
                                         </option>
                                     @endforeach
                                 </select>

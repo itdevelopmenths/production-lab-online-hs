@@ -101,7 +101,7 @@
                     <label class="font-medium text-[#101828] dark:text-white block mb-1">
                         Stok Fisik Saat Ini (Satuan Pakai)
                     </label>
-                    <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Gunakan input ini jika ingin menyesuaikan saldo stok fisik untuk analisa ini.</p>
+                    <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Koreksi sekali pakai untuk perhitungan ini. Checking berikutnya kembali memakai stok Gudang Bahan Baku.</p>
                     <div class="relative flex items-center">
                         <input type="number" step="0.01" min="0" x-model.number="manualLokalForm.stok_saat_ini" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-14 outline-none rounded-[6px]">
                         <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none" x-text="manualLokalForm.satuan"></span>

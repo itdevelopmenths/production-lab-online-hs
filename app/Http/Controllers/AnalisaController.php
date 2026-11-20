@@ -72,10 +72,10 @@ class AnalisaController extends Controller
     {
         $this->authorize('analisa.view');
 
-        // Pastikan tabel rekomendasi sudah ada data, jika belum, jalankan generateLokal awal
-        if (! RekomendasiOrderLokal::exists()) {
-            $this->analisa->generateLokal(null, auth()->id());
-        }
+        // Hitung ulang otomatis setiap tab dibuka supaya stok, PO berjalan, ADU, dan lead time selalu terbaru
+        // (tidak perlu tombol Generate). Lock mencegah dua pengguna menghitung bersamaan; bila sedang
+        // dihitung pengguna lain, tampilkan hasil terakhir.
+        $this->hitungUlangLive('lokal');
 
         $lokalIds = $this->analisa->lokalEligibleProdukIds();
 
@@ -109,6 +109,8 @@ class AnalisaController extends Controller
         $lastGenerated = AnalisaLokal::latest('generated_at')->with('generator:id,name')->first();
 
         $actualStockMap = empty($lokalIds) ? collect() : Stok::whereIn('produk_id', $lokalIds)
+            // Stok analisa bahan = Gudang Bahan Baku saja (stok Lab tidak dihitung).
+            ->whereIn('gudang_id', Gudang::where('tipe', 'bahan_baku')->select('id'))
             ->groupBy('produk_id')
             ->select('produk_id', DB::raw('SUM(qty_saat_ini) as total_qty'))
             ->pluck('total_qty', 'produk_id');
@@ -337,13 +339,15 @@ class AnalisaController extends Controller
         $prodId = (int) $data['produk_id'];
 
         DB::transaction(function () use ($prodId, $data) {
-            // Update / simpan ke AnalisaLokalInput agar konsisten saat re-generate
+            // Parameter tetap (review period, harga) disimpan ke AnalisaLokalInput.
+            // Stok Saat Ini manual = koreksi sekali pakai: tidak disimpan permanen, Checking berikutnya membaca stok live.
             $input = AnalisaLokalInput::firstOrNew(['produk_id' => $prodId]);
             if (array_key_exists('review_period', $data) && $data['review_period'] !== null) {
                 $input->review_period = (int) $data['review_period'];
             }
+            $overrides = [];
             if (array_key_exists('stok_saat_ini', $data) && $data['stok_saat_ini'] !== null) {
-                $input->stok_saat_ini = $data['stok_saat_ini'];
+                $overrides[$prodId] = ['stok_saat_ini' => (float) $data['stok_saat_ini']];
             }
             if (array_key_exists('harga_ml_pcs', $data) && $data['harga_ml_pcs'] !== null) {
                 $input->harga_per_satuan = $data['harga_ml_pcs'];
@@ -359,7 +363,7 @@ class AnalisaController extends Controller
             }
 
             // Hitung ulang analisa lokal produk ini
-            $this->analisa->generateLokal($prodId, auth()->id());
+            $this->analisa->generateLokal($prodId, auth()->id(), $overrides);
         });
 
         return response()->json([
@@ -397,6 +401,8 @@ class AnalisaController extends Controller
 
         $pIds = $itemsQuery->pluck('id')->all();
         $actualStockMap = empty($pIds) ? collect() : Stok::whereIn('produk_id', $pIds)
+            // Stok analisa bahan = Gudang Bahan Baku saja (stok Lab tidak dihitung).
+            ->whereIn('gudang_id', Gudang::where('tipe', 'bahan_baku')->select('id'))
             ->groupBy('produk_id')
             ->select('produk_id', DB::raw('SUM(qty_saat_ini) as total_qty'))
             ->pluck('total_qty', 'produk_id');
@@ -598,11 +604,13 @@ class AnalisaController extends Controller
                 $produk->save();
             }
 
+            // Stok & inbound manual = koreksi sekali pakai (tidak permanen); Checking berikutnya membaca data live.
+            $overrideImpor = [];
             if (array_key_exists('stok_saat_ini', $data) && $data['stok_saat_ini'] !== null) {
-                $ai->stok_saat_ini = $data['stok_saat_ini'];
+                $overrideImpor['stok_saat_ini'] = (float) $data['stok_saat_ini'];
             }
             if (array_key_exists('inbound_before_eta', $data) && $data['inbound_before_eta'] !== null) {
-                $ai->inbound_before_eta = $data['inbound_before_eta'];
+                $overrideImpor['inbound_before_eta'] = (float) $data['inbound_before_eta'];
             }
             if (array_key_exists('harga_per_satuan', $data) && $data['harga_per_satuan'] !== null) {
                 $ai->harga_per_satuan = $data['harga_per_satuan'];
@@ -637,7 +645,7 @@ class AnalisaController extends Controller
             }
 
             // Hitung ulang analisa impor produk ini
-            $this->analisa->generateImpor($prodId, auth()->id());
+            $this->analisa->generateImpor($prodId, auth()->id(), $overrideImpor ? [$prodId => $overrideImpor] : []);
 
             // Total out grup pivot berubah -> hitung ulang SKU lain dalam grup lama/baru.
             $grupTerkait = array_filter(array_unique([
@@ -661,10 +669,8 @@ class AnalisaController extends Controller
     {
         $this->authorize('analisa.view');
 
-        // Pastikan tabel data kerja impor sudah terisi; jika belum, generate otomatis
-        if (! AnalisaImpor::exists()) {
-            $this->analisa->generateImpor(null, auth()->id());
-        }
+        // Hitung ulang otomatis setiap tab dibuka (lihat lokalData).
+        $this->hitungUlangLive('impor');
 
         $imporIds = $this->analisa->imporEligibleProdukIds();
         $imporIds = is_array($imporIds) ? $imporIds : (is_object($imporIds) ? $imporIds->all() : []);
@@ -682,6 +688,8 @@ class AnalisaController extends Controller
         $lastGenerated = $imporList->sortByDesc('generated_at')->first();
 
         $actualStockMap = empty($imporIds) ? collect() : Stok::whereIn('produk_id', $imporIds)
+            // Stok analisa bahan = Gudang Bahan Baku saja (stok Lab tidak dihitung).
+            ->whereIn('gudang_id', Gudang::where('tipe', 'bahan_baku')->select('id'))
             ->groupBy('produk_id')
             ->select('produk_id', DB::raw('SUM(qty_saat_ini) as total_qty'))
             ->pluck('total_qty', 'produk_id');
@@ -690,8 +698,8 @@ class AnalisaController extends Controller
 
         $inboundPoMap = empty($imporIds) ? collect() : DB::table('purchase_order_items as poi')
             ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
-            ->whereIn('po.status', ['berjalan', 'diajukan', 'disetujui', 'diproses_supplier', 'dikirim_ke_gudang', 'parsial'])
-            ->whereNotIn('po.status', ['selesai', 'dibatalkan'])
+            // PO yang sudah disetujui Manager & belum diposting (sama dengan AnalisaService::akanDatangGudangBahanBaku).
+            ->whereIn('poi.po_id', PurchaseOrder::query()->disetujuiBelumDiterima()->select('purchase_orders.id'))
             ->whereIn('poi.produk_id', $imporIds)
             ->groupBy('poi.produk_id')
             ->select('poi.produk_id', DB::raw('SUM(poi.qty) as total_inbound'))
@@ -929,16 +937,84 @@ class AnalisaController extends Controller
         return response()->json(['data' => $this->analisa->produksi()]);
     }
 
-    public function riwayatData(): JsonResponse
+    /**
+     * Log Riwayat Snapshot dikelompokkan Bulan → Sesi finalisasi → item.
+     * Query `bulan=YYYY-MM` (default: bulan terbaru yang punya snapshot). Seluruh baris bulan itu dikirim,
+     * jadi riwayat bulan lama tidak terpotong limit baris.
+     */
+    public function riwayatData(Request $request): JsonResponse
     {
         $this->authorize('analisa.view');
 
-        $rows = RiwayatAnalisa::with(['pencatat:id,name', 'supplier:id,nama'])->latest()->limit(500)->get()
+        // Daftar bulan: agregasi per tanggal lalu digabung per bulan di PHP (portabel SQLite & PostgreSQL).
+        $perTanggal = RiwayatAnalisa::query()
+            ->select('tanggal', 'session_id', DB::raw('COUNT(*) as jumlah'))
+            ->groupBy('tanggal', 'session_id')
+            ->get();
+
+        $bulanList = [];
+        foreach ($perTanggal as $t) {
+            $key = $t->tanggal->format('Y-m');
+            $bulanList[$key] ??= [
+                'key' => $key,
+                'label' => $this->labelBulan($t->tanggal),
+                'jumlah_item' => 0,
+                'sesi' => [],
+            ];
+            $bulanList[$key]['jumlah_item'] += (int) $t->jumlah;
+            $bulanList[$key]['sesi'][$t->session_id ?? ('LEGACY-'.$t->tanggal->toDateString())] = true;
+        }
+        krsort($bulanList);
+        $bulanList = array_values(array_map(fn ($b) => [
+            'key' => $b['key'],
+            'label' => $b['label'],
+            'jumlah_item' => $b['jumlah_item'],
+            'jumlah_sesi' => count($b['sesi']),
+        ], $bulanList));
+
+        // `bulan` tidak valid diabaikan dan jatuh ke bulan terbaru (endpoint ini dibaca via fetch JSON).
+        $bulanQuery = (string) $request->query('bulan', '');
+        $bulan = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $bulanQuery)
+            ? $bulanQuery
+            : ($bulanList[0]['key'] ?? now()->format('Y-m'));
+        $awal = \Carbon\Carbon::createFromFormat('Y-m-d', $bulan.'-01')->startOfMonth();
+        $bulanBerikut = $awal->copy()->addMonthNoOverflow()->startOfMonth();
+
+        // Batas setengah-terbuka: kolom date bisa tersimpan 'Y-m-d H:i:s' di SQLite.
+        $records = RiwayatAnalisa::with(['pencatat:id,name', 'supplier:id,nama'])
+            ->where('tanggal', '>=', $awal->toDateString())
+            ->where('tanggal', '<', $bulanBerikut->toDateString())
+            ->orderByDesc('created_at')
+            ->get();
+
+        $sessions = $records
+            ->groupBy(fn ($r) => $r->session_id ?? ('LEGACY-'.$r->tanggal->toDateString()))
+            ->map(function ($items, $key) {
+                $first = $items->sortBy('created_at')->first();
+                $tipes = $items->pluck('tipe')->unique()->values();
+
+                return [
+                    'key' => $key,
+                    'session_id' => $first->session_id ?? '-',
+                    'tanggal' => $first->tanggal->format('d/m/Y'),
+                    'waktu' => $first->created_at?->format('H:i'),
+                    'sort' => $first->created_at?->timestamp ?? 0,
+                    'tipe_labels' => $tipes->map(fn ($t) => RiwayatAnalisa::labelTipe($t))->all(),
+                    'pencatat' => $first->pencatat?->name ?? 'Sistem',
+                    'jumlah_item' => $items->count(),
+                    'jumlah_order' => $items->filter(fn ($r) => in_array(strtolower((string) $r->status), ['order', 'po'], true))->count(),
+                ];
+            })
+            ->sortByDesc('sort')
+            ->values();
+
+        $rows = $records
             ->map(fn ($r) => [
                 'id' => $r->id,
                 'session_id' => $r->session_id ?? '-',
+                'session_key' => $r->session_id ?? ('LEGACY-'.$r->tanggal->toDateString()),
                 'tanggal' => $r->tanggal->format('d/m/Y'),
-                'tipe' => ucwords(str_replace('_', ' ', $r->tipe)),
+                'tipe' => RiwayatAnalisa::labelTipe($r->tipe),
                 'tipe_raw' => $r->tipe,
                 'item_label' => $r->item_label,
                 'supplier_id' => $r->supplier_id,
@@ -955,7 +1031,48 @@ class AnalisaController extends Controller
                 'detail' => $r->detail_payload ?? [],
             ]);
 
-        return response()->json(['data' => $rows]);
+        return response()->json([
+            'data' => $rows,
+            'riwayat' => [
+                'bulan' => $bulan,
+                'bulan_label' => $this->labelBulan($awal),
+                'bulan_list' => $bulanList,
+                'sessions' => $sessions,
+            ],
+        ]);
+    }
+
+    /**
+     * Hitung ulang analisa lokal/impor untuk seluruh SKU terdaftar, dijaga cache lock.
+     * Lock 120 detik: bila perhitungan lain sedang berjalan, request ini memakai hasil terakhir.
+     */
+    private function hitungUlangLive(string $tipe): void
+    {
+        // Hasil < 60 detik dipakai ulang (pindah tab/filter tidak menghitung ulang ~20 query per SKU),
+        // kecuali tombol Muat Ulang (?refresh=1) atau ada SKU terdaftar yang belum punya baris.
+        if (! request()->boolean('refresh')) {
+            $eligible = $tipe === 'impor' ? $this->analisa->imporEligibleProdukIds() : $this->analisa->lokalEligibleProdukIds();
+            $model = $tipe === 'impor' ? AnalisaImpor::class : RekomendasiOrderLokal::class;
+            $rows = $model::whereIn('produk_id', $eligible);
+            $terakhir = (clone $rows)->max('generated_at');
+            $lengkap = (clone $rows)->count() >= count($eligible);
+            if ($lengkap && $terakhir && \Illuminate\Support\Carbon::parse($terakhir)->gt(now()->subSeconds(60))) {
+                return;
+            }
+        }
+
+        \Illuminate\Support\Facades\Cache::lock("analisa:hitung-ulang:{$tipe}", 120)->get(function () use ($tipe) {
+            $tipe === 'impor'
+                ? $this->analisa->generateImpor(null, auth()->id())
+                : $this->analisa->generateLokal(null, auth()->id());
+        });
+    }
+
+    private function labelBulan(\Carbon\CarbonInterface $tanggal): string
+    {
+        $nama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        return $nama[(int) $tanggal->format('n') - 1].' '.$tanggal->format('Y');
     }
 
     /**
@@ -966,7 +1083,7 @@ class AnalisaController extends Controller
         $this->authorize('analisa.snapshot');
 
         $data = $request->validate([
-            'tipe' => ['nullable', 'string', 'in:bahan_lokal,bahan_impor,produk_jadi_fulfillment,all'],
+            'tipe' => ['nullable', 'string', 'in:bahan_lokal,bahan_impor,produk_jadi_produksi,produk_jadi_fulfillment,all'],
         ]);
         $tipe = $data['tipe'] ?? 'all';
 

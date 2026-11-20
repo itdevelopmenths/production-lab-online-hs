@@ -42,6 +42,18 @@ class RiwayatAnalisa extends Model
         'detail_payload' => 'array',
     ];
 
+    public const TIPE_LABELS = [
+        'bahan_lokal' => 'Bahan Baku Lokal',
+        'bahan_impor' => 'Bahan Baku Impor',
+        'produk_jadi_produksi' => 'Produk Jadi (Produksi)',
+        'produk_jadi_fulfillment' => 'Produk Jadi (Fulfillment)',
+    ];
+
+    public static function labelTipe(?string $tipe): string
+    {
+        return self::TIPE_LABELS[$tipe] ?? ucwords(str_replace('_', ' ', (string) $tipe));
+    }
+
     public function pencatat(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dicatat_oleh');
