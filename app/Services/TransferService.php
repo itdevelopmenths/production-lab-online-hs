@@ -10,6 +10,7 @@ use App\Models\Transfer;
 use App\Models\TransferItem;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -387,6 +388,70 @@ class TransferService
                 StockRequest::where('id', $transfer->request_id)->update(['status' => 'selesai']);
             }
         });
+    }
+
+    /**
+     * Daftar Barang Rusak dari QC penerimaan Transfer, diakumulasi per barang per lokasi (gudang tujuan
+     * tempat kerusakan dicatat), lengkap dengan rincian transfer pembentuknya.
+     *
+     * @param  array<int>|null  $gudangIds  null = semua gudang
+     * @return Collection<int, object{produk_id:int, sku:string, produk_nama:string, satuan:?string, gudang_id:int, gudang_nama:string, total_rusak:float, jumlah_transfer:int, terakhir:string, details:Collection}>
+     */
+    public function barangRusakList(?array $gudangIds, CarbonInterface $start, CarbonInterface $end): Collection
+    {
+        $eventExpr = 'COALESCE(t.waktu_diterima, t.updated_at, t.created_at)';
+
+        $rows = DB::table('transfer_items as ti')
+            ->join('transfers as t', 't.id', '=', 'ti.transfer_id')
+            ->join('produk as p', 'p.id', '=', 'ti.produk_id')
+            ->join('gudang as gt', 'gt.id', '=', 't.gudang_tujuan_id')
+            ->leftJoin('gudang as ga', 'ga.id', '=', 't.gudang_asal_id')
+            ->where('t.status', 'selesai')
+            ->where('ti.qty_rusak', '>', 0)
+            ->whereBetween(DB::raw($eventExpr), [
+                $start->copy()->startOfDay()->toDateTimeString(),
+                $end->copy()->endOfDay()->toDateTimeString(),
+            ])
+            ->when($gudangIds !== null, fn ($q) => $q->whereIn('t.gudang_tujuan_id', $gudangIds))
+            ->orderByRaw("{$eventExpr} DESC")
+            ->get([
+                'ti.id as item_id',
+                't.id as transfer_id',
+                't.no_transaksi',
+                't.jenis',
+                'ti.produk_id',
+                'p.sku',
+                'p.nama as produk_nama',
+                'p.satuan',
+                't.gudang_tujuan_id as gudang_id',
+                'gt.nama as gudang_nama',
+                'ga.nama as gudang_asal_nama',
+                'ti.qty_dikirim',
+                'ti.qty_rusak',
+                'ti.keterangan_rusak',
+                DB::raw("{$eventExpr} as tanggal"),
+            ]);
+
+        return $rows
+            ->groupBy(fn ($r) => $r->produk_id . '_' . $r->gudang_id)
+            ->map(function (Collection $group) {
+                $first = $group->first();
+
+                return (object) [
+                    'produk_id' => (int) $first->produk_id,
+                    'sku' => $first->sku,
+                    'produk_nama' => $first->produk_nama,
+                    'satuan' => $first->satuan,
+                    'gudang_id' => (int) $first->gudang_id,
+                    'gudang_nama' => $first->gudang_nama,
+                    'total_rusak' => (float) $group->sum('qty_rusak'),
+                    'jumlah_transfer' => $group->pluck('transfer_id')->unique()->count(),
+                    'terakhir' => (string) $first->tanggal,
+                    'details' => $group->values(),
+                ];
+            })
+            ->sortByDesc('total_rusak')
+            ->values();
     }
 
     /**

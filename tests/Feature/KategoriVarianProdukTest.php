@@ -214,7 +214,8 @@ class KategoriVarianProdukTest extends TestCase
             'is_active' => 1,
         ]);
 
-        $response->assertRedirect(route('produk.index'));
+        // Produk jadi kembali ke menu Produk Jadi
+        $response->assertRedirect(route('produk.index', ['kelompok' => 'produk_jadi']));
 
         $produk = Produk::where('sku', 'PRD-EXT-001')->firstOrFail();
         $this->assertEquals('Extrait de Parfum', $produk->nama_produk);

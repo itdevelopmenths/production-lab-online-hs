@@ -1,9 +1,14 @@
+@php
+    $menuKelompok = $kelompok ?? \App\Models\Produk::KELOMPOK_BAHAN;
+    $menuLabel = $menuKelompok === \App\Models\Produk::KELOMPOK_PRODUK_JADI ? 'Produk Jadi' : 'Bahan Baku & Kemasan';
+    $menuUrl = \App\Models\Produk::indexUrl($menuKelompok);
+@endphp
 <x-app-layout title="Tambah Produk">
     <div class="w-full space-y-4">
         <x-page-header
             title="Tambah Produk Baru"
-            :breadcrumbs="['Master Data' => null, 'Produk' => route('produk.index'), 'Tambah' => null]"
-            :backUrl="route('produk.index')"
+            :breadcrumbs="['Master Data' => null, $menuLabel => $menuUrl, 'Tambah' => null]"
+            :backUrl="$menuUrl"
         />
 
         <form method="POST" action="{{ route('produk.store') }}">
@@ -18,7 +23,7 @@
 
                 <x-slot:footer>
                     <div class="flex items-center justify-end gap-2">
-                        <x-button href="{{ route('produk.index') }}" variant="secondary" size="sm">
+                        <x-button href="{{ $menuUrl }}" variant="secondary" size="sm">
                             Batal
                         </x-button>
                         <x-button type="submit" variant="primary" size="sm">

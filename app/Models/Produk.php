@@ -5,8 +5,10 @@ namespace App\Models;
 use App\Traits\AuditableMasterData;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 
 class Produk extends Model
 {
@@ -43,20 +45,51 @@ class Produk extends Model
 
     public const SUPPLIABLE_TIPES = ['bahan', 'kemas', 'bahan_baku', 'kemasan'];
 
+    /**
+     * Kelompok menu Master Produk: "bahan" (Bahan Baku & Kemasan) dan "produk_jadi".
+     * Datanya tetap satu tabel; kelompok hanya memisahkan tampilan menu.
+     */
+    public const KELOMPOK_BAHAN = 'bahan';
+
+    public const KELOMPOK_PRODUK_JADI = 'produk_jadi';
+
+    public const KELOMPOK_TIPE = [
+        self::KELOMPOK_BAHAN => ['bahan' => 'Bahan Baku', 'kemas' => 'Kemasan / Botol'],
+        self::KELOMPOK_PRODUK_JADI => ['produk_jadi' => 'Produk Jadi (Output BOM)'],
+    ];
+
+    public static function normalizeKelompok(?string $kelompok): string
+    {
+        return $kelompok === self::KELOMPOK_PRODUK_JADI ? self::KELOMPOK_PRODUK_JADI : self::KELOMPOK_BAHAN;
+    }
+
+    public static function kelompokDariTipe(?string $tipe): string
+    {
+        return $tipe === 'produk_jadi' ? self::KELOMPOK_PRODUK_JADI : self::KELOMPOK_BAHAN;
+    }
+
+    /** URL daftar produk sesuai kelompok (Bahan & Kemasan tanpa query agar URL lama tetap sama). */
+    public static function indexUrl(?string $kelompok = null): string
+    {
+        return self::normalizeKelompok($kelompok) === self::KELOMPOK_PRODUK_JADI
+            ? route('produk.index', ['kelompok' => self::KELOMPOK_PRODUK_JADI])
+            : route('produk.index');
+    }
+
     protected static function booted(): void
     {
         static::saving(function ($produk) {
             // Keep nama column in sync if not explicitly provided or when master fields change without explicit nama
-            if (empty($produk->nama) || (!$produk->isDirty('nama') && ($produk->isDirty('nama_produk') || $produk->isDirty('varian_id')))) {
-                if (!empty($produk->nama_produk)) {
+            if (empty($produk->nama) || (! $produk->isDirty('nama') && ($produk->isDirty('nama_produk') || $produk->isDirty('varian_id')))) {
+                if (! empty($produk->nama_produk)) {
                     $varianNama = '';
-                    if (!empty($produk->varian_id)) {
+                    if (! empty($produk->varian_id)) {
                         $varian = $produk->relationLoaded('varian') ? $produk->varian : Varian::find($produk->varian_id);
                         if ($varian) {
-                            $varianNama = ' ' . $varian->nama;
+                            $varianNama = ' '.$varian->nama;
                         }
                     }
-                    $produk->nama = trim($produk->nama_produk . $varianNama);
+                    $produk->nama = trim($produk->nama_produk.$varianNama);
                 }
             }
         });
@@ -69,13 +102,13 @@ class Produk extends Model
                 return;
             }
 
-            $exists = \Illuminate\Support\Facades\DB::table('produk_supplier')
+            $exists = DB::table('produk_supplier')
                 ->where('produk_id', $produk->id)
                 ->where('supplier_id', $produk->supplier_id)
                 ->exists();
 
             if (! $exists) {
-                \Illuminate\Support\Facades\DB::table('produk_supplier')->insert([
+                DB::table('produk_supplier')->insert([
                     'produk_id' => $produk->id,
                     'supplier_id' => $produk->supplier_id,
                     'status' => 'aktif',
@@ -88,18 +121,20 @@ class Produk extends Model
 
     public function getNamaAttribute(?string $value): string
     {
-        if (!empty($value)) {
+        if (! empty($value)) {
             return $value;
         }
 
-        if (!empty($this->attributes['nama_produk'])) {
+        if (! empty($this->attributes['nama_produk'])) {
             if ($this->relationLoaded('varian') && $this->varian) {
                 return "{$this->attributes['nama_produk']} {$this->varian->nama}";
             }
-            if (!empty($this->attributes['varian_id'])) {
+            if (! empty($this->attributes['varian_id'])) {
                 $varian = Varian::find($this->attributes['varian_id']);
+
                 return $varian ? "{$this->attributes['nama_produk']} {$varian->nama}" : $this->attributes['nama_produk'];
             }
+
             return $this->attributes['nama_produk'];
         }
 
@@ -126,14 +161,14 @@ class Produk extends Model
         return $this->belongsTo(KlasifikasiAbc::class, 'klasifikasi_abc_id');
     }
 
-    public function suppliers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function suppliers(): BelongsToMany
     {
         return $this->belongsToMany(Supplier::class, 'produk_supplier', 'produk_id', 'supplier_id')
             ->withPivot('status')
             ->withTimestamps();
     }
 
-    public function activeSuppliers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function activeSuppliers(): BelongsToMany
     {
         // Aktif = relasi produk_supplier berstatus aktif DAN supplier di master masih aktif
         return $this->suppliers()

@@ -185,6 +185,9 @@ Route::middleware('auth')->group(function () {
     });
 
     // ===== PRD v2.4 Transfers (Mutasi / Pengiriman Barang) =====
+    Route::get('barang-rusak', [\App\Http\Controllers\BarangRusakController::class, 'index'])
+        ->middleware('can:transfer.view')->name('barang-rusak.index');
+
     Route::middleware('can:transfer.view')->prefix('transfers')->name('transfers.')->group(function () {
         Route::get('/', [\App\Http\Controllers\TransferController::class, 'index'])->name('index');
         Route::get('data', [\App\Http\Controllers\TransferController::class, 'data'])->name('data');

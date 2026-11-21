@@ -4,6 +4,11 @@
     $supplierListAll = $suppliers ?? \App\Models\Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
     $abcOptions = $klasifikasiAbcList ?? \App\Models\KlasifikasiAbc::where('is_active', true)->orderByDesc('tambahan_buffer_hari')->get(['id', 'kode', 'nama', 'tambahan_buffer_hari', 'warna_badge']);
 
+    // Pilihan tipe mengikuti menu asal (Bahan & Kemasan / Produk Jadi); halaman edit tetap menampilkan semua tipe.
+    $formTipeOptions = ! empty($tipeOptions)
+        ? $tipeOptions
+        : array_merge(...array_values(\App\Models\Produk::KELOMPOK_TIPE));
+
     $initialProfil = old('profil_analisa', $p?->profil_analisa ?? '');
     if ($initialProfil === 'bahan_impor') {
         $initialProfil = 'impor';
@@ -150,7 +155,7 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
     '{{ addslashes(old('kategori_id', $p?->kategori_id ?? '')) }}',
     '{{ addslashes(old('varian_id', $p?->varian_id ?? '')) }}',
     '{{ addslashes(old('nama_produk', $p?->nama_produk ?? $p?->nama ?? '')) }}',
-    '{{ addslashes(old('tipe', $p?->tipe ?? 'bahan')) }}',
+    '{{ addslashes(old('tipe', $p?->tipe ?? array_key_first($formTipeOptions))) }}',
     '{{ addslashes((string) $initialProfil) }}',
     '{{ addslashes((string) $initialAbcId) }}',
     {{ Js::from($supplierListAll) }},
@@ -231,7 +236,7 @@ function produkFormState(categories, initialKategoriId, initialVarianId, initial
                     required
                     class="w-full h-9 text-[13px] border-0 bg-transparent px-0 py-1.5 text-[#101828] dark:text-white focus:outline-none focus:ring-0 cursor-pointer"
                 >
-                    @foreach(['bahan' => 'Bahan Baku', 'kemas' => 'Kemasan / Botol', 'produk_jadi' => 'Produk Jadi (Output BOM)'] as $v => $l)
+                    @foreach($formTipeOptions as $v => $l)
                         <option value="{{ $v }}">{{ $l }}</option>
                     @endforeach
                 </select>

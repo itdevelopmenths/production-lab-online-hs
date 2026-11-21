@@ -1,9 +1,14 @@
+@php
+    $menuKelompok = \App\Models\Produk::kelompokDariTipe($produk->tipe);
+    $menuLabel = $menuKelompok === \App\Models\Produk::KELOMPOK_PRODUK_JADI ? 'Produk Jadi' : 'Bahan Baku & Kemasan';
+    $menuUrl = \App\Models\Produk::indexUrl($menuKelompok);
+@endphp
 <x-app-layout title="Edit Produk">
     <div class="w-full space-y-4">
         <x-page-header
             title="Edit Produk — {{ $produk->nama }}"
-            :breadcrumbs="['Master Data' => null, 'Produk' => route('produk.index'), 'Edit' => null]"
-            :backUrl="route('produk.index')"
+            :breadcrumbs="['Master Data' => null, $menuLabel => $menuUrl, 'Edit' => null]"
+            :backUrl="$menuUrl"
         />
 
         <form method="POST" action="{{ route('produk.update', $produk) }}">
@@ -19,7 +24,7 @@
 
                 <x-slot:footer>
                     <div class="flex items-center justify-end gap-2">
-                        <x-button href="{{ route('produk.index') }}" variant="secondary" size="sm">
+                        <x-button href="{{ $menuUrl }}" variant="secondary" size="sm">
                             Batal
                         </x-button>
                         <x-button type="submit" variant="primary" size="sm">

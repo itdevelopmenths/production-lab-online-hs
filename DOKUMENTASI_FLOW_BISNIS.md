@@ -520,7 +520,9 @@ Pada layar **Stok & Mutasi**, setiap baris barang pada suatu gudang dihitung seb
    $$\text{Status} = \begin{cases} \text{\textbf{ORDER} (Merah)}, & \text{jika } \text{Batas Minimum} > 0 \text{ dan } \text{Selisih Stok} \le 0 \\ \text{\textbf{AMAN} (Hijau)}, & \text{selain itu} \end{cases}$$
 4. **Urutan Penentuan Harga Pokok (HPP) & Nilai Stok:**
    - **Untuk Bahan Baku & Kemasan:** Sistem menentukan HPP menggunakan urutan prioritas otomatis:
-     1. **Prioritas 1:** HPP per satuan bersih dari **PO terbaru yang sudah diterima gudang**.
+     1. **Prioritas 1:** **Average HPP global** dari seluruh PO yang sudah diterima gudang. Satu nilai berlaku untuk semua gudang:
+        $$\text{HPP Average} = \frac{\sum_{\text{PO diterima}} (\text{HPP per Satuan Dasar}_i \times \text{Qty}_i)}{\sum_{\text{PO diterima}} \text{Qty}_i}$$
+        Setiap kali penerimaan PO diposting, nilai ini juga disimpan ke Master Produk (`harga_hpp`).
      2. **Prioritas 2:** Harga HPP bawaan pada Master Produk.
      3. **Prioritas 3:** Harga per satuan pada Analisa Lokal / Impor.
    - **Untuk Produk Jadi:** Dihitung otomatis dari akumulasi biaya resep (BOM):

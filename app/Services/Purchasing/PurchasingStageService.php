@@ -690,6 +690,11 @@ class PurchasingStageService
                 }
             }
 
+            // Master HPP = average HPP global seluruh PO yang sudah diterima
+            $this->stokService->syncHargaHppAverage(
+                $bardat->items->map(fn ($i) => $i->poItem?->produk_id)->filter()->all()
+            );
+
             // 2. Update status posting dokumen penerimaan
             $bardat->status_posting = 'diposting';
             $bardat->diposting_oleh = $gudangUser->id;

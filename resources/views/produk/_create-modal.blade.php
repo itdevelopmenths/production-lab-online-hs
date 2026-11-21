@@ -3,7 +3,7 @@
     @csrf
     <input type="hidden" name="_modal" value="create">
     <x-modal name="createOpen" title="Tambah Produk Baru" subtitle="Spesifikasi SKU, klasifikasi tipe, dan parameter pemesanan" maxWidth="5xl">
-        @include('produk._form', ['kategoriList' => $createKategoriList, 'uomList' => $uomList, 'suppliers' => $suppliers, 'klasifikasiAbcList' => $klasifikasiAbcList])
+        @include('produk._form', ['kategoriList' => $createKategoriList, 'uomList' => $uomList, 'suppliers' => $suppliers, 'klasifikasiAbcList' => $klasifikasiAbcList, 'tipeOptions' => $tipeOptions ?? null])
 
         <x-slot:footer>
             <x-button type="button" variant="secondary" size="sm" @click="createOpen = false">Batal</x-button>

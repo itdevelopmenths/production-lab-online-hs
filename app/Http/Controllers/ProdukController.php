@@ -20,9 +20,12 @@ use Yajra\DataTables\Facades\DataTables;
 
 class ProdukController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('produk.view');
+
+        $kelompok = Produk::normalizeKelompok($request->query('kelompok'));
+        $tipeOptions = Produk::KELOMPOK_TIPE[$kelompok];
 
         $kategoriList = Kategori::orderBy('nama')->get();
 
@@ -36,7 +39,7 @@ class ProdukController extends Controller
                 ->get(['id', 'kode', 'nama', 'tambahan_buffer_hari', 'warna_badge']);
         }
 
-        return view('produk.index', compact('kategoriList', 'createKategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList'));
+        return view('produk.index', compact('kategoriList', 'createKategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList', 'kelompok', 'tipeOptions'));
     }
 
     public function data(Request $request): JsonResponse
@@ -47,14 +50,16 @@ class ProdukController extends Controller
         $canEdit = $request->user()->can('produk.edit');
         $canDelete = $request->user()->can('produk.delete');
 
+        // Menu dipisah: Bahan Baku & Kemasan vs Produk Jadi. Filter tipe hanya berlaku di dalam kelompoknya.
+        $kelompokTipe = array_keys(Produk::KELOMPOK_TIPE[Produk::normalizeKelompok($request->input('kelompok'))]);
+        $tipe = $request->input('tipe');
+
         $query = Produk::query()
             ->select('produk.*')
             ->with(['kategori', 'varian', 'uom', 'klasifikasiAbc'])
             // withCount harus setelah select(): select() menimpa kolom subquery count
             ->withCount('activeSuppliers')
-            ->when($request->filled('tipe') && $request->tipe !== 'all', function ($q) use ($request) {
-                $q->where('tipe', $request->tipe);
-            })
+            ->whereIn('tipe', in_array($tipe, $kelompokTipe, true) ? [$tipe] : $kelompokTipe)
             ->when($request->filled('kategori_id'), function ($q) use ($request) {
                 $q->where('kategori_id', $request->kategori_id);
             });
@@ -217,9 +222,12 @@ class ProdukController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $this->authorize('produk.create');
+
+        $kelompok = Produk::normalizeKelompok($request->query('kelompok'));
+        $tipeOptions = Produk::KELOMPOK_TIPE[$kelompok];
 
         $kategoriList = Kategori::with(['varians' => fn ($q) => $q->orderBy('nama')])->orderBy('nama')->get();
         $uomList = Uom::active()->orderBy('nama')->get();
@@ -228,7 +236,7 @@ class ProdukController extends Controller
             ->orderByDesc('tambahan_buffer_hari')
             ->get(['id', 'kode', 'nama', 'tambahan_buffer_hari', 'warna_badge']);
 
-        return view('produk.create', compact('kategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList'));
+        return view('produk.create', compact('kategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList', 'kelompok', 'tipeOptions'));
     }
 
     public function store(Request $request, AnalisaService $analisaService)
@@ -251,7 +259,7 @@ class ProdukController extends Controller
             ($produk->tipe === 'produk_jadi' || ! $produk->is_active) ? null : $produk->profil_analisa
         );
 
-        return redirect()->route('produk.index')->with('success', 'Produk berhasil ditambahkan.');
+        return redirect()->to(Produk::indexUrl(Produk::kelompokDariTipe($produk->tipe)))->with('success', 'Produk berhasil ditambahkan.');
     }
 
     public function edit(Produk $produk)
@@ -299,7 +307,7 @@ class ProdukController extends Controller
             ]);
         }
 
-        return redirect()->route('produk.index')->with('success', 'Produk berhasil diperbarui.');
+        return redirect()->to(Produk::indexUrl(Produk::kelompokDariTipe($produk->tipe)))->with('success', 'Produk berhasil diperbarui.');
     }
 
     public function destroy(Produk $produk): JsonResponse

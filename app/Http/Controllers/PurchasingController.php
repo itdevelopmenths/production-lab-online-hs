@@ -772,12 +772,11 @@ class PurchasingController extends Controller
                         "Barang Datang {$purchaseOrder->no_po}",
                         \Illuminate\Support\Carbon::parse($data['tanggal_terima']),
                     );
-
-                    if ((float) $item->hpp_per_satuan > 0) {
-                        $item->produk()->update(['harga_hpp' => (float) $item->hpp_per_satuan]);
-                    }
                 }
             }
+
+            // Master HPP = average HPP global seluruh PO yang sudah diterima
+            $this->stok->syncHargaHppAverage($purchaseOrder->items()->pluck('produk_id')->all());
 
             $updateData = ['status' => 'selesai'];
             if (! $purchaseOrder->gudang_id) {

@@ -245,6 +245,14 @@
                                     Transfer Barang
                                 </x-nav-item>
                             </li>
+                            <li class="w-full" x-show="!menuQuery || 'barang rusak defect cacat qc transfer'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ route('barang-rusak.index') }}" :active="request()->routeIs('barang-rusak.*')">
+                                    <x-slot:icon>
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                    </x-slot:icon>
+                                    Barang Rusak
+                                </x-nav-item>
+                            </li>
                             @endcanany
 
                             @can('analisa.view')
@@ -311,9 +319,23 @@
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
                             </x-slot:icon>
                             @can('produk.view')
-                            <div x-show="!menuQuery || 'master data produk barang katalog sku'.includes(menuQuery.toLowerCase())">
-                                <x-nav-item href="{{ route('produk.index') }}" :active="request()->routeIs('produk.*')" :isChild="true">
-                                    Produk
+                            @php
+                                $navProdukKelompok = null;
+                                if (request()->routeIs('produk.*')) {
+                                    $navProdukRoute = request()->route('produk');
+                                    $navProdukKelompok = $navProdukRoute instanceof \App\Models\Produk
+                                        ? \App\Models\Produk::kelompokDariTipe($navProdukRoute->tipe)
+                                        : \App\Models\Produk::normalizeKelompok(request()->query('kelompok'));
+                                }
+                            @endphp
+                            <div x-show="!menuQuery || 'master data produk bahan baku kemasan kemas botol material sku'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ \App\Models\Produk::indexUrl(\App\Models\Produk::KELOMPOK_BAHAN) }}" :active="$navProdukKelompok === \App\Models\Produk::KELOMPOK_BAHAN" :isChild="true">
+                                    Bahan Baku & Kemasan
+                                </x-nav-item>
+                            </div>
+                            <div x-show="!menuQuery || 'master data produk jadi barang jadi katalog sku'.includes(menuQuery.toLowerCase())">
+                                <x-nav-item href="{{ \App\Models\Produk::indexUrl(\App\Models\Produk::KELOMPOK_PRODUK_JADI) }}" :active="$navProdukKelompok === \App\Models\Produk::KELOMPOK_PRODUK_JADI" :isChild="true">
+                                    Produk Jadi
                                 </x-nav-item>
                             </div>
                             <div x-show="!menuQuery || 'master data kategori category'.includes(menuQuery.toLowerCase())">

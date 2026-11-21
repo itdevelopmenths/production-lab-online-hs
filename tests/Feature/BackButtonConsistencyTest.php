@@ -120,7 +120,7 @@ class BackButtonConsistencyTest extends TestCase
             'kategori.create' => [route('kategori.create'), route('kategori.index')],
             'kategori.edit' => [route('kategori.edit', $kategori), route('kategori.index')],
             'produk.create' => [route('produk.create'), route('produk.index')],
-            'produk.edit' => [route('produk.edit', $produk), route('produk.index')],
+            'produk.edit' => [route('produk.edit', $produk), Produk::indexUrl(Produk::kelompokDariTipe($produk->tipe))],
             'purchasing.create' => [route('purchasing.create'), route('purchasing.index')],
             'purchasing.edit' => [route('purchasing.edit', $po), route('purchasing.show', $po)],
             'purchasing.show' => [route('purchasing.show', $po), route('purchasing.index')],

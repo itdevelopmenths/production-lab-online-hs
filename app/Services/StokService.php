@@ -112,9 +112,80 @@ class StokService
     }
 
     /**
+     * Average HPP global per produk dari seluruh PO yang sudah diterima gudang
+     * (status selesai atau sudah ada barang_datang), satu nilai untuk semua gudang:
+     *
+     *   HPP Average = Σ (hpp_per_satuan × qty) ÷ Σ qty
+     *
+     * Jika hpp_per_satuan item kosong, harga_total item dipakai sebagai total bersihnya.
+     *
+     * @param  array<int>  $produkIds  Jika kosong, hitung untuk seluruh produk yang punya PO
+     * @return array<int, float> [produk_id => hpp_average]
+     */
+    public function averagePoHppMap(array $produkIds = []): array
+    {
+        $query = DB::table('purchase_order_items as poi')
+            ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
+            ->where(function ($q) {
+                $q->where('po.status', 'selesai')
+                    ->orWhereExists(function ($sub) {
+                        $sub->select(DB::raw(1))
+                            ->from('barang_datang as bd')
+                            ->whereColumn('bd.po_id', 'po.id');
+                    });
+            })
+            ->where('poi.qty', '>', 0)
+            ->where(function ($q) {
+                $q->where('poi.hpp_per_satuan', '>', 0)
+                    ->orWhere('poi.harga_total', '>', 0);
+            })
+            ->groupBy('poi.produk_id')
+            ->select(
+                'poi.produk_id',
+                DB::raw('SUM(CASE WHEN poi.hpp_per_satuan > 0 THEN poi.hpp_per_satuan * poi.qty ELSE poi.harga_total END) as total_nilai'),
+                DB::raw('SUM(poi.qty) as total_qty')
+            );
+
+        if (! empty($produkIds)) {
+            $query->whereIn('poi.produk_id', $produkIds);
+        }
+
+        $result = [];
+        foreach ($query->get() as $row) {
+            $qty = (float) $row->total_qty;
+            if ($qty > 0) {
+                $avg = round((float) $row->total_nilai / $qty, 4);
+                if ($avg > 0) {
+                    $result[(int) $row->produk_id] = $avg;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Simpan average HPP terbaru ke master produk (produk.harga_hpp),
+     * dipanggil setelah penerimaan PO agar master selalu sama dengan HPP sistem.
+     *
+     * @param  array<int>  $produkIds
+     */
+    public function syncHargaHppAverage(array $produkIds): void
+    {
+        $produkIds = array_values(array_unique(array_filter(array_map('intval', $produkIds))));
+        if (empty($produkIds)) {
+            return;
+        }
+
+        foreach ($this->averagePoHppMap($produkIds) as $produkId => $avg) {
+            DB::table('produk')->where('id', $produkId)->update(['harga_hpp' => $avg]);
+        }
+    }
+
+    /**
      * Hitung nilai HPP untuk daftar produk atau seluruh produk,
      * dengan hierarki resolusi identik 100% dengan kolom HPP di Stok & Mutasi (resources/views/stok/index.blade.php):
-     * 1. Prioritas 1: HPP dari Purchase Order terakhir (selesai -> dikirim -> disetujui -> diajukan -> draft, tanggal terbaru)
+     * 1. Prioritas 1: Average HPP global dari seluruh PO yang sudah diterima gudang (lihat averagePoHppMap)
      * 2. Prioritas 2 (Fallback 1): Master Produk (harga_hpp)
      * 3. Prioritas 3 (Fallback 2): Referensi Analisa Lokal (analisa_lokal_input.harga_per_satuan)
      * 4. Prioritas 4 (Fallback 3): Referensi Analisa Impor (analisa_impor_meta.harga_per_satuan)
@@ -125,66 +196,43 @@ class StokService
      */
     public function resolveHppMap(array $produkIds = []): array
     {
-        // 1. PO Items (HANYA PO yang telah mencapai stage diterima gudang: status selesai atau ada barang datang)
-        $poItemsQuery = DB::table('purchase_order_items as poi')
-            ->join('purchase_orders as po', 'po.id', '=', 'poi.po_id')
-            ->where(function ($q) {
-                $q->where('po.status', 'selesai')
-                    ->orWhereExists(function ($sub) {
-                        $sub->select(DB::raw(1))
-                            ->from('barang_datang as bd')
-                            ->whereColumn('bd.po_id', 'po.id');
-                    });
-            })
-            ->where(function ($q) {
-                $q->where('poi.hpp_per_satuan', '>', 0)
-                    ->orWhere('poi.harga_total', '>', 0);
-            })
-            ->orderByDesc('po.tanggal')
-            ->orderByDesc('po.created_at')
-            ->orderByDesc('poi.id')
-            ->select('poi.produk_id', 'poi.hpp_per_satuan', 'poi.harga_total', 'poi.qty');
-
+        // 0. Resep BOM (untuk produk jadi). Bahan BOM ikut di-lookup agar HPP-nya ter-resolve.
+        $bomQuery = DB::table('bom')->select('produk_jadi_id', 'bahan_id', 'qty_per_unit');
         if (! empty($produkIds)) {
-            $poItemsQuery->whereIn('poi.produk_id', $produkIds);
+            $bomQuery->whereIn('produk_jadi_id', $produkIds);
         }
+        $bomLines = $bomQuery->get();
 
-        $latestPoHpp = [];
-        foreach ($poItemsQuery->get() as $pi) {
-            if (! isset($latestPoHpp[$pi->produk_id])) {
-                $hppVal = (float) $pi->hpp_per_satuan;
-                if ($hppVal <= 0 && (float) $pi->qty > 0) {
-                    $hppVal = (float) $pi->harga_total / (float) $pi->qty;
-                }
-                if ($hppVal > 0) {
-                    $latestPoHpp[$pi->produk_id] = $hppVal;
-                }
-            }
-        }
+        $lookupIds = empty($produkIds)
+            ? []
+            : array_values(array_unique(array_merge($produkIds, $bomLines->pluck('bahan_id')->all())));
+
+        // 1. Average HPP global dari seluruh PO yang sudah diterima gudang (sama untuk semua gudang)
+        $avgPoHpp = $this->averagePoHppMap($lookupIds);
 
         // 2. Referensi harga dari analisa stok sebagai fallback
         $analisaLokalQuery = DB::table('analisa_lokal_input')->where('harga_per_satuan', '>', 0);
-        if (! empty($produkIds)) {
-            $analisaLokalQuery->whereIn('produk_id', $produkIds);
+        if (! empty($lookupIds)) {
+            $analisaLokalQuery->whereIn('produk_id', $lookupIds);
         }
         $analisaLokalPrices = $analisaLokalQuery->pluck('harga_per_satuan', 'produk_id');
 
         $analisaImporQuery = DB::table('analisa_impor_meta')->where('harga_per_satuan', '>', 0);
-        if (! empty($produkIds)) {
-            $analisaImporQuery->whereIn('produk_id', $produkIds);
+        if (! empty($lookupIds)) {
+            $analisaImporQuery->whereIn('produk_id', $lookupIds);
         }
         $analisaImporPrices = $analisaImporQuery->pluck('harga_per_satuan', 'produk_id');
 
         // 3. Master Produk (harga_hpp & tipe)
         $masterQuery = DB::table('produk')->select('id', 'tipe', 'harga_hpp');
-        if (! empty($produkIds)) {
-            $masterQuery->whereIn('id', $produkIds);
+        if (! empty($lookupIds)) {
+            $masterQuery->whereIn('id', $lookupIds);
         }
         $masterProducts = $masterQuery->get()->keyBy('id');
 
-        $resolveRawMaterialHpp = function ($pId, $fallbackHarga = 0) use ($latestPoHpp, $masterProducts, $analisaLokalPrices, $analisaImporPrices) {
-            if (isset($latestPoHpp[$pId]) && (float) $latestPoHpp[$pId] > 0) {
-                return (float) $latestPoHpp[$pId];
+        $resolveRawMaterialHpp = function ($pId, $fallbackHarga = 0) use ($avgPoHpp, $masterProducts, $analisaLokalPrices, $analisaImporPrices) {
+            if (isset($avgPoHpp[$pId]) && (float) $avgPoHpp[$pId] > 0) {
+                return (float) $avgPoHpp[$pId];
             }
             $masterHpp = (float) ($masterProducts[$pId]->harga_hpp ?? $fallbackHarga);
             if ($masterHpp > 0) {
@@ -201,9 +249,6 @@ class StokService
         };
 
         // 4. Hitung BOM jika ada produk jadi
-        $bomLines = DB::table('bom')
-            ->select('produk_jadi_id', 'bahan_id', 'qty_per_unit')
-            ->get();
         $bomHppMap = [];
         foreach ($bomLines as $line) {
             $ingHpp = $resolveRawMaterialHpp($line->bahan_id);

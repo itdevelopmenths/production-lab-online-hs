@@ -1,8 +1,12 @@
-<x-app-layout title="Produk">
+@php
+    $isProdukJadi = $kelompok === \App\Models\Produk::KELOMPOK_PRODUK_JADI;
+    $menuLabel = $isProdukJadi ? 'Produk Jadi' : 'Bahan Baku & Kemasan';
+@endphp
+<x-app-layout :title="$menuLabel">
     <div x-data="{ currentTab: 'all', createOpen: {{ (($errors->any() && old('_modal') === 'create') || request()->boolean('tambah')) ? 'true' : 'false' }} }" class="space-y-4">
         <x-page-header
-            title="Master Produk"
-            :breadcrumbs="['Master Data' => null, 'Produk' => null]"
+            :title="'Master ' . $menuLabel"
+            :breadcrumbs="['Master Data' => null, $menuLabel => null]"
         >
             <x-slot:actions>
                 @can('produk.create')
@@ -10,46 +14,35 @@
                     <x-slot:icon>
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     </x-slot:icon>
-                    Tambah Produk
+                    {{ $isProdukJadi ? 'Tambah Produk Jadi' : 'Tambah Bahan / Kemasan' }}
                 </x-button>
                 @endcan
             </x-slot:actions>
         </x-page-header>
 
-        <x-card class="tbl-modern" title="Katalog Produk & Material" subtitle="Kelola SKU bahan baku, kemasan, dan produk jadi beserta parameter pengadaan" :noPadding="true">
+        <x-card class="tbl-modern"
+                :title="$isProdukJadi ? 'Katalog Produk Jadi' : 'Katalog Bahan Baku & Kemasan'"
+                :subtitle="$isProdukJadi ? 'Kelola SKU produk jadi (output BOM produksi)' : 'Kelola SKU bahan baku dan kemasan beserta supplier dan parameter pengadaan'"
+                :noPadding="true">
             <x-slot:icon>
                 <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
             </x-slot:icon>
 
             {{-- Filter Bar & Segmented Tabs (Blueprint StatusTabs) --}}
-            <div class="px-4 py-3 border-b border-[#E8E8E8] dark:border-gray-800 bg-[#fafafa] dark:bg-gray-900/60 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="px-4 py-3 border-b border-[#E8E8E8] dark:border-gray-800 bg-[#fafafa] dark:bg-gray-900/60 flex flex-col md:flex-row md:items-center {{ $isProdukJadi ? 'md:justify-end' : 'justify-between' }} gap-3">
+                @unless($isProdukJadi)
                 {{-- Segmented Pill Tabs --}}
                 <div class="inline-flex flex-wrap items-center gap-1 p-1 bg-[#f3f4f6] dark:bg-gray-950 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
+                    @foreach(['all' => 'Semua', 'bahan' => 'Bahan Baku', 'kemas' => 'Kemasan'] as $tabKey => $tabLabel)
                     <button type="button"
-                            @click="currentTab = 'all'; filterTab('all')"
-                            :class="currentTab === 'all' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
+                            @click="currentTab = '{{ $tabKey }}'; filterTab('{{ $tabKey }}')"
+                            :class="currentTab === '{{ $tabKey }}' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
                             class="px-3 py-1.5 text-xs font-medium transition-all cursor-pointer select-none rounded-[6px]">
-                        Semua Produk
+                        {{ $tabLabel }}
                     </button>
-                    <button type="button"
-                            @click="currentTab = 'bahan'; filterTab('bahan')"
-                            :class="currentTab === 'bahan' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                            class="px-3 py-1.5 text-xs font-medium transition-all cursor-pointer select-none rounded-[6px]">
-                        Bahan Baku
-                    </button>
-                    <button type="button"
-                            @click="currentTab = 'kemas'; filterTab('kemas')"
-                            :class="currentTab === 'kemas' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                            class="px-3 py-1.5 text-xs font-medium transition-all cursor-pointer select-none rounded-[6px]">
-                        Kemasan
-                    </button>
-                    <button type="button"
-                            @click="currentTab = 'produk_jadi'; filterTab('produk_jadi')"
-                            :class="currentTab === 'produk_jadi' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] font-medium' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white'"
-                            class="px-3 py-1.5 text-xs font-medium transition-all cursor-pointer select-none rounded-[6px]">
-                        Produk Jadi
-                    </button>
+                    @endforeach
                 </div>
+                @endunless
 
                 {{-- Additional Filter --}}
                 <div class="flex items-center gap-2">
@@ -72,10 +65,14 @@
                             <th class="px-4 py-3 text-left">Nama Produk</th>
                             <th class="px-4 py-3 text-left w-32">Kategori</th>
                             <th class="px-4 py-3 text-left w-32">Varian</th>
+                            @unless($isProdukJadi)
                             <th class="px-4 py-3 text-left w-28">Tipe</th>
                             <th class="px-4 py-3 text-center w-28">Supplier</th>
+                            @endunless
                             <th class="px-4 py-3 text-center w-20">Satuan</th>
+                            @unless($isProdukJadi)
                             <th class="px-4 py-3 text-center w-32">Analisa / ABC</th>
+                            @endunless
                             <th class="px-4 py-3 text-center w-24">Status</th>
                             <th class="px-4 py-3 text-center w-28">Aksi</th>
                         </tr>
@@ -85,12 +82,14 @@
         </x-card>
 
         @can('produk.create')
-        @include('produk._create-modal')
+        @include('produk._create-modal', ['tipeOptions' => $tipeOptions])
         @endcan
     </div>
 
     @push('scripts')
     <script>
+    const activeKelompok = @js($kelompok);
+    const isProdukJadi = @js($isProdukJadi);
     let activeTipe = 'all';
     let table;
 
@@ -140,6 +139,7 @@
             ajax: {
                 url: '{{ route("produk.data") }}',
                 data: function(d) {
+                    d.kelompok = activeKelompok;
                     d.tipe = activeTipe;
                     d.kategori_id = $('#filter-kategori').val();
                 }
@@ -149,10 +149,14 @@
                 { data: 'nama', name: 'nama', searchable: true, className: 'px-4 py-3.5 align-middle text-left font-medium' },
                 { data: 'kategori_nama', name: 'kategori_nama', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
                 { data: 'varian_nama', name: 'varian_nama', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
-                { data: 'tipe', name: 'tipe', searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
-                { data: 'supplier_count', name: 'supplier_count', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
+                ...(isProdukJadi ? [] : [
+                    { data: 'tipe', name: 'tipe', searchable: false, className: 'px-4 py-3.5 align-middle text-left' },
+                    { data: 'supplier_count', name: 'supplier_count', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
+                ]),
                 { data: 'satuan', name: 'satuan', searchable: false, className: 'px-4 py-3.5 align-middle text-center tabular-nums text-xs' },
-                { data: 'klasifikasi_abc_badge', name: 'klasifikasi_abc_id', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
+                ...(isProdukJadi ? [] : [
+                    { data: 'klasifikasi_abc_badge', name: 'klasifikasi_abc_id', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
+                ]),
                 { data: 'is_active', name: 'is_active', searchable: false, className: 'px-4 py-3.5 align-middle text-center' },
                 { data: 'action', orderable: false, searchable: false, className: 'px-4 py-3.5 align-middle text-center' }
             ]
