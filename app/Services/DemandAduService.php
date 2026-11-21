@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Sumber ADU (Average Daily Usage) berantai, mengikuti alur Excel analisa:
  *
- *  1. Produk jadi (Gudang Fulfillment): ADU penjualan per gudang = pembulatan(Terjual rata-rata/bulan ÷ 30),
+ *  1. Produk jadi (Gudang Fulfillment): ADU penjualan per gudang = Terjual rata-rata/bulan ÷ 30 (tanpa pembulatan),
  *     diinput di Analisa Fulfillment. ADU produk jadi = Σ ADU seluruh gudang fulfillment.
  *  2. Gudang Produksi: memakai ADU produk jadi di atas untuk menentukan kebutuhan produksi.
  *  3. Bahan baku/kemas (Gudang Pusat): ADU = pemakaian bahan riil di batch produksi

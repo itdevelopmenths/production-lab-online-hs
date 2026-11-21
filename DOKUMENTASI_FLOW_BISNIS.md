@@ -480,11 +480,11 @@ Bahan impor memiliki karakteristik waktu pengiriman yang panjang, sehingga selam
 > - **Buffer Days:** $(114 - 81,8) + 4 = \mathbf{36,2\text{ hari}}$.
 > - **ADU Base:** $47.312 / 122 = 387,8033\text{ pcs/hari}$.
 > - **ADU ETA (tanpa pivot):** $\mathbf{387,80\text{ pcs/hari}}$. Contoh dengan pivot (Excel Biru Clear): $19,39 + 3,878 \times 81,75 / 30 = 29,96$.
-> - **Minimum Stock:** $\text{pembulatan}(390,53 \times 81,8) = \mathbf{31.945\text{ pcs}}$.
-> - **Target Stock:** $\lfloor 390,53 \times (81,8 + 36,2 + 30) \rfloor = \lfloor 390,53 \times 148 \rfloor = \mathbf{57.798\text{ pcs}}$.
-> - **Proyeksi:** $8.000 + 0 - 31.945 = \mathbf{-23.945\text{ pcs}}$.
-> - **Selisih:** $-23.945 - 57.798 = \mathbf{-81.743\text{ pcs}}$ ($\text{Selisih} < 0 \implies \text{Status: \textbf{PO}}$).
-> - **Rekomendasi PO (MOQ 1.000):** $\lceil 81.743 / 1.000 \rceil \times 1.000 = \mathbf{82.000\text{ pcs}}$.
+> - **Minimum Stock:** $\text{pembulatan}(387,8033 \times 81,8) = \mathbf{31.722\text{ pcs}}$.
+> - **Target Stock:** $\lfloor 387,8033 \times (81,8 + 36,2 + 30) \rfloor = \lfloor 387,8033 \times 148 \rfloor = \mathbf{57.394\text{ pcs}}$.
+> - **Proyeksi:** $8.000 + 0 - 31.722 = \mathbf{-23.722\text{ pcs}}$.
+> - **Selisih:** $-23.722 - 57.394 = \mathbf{-81.116\text{ pcs}}$ ($\text{Selisih} < 0 \implies \text{Status: \textbf{PO}}$).
+> - **Rekomendasi PO (MOQ 1.000):** $\lceil 81.116 / 1.000 \rceil \times 1.000 = \mathbf{82.000\text{ pcs}}$.
 
 ---
 
