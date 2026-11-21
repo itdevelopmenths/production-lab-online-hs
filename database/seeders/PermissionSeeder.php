@@ -72,7 +72,7 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Staff Purchasing', 'description' => 'Pengadaan bahan baku, pembuatan PO, pembayaran, dan pemantauan analisa', 'is_system' => true]
         );
         $purchasing->update(['display_name' => 'Staff Purchasing', 'description' => 'Pengadaan bahan baku, pembuatan PO, pembayaran, dan pemantauan analisa', 'is_system' => true]);
-        $purchasing->syncPermissions([
+        $purchasing->syncPermissions(self::denganIzinGranular([
             'produk.view', 'produk.create', 'produk.edit',
             'gudang.view', 'supplier.view', 'supplier.create', 'supplier.edit',
             'uom.view', 'uom.create', 'uom.edit',
@@ -82,7 +82,7 @@ class PermissionSeeder extends Seeder
             'purchasing.submit', 'purchasing.pay', 'purchasing.cancel',
             'analisa.view', 'analisa.manage', 'analisa.snapshot', 'analisa.create_po',
             'report.view', 'report.export',
-        ]);
+        ]));
 
         // Gudang
         $gudang = \App\Models\Role::firstOrCreate(
@@ -90,7 +90,7 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Staff Gudang Pusat', 'description' => 'Penerimaan barang datang, mutasi stok, proses pengiriman transfer, dan kartu stok', 'is_system' => true]
         );
         $gudang->update(['display_name' => 'Staff Gudang Pusat', 'description' => 'Penerimaan barang datang, mutasi stok, proses pengiriman transfer, dan kartu stok', 'is_system' => true]);
-        $gudang->syncPermissions([
+        $gudang->syncPermissions(self::denganIzinGranular([
             'produk.view', 'gudang.view', 'supplier.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.receive',
@@ -101,7 +101,7 @@ class PermissionSeeder extends Seeder
             'defect.view',
             'rt.view', 'rt.submit', 'rt.process',
             'report.view',
-        ]);
+        ]));
 
         // Operasional
         $operasional = \App\Models\Role::firstOrCreate(
@@ -109,7 +109,7 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan baku, penerimaan bahan, pengiriman produk jadi, dan stock opname', 'is_system' => true]
         );
         $operasional->update(['display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan baku, penerimaan bahan, pengiriman produk jadi, dan stock opname', 'is_system' => true]);
-        $operasional->syncPermissions([
+        $operasional->syncPermissions(self::denganIzinGranular([
             'produk.view', 'gudang.view', 'uom.view', 'bom.view', 'bom.manage',
             'stok.view', 'stok.opname', 'stok.ledger.view',
             'batch.view', 'batch.create', 'batch.release',
@@ -120,7 +120,7 @@ class PermissionSeeder extends Seeder
             'defect.view',
             'rt.view', 'rt.submit',
             'report.view',
-        ]);
+        ]));
 
         // Fulfillment
         $fulfillment = \App\Models\Role::firstOrCreate(
@@ -128,7 +128,7 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Staff Gudang Fulfillment', 'description' => 'Distribusi produk jadi, mutasi antar fulfillment, dan monitoring analisa', 'is_system' => true]
         );
         $fulfillment->update(['display_name' => 'Staff Gudang Fulfillment', 'description' => 'Distribusi produk jadi, mutasi antar fulfillment, dan monitoring analisa', 'is_system' => true]);
-        $fulfillment->syncPermissions([
+        $fulfillment->syncPermissions(self::denganIzinGranular([
             'produk.view', 'gudang.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'analisa.view', 'analisa.manage', 'analisa.snapshot',
@@ -138,6 +138,46 @@ class PermissionSeeder extends Seeder
             'defect.view',
             'rt.view',
             'report.view',
-        ]);
+        ]));
+    }
+
+    /**
+     * Pemetaan izin lama (modul-level) ke izin granular per halaman.
+     * Dipakai seeder role sistem dan migrasi backfill role yang sudah ada.
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function granularMap(): array
+    {
+        $map = [];
+        foreach (['view', 'create', 'edit', 'delete'] as $aksi) {
+            $map["produk.{$aksi}"] = ["produk.bahan.{$aksi}", "produk.produk_jadi.{$aksi}", "kategori.{$aksi}", "varian.{$aksi}"];
+        }
+        $map['analisa.view'] = ['klasifikasi_abc.view'];
+        $map['analisa.manage'] = ['klasifikasi_abc.manage'];
+        $map['stok.view'] = ['stok.log.view'];
+
+        return $map;
+    }
+
+    /**
+     * Ganti izin produk.* global dengan izin granular per menu (akses efektif sama),
+     * dan tambahkan izin halaman baru yang dulu menumpang izin modul.
+     *
+     * @param  array<int, string>  $permissions
+     * @return array<int, string>
+     */
+    public static function denganIzinGranular(array $permissions): array
+    {
+        $hasil = [];
+        foreach ($permissions as $perm) {
+            $granular = self::granularMap()[$perm] ?? [];
+            if (! str_starts_with($perm, 'produk.')) {
+                $hasil[] = $perm;
+            }
+            array_push($hasil, ...$granular);
+        }
+
+        return array_values(array_unique($hasil));
     }
 }

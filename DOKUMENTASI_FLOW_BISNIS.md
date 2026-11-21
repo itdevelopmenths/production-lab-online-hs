@@ -662,8 +662,22 @@ Untuk menjaga ketertiban stok dan keuangan, sistem menerapkan 7 aturan pengendal
 | **Mutasi Stok Manual** | ✅ | ✅ | ❌ | ✅ | ✅ |
 | **Opname Fisik Gudang** | ❌ | ❌ | ✅ | ❌ | ✅ |
 | **Lihat Kartu Stok & Log Pergerakan** | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Lihat Laporan Kerusakan (Defect)** | ❌ | ✅ | ✅ | ✅ | ✅ |
+| **Lihat Laporan Kerusakan (Defect) & Menu Barang Rusak** | ❌ | ✅ | ✅ | ✅ | ✅ |
 | **Kelola Akun Pengguna & Wewenang Jabatan** | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+**Izin per halaman (Role Matrix).** Setiap menu punya izin sendiri yang bisa diatur di halaman Peran & Wewenang:
+
+| Halaman | Izin | Fallback izin lama |
+| :--- | :--- | :--- |
+| Bahan Baku & Kemasan | `produk.bahan.view/create/edit/delete` | `produk.*` |
+| Produk Jadi | `produk.produk_jadi.view/create/edit/delete` | `produk.*` |
+| Kategori | `kategori.view/create/edit/delete` | `produk.*` |
+| Varian | `varian.view/create/edit/delete` | `produk.*` |
+| Klasifikasi ABC | `klasifikasi_abc.view/manage` | `analisa.view/manage` |
+| Log Pergerakan Stok | `stok.log.view` | `stok.view` |
+| Barang Rusak | `defect.view` (link ke transfer butuh `transfer.view`) | — |
+
+Izin lama (`produk.*`, dsb.) tetap berlaku sebagai akses global ke semua menu turunannya, sehingga role kustom yang sudah ada tidak kehilangan akses.
 
 ---
 *Dokumentasi Resmi Sistem Supply Chain Online (SC Online) — CV. Heaven Scent (Versi 2.4).*

@@ -61,6 +61,39 @@ class AppServiceProvider extends ServiceProvider
                 'transfer.receive' => ['transfer.receive', 'transfer.bahan.receive', 'transfer.produk_jadi.receive', 'rt.receive'],
                 'transfer.cancel' => ['transfer.cancel', 'rt.cancel'],
 
+                // Granular Produk (menu Bahan Baku & Kemasan / Produk Jadi) <- exact | global produk
+                'produk.bahan.view' => ['produk.bahan.view', 'produk.view'],
+                'produk.bahan.create' => ['produk.bahan.create', 'produk.create'],
+                'produk.bahan.edit' => ['produk.bahan.edit', 'produk.edit'],
+                'produk.bahan.delete' => ['produk.bahan.delete', 'produk.delete'],
+                'produk.produk_jadi.view' => ['produk.produk_jadi.view', 'produk.view'],
+                'produk.produk_jadi.create' => ['produk.produk_jadi.create', 'produk.create'],
+                'produk.produk_jadi.edit' => ['produk.produk_jadi.edit', 'produk.edit'],
+                'produk.produk_jadi.delete' => ['produk.produk_jadi.delete', 'produk.delete'],
+
+                // Module-level Produk <- global | salah satu kelompok
+                'produk.view' => ['produk.view', 'produk.bahan.view', 'produk.produk_jadi.view'],
+                'produk.create' => ['produk.create', 'produk.bahan.create', 'produk.produk_jadi.create'],
+                'produk.edit' => ['produk.edit', 'produk.bahan.edit', 'produk.produk_jadi.edit'],
+                'produk.delete' => ['produk.delete', 'produk.bahan.delete', 'produk.produk_jadi.delete'],
+
+                // Kategori & Varian dulu menumpang izin produk.* (role lama tetap punya akses)
+                'kategori.view' => ['kategori.view', 'produk.view'],
+                'kategori.create' => ['kategori.create', 'produk.create'],
+                'kategori.edit' => ['kategori.edit', 'produk.edit'],
+                'kategori.delete' => ['kategori.delete', 'produk.delete'],
+                'varian.view' => ['varian.view', 'produk.view'],
+                'varian.create' => ['varian.create', 'produk.create'],
+                'varian.edit' => ['varian.edit', 'produk.edit'],
+                'varian.delete' => ['varian.delete', 'produk.delete'],
+
+                // Klasifikasi ABC dulu menumpang izin analisa.*
+                'klasifikasi_abc.view' => ['klasifikasi_abc.view', 'analisa.view'],
+                'klasifikasi_abc.manage' => ['klasifikasi_abc.manage', 'analisa.manage'],
+
+                // Log Pergerakan Stok dulu menumpang stok.view
+                'stok.log.view' => ['stok.log.view', 'stok.view'],
+
                 // Legacy rt.* compatibility
                 'rt.view' => ['rt.view', 'request.view', 'transfer.view'],
                 'rt.create' => [

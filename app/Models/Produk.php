@@ -63,6 +63,12 @@ class Produk extends Model
         return $kelompok === self::KELOMPOK_PRODUK_JADI ? self::KELOMPOK_PRODUK_JADI : self::KELOMPOK_BAHAN;
     }
 
+    /** Nama izin granular per menu, mis. izinKelompok('edit', 'produk_jadi') = produk.produk_jadi.edit */
+    public static function izinKelompok(string $aksi, string $kelompok): string
+    {
+        return 'produk.'.self::normalizeKelompok($kelompok).'.'.$aksi;
+    }
+
     public static function kelompokDariTipe(?string $tipe): string
     {
         return $tipe === 'produk_jadi' ? self::KELOMPOK_PRODUK_JADI : self::KELOMPOK_BAHAN;

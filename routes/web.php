@@ -47,26 +47,32 @@ Route::middleware('auth')->group(function () {
     Route::get('operational-audit/data', [\App\Http\Controllers\OperationalAuditController::class, 'data'])->name('operational-audit.data');
 
     // ===== Master Data =====
+    // produk.view lolos jika user punya izin salah satu menu (Bahan & Kemasan / Produk Jadi);
+    // pembatasan per menu dicek di ProdukController.
     Route::middleware('can:produk.view')->group(function () {
         Route::get('produk/data', [ProdukController::class, 'data'])->name('produk.data');
         Route::resource('produk', ProdukController::class)->except(['show']);
+    });
 
+    Route::middleware('can:kategori.view')->group(function () {
         Route::get('kategori/data', [KategoriController::class, 'data'])->name('kategori.data');
         Route::resource('kategori', KategoriController::class)->except(['show']);
+    });
 
+    Route::middleware('can:varian.view')->group(function () {
         Route::get('varian/data', [VarianController::class, 'data'])->name('varian.data');
         Route::resource('varian', VarianController::class)->except(['show']);
     });
 
-    Route::middleware('can:analisa.view')->group(function () {
+    Route::middleware('can:klasifikasi_abc.view')->group(function () {
         Route::get('klasifikasi-abc/options', [KlasifikasiAbcController::class, 'options'])->name('klasifikasi-abc.options');
         Route::get('klasifikasi-abc/data', [KlasifikasiAbcController::class, 'data'])->name('klasifikasi-abc.data');
         Route::get('klasifikasi-abc/available-skus', [KlasifikasiAbcController::class, 'availableSkus'])->name('klasifikasi-abc.available-skus');
         Route::get('klasifikasi-abc/{klasifikasiAbc}/skus', [KlasifikasiAbcController::class, 'skus'])->name('klasifikasi-abc.skus');
         Route::post('klasifikasi-abc/{klasifikasiAbc}/skus', [KlasifikasiAbcController::class, 'assignSkus'])
-            ->middleware('can:analisa.manage')->name('klasifikasi-abc.assign-skus');
+            ->middleware('can:klasifikasi_abc.manage')->name('klasifikasi-abc.assign-skus');
         Route::delete('klasifikasi-abc/{klasifikasiAbc}/skus/{produk}', [KlasifikasiAbcController::class, 'unassignSku'])
-            ->middleware('can:analisa.manage')->name('klasifikasi-abc.unassign-sku');
+            ->middleware('can:klasifikasi_abc.manage')->name('klasifikasi-abc.unassign-sku');
         Route::resource('klasifikasi-abc', KlasifikasiAbcController::class)->except(['show', 'create', 'edit']);
     });
 
@@ -107,11 +113,14 @@ Route::middleware('auth')->group(function () {
     });
 
     // ===== Stok & Mutasi =====
+    Route::middleware('can:stok.log.view')->prefix('stok')->name('stok.')->group(function () {
+        Route::get('log-pergerakan', [StokController::class, 'pergerakanLog'])->name('log-pergerakan');
+        Route::get('log-pergerakan/data', [StokController::class, 'pergerakanLogData'])->name('log-pergerakan.data');
+    });
+
     Route::middleware('can:stok.view')->prefix('stok')->name('stok.')->group(function () {
         Route::get('/', [StokController::class, 'index'])->name('index');
         Route::get('data', [StokController::class, 'data'])->name('data');
-        Route::get('log-pergerakan', [StokController::class, 'pergerakanLog'])->name('log-pergerakan');
-        Route::get('log-pergerakan/data', [StokController::class, 'pergerakanLogData'])->name('log-pergerakan.data');
         Route::post('mutasi', [StokController::class, 'mutasi'])
             ->middleware('can:stok.mutasi')->name('mutasi');
         Route::get('opname', [StokController::class, 'opname'])
@@ -186,7 +195,7 @@ Route::middleware('auth')->group(function () {
 
     // ===== PRD v2.4 Transfers (Mutasi / Pengiriman Barang) =====
     Route::get('barang-rusak', [\App\Http\Controllers\BarangRusakController::class, 'index'])
-        ->middleware('can:transfer.view')->name('barang-rusak.index');
+        ->middleware('can:defect.view')->name('barang-rusak.index');
 
     Route::middleware('can:transfer.view')->prefix('transfers')->name('transfers.')->group(function () {
         Route::get('/', [\App\Http\Controllers\TransferController::class, 'index'])->name('index');

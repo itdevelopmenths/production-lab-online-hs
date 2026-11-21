@@ -9,14 +9,14 @@
             :breadcrumbs="['Master Data' => null, $menuLabel => null]"
         >
             <x-slot:actions>
-                @can('produk.create')
+                @if($canCreate)
                 <x-button type="button" @click="createOpen = true" variant="primary" size="xs">
                     <x-slot:icon>
                         <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     </x-slot:icon>
                     {{ $isProdukJadi ? 'Tambah Produk Jadi' : 'Tambah Bahan / Kemasan' }}
                 </x-button>
-                @endcan
+                @endif
             </x-slot:actions>
         </x-page-header>
 
@@ -81,9 +81,9 @@
             </div>
         </x-card>
 
-        @can('produk.create')
+        @if($canCreate)
         @include('produk._create-modal', ['tipeOptions' => $tipeOptions])
-        @endcan
+        @endif
     </div>
 
     @push('scripts')

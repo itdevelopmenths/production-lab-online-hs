@@ -13,18 +13,18 @@ class KategoriController extends Controller
 {
     public function index()
     {
-        $this->authorize('produk.view');
+        $this->authorize('kategori.view');
 
         return view('kategori.index');
     }
 
     public function data(): JsonResponse
     {
-        $this->authorize('produk.view');
+        $this->authorize('kategori.view');
 
         // Cek izin sekali per request, bukan per baris
-        $canEdit = auth()->user()->can('produk.edit');
-        $canDelete = auth()->user()->can('produk.delete');
+        $canEdit = auth()->user()->can('kategori.edit');
+        $canDelete = auth()->user()->can('kategori.delete');
 
         $query = Kategori::query()->select('kategori.*')
             ->withCount(['varians', 'produk']);
@@ -49,14 +49,14 @@ class KategoriController extends Controller
 
     public function create()
     {
-        $this->authorize('produk.create');
+        $this->authorize('kategori.create');
 
         return view('kategori.create');
     }
 
     public function store(Request $request)
     {
-        $this->authorize('produk.create');
+        $this->authorize('kategori.create');
 
         $data = $this->validated($request);
         Kategori::create($data);
@@ -66,14 +66,14 @@ class KategoriController extends Controller
 
     public function edit(Kategori $kategori)
     {
-        $this->authorize('produk.edit');
+        $this->authorize('kategori.edit');
 
         return view('kategori.edit', compact('kategori'));
     }
 
     public function update(Request $request, Kategori $kategori)
     {
-        $this->authorize('produk.edit');
+        $this->authorize('kategori.edit');
 
         $data = $this->validated($request, $kategori->id);
         $kategori->update($data);
@@ -83,7 +83,7 @@ class KategoriController extends Controller
 
     public function destroy(Kategori $kategori): JsonResponse
     {
-        $this->authorize('produk.delete');
+        $this->authorize('kategori.delete');
 
         $produkCount = $kategori->produk()->count();
         if ($produkCount > 0) {

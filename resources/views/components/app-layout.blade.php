@@ -245,6 +245,9 @@
                                     Transfer Barang
                                 </x-nav-item>
                             </li>
+                            @endcanany
+
+                            @can('defect.view')
                             <li class="w-full" x-show="!menuQuery || 'barang rusak defect cacat qc transfer'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ route('barang-rusak.index') }}" :active="request()->routeIs('barang-rusak.*')">
                                     <x-slot:icon>
@@ -253,7 +256,7 @@
                                     Barang Rusak
                                 </x-nav-item>
                             </li>
-                            @endcanany
+                            @endcan
 
                             @can('analisa.view')
                             @php
@@ -289,7 +292,7 @@
                             Inventori & Sistem
                         </p>
 
-                        @can('stok.view')
+                        @canany(['stok.view', 'stok.log.view'])
                         <x-nav-group
                             title="Stok & Mutasi"
                             :active="request()->routeIs('stok.*')"
@@ -297,20 +300,24 @@
                             <x-slot:icon>
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                             </x-slot:icon>
+                            @can('stok.view')
                             <div x-show="!menuQuery || 'stok mutasi opname ledger'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ route('stok.index') }}" :active="request()->routeIs('stok.index') || request()->routeIs('stok.ledger*') || request()->routeIs('stok.opname*')" :isChild="true">
                                     Stok & Mutasi
                                 </x-nav-item>
                             </div>
+                            @endcan
+                            @can('stok.log.view')
                             <div x-show="!menuQuery || 'log pergerakan riwayat kartu stok'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ route('stok.log-pergerakan') }}" :active="request()->routeIs('stok.log-pergerakan*')" :isChild="true">
                                     Log Pergerakan
                                 </x-nav-item>
                             </div>
+                            @endcan
                         </x-nav-group>
-                        @endcan
+                        @endcanany
 
-                        @canany(['produk.view', 'analisa.view', 'gudang.view', 'supplier.view', 'uom.view', 'bom.view', 'bom.import', 'divisi.view'])
+                        @canany(['produk.view', 'kategori.view', 'varian.view', 'klasifikasi_abc.view', 'gudang.view', 'supplier.view', 'uom.view', 'bom.view', 'bom.import', 'divisi.view'])
                         <x-nav-group
                             title="Master Data"
                             :active="request()->routeIs('produk.*') || request()->routeIs('kategori.*') || request()->routeIs('varian.*') || request()->routeIs('klasifikasi-abc.*') || request()->routeIs('gudang.*') || request()->routeIs('supplier.*') || request()->routeIs('uom.*') || request()->routeIs('bom.*') || request()->routeIs('divisi.*')"
@@ -318,7 +325,6 @@
                             <x-slot:icon>
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
                             </x-slot:icon>
-                            @can('produk.view')
                             @php
                                 $navProdukKelompok = null;
                                 if (request()->routeIs('produk.*')) {
@@ -328,21 +334,28 @@
                                         : \App\Models\Produk::normalizeKelompok(request()->query('kelompok'));
                                 }
                             @endphp
+                            @can('produk.bahan.view')
                             <div x-show="!menuQuery || 'master data produk bahan baku kemasan kemas botol material sku'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ \App\Models\Produk::indexUrl(\App\Models\Produk::KELOMPOK_BAHAN) }}" :active="$navProdukKelompok === \App\Models\Produk::KELOMPOK_BAHAN" :isChild="true">
                                     Bahan Baku & Kemasan
                                 </x-nav-item>
                             </div>
+                            @endcan
+                            @can('produk.produk_jadi.view')
                             <div x-show="!menuQuery || 'master data produk jadi barang jadi katalog sku'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ \App\Models\Produk::indexUrl(\App\Models\Produk::KELOMPOK_PRODUK_JADI) }}" :active="$navProdukKelompok === \App\Models\Produk::KELOMPOK_PRODUK_JADI" :isChild="true">
                                     Produk Jadi
                                 </x-nav-item>
                             </div>
+                            @endcan
+                            @can('kategori.view')
                             <div x-show="!menuQuery || 'master data kategori category'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ route('kategori.index') }}" :active="request()->routeIs('kategori.*')" :isChild="true">
                                     Kategori
                                 </x-nav-item>
                             </div>
+                            @endcan
+                            @can('varian.view')
                             <div x-show="!menuQuery || 'master data varian variant'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ route('varian.index') }}" :active="request()->routeIs('varian.*')" :isChild="true">
                                     Varian
@@ -350,7 +363,7 @@
                             </div>
                             @endcan
 
-                            @can('analisa.view')
+                            @can('klasifikasi_abc.view')
                             <div x-show="!menuQuery || 'master data klasifikasi abc analisa'.includes(menuQuery.toLowerCase())">
                                 <x-nav-item href="{{ route('klasifikasi-abc.index') }}" :active="request()->routeIs('klasifikasi-abc.*')" :isChild="true">
                                     Klasifikasi ABC

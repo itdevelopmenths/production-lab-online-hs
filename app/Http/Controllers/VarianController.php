@@ -14,7 +14,7 @@ class VarianController extends Controller
 {
     public function index()
     {
-        $this->authorize('produk.view');
+        $this->authorize('varian.view');
 
         $kategoriList = Kategori::orderBy('nama')->get();
 
@@ -23,11 +23,11 @@ class VarianController extends Controller
 
     public function data(Request $request): JsonResponse
     {
-        $this->authorize('produk.view');
+        $this->authorize('varian.view');
 
         // Cek izin sekali per request, bukan per baris
-        $canEdit = $request->user()->can('produk.edit');
-        $canDelete = $request->user()->can('produk.delete');
+        $canEdit = $request->user()->can('varian.edit');
+        $canDelete = $request->user()->can('varian.delete');
 
         $query = Varian::query()
             ->with('kategori')
@@ -69,7 +69,7 @@ class VarianController extends Controller
 
     public function create()
     {
-        $this->authorize('produk.create');
+        $this->authorize('varian.create');
 
         $kategoriList = Kategori::orderBy('nama')->get();
 
@@ -78,7 +78,7 @@ class VarianController extends Controller
 
     public function store(Request $request)
     {
-        $this->authorize('produk.create');
+        $this->authorize('varian.create');
 
         $data = $this->validated($request);
         Varian::create($data);
@@ -88,7 +88,7 @@ class VarianController extends Controller
 
     public function edit(Varian $varian)
     {
-        $this->authorize('produk.edit');
+        $this->authorize('varian.edit');
 
         $kategoriList = Kategori::orderBy('nama')->get();
 
@@ -97,7 +97,7 @@ class VarianController extends Controller
 
     public function update(Request $request, Varian $varian)
     {
-        $this->authorize('produk.edit');
+        $this->authorize('varian.edit');
 
         $data = $this->validated($request, $varian->id);
         $varian->update($data);
@@ -107,7 +107,7 @@ class VarianController extends Controller
 
     public function destroy(Varian $varian): JsonResponse
     {
-        $this->authorize('produk.delete');
+        $this->authorize('varian.delete');
 
         $produkCount = $varian->produk()->count();
         if ($produkCount > 0) {

@@ -25,12 +25,22 @@ class ProdukController extends Controller
         $this->authorize('produk.view');
 
         $kelompok = Produk::normalizeKelompok($request->query('kelompok'));
+
+        // User yang hanya boleh melihat kelompok lain diarahkan ke menunya sendiri.
+        if (! $request->user()->can(Produk::izinKelompok('view', $kelompok))) {
+            $lain = $kelompok === Produk::KELOMPOK_BAHAN ? Produk::KELOMPOK_PRODUK_JADI : Produk::KELOMPOK_BAHAN;
+            abort_unless($request->user()->can(Produk::izinKelompok('view', $lain)), 403);
+
+            return redirect()->to(Produk::indexUrl($lain));
+        }
+
         $tipeOptions = Produk::KELOMPOK_TIPE[$kelompok];
+        $canCreate = $request->user()->can(Produk::izinKelompok('create', $kelompok));
 
         $kategoriList = Kategori::orderBy('nama')->get();
 
         $createKategoriList = $uomList = $suppliers = $klasifikasiAbcList = collect();
-        if (auth()->user()->can('produk.create')) {
+        if ($canCreate) {
             $createKategoriList = Kategori::with(['varians' => fn ($q) => $q->orderBy('nama')])->orderBy('nama')->get();
             $uomList = Uom::active()->orderBy('nama')->get();
             $suppliers = Supplier::active()->orderBy('nama')->get(['id', 'nama', 'kategori']);
@@ -39,19 +49,20 @@ class ProdukController extends Controller
                 ->get(['id', 'kode', 'nama', 'tambahan_buffer_hari', 'warna_badge']);
         }
 
-        return view('produk.index', compact('kategoriList', 'createKategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList', 'kelompok', 'tipeOptions'));
+        return view('produk.index', compact('kategoriList', 'createKategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList', 'kelompok', 'tipeOptions', 'canCreate'));
     }
 
     public function data(Request $request): JsonResponse
     {
-        $this->authorize('produk.view');
+        $kelompok = Produk::normalizeKelompok($request->input('kelompok'));
+        $this->authorize(Produk::izinKelompok('view', $kelompok));
 
         // Cek izin sekali per request, bukan per baris
-        $canEdit = $request->user()->can('produk.edit');
-        $canDelete = $request->user()->can('produk.delete');
+        $canEdit = $request->user()->can(Produk::izinKelompok('edit', $kelompok));
+        $canDelete = $request->user()->can(Produk::izinKelompok('delete', $kelompok));
 
         // Menu dipisah: Bahan Baku & Kemasan vs Produk Jadi. Filter tipe hanya berlaku di dalam kelompoknya.
-        $kelompokTipe = array_keys(Produk::KELOMPOK_TIPE[Produk::normalizeKelompok($request->input('kelompok'))]);
+        $kelompokTipe = array_keys(Produk::KELOMPOK_TIPE[$kelompok]);
         $tipe = $request->input('tipe');
 
         $query = Produk::query()
@@ -224,9 +235,9 @@ class ProdukController extends Controller
 
     public function create(Request $request)
     {
-        $this->authorize('produk.create');
-
         $kelompok = Produk::normalizeKelompok($request->query('kelompok'));
+        $this->authorize(Produk::izinKelompok('create', $kelompok));
+
         $tipeOptions = Produk::KELOMPOK_TIPE[$kelompok];
 
         $kategoriList = Kategori::with(['varians' => fn ($q) => $q->orderBy('nama')])->orderBy('nama')->get();
@@ -241,7 +252,8 @@ class ProdukController extends Controller
 
     public function store(Request $request, AnalisaService $analisaService)
     {
-        $this->authorize('produk.create');
+        // Cek izin kelompok sebelum validasi agar user tanpa izin tidak bisa memancing pesan validasi.
+        $this->authorize(Produk::izinKelompok('create', Produk::kelompokDariTipe($request->input('tipe'))));
 
         $data = $this->validated($request);
 
@@ -264,7 +276,15 @@ class ProdukController extends Controller
 
     public function edit(Produk $produk)
     {
-        $this->authorize('produk.edit');
+        $this->authorize(Produk::izinKelompok('edit', Produk::kelompokDariTipe($produk->tipe)));
+
+        // Tipe hanya boleh diganti ke kelompok yang juga boleh diubah user.
+        $tipeOptions = [];
+        foreach (Produk::KELOMPOK_TIPE as $kelompok => $opsi) {
+            if (auth()->user()->can(Produk::izinKelompok('edit', $kelompok))) {
+                $tipeOptions += $opsi;
+            }
+        }
 
         $produk->load(['kategori', 'varian', 'suppliers', 'klasifikasiAbc']);
         $kategoriList = Kategori::with(['varians' => fn ($q) => $q->orderBy('nama')])->orderBy('nama')->get();
@@ -274,12 +294,14 @@ class ProdukController extends Controller
             ->orderByDesc('tambahan_buffer_hari')
             ->get(['id', 'kode', 'nama', 'tambahan_buffer_hari', 'warna_badge']);
 
-        return view('produk.edit', compact('produk', 'kategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList'));
+        return view('produk.edit', compact('produk', 'kategoriList', 'uomList', 'suppliers', 'klasifikasiAbcList', 'tipeOptions'));
     }
 
     public function update(Request $request, Produk $produk, AnalisaService $analisaService)
     {
-        $this->authorize('produk.edit');
+        $this->authorize(Produk::izinKelompok('edit', Produk::kelompokDariTipe($produk->tipe)));
+        // Pindah kelompok (mis. bahan -> produk jadi) butuh izin ubah di kelompok tujuan juga.
+        $this->authorize(Produk::izinKelompok('edit', Produk::kelompokDariTipe($request->input('tipe', $produk->tipe))));
 
         $data = $this->validated($request, $produk->id);
 
@@ -312,7 +334,7 @@ class ProdukController extends Controller
 
     public function destroy(Produk $produk): JsonResponse
     {
-        $this->authorize('produk.delete');
+        $this->authorize(Produk::izinKelompok('delete', Produk::kelompokDariTipe($produk->tipe)));
         $produk->delete();
 
         return response()->json(['message' => 'Produk berhasil dihapus.']);

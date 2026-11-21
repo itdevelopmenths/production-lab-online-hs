@@ -6,7 +6,7 @@
             :breadcrumbs="['Master Data' => null, 'Klasifikasi ABC' => null]"
         >
             <x-slot:actions>
-                @can('analisa.manage')
+                @can('klasifikasi_abc.manage')
                 <x-button type="button" @click="openAddModal()" variant="primary" size="sm">
                     <x-slot:icon>
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -65,7 +65,7 @@
                 </div>
 
                 <div class="p-5 sm:p-6 space-y-5 overflow-y-auto bg-[#F5F5F5] dark:bg-gray-950 custom-scrollbar">
-                    @can('analisa.manage')
+                    @can('klasifikasi_abc.manage')
                     <!-- Bagian 1: Tambah SKU -->
                     <div class="border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 bg-white dark:bg-gray-900 space-y-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -152,7 +152,7 @@
                                         <th class="px-3 py-2.5">Nama Produk</th>
                                         <th class="px-3 py-2.5">Tipe</th>
                                         <th class="px-3 py-2.5">Profil</th>
-                                        @can('analisa.manage')
+                                        @can('klasifikasi_abc.manage')
                                         <th class="px-3 py-2.5 text-center w-24">Aksi</th>
                                         @endcan
                                     </tr>
@@ -170,7 +170,7 @@
                                             <td class="px-3 py-2.5 text-[#101828] dark:text-gray-200" x-text="skuItem.nama"></td>
                                             <td class="px-3 py-2.5 uppercase text-[10px] font-medium text-[#667085] dark:text-gray-400" x-text="skuItem.tipe"></td>
                                             <td class="px-3 py-2.5 uppercase text-[10px] font-medium text-[#101828] dark:text-white" x-text="skuItem.profil_analisa || 'impor'"></td>
-                                            @can('analisa.manage')
+                                            @can('klasifikasi_abc.manage')
                                             <td class="px-3 py-2.5 text-center">
                                                 <button type="button" @click="unassignSku(skuItem)" class="px-2 py-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer rounded-[6px]">
                                                     Keluarkan

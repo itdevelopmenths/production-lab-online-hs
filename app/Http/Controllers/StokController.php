@@ -514,7 +514,7 @@ class StokController extends Controller
 
     public function pergerakanLog(Request $request)
     {
-        $this->authorize('stok.view');
+        $this->authorize('stok.log.view');
         $user = auth()->user();
         $gudang = $this->locationScope->getAccessibleGudangs($user);
 
@@ -523,7 +523,7 @@ class StokController extends Controller
 
     public function pergerakanLogData(Request $request): JsonResponse
     {
-        $this->authorize('stok.view');
+        $this->authorize('stok.log.view');
         $user = auth()->user();
         $allowedGudangIds = $this->locationScope->getAccessibleWarehouseIds($user);
 

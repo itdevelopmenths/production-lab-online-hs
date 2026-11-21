@@ -22,10 +22,46 @@ class PermissionCatalogService
                     'label' => 'Master Produk',
                     'icon' => 'cube',
                     'actions' => [
-                        'produk.view' => 'Lihat Daftar & Detail Produk',
-                        'produk.create' => 'Tambah Produk Baru',
-                        'produk.edit' => 'Ubah Data Produk',
-                        'produk.delete' => 'Hapus Data Produk',
+                        'produk.view' => 'Lihat Semua Produk (Global)',
+                        'produk.create' => 'Tambah Semua Jenis Produk (Global)',
+                        'produk.edit' => 'Ubah Semua Jenis Produk (Global)',
+                        'produk.delete' => 'Hapus Semua Jenis Produk (Global)',
+                        'produk.bahan.view' => 'Bahan Baku & Kemasan: Lihat Daftar',
+                        'produk.bahan.create' => 'Bahan Baku & Kemasan: Tambah',
+                        'produk.bahan.edit' => 'Bahan Baku & Kemasan: Ubah',
+                        'produk.bahan.delete' => 'Bahan Baku & Kemasan: Hapus',
+                        'produk.produk_jadi.view' => 'Produk Jadi: Lihat Daftar',
+                        'produk.produk_jadi.create' => 'Produk Jadi: Tambah',
+                        'produk.produk_jadi.edit' => 'Produk Jadi: Ubah',
+                        'produk.produk_jadi.delete' => 'Produk Jadi: Hapus',
+                    ],
+                ],
+                'kategori' => [
+                    'label' => 'Master Kategori Produk',
+                    'icon' => 'tag',
+                    'actions' => [
+                        'kategori.view' => 'Lihat Daftar Kategori',
+                        'kategori.create' => 'Tambah Kategori Baru',
+                        'kategori.edit' => 'Ubah Kategori',
+                        'kategori.delete' => 'Hapus Kategori',
+                    ],
+                ],
+                'varian' => [
+                    'label' => 'Master Varian Produk',
+                    'icon' => 'swatch',
+                    'actions' => [
+                        'varian.view' => 'Lihat Daftar Varian',
+                        'varian.create' => 'Tambah Varian Baru',
+                        'varian.edit' => 'Ubah Varian',
+                        'varian.delete' => 'Hapus Varian',
+                    ],
+                ],
+                'klasifikasi_abc' => [
+                    'label' => 'Master Klasifikasi ABC',
+                    'icon' => 'chart-bar',
+                    'actions' => [
+                        'klasifikasi_abc.view' => 'Lihat Klasifikasi ABC',
+                        'klasifikasi_abc.manage' => 'Kelola Klasifikasi ABC & Penetapan SKU',
                     ],
                 ],
                 'gudang' => [
@@ -127,7 +163,7 @@ class PermissionCatalogService
                     'icon' => 'truck',
                     'actions' => [
                         'transfer.view' => 'Lihat Dokumen Transfer & Surat Jalan',
-                        'defect.view' => 'Lihat Dashboard & Rekapitulasi Barang Rusak (Defect)',
+                        'defect.view' => 'Lihat Menu Barang Rusak, Dashboard & Rekapitulasi Defect',
                         'transfer.create' => 'Buat Semua Jenis Transfer (Global)',
                         'transfer.bahan.create' => 'Bahan Baku: Buat Transfer Keluar / Pemenuhan Request',
                         'transfer.bahan.ship' => 'Bahan Baku: Kirim Transfer (Potong Stok In-Transit)',
@@ -167,6 +203,7 @@ class PermissionCatalogService
                         'stok.mutasi' => 'Eksekusi Mutasi Stok Manual',
                         'stok.opname' => 'Stock Opname Fisik Aktual',
                         'stok.ledger.view' => 'Lihat Kartu Stok (Audit Trail)',
+                        'stok.log.view' => 'Lihat Log Pergerakan Stok',
                     ],
                 ],
                 'analisa' => [

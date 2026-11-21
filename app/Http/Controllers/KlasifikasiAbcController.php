@@ -19,16 +19,16 @@ class KlasifikasiAbcController extends Controller
 {
     public function index()
     {
-        $this->authorize('analisa.view');
+        $this->authorize('klasifikasi_abc.view');
 
         return view('klasifikasi-abc.index');
     }
 
     public function data(): JsonResponse
     {
-        $this->authorize('analisa.view');
+        $this->authorize('klasifikasi_abc.view');
 
-        $canManage = auth()->user()->can('analisa.manage');
+        $canManage = auth()->user()->can('klasifikasi_abc.manage');
 
         $hasProdukAbcColumn = $this->hasProdukKlasifikasiColumn();
 
@@ -105,7 +105,7 @@ class KlasifikasiAbcController extends Controller
 
     public function options(): JsonResponse
     {
-        $this->authorize('analisa.view');
+        $this->authorize('klasifikasi_abc.view');
 
         $options = KlasifikasiAbc::where('is_active', true)
             ->orderBy('tambahan_buffer_hari', 'desc')
@@ -119,7 +119,7 @@ class KlasifikasiAbcController extends Controller
 
     public function availableSkus(Request $request): JsonResponse
     {
-        $this->authorize('analisa.view');
+        $this->authorize('klasifikasi_abc.view');
 
         $query = Produk::query()
             ->active()
@@ -181,7 +181,7 @@ class KlasifikasiAbcController extends Controller
 
     public function skus(KlasifikasiAbc $klasifikasiAbc): JsonResponse
     {
-        $this->authorize('analisa.view');
+        $this->authorize('klasifikasi_abc.view');
 
         $legacyProdIds = AnalisaImpor::where('klasifikasi_abc_id', $klasifikasiAbc->id)
             ->pluck('produk_id')
@@ -216,7 +216,7 @@ class KlasifikasiAbcController extends Controller
 
     public function assignSkus(Request $request, KlasifikasiAbc $klasifikasiAbc, AnalisaService $analisa): JsonResponse
     {
-        $this->authorize('analisa.manage');
+        $this->authorize('klasifikasi_abc.manage');
 
         $validator = Validator::make($request->all(), [
             'produk_ids' => ['required', 'array', 'min:1'],
@@ -257,7 +257,7 @@ class KlasifikasiAbcController extends Controller
 
     public function unassignSku(KlasifikasiAbc $klasifikasiAbc, Produk $produk, AnalisaService $analisa): JsonResponse
     {
-        $this->authorize('analisa.manage');
+        $this->authorize('klasifikasi_abc.manage');
 
         $belongsInImpor = AnalisaImpor::where('produk_id', $produk->id)
             ->where('klasifikasi_abc_id', $klasifikasiAbc->id)
@@ -278,7 +278,7 @@ class KlasifikasiAbcController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $this->authorize('analisa.manage');
+        $this->authorize('klasifikasi_abc.manage');
 
         $validated = $this->validateAbcPayload($request);
         if ($validated instanceof JsonResponse) {
@@ -297,7 +297,7 @@ class KlasifikasiAbcController extends Controller
 
     public function update(Request $request, KlasifikasiAbc $klasifikasiAbc): JsonResponse
     {
-        $this->authorize('analisa.manage');
+        $this->authorize('klasifikasi_abc.manage');
 
         $validated = $this->validateAbcPayload($request, $klasifikasiAbc->id);
         if ($validated instanceof JsonResponse) {
@@ -352,7 +352,7 @@ class KlasifikasiAbcController extends Controller
 
     public function destroy(KlasifikasiAbc $klasifikasiAbc): JsonResponse
     {
-        $this->authorize('analisa.manage');
+        $this->authorize('klasifikasi_abc.manage');
 
         $produkCount = $this->hasProdukKlasifikasiColumn()
             ? $klasifikasiAbc->produks()->count()

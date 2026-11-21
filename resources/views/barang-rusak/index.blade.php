@@ -1,5 +1,6 @@
 @php
     use App\Helpers\NumberHelper;
+    $canTransfer = auth()->user()->can('transfer.view');
     $inputClass = 'h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none rounded-[6px]';
 @endphp
 <x-app-layout title="Barang Rusak">
@@ -7,7 +8,7 @@
         <x-page-header
             title="Barang Rusak"
             subtitle="Akumulasi barang rusak hasil QC penerimaan Transfer, per barang dan lokasi gudang"
-            :breadcrumbs="['Transfer Barang' => route('transfers.index'), 'Barang Rusak' => null]"
+            :breadcrumbs="['Transfer Barang' => $canTransfer ? route('transfers.index') : null, 'Barang Rusak' => null]"
         />
 
         {{-- Filter --}}
@@ -93,11 +94,15 @@
                                     </thead>
                                     <tbody>
                                         @foreach($item->details as $d)
-                                        <tr onclick="window.location='{{ route('transfers.show', $d->transfer_id) }}'"
-                                            class="cursor-pointer border-t border-[#E8E8E8] dark:border-gray-800 hover:bg-white dark:hover:bg-gray-900">
+                                        <tr @if($canTransfer) onclick="window.location='{{ route('transfers.show', $d->transfer_id) }}'" @endif
+                                            class="{{ $canTransfer ? 'cursor-pointer hover:bg-white dark:hover:bg-gray-900' : '' }} border-t border-[#E8E8E8] dark:border-gray-800">
                                             <td class="py-2 pr-3 whitespace-nowrap tabular-nums">{{ \Illuminate\Support\Carbon::parse($d->tanggal)->format('d/m/Y H:i') }}</td>
                                             <td class="py-2 pr-3">
+                                                @if($canTransfer)
                                                 <a href="{{ route('transfers.show', $d->transfer_id) }}" class="font-medium underline underline-offset-2 text-[#101828] dark:text-white">{{ $d->no_transaksi }}</a>
+                                                @else
+                                                <span class="font-medium">{{ $d->no_transaksi }}</span>
+                                                @endif
                                             </td>
                                             <td class="py-2 pr-3">{{ $jenisLabels[$d->jenis] ?? $d->jenis }}</td>
                                             <td class="py-2 pr-3">{{ $d->gudang_asal_nama ?? '—' }} → {{ $d->gudang_nama }}</td>

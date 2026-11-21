@@ -22,7 +22,7 @@ class BarangRusakController extends Controller
 
     public function index(Request $request)
     {
-        $this->authorize('transfer.view');
+        $this->authorize('defect.view');
 
         $data = $request->validate([
             'gudang_id' => ['nullable', 'integer'],

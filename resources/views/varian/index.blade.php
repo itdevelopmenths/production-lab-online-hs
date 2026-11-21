@@ -6,7 +6,7 @@
         :breadcrumbs="['Master Data' => null, 'Varian Produk' => null]"
     >
         <x-slot:actions>
-            @can('produk.create')
+            @can('varian.create')
             <x-button type="button" @click="createOpen = true" variant="primary" size="sm">
                 <x-slot:icon>
                     <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -48,7 +48,7 @@
         </div>
     </x-card>
 
-    @can('produk.create')
+    @can('varian.create')
         @include('varian._create-modal')
         @endcan
     </div>
