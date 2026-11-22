@@ -860,6 +860,8 @@ class AnalisaController extends Controller
         $inputs = AnalisaFulfillmentInput::where('produk_id', $produk->id)->get()->keyBy('gudang_id');
         $live = $this->analisa->fulfillmentLiveStock([$produk->id], $gudang->pluck('id')->map(fn ($id) => (int) $id)->all());
 
+        $ltStats = $this->analisa->distribusiLeadTimeStats([$produk->id]);
+
         return response()->json([
             'success' => true,
             'produk' => [
@@ -869,9 +871,10 @@ class AnalisaController extends Controller
                 'satuan' => $produk->satuan,
                 'moq' => (float) ($produk->satuan_order_moq ?: 1),
             ],
-            'gudang' => $gudang->map(function ($g) use ($inputs, $live, $produk) {
+            'gudang' => $gudang->map(function ($g) use ($inputs, $live, $produk, $ltStats) {
                 $in = $inputs->get($g->id);
                 $key = "{$produk->id}_{$g->id}";
+                $lt = $ltStats[$key] ?? null;
 
                 return [
                     'gudang_id' => $g->id,
@@ -879,7 +882,9 @@ class AnalisaController extends Controller
                     'is_pusat' => (bool) $g->is_pusat,
                     'aktif' => $in !== null,
                     'terjual_rata_rata_4bulan' => (float) ($in->terjual_rata_rata_4bulan ?? 0),
-                    'lead_time_distribusi' => (int) ($in->lead_time_distribusi ?? 0),
+                    'lead_time_distribusi' => $lt ? $lt['avg'] : (int) ($in->lead_time_distribusi ?? 0),
+                    'lead_time_distribusi_sumber' => $lt ? 'transfer' : 'manual',
+                    'jumlah_transfer_selesai' => $lt['count'] ?? 0,
                     'buffer_distribusi' => (int) ($in->buffer_distribusi ?? 0),
                     'review_period' => (int) ($in->review_period ?? 15),
                     'stok_saat_ini' => (float) ($live['stok'][$key] ?? 0),
@@ -901,7 +906,8 @@ class AnalisaController extends Controller
             'gudang' => ['required', 'array', 'min:1'],
             'gudang.*.gudang_id' => ['required', 'integer', 'distinct', 'exists:gudang,id'],
             'gudang.*.terjual_rata_rata_4bulan' => ['required', 'numeric', 'min:0'],
-            'gudang.*.lead_time_distribusi' => ['required', 'integer', 'min:0'],
+            // Terukur otomatis dari request->transfer (bisa desimal); disimpan dibulatkan sebagai fallback manual.
+            'gudang.*.lead_time_distribusi' => ['required', 'numeric', 'min:0'],
             'gudang.*.buffer_distribusi' => ['required', 'integer', 'min:0'],
             'gudang.*.review_period' => ['required', 'integer', 'min:0'],
         ]);

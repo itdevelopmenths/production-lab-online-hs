@@ -1691,13 +1691,15 @@ class AnalisaService
      * @param  \Illuminate\Support\Collection<int,AnalisaFulfillmentInput>  $rows  baris per gudang untuk satu produk jadi
      * @return array<string,mixed>
      */
-    public function fulfillment($rows, float $moq = 1, ?array $live = null): array
+    public function fulfillment($rows, float $moq = 1, ?array $live = null, ?array $ltDistribusi = null): array
     {
         $rows = collect($rows);
+        $produkIds = $rows->pluck('produk_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
         $live ??= $this->fulfillmentLiveStock(
-            $rows->pluck('produk_id')->map(fn ($id) => (int) $id)->unique()->values()->all(),
+            $produkIds,
             $rows->pluck('gudang_id')->map(fn ($id) => (int) $id)->unique()->values()->all()
         );
+        $ltDistribusi ??= $this->distribusiLeadTimeStats($produkIds);
 
         $perGudang = [];
         $aduTotal = 0.0;
@@ -1707,12 +1709,13 @@ class AnalisaService
         $akanDatang = 0.0;
 
         foreach ($rows as $r) {
+            $key = "{$r->produk_id}_{$r->gudang_id}";
             $adu = (float) $r->terjual_rata_rata_4bulan / 30; // tanpa pembulatan, sesuai Excel
-            $batasMin = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi);
-            $target = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi + (int) $r->review_period);
+            $lt = $this->resolveLeadTimeDistribusi($r, $ltDistribusi[$key] ?? null);
+            $batasMin = $adu * ($lt['hari'] + (int) $r->buffer_distribusi);
+            $target = $adu * ($lt['hari'] + (int) $r->buffer_distribusi + (int) $r->review_period);
 
             // Stok & Akan Datang diambil live dari ledger stok, transfer in-transit, dan rencana batch aktif.
-            $key = "{$r->produk_id}_{$r->gudang_id}";
             $stokGudang = (float) ($live['stok'][$key] ?? 0.0);
             $akanGudang = (float) ($live['akan_datang'][$key] ?? 0.0);
 
@@ -1726,7 +1729,10 @@ class AnalisaService
                 'gudang_id' => (int) $r->gudang_id,
                 'gudang' => $r->gudang?->nama,
                 'terjual_rata_rata_4bulan' => (float) $r->terjual_rata_rata_4bulan,
-                'lead_time_distribusi' => (int) $r->lead_time_distribusi,
+                'lead_time_distribusi' => $lt['hari'],
+                'lead_time_distribusi_sumber' => $lt['sumber'],
+                'lead_time_distribusi_max' => $lt['max'],
+                'jumlah_transfer_selesai' => $lt['count'],
                 'buffer_distribusi' => (int) $r->buffer_distribusi,
                 'review_period' => (int) $r->review_period,
                 'adu' => $adu,
@@ -1758,6 +1764,65 @@ class AnalisaService
     }
 
     /**
+     * Lead time distribusi produk jadi per gudang fulfillment, terukur dari data riil:
+     * durasi = request produk jadi dibuat -> transfer produk jadi dikirim (waktu_dikirim).
+     * Hanya transfer berstatus dikirim/selesai yang dihitung. Satuan hari, 1 desimal half-up.
+     *
+     * @param  array<int, int>  $produkIds
+     * @return array<string, array{avg: float, max: float, count: int}>  key "produk_id_gudang_id"
+     */
+    public function distribusiLeadTimeStats(array $produkIds): array
+    {
+        if (empty($produkIds)) {
+            return [];
+        }
+
+        $perKey = [];
+        foreach (DB::table('transfer_items as ti')
+            ->join('transfers as t', 't.id', '=', 'ti.transfer_id')
+            ->join('requests as r', 'r.id', '=', 't.request_id')
+            ->where('r.jenis', 'request_produk_jadi')
+            ->whereIn('t.status', ['dikirim', 'selesai'])
+            ->whereNotNull('t.waktu_dikirim')
+            ->whereIn('ti.produk_id', $produkIds)
+            ->get(['ti.produk_id', 't.gudang_tujuan_id', 'r.created_at', 't.waktu_dikirim']) as $row) {
+            $menit = max(0, (int) round(
+                (\Carbon\Carbon::parse($row->waktu_dikirim)->timestamp - \Carbon\Carbon::parse($row->created_at)->timestamp) / 60
+            ));
+            $perKey[(int) $row->produk_id . '_' . (int) $row->gudang_tujuan_id][] = $menit;
+        }
+
+        $out = [];
+        foreach ($perKey as $key => $list) {
+            $out[$key] = [
+                'avg' => self::roundLeadTimeDays((array_sum($list) / count($list)) / 1440),
+                'max' => self::roundLeadTimeDays(max($list) / 1440),
+                'count' => count($list),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Lead time distribusi yang dipakai: hasil ukur riil bila sudah ada transfer, jika belum
+     * fallback ke nilai manual tersimpan di analisa_fulfillment_input.
+     *
+     * @param  array{avg: float, max: float, count: int}|null  $stat
+     * @return array{hari: float, max: float, count: int, sumber: string}
+     */
+    private function resolveLeadTimeDistribusi(AnalisaFulfillmentInput $input, ?array $stat): array
+    {
+        if ($stat !== null && $stat['count'] > 0) {
+            return ['hari' => $stat['avg'], 'max' => $stat['max'], 'count' => $stat['count'], 'sumber' => 'transfer'];
+        }
+
+        $manual = (float) $input->lead_time_distribusi;
+
+        return ['hari' => $manual, 'max' => $manual, 'count' => 0, 'sumber' => 'manual'];
+    }
+
+    /**
      * Seluruh baris Analisa Produk Jadi Fulfillment (satu baris per produk, level ALL),
      * dengan stok & akan datang live dihitung sekali untuk semua produk.
      *
@@ -1770,10 +1835,12 @@ class AnalisaService
             return [];
         }
 
+        $produkIds = $inputs->pluck('produk_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
         $live = $this->fulfillmentLiveStock(
-            $inputs->pluck('produk_id')->map(fn ($id) => (int) $id)->unique()->values()->all(),
+            $produkIds,
             $inputs->pluck('gudang_id')->map(fn ($id) => (int) $id)->unique()->values()->all()
         );
+        $ltDistribusi = $this->distribusiLeadTimeStats($produkIds);
 
         $out = [];
         foreach ($inputs->groupBy('produk_id') as $produkId => $rows) {
@@ -1786,7 +1853,7 @@ class AnalisaService
                 'nama' => $produk?->nama,
                 'satuan' => $produk?->satuan,
                 'moq' => $moq,
-            ], $this->fulfillment($rows, $moq, $live));
+            ], $this->fulfillment($rows, $moq, $live, $ltDistribusi));
         }
 
         usort($out, fn ($a, $b) => strcmp((string) $a['nama'], (string) $b['nama']));
@@ -1890,7 +1957,7 @@ class AnalisaService
                     ['produk_id' => $produk->id, 'gudang_id' => (int) $g['gudang_id']],
                     [
                         'terjual_rata_rata_4bulan' => (float) $g['terjual_rata_rata_4bulan'],
-                        'lead_time_distribusi' => (int) $g['lead_time_distribusi'],
+                        'lead_time_distribusi' => (int) round((float) $g['lead_time_distribusi']),
                         'buffer_distribusi' => (int) $g['buffer_distribusi'],
                         'review_period' => (int) $g['review_period'],
                     ]
@@ -1984,10 +2051,11 @@ class AnalisaService
 
         // 3. Profil Produk Jadi (Fulfillment)
         $ffInputs = AnalisaFulfillmentInput::all();
+        $ltDistribusi = $this->distribusiLeadTimeStats($ffInputs->pluck('produk_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
         foreach ($ffInputs as $r) {
-            $adu = (float) $r->terjual_rata_rata_4bulan / 30; // tanpa pembulatan, sesuai Excel
-            $batasMin = $adu * ((int) $r->lead_time_distribusi + (int) $r->buffer_distribusi);
             $key = "{$r->produk_id}_{$r->gudang_id}";
+            $adu = (float) $r->terjual_rata_rata_4bulan / 30; // tanpa pembulatan, sesuai Excel
+            $batasMin = $adu * ($this->resolveLeadTimeDistribusi($r, $ltDistribusi[$key] ?? null)['hari'] + (int) $r->buffer_distribusi);
             $byProductGudang[$key] = $batasMin;
 
             $byProduct[$r->produk_id] = ($byProduct[$r->produk_id] ?? 0) + $batasMin;

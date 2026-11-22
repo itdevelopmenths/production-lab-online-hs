@@ -42,6 +42,50 @@ class AnalisaFulfillmentInputTest extends TestCase
         $this->fulfillment = User::where('email', 'fulfillment@heavenscent.id')->firstOrFail();
     }
 
+    public function test_lead_time_distribusi_terukur_dari_request_sampai_transfer_dikirim(): void
+    {
+        $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
+
+        // Dua request produk jadi ke FF-SBY: 2 hari dan 4 hari sampai transfer dikirim -> rata-rata 3, max 4.
+        foreach ([['REQ-LT-1', 'TRF-LT-1', 2], ['REQ-LT-2', 'TRF-LT-2', 4]] as [$noReq, $noTrf, $hari]) {
+            $req = \App\Models\StockRequest::create([
+                'no_request' => $noReq,
+                'jenis' => 'request_produk_jadi',
+                'gudang_asal_id' => $this->ffSby->id,
+                'gudang_tujuan_id' => $this->ffPusat->id,
+                'status' => 'selesai',
+                'created_by' => $manager->id,
+            ]);
+            $req->forceFill(['created_at' => now()->subDays($hari + 1)])->saveQuietly();
+
+            $t = Transfer::create([
+                'no_transaksi' => $noTrf,
+                'jenis' => 'kirim_produk_jadi',
+                'gudang_asal_id' => $this->ffPusat->id,
+                'gudang_tujuan_id' => $this->ffSby->id,
+                'request_id' => $req->id,
+                'status' => 'selesai',
+                'waktu_dikirim' => now()->subDay(),
+                'created_by' => $manager->id,
+            ]);
+            $t->items()->create(['produk_id' => $this->goh->id, 'qty_dikirim' => 10, 'qty_rusak' => 0]);
+        }
+
+        $row = app(AnalisaService::class)->fulfillmentRows()[0];
+        $sby = collect($row['per_gudang'])->keyBy('gudang_id')[$this->ffSby->id];
+
+        $this->assertEquals(3.0, $sby['lead_time_distribusi']);
+        $this->assertEquals(4.0, $sby['lead_time_distribusi_max']);
+        $this->assertSame('transfer', $sby['lead_time_distribusi_sumber']);
+        $this->assertSame(2, $sby['jumlah_transfer_selesai']);
+        // Batas minimum = ADU * (LT terukur + buffer 1) = 3000 * 4.
+        $this->assertEquals(3000 * 4, $sby['batas_minimum']);
+
+        // Gudang tanpa riwayat transfer tetap memakai nilai manual.
+        $solo = collect($row['per_gudang'])->keyBy('gudang_id')[$this->ffSolo->id];
+        $this->assertSame('manual', $solo['lead_time_distribusi_sumber']);
+    }
+
     public function test_stok_dan_akan_datang_diambil_live_bukan_dari_kolom_tersimpan(): void
     {
         $manager = User::where('email', 'manager@heavenscent.id')->firstOrFail();
