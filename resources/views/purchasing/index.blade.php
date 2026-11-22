@@ -43,7 +43,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div x-data="{ activeTab: '{{ $defaultTab }}', leadTimeLoaded: {{ $defaultTab === 'lead_time' ? 'true' : 'false' }} }"
+    <div class="tbl-fit" x-data="{ activeTab: '{{ $defaultTab }}', leadTimeLoaded: {{ $defaultTab === 'lead_time' ? 'true' : 'false' }} }"
          x-init="{{ $defaultTab === 'lead_time' ? '$nextTick(() => { loadLeadTimeData(); })' : '' }}">
         {{-- Blueprint Segmented StatusTabs --}}
         <div class="bg-[#f3f4f6] dark:bg-gray-900 dark:border dark:border-gray-800 p-[2px] gap-[2px] rounded-[8px] h-9 sm:h-10 inline-flex items-center w-fit max-w-full overflow-x-auto no-scrollbar mb-4" role="tablist">
