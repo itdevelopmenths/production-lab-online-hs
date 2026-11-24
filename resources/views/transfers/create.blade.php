@@ -456,7 +456,7 @@
 
                     <x-form-field label="Gudang Asal" name="gudang_asal_id" :required="true">
                         <x-select id="transfer-gudang-asal" name="gudang_asal_id" variant="seamless" x-model="gudangAsalId" placeholder="-- Pilih Gudang Asal --" :required="true">
-                            @foreach($warehouses as $w)
+                            @foreach($warehousesAsal as $w)
                                 <option value="{{ $w->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white">{{ $w->nama }} ({{ $w->kode }})</option>
                             @endforeach
                         </x-select>

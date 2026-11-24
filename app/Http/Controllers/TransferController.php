@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\Produk;
 use App\Models\StockRequest;
@@ -25,8 +26,7 @@ class TransferController extends Controller
         private readonly LocationScopeService $locationScope,
         private readonly StokService $stokService,
         private readonly InventoryTransferAuthorizationService $authz
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -108,13 +108,14 @@ class TransferController extends Controller
             ->editColumn('tanggal_transfer', fn ($t) => $t->tanggal_transfer ? $t->tanggal_transfer->format('d/m/Y') : ($t->created_at ? $t->created_at->format('d/m/Y') : '-'))
             ->addColumn('asal', fn ($t) => $t->gudangAsal?->nama ?? '-')
             ->addColumn('tujuan', fn ($t) => $t->gudangTujuan?->nama ?? '-')
-            ->addColumn('request_no', fn ($t) => $t->stockRequest ? '<a href="' . route('requests.show', $t->stockRequest) . '" class="text-blue-600 dark:text-blue-400 hover:underline font-mono text-xs">' . e($t->stockRequest->no_request) . '</a>' : '-')
+            ->addColumn('request_no', fn ($t) => $t->stockRequest ? '<a href="'.route('requests.show', $t->stockRequest).'" class="text-blue-600 dark:text-blue-400 hover:underline font-mono text-xs">'.e($t->stockRequest->no_request).'</a>' : '-')
             ->addColumn('qty_dikirim', fn ($t) => number_format($t->items->sum('qty_dikirim'), 2))
             ->addColumn('qty_rusak', function ($t) {
                 $rusak = (float) $t->items->sum('qty_rusak');
                 if ($rusak > 0) {
-                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-bold bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-400 border border-rose-300 dark:border-rose-500/30">' . number_format($rusak, 2) . '</span>';
+                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-bold bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-400 border border-rose-300 dark:border-rose-500/30">'.number_format($rusak, 2).'</span>';
                 }
+
                 return '<span class="text-text-muted">0</span>';
             })
             ->addColumn('action', function ($t) {
@@ -158,6 +159,8 @@ class TransferController extends Controller
         $allowedProductTipes = $this->authz->allowedTransferProductTipes($user);
 
         $warehouses = Gudang::active()->orderBy('nama')->get();
+        $originIds = $this->locationScope->getTransferOriginWarehouseIds($user);
+        $warehousesAsal = $originIds === null ? $warehouses : $warehouses->whereIn('id', $originIds)->values();
         $products = Produk::active()
             ->when($allowedProductTipes !== null, fn ($q) => $q->whereIn('tipe', $allowedProductTipes))
             ->orderBy('nama')
@@ -174,7 +177,7 @@ class TransferController extends Controller
         $reqId = $request->input('request_id', $request->old('request_id'));
         $batchIdParam = $request->input('batch_id', $request->old('batch_id', $request->old('referensi_batch_id')));
 
-        if (!empty($reqId)) {
+        if (! empty($reqId)) {
             $stockRequest = StockRequest::with(['items.produk.uom', 'gudangPemohon', 'gudangTujuan', 'batch'])->findOrFail($reqId);
 
             $this->authz->authorizeOrAbort(
@@ -213,8 +216,8 @@ class TransferController extends Controller
                     'keterangan' => $item->keterangan,
                 ];
             }
-        } elseif (!empty($batchIdParam)) {
-            $batch = \App\Models\BatchProduksi::with(['outputs.produk', 'gudangOperasional', 'gudangTujuan', 'produk'])->findOrFail($batchIdParam);
+        } elseif (! empty($batchIdParam)) {
+            $batch = BatchProduksi::with(['outputs.produk', 'gudangOperasional', 'gudangTujuan', 'produk'])->findOrFail($batchIdParam);
 
             $this->authz->authorizeOrAbort(
                 $this->authz->canCreateTransferForBatch($user, $batch),
@@ -238,7 +241,7 @@ class TransferController extends Controller
                         'qty_diminta' => (float) ($out->qty_baik ?? $out->qty_rencana),
                         'qty_dikirim' => (float) ($out->qty_baik ?? $out->qty_rencana),
                         'stok_tersedia' => (float) $stokTersedia,
-                        'keterangan' => 'Hasil batch ' . $batch->no_batch,
+                        'keterangan' => 'Hasil batch '.$batch->no_batch,
                     ];
                 }
             } elseif ($batch->produk_id) {
@@ -251,7 +254,7 @@ class TransferController extends Controller
                     'qty_diminta' => (float) ($batch->qty_baik ?? $batch->qty_rencana),
                     'qty_dikirim' => (float) ($batch->qty_baik ?? $batch->qty_rencana),
                     'stok_tersedia' => (float) $stokTersedia,
-                    'keterangan' => 'Hasil batch ' . $batch->no_batch,
+                    'keterangan' => 'Hasil batch '.$batch->no_batch,
                 ];
             }
         }
@@ -272,6 +275,7 @@ class TransferController extends Controller
             'batch',
             'referensiBatchId',
             'warehouses',
+            'warehousesAsal',
             'products',
             'defaultGudangAsalId',
             'defaultGudangTujuanId',
@@ -345,6 +349,12 @@ class TransferController extends Controller
             throw ValidationException::withMessages(['items' => $mismatch]);
         }
 
+        if (! $this->locationScope->canTransferFromWarehouse($user, (int) $validated['gudang_asal_id'])) {
+            throw ValidationException::withMessages([
+                'gudang_asal_id' => 'Anda hanya dapat membuat transfer dari gudang asal milik Anda sendiri.',
+            ]);
+        }
+
         try {
             DB::beginTransaction();
 
@@ -374,6 +384,7 @@ class TransferController extends Controller
             throw $e;
         } catch (\Throwable $e) {
             DB::rollBack();
+
             return back()->withInput()->with('error', $e->getMessage());
         }
     }
@@ -426,6 +437,7 @@ class TransferController extends Controller
 
         try {
             $this->transferService->ship($transfer, $user);
+
             return redirect()->route('transfers.show', $transfer)->with('success', "Transfer {$transfer->no_transfer} berhasil dikirim (In Transit). Stok gudang asal telah dikurangi.");
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
@@ -461,7 +473,7 @@ class TransferController extends Controller
         foreach ($validated['items'] as $itemData) {
             $tItem = $transferItems->get($itemData['id']);
             if (! $tItem) {
-                return back()->with('error', "Item transfer tidak valid.");
+                return back()->with('error', 'Item transfer tidak valid.');
             }
 
             $baik = (float) $itemData['qty_baik'];
@@ -479,6 +491,7 @@ class TransferController extends Controller
 
         try {
             $this->transferService->receive($transfer, ['items' => $validated['items']], $user);
+
             return redirect()->route('transfers.show', $transfer)->with('success', "Transfer {$transfer->no_transfer} berhasil diterima. Stok baik telah masuk ke gudang tujuan dan barang rusak telah dicatat dalam metrik defect bulanan.");
         } catch (\Throwable $e) {
             return back()->withInput()->with('error', $e->getMessage());

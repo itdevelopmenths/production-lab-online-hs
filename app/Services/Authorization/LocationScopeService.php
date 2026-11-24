@@ -61,6 +61,28 @@ class LocationScopeService
     }
 
     /**
+     * Daftar ID gudang yang boleh dipakai user sebagai gudang ASAL transfer.
+     * null = bebas (akses global atau memiliki permission transfer.asal_semua_gudang).
+     *
+     * @return array<int>|null
+     */
+    public function getTransferOriginWarehouseIds(User $user): ?array
+    {
+        if ($user->can('transfer.asal_semua_gudang')) {
+            return null;
+        }
+
+        return $this->getAccessibleWarehouseIds($user);
+    }
+
+    public function canTransferFromWarehouse(User $user, int $warehouseId): bool
+    {
+        $ids = $this->getTransferOriginWarehouseIds($user);
+
+        return $ids === null || in_array($warehouseId, $ids, true);
+    }
+
+    /**
      * Apakah user berwewenang global (Manager / All locations).
      */
     public function isGlobal(User $user): bool
@@ -133,11 +155,11 @@ class LocationScopeService
         $matrix = RequestTransfer::JENIS_MATRIX[$jenis];
 
         if (! in_array($asal->tipe, $matrix['asal_tipe'], true)) {
-            return "Gudang asal '{$asal->nama}' ({$asal->tipe}) tidak valid untuk jenis {$matrix['label']}. Tipe yang diizinkan: " . implode(', ', $matrix['asal_tipe']) . '.';
+            return "Gudang asal '{$asal->nama}' ({$asal->tipe}) tidak valid untuk jenis {$matrix['label']}. Tipe yang diizinkan: ".implode(', ', $matrix['asal_tipe']).'.';
         }
 
         if (! in_array($tujuan->tipe, $matrix['tujuan_tipe'], true)) {
-            return "Gudang tujuan '{$tujuan->nama}' ({$tujuan->tipe}) tidak valid untuk jenis {$matrix['label']}. Tipe yang diizinkan: " . implode(', ', $matrix['tujuan_tipe']) . '.';
+            return "Gudang tujuan '{$tujuan->nama}' ({$tujuan->tipe}) tidak valid untuk jenis {$matrix['label']}. Tipe yang diizinkan: ".implode(', ', $matrix['tujuan_tipe']).'.';
         }
 
         if ((int) $asal->id === (int) $tujuan->id) {

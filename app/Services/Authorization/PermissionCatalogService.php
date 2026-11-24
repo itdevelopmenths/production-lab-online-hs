@@ -174,6 +174,7 @@ class PermissionCatalogService
                         'transfer.ship' => 'Kirim Semua Jenis Transfer (Global)',
                         'transfer.receive' => 'Terima Semua Jenis Transfer (Global)',
                         'transfer.cancel' => 'Batalkan Dokumen Transfer',
+                        'transfer.asal_semua_gudang' => 'Transfer dari Gudang Asal Mana Pun (tanpa izin ini hanya dari gudang milik sendiri)',
                     ],
                 ],
                 'rt' => [
@@ -261,6 +262,7 @@ class PermissionCatalogService
                 }
             }
         }
+
         return $keys;
     }
 
@@ -302,7 +304,7 @@ class PermissionCatalogService
     /**
      * Memastikan permission katalog yang dipilih sudah tersimpan di tabel permissions.
      *
-     * @param array<int, string> $permissionNames
+     * @param  array<int, string>  $permissionNames
      */
     public function ensurePermissionsExist(array $permissionNames): void
     {

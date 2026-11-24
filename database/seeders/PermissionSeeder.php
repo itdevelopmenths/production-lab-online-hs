@@ -31,6 +31,7 @@ class PermissionSeeder extends Seeder
             // Request & Transfer (PRD v2.4 + legacy aliases)
             'request.view', 'request.create', 'request.submit', 'request.approve', 'request.cancel',
             'transfer.view', 'transfer.create', 'transfer.ship', 'transfer.receive', 'transfer.cancel',
+            'transfer.asal_semua_gudang',
             'defect.view',
             'rt.view', 'rt.create', 'rt.submit', 'rt.approve',
             'rt.process', 'rt.ship', 'rt.receive', 'rt.cancel', 'rt.audit',
