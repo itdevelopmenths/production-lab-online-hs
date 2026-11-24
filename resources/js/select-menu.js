@@ -3,8 +3,10 @@
  * Select asli tetap ada (tersembunyi) sebagai sumber nilai, jadi form, DataTables
  * dan handler `change` jQuery tetap bekerja tanpa perubahan.
  * Pengecualian: tambahkan `data-native` pada select untuk memakai tampilan bawaan browser.
+ * Select internal SweetAlert (`.swal2-select`) selalu dikecualikan, karena SweetAlert
+ * menyembunyikannya sendiri dan hanya memakainya untuk input bertipe select.
  */
-const SELECTOR = 'select:not([multiple]):not([data-native])';
+const SELECTOR = 'select:not([multiple]):not([data-native]):not(.swal2-select)';
 const CHEVRON = '<svg class="dd-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.5 7.75 10 12.25l4.5-4.5"/></svg>';
 const CHECK = '<svg class="dd-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 10.5 3.5 3.5 7.5-8"/></svg>';
 

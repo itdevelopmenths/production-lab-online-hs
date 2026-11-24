@@ -31,3 +31,4 @@ Thumbs.db
 /.worktrees/
 graphify-out/
 app/graphify-out/
+.flyenv
