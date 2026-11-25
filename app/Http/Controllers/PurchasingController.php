@@ -158,6 +158,9 @@ class PurchasingController extends Controller
             })
             ->editColumn('status', fn ($po) => ucwords(str_replace('_', ' ', $po->status)))
             ->addColumn('stage_label', function ($po) {
+                if ($po->status === 'dibatalkan') {
+                    return 'Dibatalkan';
+                }
                 if (! $po->stage_aktif) {
                     return $po->status === 'selesai' ? 'Selesai' : ucwords(str_replace('_', ' ', $po->status));
                 }
@@ -1029,6 +1032,16 @@ class PurchasingController extends Controller
         $currentStage = $po->stages->where('stage', $po->stage_aktif)->sortByDesc('putaran')->first();
         if (! $currentStage || ! $currentStage->waktu_mulai) {
             return '—';
+        }
+
+        if ($po->status === 'dibatalkan') {
+            // Durasi dibekukan: dari awal stage sampai waktu pembatalan, tanpa penanda terlambat.
+            $endAt = $currentStage->waktu_selesai ?? $po->updated_at ?? now();
+            $frozenMinutes = $endAt->greaterThanOrEqualTo($currentStage->waktu_mulai)
+                ? (float) $currentStage->waktu_mulai->diffInMinutes($endAt)
+                : 0.0;
+
+            return $this->formatSlaDuration($frozenMinutes, SupplierLeadTimeService::minutesToDays($frozenMinutes));
         }
 
         $elapsedMinutes = (float) $currentStage->waktu_mulai->diffInMinutes(now());

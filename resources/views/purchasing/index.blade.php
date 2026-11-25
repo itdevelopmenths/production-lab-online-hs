@@ -582,7 +582,7 @@
                     orderable: false,
                     render: function(data, type, row) {
                         let state = row.stage_badge_state || 'berjalan';
-                        const tones = { selesai: 'ok', berjalan: 'info', terlambat: 'bad', dikembalikan: 'warn' };
+                        const tones = { selesai: 'ok', berjalan: 'info', terlambat: 'bad', dikembalikan: 'warn', dibatalkan: 'bad' };
                         return tblStatus(data, tones[state] || '');
                     }
                 },
