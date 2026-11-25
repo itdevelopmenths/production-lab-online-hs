@@ -8,13 +8,10 @@
                     1. Rekomendasi Order Lokal
                 </button>
                 <button type="button" @click="lokalSubTab = 'analisa'; page = 1" :class="lokalSubTab === 'analisa' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white font-medium shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white font-medium'" class="px-3.5 py-1.5 transition-all cursor-pointer rounded-[6px]">
-                    2. Working Data Analisa (ADU)
-                </button>
-                <button type="button" @click="lokalSubTab = 'lead_time'; page = 1" :class="lokalSubTab === 'lead_time' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white font-medium shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white font-medium'" class="px-3.5 py-1.5 transition-all cursor-pointer rounded-[6px]">
-                    3. Ringkasan Lead Time & Buffer
+                    2. Analisa
                 </button>
                 <button type="button" @click="lokalSubTab = 'stages'; page = 1" :class="lokalSubTab === 'stages' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white font-medium shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white font-medium'" class="px-3.5 py-1.5 transition-all cursor-pointer rounded-[6px]">
-                    4. Rincian 8 Tahap Lead Time
+                    3. Rincian 8 Tahap Lead Time
                 </button>
             </div>
         </div>
@@ -157,11 +154,11 @@
             </x-card>
         </div>
 
-        {{-- TABEL 2: Working Data Analisa (analisa_lokal — seluruh kombinasi supplier-produk) --}}
+        {{-- TABEL 2: Analisa (analisa_lokal + ringkasan lead_time_lokal — seluruh kombinasi supplier-produk) --}}
         <div x-show="lokalSubTab === 'analisa'">
-            <x-card class="tbl-modern" 
-                title="Tabel Working Data Analisa Stok — ADU Seluruh Supplier–Produk" 
-                subtitle="ADU dihitung murni per produk (tidak bergantung supplier); Lead Time, Safety Stock, Batas Minimum, & Target Stock mengikuti masing-masing supplier"
+            <x-card class="tbl-modern"
+                title="Tabel Analisa Stok — Seluruh Supplier–Produk"
+                subtitle="ADU dihitung murni per produk (tidak bergantung supplier); Avg Lead Time & Safety Stock mengikuti masing-masing supplier. Batas Minimum & Target Stock ada di Rekomendasi Order Lokal"
                 :noPadding="true"
             >
                 <x-slot:icon>
@@ -179,10 +176,8 @@
                                 <th class="py-3 px-2.5 text-right">Terjual 4 Bulan</th>
                                 <th class="py-3 px-2.5 text-right bg-gray-100/70 dark:bg-gray-800 text-[#101828] dark:text-white">ADU</th>
                                 <th class="py-3 px-2.5 text-right">Review Period</th>
-                                <th class="py-3 px-2.5 text-right bg-gray-100/70 dark:bg-gray-800 text-[#101828] dark:text-white font-medium">Batas Minimum</th>
-                                <th class="py-3 px-2.5 text-right font-medium text-[#101828] dark:text-white">Target Stock</th>
                                 <th class="py-3 px-2.5 text-right">Generated At</th>
-                                <th class="py-3 px-2 text-center w-36">Aksi</th>
+                                <th class="py-3 px-2 text-center w-40">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800 bg-white dark:bg-gray-900">
@@ -224,8 +219,6 @@
                                     <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.terjual_rata_rata_4bulan)"></td>
                                     <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white bg-[#fafafa] dark:bg-gray-800/40" x-text="formatNumber(r.adu)"></td>
                                     <td class="py-3 px-2.5 text-right tabular-nums text-xs text-[#667085] dark:text-gray-400" x-text="r.review_period + ' Hari'"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white bg-[#fafafa] dark:bg-gray-800/40" x-text="formatNumber(r.batas_minimum) + ' ' + r.satuan"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.target_stock) + ' ' + r.satuan"></td>
                                     <td class="py-3 px-2.5 text-right tabular-nums text-xs text-[#667085] dark:text-gray-400" x-text="r.generated_at"></td>
                                     <td class="py-3 px-2 text-center">
                                         @can('analisa.manage')
@@ -235,118 +228,8 @@
                                                     Aktifkan
                                                 </button>
                                             </template>
-                                            <button type="button" @click="openManualLokalModal(r)" class="px-2.5 py-1 text-[10px] font-medium transition cursor-pointer btn-soft rounded-[6px]" title="Edit Terjual 4 Bulan & Review Period Produk">
+                                            <button type="button" @click="openManualLokalModal(r)" class="px-2.5 py-1 text-[10px] font-medium transition cursor-pointer btn-soft rounded-[6px]" title="Edit Review Period, Buffer, Harga & Koreksi Stok">
                                                 Edit Input
-                                            </button>
-                                        </div>
-                                        @else
-                                        <span class="text-[#667085] dark:text-gray-400 text-[10px]">-</span>
-                                        @endcan
-                                    </td>
-                                </tr>
-                            </template>
-                            <template x-if="paginatedAnalisaRows().length === 0">
-                                <tr>
-                                    <td colspan="11" class="py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
-                                        Tidak ada data working analisa yang cocok.
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-
-                {{-- Pagination Bar --}}
-                <x-slot:footer>
-                    <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-[#667085] dark:text-gray-400">
-                        <div class="flex items-center gap-2 tabular-nums text-[11px]">
-                            <span>Menampilkan <strong class="text-[#101828] dark:text-white" x-text="startItem()"></strong> - <strong class="text-[#101828] dark:text-white" x-text="endItem()"></strong> dari <strong class="text-[#101828] dark:text-white" x-text="currentDataLength()"></strong> item</span>
-                        </div>
-
-                        <div class="flex items-center gap-1.5" x-show="totalPages() > 1">
-                            <button type="button" @click="gotoPage(page - 1)" :disabled="page <= 1" class="px-2.5 py-1 text-xs disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer btn-soft rounded-[6px]">
-                                &laquo; Back
-                            </button>
-                            <template x-for="p in pagesList()" :key="p">
-                                <div>
-                                    <template x-if="p === '...'">
-                                        <span class="px-2 py-1 text-[#667085] dark:text-gray-500">...</span>
-                                    </template>
-                                    <template x-if="p !== '...'">
-                                        <button type="button" @click="gotoPage(p)" :class="page === p ? 'bg-[#111111] dark:bg-white text-white dark:text-[#111111] font-medium border-[#111111] dark:border-white' : 'bg-white dark:bg-gray-900 text-[#101828] dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 border-[#E8E8E8] dark:border-gray-700'" class="min-w-[28px] px-2 py-1 text-xs border transition cursor-pointer rounded-[6px]" x-text="p"></button>
-                                    </template>
-                                </div>
-                            </template>
-                            <button type="button" @click="gotoPage(page + 1)" :disabled="page >= totalPages()" class="px-2.5 py-1 text-xs disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer btn-soft rounded-[6px]">
-                                Next &raquo;
-                            </button>
-                        </div>
-                    </div>
-                </x-slot:footer>
-            </x-card>
-        </div>
-
-        {{-- TABEL 3: Ringkasan Lead Time (lead_time_lokal) --}}
-        <div x-show="lokalSubTab === 'lead_time'">
-            <x-card class="tbl-modern" 
-                title="Tabel Ringkasan Lead Time Lokal (lead_time_lokal)" 
-                subtitle="Ringkasan lead time average, lead time max, tambahan buffer, dan Safety Stock = (Max - Avg) + Buffer"
-                :noPadding="true"
-            >
-                <x-slot:icon>
-                    <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </x-slot:icon>
-
-                <div tabindex="0" role="region" aria-label="Tabel Ringkasan Lead Time Lokal" class="overflow-x-auto">
-                    <table class="w-full text-xs text-left">
-                        <thead class="sticky top-0 z-10 bg-[#f8fafb] dark:bg-gray-800/95 text-[#667085] dark:text-gray-400 text-xs font-medium border-b border-[#E8E8E8] dark:border-gray-800">
-                            <tr>
-                                <th class="py-3 px-2.5">Bahan Baku</th>
-                                <th class="py-3 px-2.5">Supplier</th>
-                                <th class="py-3 px-2.5 text-right">Total Avg Lead Time</th>
-                                <th class="py-3 px-2.5 text-right">Total Max Lead Time</th>
-                                <th class="py-3 px-2.5 text-right">Tambahan Buffer</th>
-                                <th class="py-3 px-2.5 text-right bg-gray-100/70 dark:bg-gray-800 text-[#101828] dark:text-white font-medium">Safety Stock (Hari)</th>
-                                <th class="py-3 px-2 text-center w-28">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800 bg-white dark:bg-gray-900">
-                            <template x-for="r in paginatedRows()" :key="r.id">
-                                <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition">
-                                    <td class="py-3 px-2.5">
-                                        <div class="font-medium text-[#101828] dark:text-white" x-text="r.nama"></div>
-                                        <div class="tabular-nums text-[11px] text-[#667085] dark:text-gray-400" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
-                                    </td>
-                                    <td class="py-3 px-2.5">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <button type="button" @click="openCompareSupplier(r)" class="font-medium text-[#111111] dark:text-white hover:underline text-left cursor-pointer flex items-center gap-1" title="Bandingkan & Ganti Supplier">
-                                                <span x-text="r.supplier_nama || 'Pilih Supplier'"></span>
-                                                <svg class="size-3 text-[#667085] dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
-                                            </button>
-                                            <template x-if="r.sumber_lt === 'otomatis'">
-                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-foreground dark:text-foreground bg-card dark:bg-card border border-border dark:border-border" title="Sumber: Histori PO Otomatis">
-                                                    <span class="size-1 rounded-full bg-gray-400 shrink-0"></span>
-                                                    <span>Otomatis</span>
-                                                </span>
-                                            </template>
-                                            <template x-if="r.sumber_lt !== 'otomatis'">
-                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-foreground dark:text-foreground bg-card dark:bg-card border border-border dark:border-border" title="Sumber: Estimasi Input Manual">
-                                                    <span class="size-1 rounded-full bg-gray-400 shrink-0"></span>
-                                                    <span>Manual</span>
-                                                </span>
-                                            </template>
-                                            <a :href="'{{ route('purchasing.index', ['tab' => 'po']) }}' + (r.supplier_nama && r.supplier_nama !== '-' ? '&search=' + encodeURIComponent(r.supplier_nama) : '')" href="{{ route('purchasing.index', ['tab' => 'po']) }}" class="text-[10px] text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white underline ml-1" title="Lihat Daftar Purchase Order Supplier">Histori LT</a>
-                                        </div>
-                                    </td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-xs text-[#667085] dark:text-gray-400" x-text="formatLt(r.total_avg_lead_time) + ' Hari'"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-xs text-[#667085] dark:text-gray-400" x-text="formatLt(r.total_max_lead_time) + ' Hari'"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatLt(r.tambahan_buffer_hari) + ' Hari'"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white bg-[#fafafa] dark:bg-gray-800/40" x-text="formatLt(r.safety_stock) + ' Hari'"></td>
-                                    <td class="py-3 px-2 text-center">
-                                        @can('analisa.manage')
-                                        <div class="flex items-center justify-center gap-1.5">
-                                            <button type="button" @click="openManualLokalModal(r)" class="px-2.5 py-1 text-[10px] font-medium transition cursor-pointer btn-soft rounded-[6px]" title="Edit Tambahan Buffer">
-                                                Analisa
                                             </button>
                                             <button type="button" @click="openStageModal(r)" class="px-2.5 py-1 text-[10px] font-medium transition cursor-pointer btn-soft rounded-[6px]" title="Edit 8 Tahap Lead Time">
                                                 LT
@@ -358,10 +241,10 @@
                                     </td>
                                 </tr>
                             </template>
-                            <template x-if="paginatedRows().length === 0">
+                            <template x-if="paginatedAnalisaRows().length === 0">
                                 <tr>
-                                    <td colspan="7" class="py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
-                                        Tidak ada data ringkasan lead time yang cocok.
+                                    <td colspan="9" class="py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
+                                        Tidak ada data analisa yang cocok.
                                     </td>
                                 </tr>
                             </template>
@@ -497,56 +380,57 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-[#E8E8E8] dark:divide-gray-800 bg-white dark:bg-gray-900">
-                            <template x-for="stg in paginatedStages()" :key="stg.produk_id">
-                                <template x-for="type in ['average', 'max']" :key="type">
-                                    <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition" :class="type === 'max' ? 'border-b-2 border-[#E8E8E8] dark:border-gray-700' : ''">
-                                        <td class="py-2.5 px-2" x-show="type === 'average'" rowspan="2">
-                                            <div class="font-medium text-[#101828] dark:text-white text-xs" x-text="stg.nama"></div>
-                                            <div class="tabular-nums text-[10px] text-[#667085] dark:text-gray-400" x-text="stg.sku"></div>
-                                        </td>
-                                        <td class="py-2.5 px-2" x-show="type === 'average'" rowspan="2">
+                            <template x-for="row in paginatedStageRows()" :key="row.key">
+                                    <tr class="hover:bg-[#fafafa] dark:hover:bg-gray-800/40 transition" :class="row.type === 'max' ? 'border-b-2 border-[#E8E8E8] dark:border-gray-700' : ''">
+                                        <template x-if="row.type === 'average'"><td class="py-2.5 px-2" rowspan="2">
+                                            <div class="font-medium text-[#101828] dark:text-white text-xs" x-text="row.stg.nama"></div>
+                                            <div class="tabular-nums text-[10px] text-[#667085] dark:text-gray-400" x-text="row.stg.sku"></div>
+                                        </td></template>
+                                        <template x-if="row.type === 'average'"><td class="py-2.5 px-2" rowspan="2">
                                             <div class="flex flex-col gap-1">
-                                                <button type="button" @click="openCompareSupplier(stg)" class="font-medium text-[#111111] dark:text-white hover:underline text-left cursor-pointer inline-flex items-center gap-1 text-xs" title="Bandingkan & Ganti Supplier">
-                                                    <span x-text="stg.supplier_nama || 'Pilih Supplier'"></span>
+                                                <button type="button" @click="openCompareSupplier(row.stg)" class="font-medium text-[#111111] dark:text-white hover:underline text-left cursor-pointer inline-flex items-center gap-1 text-xs" title="Bandingkan & Ganti Supplier">
+                                                    <span x-text="row.stg.supplier_nama || 'Pilih Supplier'"></span>
                                                     <svg class="size-3 text-[#667085] dark:text-gray-400 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/></svg>
                                                 </button>
                                                 <div class="flex items-center gap-1.5 flex-wrap">
-                                                    <template x-if="stg.sumber_lt === 'otomatis'">
+                                                    <template x-if="row.stg.sumber_lt === 'otomatis'">
                                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-foreground dark:text-foreground bg-card dark:bg-card border border-border dark:border-border" title="Sumber: Rincian 8 Stage Histori PO Otomatis">
                                                             <span class="size-1 rounded-full bg-gray-400 shrink-0"></span>
-                                                            <span x-text="'Otomatis' + (stg.jumlah_transaksi ? ' (' + stg.jumlah_transaksi + ' PO)' : '')"></span>
+                                                            <span x-text="'Otomatis' + (row.stg.jumlah_transaksi ? ' (' + row.stg.jumlah_transaksi + ' PO)' : '')"></span>
                                                         </span>
                                                     </template>
-                                                    <template x-if="stg.sumber_lt !== 'otomatis'">
+                                                    <template x-if="row.stg.sumber_lt !== 'otomatis'">
                                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-foreground dark:text-foreground bg-card dark:bg-card border border-border dark:border-border" title="Sumber: Estimasi Input Manual">
                                                             <span class="size-1 rounded-full bg-gray-400 shrink-0"></span>
                                                             <span>Manual</span>
                                                         </span>
                                                     </template>
-                                                    <a :href="'{{ route('purchasing.index', ['tab' => 'po']) }}' + (stg.supplier_nama && stg.supplier_nama !== '-' ? '&search=' + encodeURIComponent(stg.supplier_nama) : '')" href="{{ route('purchasing.index', ['tab' => 'po']) }}" class="text-[10px] text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white underline" title="Lihat Daftar Purchase Order Supplier">Histori LT</a>
+                                                    <a :href="'{{ route('purchasing.index', ['tab' => 'po']) }}' + (row.stg.supplier_nama && row.stg.supplier_nama !== '-' ? '&search=' + encodeURIComponent(row.stg.supplier_nama) : '')" href="{{ route('purchasing.index', ['tab' => 'po']) }}" class="text-[10px] text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white underline" title="Lihat Daftar Purchase Order Supplier">Histori LT</a>
                                                 </div>
                                             </div>
-                                        </td>
-                                        <td class="py-2.5 px-2 tabular-nums uppercase text-[10px] font-medium text-[#667085] dark:text-gray-400" x-text="type"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].perencanaan : 0)"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].supplier_confirm : 0)"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].approval : 0)"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].payment : 0)"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].po : 0)"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].pengiriman : 0)"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].unloading : 0)"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(stg[type] ? stg[type].input : 0)"></td>
-                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#101828] dark:text-white bg-[#fafafa] dark:bg-gray-800/40" x-text="formatLt(stg[type] ? stg[type].total : 0) + ' Hari'"></td>
-                                        <td class="py-2.5 px-2 text-center" x-show="type === 'average'" rowspan="2">
+                                        </td></template>
+                                        <td class="py-2.5 px-2 tabular-nums uppercase text-[10px] font-medium text-[#667085] dark:text-gray-400" x-text="row.type"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(row.stg[row.type] ? row.stg[row.type].perencanaan : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(row.stg[row.type] ? row.stg[row.type].supplier_confirm : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(row.stg[row.type] ? row.stg[row.type].approval : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(row.stg[row.type] ? row.stg[row.type].payment : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(row.stg[row.type] ? row.stg[row.type].po : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(row.stg[row.type] ? row.stg[row.type].pengiriman : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(row.stg[row.type] ? row.stg[row.type].unloading : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatLt(row.stg[row.type] ? row.stg[row.type].input : 0)"></td>
+                                        <td class="py-2.5 px-2 text-right tabular-nums text-[#101828] dark:text-white bg-[#fafafa] dark:bg-gray-800/40" x-text="formatLt(row.stg[row.type] ? row.stg[row.type].total : 0) + ' Hari'"></td>
+                                        <template x-if="row.type === 'average'"><td class="py-2.5 px-2 text-center" rowspan="2">
                                             @can('analisa.manage')
-                                            <button type="button" @click="openStageModal(stg)" class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition cursor-pointer btn-soft rounded-[6px]" title="Edit Rincian 8 Tahap Lead Time">
-                                                <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                                Edit
-                                            </button>
+                                            {{-- Sembunyikan Edit bila LT sudah otomatis dari histori PO --}}
+                                            <template x-if="row.stg.sumber_lt !== 'otomatis'">
+                                                <button type="button" @click="openStageModal(row.stg)" class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium transition cursor-pointer btn-soft rounded-[6px]" title="Edit Rincian 8 Tahap Lead Time">
+                                                    <svg class="size-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                                    Edit
+                                                </button>
+                                            </template>
                                             @endcan
-                                        </td>
+                                        </td></template>
                                     </tr>
-                                </template>
                             </template>
                             <template x-if="paginatedStages().length === 0">
                                 <tr>

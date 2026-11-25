@@ -26,10 +26,14 @@
     <form @submit.prevent="saveStages()" class="bg-[#F5F5F5] dark:bg-gray-950">
         <div class="p-5 sm:p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
             <template x-if="stageForm.sumber_lt === 'otomatis'">
-                <div class="p-3.5 rounded-[10px] border border-border dark:border-border bg-card dark:bg-card text-xs text-foreground dark:text-foreground leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                        <strong class="font-medium">Sumber Lead Time Otomatis (<span x-text="stageForm.jumlah_transaksi"></span> PO):</strong>
-                        Rincian 8 tahap aktif saat ini dihitung otomatis dari histori PO Purchasing. Nilai 8 tahap di bawah digunakan sebagai <em>fallback manual</em> jika supplier berganti ke vendor tanpa histori PO.
+                <div role="alert" class="p-4 rounded-[10px] border border-amber-300 border-l-4 border-l-amber-500 dark:border-amber-500/40 dark:border-l-amber-500 bg-amber-50 dark:bg-amber-500/10 text-xs text-amber-900 dark:text-amber-100 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-start gap-2.5">
+                        <svg class="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                        <div class="space-y-1">
+                            <p class="text-[13px] font-semibold">Angka di bawah belum dipakai: bahan ini sudah punya <span x-text="stageForm.jumlah_transaksi"></span> PO</p>
+                            <p>Lead time, safety stock, dan rekomendasi order saat ini dihitung <strong class="font-semibold">otomatis dari histori PO</strong>, bukan dari angka yang Anda isi di sini. Perubahan 8 tahap hanya disimpan sebagai <strong class="font-semibold">cadangan manual</strong> dan baru berlaku jika supplier diganti ke vendor tanpa histori PO.</p>
+                            <p><strong class="font-semibold">Tambahan Buffer (hari)</strong> tetap berlaku dan langsung memengaruhi safety stock.</p>
+                        </div>
                     </div>
                     <template x-if="stageForm.auto_average">
                         <button type="button" @click="copyAutoStages()" class="shrink-0 px-3 py-1.5 font-medium text-xs transition cursor-pointer btn-glossy rounded-[6px]">

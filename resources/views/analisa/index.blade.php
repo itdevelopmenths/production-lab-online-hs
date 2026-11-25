@@ -642,6 +642,14 @@
           const start = (this.page - 1) * pp;
           return list.slice(start, start + pp);
         },
+        paginatedStageRows(){
+          const rows = [];
+          for (const stg of this.paginatedStages()) {
+            rows.push({ key: stg.produk_id + '-average', stg, type: 'average' });
+            rows.push({ key: stg.produk_id + '-max', stg, type: 'max' });
+          }
+          return rows;
+        },
         longestAvgStage(){
           const list = this.filteredStages();
           if (!list || !list.length) return null;
