@@ -291,7 +291,8 @@ class StokController extends Controller
                 if (! $canSeePrice) {
                     return '—';
                 }
-                $hpp = (float) ($hppMap[$s->produk_id] ?? 0);
+                // Pakai HPP yang tampil di kolom HPP (2 desimal) agar Qty × HPP di kalkulator = Nilai Stok sistem.
+                $hpp = round((float) ($hppMap[$s->produk_id] ?? 0), 2);
                 $nilai = (float) $s->qty_saat_ini * $hpp;
 
                 return $this->formatNilaiStok($nilai);
@@ -354,22 +355,8 @@ class StokController extends Controller
 
     private function formatNilaiStok(float $val): string
     {
-        if ($val <= 0) {
-            return 'Rp 0';
-        }
-
-        if (abs($val - round($val)) < 0.00001) {
-            return 'Rp ' . number_format(round($val), 0, ',', '.');
-        }
-
-        $rounded2 = round($val, 2);
-        if (abs($val - $rounded2) > 0.00001) {
-            $formatted = number_format($val, 4, ',', '.');
-
-            return 'Rp ' . rtrim(rtrim($formatted, '0'), ',');
-        }
-
-        return 'Rp ' . number_format($val, 2, ',', '.');
+        // Nilai stok selalu 2 angka di belakang koma.
+        return 'Rp ' . number_format(max(0.0, round($val, 2)), 2, ',', '.');
     }
 
     private function formatQty(float $qty): string
