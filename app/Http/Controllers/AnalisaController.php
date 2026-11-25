@@ -152,7 +152,7 @@ class AnalisaController extends Controller
                 'status' => $rek->status,
                 'qty_order' => (float) round($rek->rumus_moq), // kompatibilitas kolom lama
                 'rekomendasi_order' => (float) round($rek->rekomendasi_order),
-                'harga_per_satuan' => (float) round($rek->harga_ml_pcs),
+                'harga_per_satuan' => (float) round($rek->harga_ml_pcs, 2),
                 'total_nominal_order' => (float) round($rek->total_nominal_order),
                 'generated_at' => $rek->generated_at?->format('d/m/Y H:i'),
                 'generated_by' => $rek->generator?->name ?? 'Sistem',
@@ -350,7 +350,7 @@ class AnalisaController extends Controller
                 $overrides[$prodId] = ['stok_saat_ini' => (float) $data['stok_saat_ini']];
             }
             if (array_key_exists('harga_ml_pcs', $data) && $data['harga_ml_pcs'] !== null) {
-                $input->harga_per_satuan = $data['harga_ml_pcs'];
+                $input->harga_per_satuan = round((float) $data['harga_ml_pcs'], 2);
             }
             $input->save();
 
@@ -613,7 +613,7 @@ class AnalisaController extends Controller
                 $overrideImpor['inbound_before_eta'] = (float) $data['inbound_before_eta'];
             }
             if (array_key_exists('harga_per_satuan', $data) && $data['harga_per_satuan'] !== null) {
-                $ai->harga_per_satuan = $data['harga_per_satuan'];
+                $ai->harga_per_satuan = round((float) $data['harga_per_satuan'], 2);
             }
             if (array_key_exists('grup_pivot', $data)) {
                 $grup = trim((string) $data['grup_pivot']);
@@ -637,7 +637,7 @@ class AnalisaController extends Controller
                     $meta->klasifikasi_abc_id = $ai->klasifikasi_abc_id;
                     $meta->klasifikasi_abc = $ai->klasifikasi_abc;
                 }
-                if (isset($data['harga_per_satuan'])) $meta->harga_per_satuan = $data['harga_per_satuan'];
+                if (isset($data['harga_per_satuan'])) $meta->harga_per_satuan = round((float) $data['harga_per_satuan'], 2);
                 if (isset($data['review_period'])) $meta->review_period = $data['review_period'];
                 if (isset($data['lead_time_average'])) $meta->lead_time_average = $data['lead_time_average'];
                 if (isset($data['lead_time_max'])) $meta->lead_time_max = $data['lead_time_max'];
@@ -759,7 +759,7 @@ class AnalisaController extends Controller
                 'total_qty_order' => (float) round($ai->po ?: $ai->qty_order),
                 'total_selisih' => (float) round($ai->proyeksi - $ai->target_stock),
                 'status' => $ai->status,
-                'harga_per_satuan' => (float) round($ai->harga_per_satuan),
+                'harga_per_satuan' => (float) round($ai->harga_per_satuan, 2),
                 'total_nominal_order' => (float) round($ai->total_nominal_order),
                 'generated_at' => $ai->generated_at?->format('d/m/Y H:i'),
                 'generated_by' => $ai->generator?->name ?? 'Sistem',

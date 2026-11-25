@@ -93,7 +93,7 @@
                                             <span class="text-[10px] font-normal text-[#667085] dark:text-gray-400 block" x-text="'(x' + r.faktor_konversi + ' ' + r.satuan + ')'"></span>
                                         </template>
                                     </td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="'Rp ' + formatNumber(r.harga_per_satuan)"></td>
+                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#667085] dark:text-gray-400" x-text="formatRupiah(r.harga_per_satuan)"></td>
                                     <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white" x-text="'Rp ' + formatNumber(r.total_nominal_order)"></td>
                                     <td class="py-3 px-2 text-center">
                                         @can('analisa.manage')
