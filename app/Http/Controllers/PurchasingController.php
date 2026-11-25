@@ -385,6 +385,10 @@ class PurchasingController extends Controller
             ]);
         }
 
+        if (! empty($data['termins']) && ($data['skema_bayar'] ?? '') === 'termin') {
+            $this->paymentService->assertTerminsMatchGrandTotal($data['termins'], (float) $totals['grand_total']);
+        }
+
         $po = DB::transaction(function () use ($data, $totals) {
             $po = PurchaseOrder::create([
                 'no_po' => $this->nextNoPo(),
@@ -553,6 +557,18 @@ class PurchasingController extends Controller
             throw ValidationException::withMessages([
                 'items' => 'Grand total baru (Rp ' . number_format($totals['grand_total'], 0, ',', '.') . ') tidak boleh lebih kecil dari total yang sudah dibayar (Rp ' . number_format($totalDibayar, 0, ',', '.') . ').',
             ]);
+        }
+
+        if (($data['skema_bayar'] ?? '') === 'termin') {
+            // Termin baru dikirim → validasi terhadap grand total baru. Jika tidak
+            // dikirim, jadwal lama dipertahankan sehingga tetap wajib cocok.
+            $terminsToCheck = ! empty($data['termins'])
+                ? $data['termins']
+                : $purchaseOrder->termins()->get(['nominal_tagihan'])->toArray();
+
+            if (! empty($terminsToCheck)) {
+                $this->paymentService->assertTerminsMatchGrandTotal($terminsToCheck, (float) $totals['grand_total']);
+            }
         }
 
         DB::transaction(function () use ($purchaseOrder, $data, $totals) {

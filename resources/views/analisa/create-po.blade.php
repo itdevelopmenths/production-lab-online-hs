@@ -113,7 +113,7 @@
         </div>
 
         <div x-data="poForm({{ Js::from($initialData) }})" x-init="init()">
-            <form method="POST" action="{{ route('analisa.create-po.store') }}" @submit="if(submitting) return false; submitting = true">
+            <form method="POST" action="{{ route('analisa.create-po.store') }}" @submit="if(submitting) { $event.preventDefault(); return false; } if(blockTerminMismatch($event)) return false; submitting = true">
             @csrf
             <div class="bg-gray-50 dark:bg-gray-950 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-3 sm:p-4 space-y-3">
                 {{-- Section 1: Informasi Header PO & Lokasi --}}
@@ -674,6 +674,21 @@
                 uomList: @js($uomList ?? []),
                 skemaBayar: initial.skemaBayar || 'cash',
                 submitting: false,
+
+                blockTerminMismatch(event) {
+                    if (this.skemaBayar !== 'termin' || !Array.isArray(this.termins) || this.termins.length === 0) return false;
+                    const diff = this.totalTermins() - this.grandTotal();
+                    if (Math.abs(diff) <= 1) return false;
+                    event.preventDefault();
+                    const msg = `Akumulasi jadwal termin (Rp ${this.formatThousand(this.totalTermins())}) ${diff > 0 ? 'melebihi' : 'kurang dari'} Grand Total PO (Rp ${this.formatThousand(this.grandTotal())}). Selisih Rp ${this.formatThousand(Math.abs(diff))}. Sesuaikan nominal termin sebelum menyimpan PO.`;
+                    if (window.Swal) {
+                        window.Swal.fire({ icon: 'error', title: 'Jadwal Termin Tidak Sesuai', text: msg, confirmButtonColor: '#ef4444', confirmButtonText: 'Periksa Kembali' });
+                    } else {
+                        window.alert(msg);
+                    }
+                    return true;
+                },
+
                 headerDiskonMode: 'nominal',
                 headerDiskonVal: 0,
                 headerDiskon: initial.headerDiskon || 0,

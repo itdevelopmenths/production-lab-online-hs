@@ -1006,8 +1006,23 @@
                             seen.add(pStr);
                         }
                     }
+                    if (this.blockTerminMismatch(event)) return false;
                     this._isSubmitting = true;
                     this.clearDraft();
+                    return true;
+                },
+
+                blockTerminMismatch(event) {
+                    if (this.skemaBayar !== 'termin' || !Array.isArray(this.termins) || this.termins.length === 0) return false;
+                    const diff = this.totalTermins() - this.grandTotal();
+                    if (Math.abs(diff) <= 1) return false;
+                    event.preventDefault();
+                    const msg = `Akumulasi jadwal termin (Rp ${this.formatThousand(this.totalTermins())}) ${diff > 0 ? 'melebihi' : 'kurang dari'} Grand Total PO (Rp ${this.formatThousand(this.grandTotal())}). Selisih Rp ${this.formatThousand(Math.abs(diff))}. Sesuaikan nominal termin sebelum menyimpan PO.`;
+                    if (window.Swal) {
+                        window.Swal.fire({ icon: 'error', title: 'Jadwal Termin Tidak Sesuai', text: msg, confirmButtonColor: '#ef4444', confirmButtonText: 'Periksa Kembali' });
+                    } else {
+                        window.alert(msg);
+                    }
                     return true;
                 },
 

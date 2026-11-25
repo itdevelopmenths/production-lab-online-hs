@@ -177,6 +177,39 @@ class PurchasingPaymentService
     }
 
     /**
+     * Pastikan akumulasi jadwal termin sama persis dengan Grand Total PO.
+     * Termin yang melebihi (atau kurang dari) total tagihan membuat AP tidak
+     * konsisten: sisa tagihan PO dan sisa per termin tidak akan pernah cocok.
+     *
+     * @param  array<int, array{nominal_tagihan?: float|int|string|null}>  $terminsData
+     *
+     * @throws ValidationException
+     */
+    public function assertTerminsMatchGrandTotal(array $terminsData, float $grandTotal): void
+    {
+        $totalTermin = round(collect($terminsData)
+            ->sum(fn ($row) => round((float) ($row['nominal_tagihan'] ?? 0), 2)), 2);
+        $grandTotal = round($grandTotal, 2);
+
+        // Toleransi Rp 1 untuk pembulatan pembagian persentase.
+        if (abs($totalTermin - $grandTotal) <= 1) {
+            return;
+        }
+
+        $arah = $totalTermin > $grandTotal ? 'melebihi' : 'kurang dari';
+
+        throw ValidationException::withMessages([
+            'termins' => sprintf(
+                'Akumulasi jadwal termin (Rp %s) %s Grand Total PO (Rp %s). Selisih Rp %s — sesuaikan nominal termin agar totalnya sama dengan Grand Total.',
+                number_format($totalTermin, 0, ',', '.'),
+                $arah,
+                number_format($grandTotal, 0, ',', '.'),
+                number_format(abs($totalTermin - $grandTotal), 0, ',', '.')
+            ),
+        ]);
+    }
+
+    /**
      * Buat jadwal termin untuk Purchase Order.
      *
      * @param  array<int, array{

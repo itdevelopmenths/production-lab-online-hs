@@ -432,7 +432,30 @@ class TransferService
                 DB::raw("{$eventExpr} as tanggal"),
             ]);
 
-        return $rows
+        $transferDetails = $rows->map(fn ($r) => (object) [
+            'sumber' => 'transfer',
+            'doc_key' => 'transfer:' . $r->transfer_id,
+            'doc_id' => $r->transfer_id,
+            'transfer_id' => $r->transfer_id,
+            'no_dokumen' => $r->no_transaksi,
+            'jenis' => $r->jenis,
+            'jenis_label' => Transfer::JENIS_LABELS[$r->jenis] ?? $r->jenis,
+            'produk_id' => (int) $r->produk_id,
+            'sku' => $r->sku,
+            'produk_nama' => $r->produk_nama,
+            'satuan' => $r->satuan,
+            'gudang_id' => (int) $r->gudang_id,
+            'gudang_nama' => $r->gudang_nama,
+            'asal_nama' => $r->gudang_asal_nama,
+            'qty_dikirim' => (float) $r->qty_dikirim,
+            'qty_rusak' => (float) $r->qty_rusak,
+            'keterangan' => $r->keterangan_rusak,
+            'tanggal' => (string) $r->tanggal,
+        ]);
+
+        return $transferDetails
+            ->concat($this->barangRusakPurchasingRows($gudangIds, $start, $end))
+            ->sortByDesc(fn ($d) => Carbon::parse($d->tanggal)->getTimestamp())
             ->groupBy(fn ($r) => $r->produk_id . '_' . $r->gudang_id)
             ->map(function (Collection $group) {
                 $first = $group->first();
@@ -445,13 +468,75 @@ class TransferService
                     'gudang_id' => (int) $first->gudang_id,
                     'gudang_nama' => $first->gudang_nama,
                     'total_rusak' => (float) $group->sum('qty_rusak'),
-                    'jumlah_transfer' => $group->pluck('transfer_id')->unique()->count(),
+                    'jumlah_dokumen' => $group->pluck('doc_key')->unique()->count(),
                     'terakhir' => (string) $first->tanggal,
                     'details' => $group->values(),
                 ];
             })
             ->sortByDesc('total_rusak')
             ->values();
+    }
+
+    /**
+     * Selisih kurang pada penerimaan Purchase Order (Barang Datang), dicatat pada
+     * gudang tujuan PO. Selisih = qty fisik diterima − qty PO (satuan dasar).
+     *
+     * @param  array<int>|null  $gudangIds
+     * @return Collection<int, object>
+     */
+    private function barangRusakPurchasingRows(?array $gudangIds, CarbonInterface $start, CarbonInterface $end): Collection
+    {
+        $eventExpr = 'COALESCE(bd.waktu_tiba, bd.created_at)';
+
+        return DB::table('barang_datang_items as bdi')
+            ->join('barang_datang as bd', 'bd.id', '=', 'bdi.bardat_id')
+            ->join('purchase_orders as po', 'po.id', '=', 'bd.po_id')
+            ->join('purchase_order_items as poi', 'poi.id', '=', 'bdi.po_item_id')
+            ->join('produk as p', 'p.id', '=', 'poi.produk_id')
+            ->join('gudang as g', 'g.id', '=', 'po.gudang_id')
+            ->leftJoin('supplier as s', 's.id', '=', 'po.supplier_id')
+            ->where('po.status', '!=', 'dibatalkan')
+            ->where('bdi.selisih', '<', 0)
+            ->whereBetween(DB::raw($eventExpr), [
+                $start->copy()->startOfDay()->toDateTimeString(),
+                $end->copy()->endOfDay()->toDateTimeString(),
+            ])
+            ->when($gudangIds !== null, fn ($q) => $q->whereIn('po.gudang_id', $gudangIds))
+            ->get([
+                'po.id as po_id',
+                'po.no_po',
+                'poi.produk_id',
+                'p.sku',
+                'p.nama as produk_nama',
+                'p.satuan',
+                'po.gudang_id',
+                'g.nama as gudang_nama',
+                's.nama as supplier_nama',
+                'poi.qty as qty_po',
+                'bdi.selisih',
+                'bdi.keterangan_selisih',
+                DB::raw("{$eventExpr} as tanggal"),
+            ])
+            ->map(fn ($r) => (object) [
+                'sumber' => 'purchasing',
+                'doc_key' => 'po:' . $r->po_id,
+                'doc_id' => $r->po_id,
+                'transfer_id' => null,
+                'no_dokumen' => $r->no_po,
+                'jenis' => 'purchasing',
+                'jenis_label' => 'Penerimaan PO',
+                'produk_id' => (int) $r->produk_id,
+                'sku' => $r->sku,
+                'produk_nama' => $r->produk_nama,
+                'satuan' => $r->satuan,
+                'gudang_id' => (int) $r->gudang_id,
+                'gudang_nama' => $r->gudang_nama,
+                'asal_nama' => $r->supplier_nama ? 'Supplier ' . $r->supplier_nama : 'Supplier',
+                'qty_dikirim' => (float) $r->qty_po,
+                'qty_rusak' => abs((float) $r->selisih),
+                'keterangan' => $r->keterangan_selisih,
+                'tanggal' => (string) $r->tanggal,
+            ]);
     }
 
     /**

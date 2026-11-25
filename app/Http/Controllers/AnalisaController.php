@@ -1366,6 +1366,10 @@ class AnalisaController extends Controller
             (float) ($data['adjustment'] ?? 0)
         );
 
+        if (! empty($data['termins']) && ($data['skema_bayar'] ?? '') === 'termin') {
+            $this->paymentService->assertTerminsMatchGrandTotal($data['termins'], (float) $totals['grand_total']);
+        }
+
         $po = DB::transaction(function () use ($data, $totals) {
             $po = PurchaseOrder::create([
                 'no_po' => $this->nextNoPo(),

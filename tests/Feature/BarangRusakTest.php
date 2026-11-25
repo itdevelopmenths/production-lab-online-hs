@@ -83,7 +83,7 @@ class BarangRusakTest extends TestCase
         $items = $response->viewData('items');
         $this->assertCount(1, $items);
         $this->assertEquals(5.0, $items[0]->total_rusak);
-        $this->assertSame(2, $items[0]->jumlah_transfer);
+        $this->assertSame(2, $items[0]->jumlah_dokumen);
     }
 
     public function test_tanpa_filter_gudang_menampilkan_semua_lokasi_terpisah(): void
@@ -98,6 +98,52 @@ class BarangRusakTest extends TestCase
 
         $this->assertCount(2, $items);
         $this->assertEquals([7.0, 3.0], $items->pluck('total_rusak')->all());
+    }
+
+    public function test_selisih_kurang_penerimaan_po_masuk_barang_rusak(): void
+    {
+        $supplier = \App\Models\Supplier::firstOrFail();
+        $po = \App\Models\PurchaseOrder::create([
+            'no_po' => 'PO-RSK-01',
+            'supplier_id' => $supplier->id,
+            'gudang_id' => $this->tujuan->id,
+            'tanggal' => '2026-11-20',
+            'status' => 'selesai',
+            'created_by' => $this->manager->id,
+        ]);
+        $poItem = $po->items()->create(['produk_id' => $this->produk->id, 'qty' => 10000, 'harga_total' => 106000]);
+        $bd = \App\Models\BarangDatang::create([
+            'po_id' => $po->id,
+            'tanggal_terima' => '2026-11-24',
+            'waktu_tiba' => '2026-11-24 16:46:00',
+            'kondisi' => 'baik',
+            'created_by' => $this->manager->id,
+        ]);
+        $bd->items()->create([
+            'po_item_id' => $poItem->id,
+            'qty_fisik' => 9900,
+            'qty_diterima' => 9900,
+            'selisih' => -100,
+            'keterangan_selisih' => 'rusak',
+        ]);
+        $this->transfer('TRF-RSK-PO', $this->tujuan, 3, '2026-11-05 10:00:00');
+
+        $response = $this->actingAs($this->manager)->get(route('barang-rusak.index', [
+            'gudang_id' => $this->tujuan->id,
+            'tanggal_mulai' => '2026-11-01',
+            'tanggal_selesai' => '2026-11-30',
+        ]));
+
+        $response->assertOk()
+            ->assertSee('PO-RSK-01')
+            ->assertSee(route('purchasing.show', $po), false)
+            ->assertSee('TRF-RSK-PO');
+
+        $items = $response->viewData('items');
+        $this->assertCount(1, $items);
+        $this->assertEquals(103.0, $items[0]->total_rusak);
+        $this->assertSame(2, $items[0]->jumlah_dokumen);
+        $this->assertSame('purchasing', $items[0]->details->first()->sumber); // terbaru di atas
     }
 
     public function test_menu_barang_rusak_tampil_di_sidebar(): void

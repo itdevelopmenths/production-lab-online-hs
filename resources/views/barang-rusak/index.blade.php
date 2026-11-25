@@ -1,13 +1,21 @@
 @php
     use App\Helpers\NumberHelper;
     $canTransfer = auth()->user()->can('transfer.view');
+    $canPurchasing = auth()->user()->can('purchasing.view');
+    $docUrl = function ($d) use ($canTransfer, $canPurchasing) {
+        if ($d->sumber === 'purchasing') {
+            return $canPurchasing ? route('purchasing.show', $d->doc_id) : null;
+        }
+
+        return $canTransfer ? route('transfers.show', $d->doc_id) : null;
+    };
     $inputClass = 'h-9 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-xs py-1.5 px-3 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none rounded-[6px]';
 @endphp
 <x-app-layout title="Barang Rusak">
     <div class="space-y-4">
         <x-page-header
             title="Barang Rusak"
-            subtitle="Akumulasi barang rusak hasil QC penerimaan Transfer, per barang dan lokasi gudang"
+            subtitle="Akumulasi barang rusak hasil QC penerimaan Transfer dan selisih kurang penerimaan PO, per barang dan lokasi gudang"
             :breadcrumbs="['Transfer Barang' => $canTransfer ? route('transfers.index') : null, 'Barang Rusak' => null]"
         />
 
@@ -37,12 +45,12 @@
             </div>
             <div class="ml-auto flex items-center gap-4 text-xs text-[#667085] dark:text-gray-400">
                 <span>Jenis barang: <strong class="text-[#101828] dark:text-white tabular-nums">{{ $items->count() }}</strong></span>
-                <span>Transfer terdampak: <strong class="text-[#101828] dark:text-white tabular-nums">{{ $totalTransfer }}</strong></span>
+                <span>Dokumen terdampak: <strong class="text-[#101828] dark:text-white tabular-nums">{{ $totalDokumen }}</strong></span>
             </div>
         </form>
 
         <x-card class="tbl-modern" title="Daftar Barang Rusak"
-                subtitle="Klik baris untuk melihat rincian transfer; klik rincian untuk membuka transfernya"
+                subtitle="Klik baris untuk melihat rincian dokumen; klik rincian untuk membuka Transfer / PO-nya"
                 :noPadding="true">
             <x-slot:icon>
                 <svg class="size-5 text-[#111111] dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
@@ -57,7 +65,7 @@
                             <th class="px-4 py-2.5 text-left">Barang</th>
                             <th class="px-4 py-2.5 text-left">Lokasi Gudang</th>
                             <th class="px-4 py-2.5 text-right">Total Rusak</th>
-                            <th class="px-4 py-2.5 text-center">Jumlah Transfer</th>
+                            <th class="px-4 py-2.5 text-center">Jumlah Dokumen</th>
                             <th class="px-4 py-2.5 text-left">Terakhir</th>
                         </tr>
                     </thead>
@@ -75,7 +83,7 @@
                             <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums font-medium text-red-600 dark:text-red-400">
                                 {{ NumberHelper::formatQty($item->total_rusak) }} {{ $item->satuan }}
                             </td>
-                            <td class="px-4 py-3 text-center tabular-nums">{{ $item->jumlah_transfer }}</td>
+                            <td class="px-4 py-3 text-center tabular-nums">{{ $item->jumlah_dokumen }}</td>
                             <td class="px-4 py-3 whitespace-nowrap tabular-nums">{{ \Illuminate\Support\Carbon::parse($item->terakhir)->format('d/m/Y') }}</td>
                         </tr>
                         <tr x-show="open" x-cloak>
@@ -84,31 +92,32 @@
                                     <thead>
                                         <tr class="text-[#667085] dark:text-gray-400">
                                             <th class="py-1.5 pr-3 text-left w-28">Tanggal</th>
-                                            <th class="py-1.5 pr-3 text-left">No. Transfer</th>
+                                            <th class="py-1.5 pr-3 text-left">No. Dokumen</th>
                                             <th class="py-1.5 pr-3 text-left">Jenis</th>
                                             <th class="py-1.5 pr-3 text-left">Asal → Tujuan</th>
-                                            <th class="py-1.5 pr-3 text-right">Dikirim</th>
+                                            <th class="py-1.5 pr-3 text-right">Dikirim / Dipesan</th>
                                             <th class="py-1.5 pr-3 text-right">Rusak</th>
                                             <th class="py-1.5 text-left">Keterangan</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($item->details as $d)
-                                        <tr @if($canTransfer) onclick="window.location='{{ route('transfers.show', $d->transfer_id) }}'" @endif
-                                            class="{{ $canTransfer ? 'cursor-pointer hover:bg-white dark:hover:bg-gray-900' : '' }} border-t border-[#E8E8E8] dark:border-gray-800">
+                                        @php $url = $docUrl($d); @endphp
+                                        <tr @if($url) onclick="window.location='{{ $url }}'" @endif
+                                            class="{{ $url ? 'cursor-pointer hover:bg-white dark:hover:bg-gray-900' : '' }} border-t border-[#E8E8E8] dark:border-gray-800">
                                             <td class="py-2 pr-3 whitespace-nowrap tabular-nums">{{ \Illuminate\Support\Carbon::parse($d->tanggal)->format('d/m/Y H:i') }}</td>
                                             <td class="py-2 pr-3">
-                                                @if($canTransfer)
-                                                <a href="{{ route('transfers.show', $d->transfer_id) }}" class="font-medium underline underline-offset-2 text-[#101828] dark:text-white">{{ $d->no_transaksi }}</a>
+                                                @if($url)
+                                                <a href="{{ $url }}" class="font-medium underline underline-offset-2 text-[#101828] dark:text-white">{{ $d->no_dokumen }}</a>
                                                 @else
-                                                <span class="font-medium">{{ $d->no_transaksi }}</span>
+                                                <span class="font-medium">{{ $d->no_dokumen }}</span>
                                                 @endif
                                             </td>
-                                            <td class="py-2 pr-3">{{ $jenisLabels[$d->jenis] ?? $d->jenis }}</td>
-                                            <td class="py-2 pr-3">{{ $d->gudang_asal_nama ?? '—' }} → {{ $d->gudang_nama }}</td>
+                                            <td class="py-2 pr-3">{{ $d->jenis_label }}</td>
+                                            <td class="py-2 pr-3">{{ $d->asal_nama ?? '—' }} → {{ $d->gudang_nama }}</td>
                                             <td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap">{{ NumberHelper::formatQty($d->qty_dikirim) }}</td>
                                             <td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap font-medium text-red-600 dark:text-red-400">{{ NumberHelper::formatQty($d->qty_rusak) }}</td>
-                                            <td class="py-2">{{ $d->keterangan_rusak ?: '—' }}</td>
+                                            <td class="py-2">{{ $d->keterangan ?: '—' }}</td>
                                         </tr>
                                         @endforeach
                                     </tbody>

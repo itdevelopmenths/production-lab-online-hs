@@ -1367,6 +1367,47 @@ class PurchasingComprehensiveQATest extends TestCase
     }
 
     /**
+     * TC-EDIT-03b: Akumulasi jadwal termin wajib sama dengan Grand Total PO
+     * (tidak boleh lebih maupun kurang) saat update.
+     */
+    public function test_edit_03b_termin_total_must_match_grand_total(): void
+    {
+        $this->actingAs($this->purchasing);
+
+        $po = $this->createTestPo(['status' => 'draft', 'skema_bayar' => 'cash']);
+        $p = Produk::bahan()->active()->firstOrFail();
+
+        $payload = fn (array $nominals) => [
+            'supplier_id' => $this->supplier->id,
+            'gudang_id' => $this->gudangPusat->id,
+            'tanggal' => now()->toDateString(),
+            'skema_bayar' => 'termin',
+            'items' => [
+                ['produk_id' => $p->id, 'qty' => 50, 'harga_total' => 106000],
+            ],
+            'termins' => collect($nominals)->map(fn ($n, $i) => [
+                'tanggal_tempo' => now()->addDays(14 * ($i + 1))->toDateString(),
+                'nominal_tagihan' => $n,
+            ])->all(),
+        ];
+
+        // Kasus laporan: 30.000 + 760.000 untuk tagihan 106.000 → ditolak
+        $this->put(route('purchasing.update', $po), $payload([30000, 760000]))
+            ->assertSessionHasErrors('termins');
+        $this->assertCount(0, $po->fresh()->termins);
+
+        // Kurang dari grand total juga ditolak
+        $this->put(route('purchasing.update', $po), $payload([30000, 50000]))
+            ->assertSessionHasErrors('termins');
+
+        // Tepat sama → diterima
+        $this->put(route('purchasing.update', $po), $payload([53000, 53000]))
+            ->assertRedirect(route('purchasing.show', $po))
+            ->assertSessionHasNoErrors();
+        $this->assertEquals(106000, (float) $po->fresh()->termins()->sum('nominal_tagihan'));
+    }
+
+    /**
      * TC-EDIT-04: PO tidak dapat diedit jika barang sudah datang atau status final (selesai/dibatalkan).
      */
     public function test_edit_04_cannot_edit_po_if_goods_already_received_or_status_final(): void

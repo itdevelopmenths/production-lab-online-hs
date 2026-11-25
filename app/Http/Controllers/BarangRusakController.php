@@ -3,14 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Gudang;
-use App\Models\Transfer;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\TransferService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 /**
- * Menu Barang Rusak: akumulasi barang rusak hasil QC penerimaan Transfer
+ * Menu Barang Rusak: akumulasi barang rusak hasil QC penerimaan Transfer dan selisih kurang penerimaan PO
  * per barang per lokasi (gudang tujuan), dengan filter gudang dan rentang tanggal.
  */
 class BarangRusakController extends Controller
@@ -57,8 +56,7 @@ class BarangRusakController extends Controller
             'gudangId' => $gudangId,
             'tanggalMulai' => $tanggalMulai->toDateString(),
             'tanggalSelesai' => $tanggalSelesai->toDateString(),
-            'totalTransfer' => $items->flatMap(fn ($i) => $i->details->pluck('transfer_id'))->unique()->count(),
-            'jenisLabels' => Transfer::JENIS_LABELS,
+            'totalDokumen' => $items->flatMap(fn ($i) => $i->details->pluck('doc_key'))->unique()->count(),
         ]);
     }
 }
