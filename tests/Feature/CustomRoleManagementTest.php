@@ -522,4 +522,26 @@ class CustomRoleManagementTest extends TestCase
 
         $this->assertTrue($role->fresh()->hasPermissionTo('reports.view'));
     }
+
+    public function test_all_audit_permissions_are_grouped_in_one_catalog_card(): void
+    {
+        $catalog = app(PermissionCatalogService::class)->getGroupedCatalog();
+        $auditKeys = ['audit.view', 'purchasing.audit', 'batch.audit', 'rt.audit'];
+
+        $card = array_keys($catalog['Inventori & Analisis']['report']['actions']);
+        foreach ($auditKeys as $key) {
+            $this->assertContains($key, $card, "{$key} harus ada di kartu Laporan & Audit");
+        }
+
+        foreach ($catalog as $domain => $modules) {
+            foreach ($modules as $moduleKey => $module) {
+                if ($domain === 'Inventori & Analisis' && $moduleKey === 'report') {
+                    continue;
+                }
+                foreach ($auditKeys as $key) {
+                    $this->assertArrayNotHasKey($key, $module['actions'], "{$key} duplikat di {$moduleKey}");
+                }
+            }
+        }
+    }
 }

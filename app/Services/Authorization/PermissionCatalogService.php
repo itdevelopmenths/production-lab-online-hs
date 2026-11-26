@@ -130,7 +130,6 @@ class PermissionCatalogService
                         'purchasing.receive' => 'Terima Barang Datang (Gudang)',
                         'purchasing.pay' => 'Catat Pembayaran & Pelunasan',
                         'purchasing.cancel' => 'Batalkan Dokumen PO',
-                        'purchasing.audit' => 'Lihat Riwayat Audit Purchasing (PO)',
                     ],
                 ],
                 'batch' => [
@@ -143,7 +142,6 @@ class PermissionCatalogService
                         'batch.complete' => 'Selesaikan Batch (Hasil Jadi & QC)',
                         'batch.cancel' => 'Batalkan Rencana Batch',
                         'batch.opname' => 'Stock Opname Selisih Batch',
-                        'batch.audit' => 'Lihat Riwayat Audit Batch Produksi',
                     ],
                 ],
                 'request' => [
@@ -190,7 +188,6 @@ class PermissionCatalogService
                         'rt.ship' => 'Kirim Barang (Status In Transit)',
                         'rt.receive' => 'Terima Alokasi Barang di Tujuan',
                         'rt.cancel' => 'Batalkan Dokumen Transfer',
-                        'rt.audit' => 'Lihat Riwayat Audit Request & Transfer',
                     ],
                 ],
             ],
@@ -224,6 +221,9 @@ class PermissionCatalogService
                     'actions' => [
                         'report.view' => 'Lihat Ringkasan & Laporan',
                         'audit.view' => 'Lihat Riwayat Audit Seluruh Modul (PO, Produksi, Request, Transfer)',
+                        'purchasing.audit' => 'Lihat Riwayat Audit Purchasing (PO)',
+                        'batch.audit' => 'Lihat Riwayat Audit Batch Produksi',
+                        'rt.audit' => 'Lihat Riwayat Audit Request & Transfer',
                     ],
                 ],
             ],

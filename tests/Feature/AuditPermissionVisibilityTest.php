@@ -269,4 +269,21 @@ class AuditPermissionVisibilityTest extends TestCase
         $this->actingAs($this->userWithPermissions(['purchasing.view', 'purchasing.audit']));
         $this->assertSame('', trim(Blade::render($bare, ['auditable' => $po])));
     }
+
+    public function test_manager_without_any_audit_permission_sees_no_audit_cards(): void
+    {
+        Role::where('name', 'manager')->firstOrFail()
+            ->revokePermissionTo(['audit.view', 'rt.audit', 'batch.audit', 'purchasing.audit']);
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $manager = $this->manager->fresh();
+
+        $this->actingAs($manager)->get(route('requests.show', $this->stockRequest))
+            ->assertOk()->assertDontSeeText('Jejak Riwayat Audit Permintaan');
+        $this->actingAs($manager)->get(route('transfers.show', $this->transfer))
+            ->assertOk()->assertDontSeeText('Jejak Riwayat Audit Transfer');
+        $this->actingAs($manager)->get(route('purchasing.show', $this->poWithEditLog()))
+            ->assertOk()->assertDontSeeText('Jejak Riwayat Audit Dokumen PO')->assertDontSeeText('INV-BARU');
+        $this->actingAs($manager)->get(route('batches.show', $this->batch()))
+            ->assertOk()->assertDontSeeText('Jejak Riwayat Audit Dokumen Batch');
+    }
 }
