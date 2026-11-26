@@ -187,5 +187,15 @@ class RbacAndPermissionAliasTest extends TestCase
         $this->assertNotContains('transfer.bahan.ship', $assignedNames);
         $this->assertNotContains('transfer.cancel', $assignedNames);
     }
-}
 
+    public function test_seeded_system_roles_keep_default_audit_permissions(): void
+    {
+        $this->assertTrue(Role::findByName('purchasing')->hasPermissionTo('purchasing.audit'));
+        $this->assertTrue(Role::findByName('gudang')->hasPermissionTo('rt.audit'));
+        $this->assertTrue(Role::findByName('operasional')->hasPermissionTo('batch.audit'));
+
+        foreach (['purchasing', 'gudang', 'operasional', 'fulfillment'] as $name) {
+            $this->assertFalse(Role::findByName($name)->hasPermissionTo('audit.view'), "{$name} must not get audit.view");
+        }
+    }
+}

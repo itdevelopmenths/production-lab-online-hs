@@ -82,7 +82,7 @@ class PermissionSeeder extends Seeder
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.price.view', 'purchasing.create', 'purchasing.edit',
             'purchasing.edit_invoice_eta',
-            'purchasing.submit', 'purchasing.pay', 'purchasing.cancel',
+            'purchasing.submit', 'purchasing.pay', 'purchasing.cancel', 'purchasing.audit',
             'analisa.view', 'analisa.manage', 'analisa.snapshot', 'analisa.create_po',
             'report.view',
         ]));
@@ -102,7 +102,7 @@ class PermissionSeeder extends Seeder
             'transfer.bahan.create', 'transfer.bahan.ship', 'transfer.bahan.receive',
             'transfer.produk_jadi.create', 'transfer.produk_jadi.ship', 'transfer.produk_jadi.receive',
             'defect.view',
-            'rt.view', 'rt.submit', 'rt.process',
+            'rt.view', 'rt.submit', 'rt.process', 'rt.audit',
             'report.view',
         ]));
 
@@ -116,7 +116,7 @@ class PermissionSeeder extends Seeder
             'produk.view', 'gudang.view', 'uom.view', 'bom.view', 'bom.manage',
             'stok.view', 'stok.opname', 'stok.ledger.view',
             'batch.view', 'batch.create', 'batch.release',
-            'batch.complete', 'batch.cancel', 'batch.opname',
+            'batch.complete', 'batch.cancel', 'batch.opname', 'batch.audit',
             'request.view', 'request.bahan.create', 'request.submit', 'request.cancel',
             'transfer.view', 'transfer.bahan.receive',
             'transfer.produk_jadi.create', 'transfer.produk_jadi.ship',
