@@ -2,6 +2,7 @@
 
 use App\Exceptions\DomainException;
 use App\Exceptions\InsufficientStockException;
+use App\Http\Middleware\ApplyQaClock;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -18,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->appendToGroup('web', ApplyQaClock::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // fetch() halaman (Accept: application/json) juga butuh error JSON, mis. 422 validasi di modal Analisa.
@@ -57,6 +58,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 if ($e instanceof InsufficientStockException) {
                     $data['errors'] = $e->getShortages();
                 }
+
                 return response()->json($data, 422);
             }
 
