@@ -336,7 +336,9 @@
         @endif
 
         {{-- Jejak Audit Operasional Transfer --}}
+        @canany(['rt.audit', 'audit.view'])
         <x-operational-audit-history :auditable="$transfer" title="Jejak Riwayat Audit Transfer {{ $transfer->no_transfer }}" />
+        @endcanany
     </div>
 </x-app-layout>
 
