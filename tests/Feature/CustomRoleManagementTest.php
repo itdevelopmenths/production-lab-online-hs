@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Authorization\PermissionCatalogService;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
@@ -415,5 +416,60 @@ class CustomRoleManagementTest extends TestCase
             ->assertOk()
             ->assertSeeText('Simpan Perubahan')
             ->assertDontSeeText('Manager memiliki akses penuh');
+    }
+
+    public function test_manager_role_manage_cannot_be_revoked(): void
+    {
+        $this->actingAs($this->manager);
+
+        $managerRole = Role::where('name', 'manager')->firstOrFail();
+
+        $this->put(route('roles.update', $managerRole), [
+            'display_name' => 'Manager (Administrator)',
+            'permissions' => ['purchasing.view'],
+        ])->assertRedirect(route('roles.index'));
+
+        $managerRole = $managerRole->fresh();
+        $this->assertTrue($managerRole->hasPermissionTo('role.manage'));
+        $this->assertTrue($managerRole->hasPermissionTo('purchasing.view'));
+    }
+
+    public function test_revoking_permission_from_manager_takes_effect_for_manager_users(): void
+    {
+        $this->actingAs($this->manager);
+
+        $managerRole = Role::where('name', 'manager')->firstOrFail();
+        $keep = $managerRole->permissions()->pluck('name')->reject(fn ($n) => $n === 'audit.view')->values()->all();
+
+        $this->put(route('roles.update', $managerRole), [
+            'display_name' => 'Manager (Administrator)',
+            'permissions' => $keep,
+        ])->assertRedirect(route('roles.index'));
+
+        $manager = $this->manager->fresh();
+        $this->assertFalse($manager->can('audit.view'));
+        $this->assertTrue($manager->can('role.manage'));
+        $this->assertTrue($manager->can('purchasing.view'));
+    }
+
+    public function test_reseeding_does_not_overwrite_manager_permission_edits(): void
+    {
+        $managerRole = Role::where('name', 'manager')->firstOrFail();
+        $managerRole->revokePermissionTo('audit.view');
+
+        $this->seed(PermissionSeeder::class);
+
+        $this->assertFalse($managerRole->fresh()->hasPermissionTo('audit.view'));
+        $this->assertTrue($managerRole->fresh()->hasPermissionTo('role.manage'));
+    }
+
+    public function test_manager_edit_page_marks_role_manage_as_locked(): void
+    {
+        $this->actingAs($this->manager);
+
+        $this->get(route('roles.edit', Role::where('name', 'manager')->firstOrFail()))
+            ->assertOk()
+            ->assertSeeText('Kelola Peran selalu aktif untuk Manager')
+            ->assertSee('data-locked-permission="role.manage"', false);
     }
 }

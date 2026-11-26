@@ -65,14 +65,17 @@ class RoleService
 
             $role->update($updateData);
 
-            $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
+            $this->permissionCatalogService->ensurePermissionsExist(array_merge($permissionNames, ['role.manage']));
 
             // Wewenang di luar katalog tidak tampil di matriks, jadi jangan ikut tercabut saat simpan.
             $preserved = $role->permissions()->pluck('name')
                 ->diff($this->permissionCatalogService->getAllPermissionKeys())
                 ->all();
 
-            $role->syncPermissions(array_values(array_unique(array_merge($permissionNames, $preserved))));
+            // Manager tidak boleh kehilangan akses kelola peran, agar admin tidak mengunci dirinya sendiri.
+            $locked = $role->name === 'manager' ? ['role.manage'] : [];
+
+            $role->syncPermissions(array_values(array_unique(array_merge($permissionNames, $preserved, $locked))));
 
             // Invalidate Spatie cached permissions
             app()->make(PermissionRegistrar::class)->forgetCachedPermissions();

@@ -7,6 +7,14 @@
             :backUrl="route('roles.index')"
         />
 
+        @php($lockedPermissions = $role->name === 'manager' ? ['role.manage'] : [])
+
+        @if ($role->name === 'manager')
+            <x-alert type="info" title="Peran Manager:">
+                Kelola Peran selalu aktif untuk Manager agar admin tidak mengunci dirinya sendiri. Wewenang lain bisa diatur bebas.
+            </x-alert>
+        @endif
+
         @if ($role->is_system)
             <x-alert type="warning" title="Peran Sistem Terproteksi:">
                 Peran ini merupakan peran bawaan sistem (Core System Role). Kode identifikasi (<code class="font-medium tabular-nums">{{ $role->name }}</code>) dikunci untuk menjamin integritas alur kerja, namun Anda dapat menyesuaikan wewenang modul di bawah secara leluasa.
@@ -43,7 +51,7 @@
 
                 {{-- Permission Matrix Component --}}
                 <div>
-                    <x-permission-matrix :catalog="$catalog" :activePermissions="$errors->any() ? old('permissions', []) : $activePermissions" />
+                    <x-permission-matrix :catalog="$catalog" :activePermissions="$errors->any() ? old('permissions', []) : $activePermissions" :locked="$lockedPermissions" />
                 </div>
 
                 {{-- Action Buttons --}}

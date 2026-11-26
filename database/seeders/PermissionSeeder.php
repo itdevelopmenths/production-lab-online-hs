@@ -66,7 +66,11 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Manager (Administrator)', 'description' => 'Akses penuh ke seluruh modul sistem dan wewenang approval transaksi', 'is_system' => true]
         );
         $manager->update(['display_name' => 'Manager (Administrator)', 'description' => 'Akses penuh ke seluruh modul sistem dan wewenang approval transaksi', 'is_system' => true]);
-        $manager->syncPermissions(Permission::all());
+        // Hanya saat pertama dibuat: setelah itu wewenang manager diatur admin lewat editor peran.
+        if ($manager->wasRecentlyCreated) {
+            $manager->syncPermissions(Permission::all());
+        }
+        $manager->givePermissionTo('role.manage');
 
         // Purchasing
         $purchasing = \App\Models\Role::firstOrCreate(
