@@ -295,4 +295,35 @@ class PurchasingInvoiceEtaEditTest extends TestCase
             ->assertOk()
             ->assertSee('openInvoiceEtaModal: true', false);
     }
+
+    public function test_eta_before_po_date_is_rejected_but_same_day_is_accepted(): void
+    {
+        $po = $this->createPo();
+        $tanggalPo = $po->tanggal->format('d/m/Y');
+
+        $this->actingAs($this->purchasing)
+            ->put(route('purchasing.invoice-eta', $po), $this->payload(['eta' => now()->subDay()->toDateString()]))
+            ->assertSessionHasErrors(['eta' => "ETA tidak boleh sebelum tanggal PO ({$tanggalPo})."]);
+
+        $po->refresh();
+        $this->assertSame('INV-LAMA', $po->no_invoice);
+        $this->assertSame(now()->addDays(3)->toDateString(), $po->eta->toDateString());
+
+        $this->actingAs($this->purchasing)
+            ->put(route('purchasing.invoice-eta', $po), $this->payload(['eta' => now()->toDateString()]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(now()->toDateString(), $po->fresh()->eta->toDateString());
+    }
+
+    public function test_modal_eta_input_has_min_attribute_set_to_po_date(): void
+    {
+        $po = $this->createPo();
+
+        $this->actingAs($this->purchasing)
+            ->get(route('purchasing.show', $po))
+            ->assertOk()
+            ->assertSee('min="'.$po->tanggal->format('Y-m-d').'"', false)
+            ->assertSee('(tanggal PO)', false);
+    }
 }

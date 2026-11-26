@@ -703,11 +703,12 @@ class PurchasingController extends Controller
 
         $data = $request->validate([
             'no_invoice' => ['nullable', 'string', 'max:50'],
-            'eta' => ['nullable', 'date'],
+            'eta' => ['nullable', 'date', 'after_or_equal:'.$purchaseOrder->tanggal->toDateString()],
         ], [
             'no_invoice.string' => 'No. Invoice harus berupa teks.',
             'no_invoice.max' => 'No. Invoice maksimal 50 karakter.',
             'eta.date' => 'ETA harus berupa tanggal yang valid.',
+            'eta.after_or_equal' => 'ETA tidak boleh sebelum tanggal PO ('.$purchaseOrder->tanggal->format('d/m/Y').').',
         ]);
 
         $purchaseOrder->update($data);

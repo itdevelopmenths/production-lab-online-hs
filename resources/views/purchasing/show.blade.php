@@ -2357,8 +2357,8 @@
                     <x-input type="text" name="no_invoice" variant="seamless" maxlength="50" value="{{ old('no_invoice', $po->no_invoice) }}" placeholder="Contoh: INV/PO/202609/0001" />
                 </x-form-field>
 
-                <x-form-field label="Estimasi (ETA)" name="eta" help="Perkiraan pesanan tiba di gudang.">
-                    <x-input type="date" name="eta" variant="seamless" value="{{ old('eta', $po->eta?->format('Y-m-d')) }}" />
+                <x-form-field label="Estimasi (ETA)" name="eta" :help="'Perkiraan pesanan tiba di gudang. Paling awal ' . $po->tanggal->format('d/m/Y') . ' (tanggal PO).'">
+                    <x-input type="date" name="eta" variant="seamless" min="{{ $po->tanggal->format('Y-m-d') }}" value="{{ old('eta', $po->eta?->format('Y-m-d')) }}" />
                 </x-form-field>
             </form>
 
