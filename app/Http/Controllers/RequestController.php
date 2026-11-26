@@ -496,9 +496,12 @@ class RequestController extends Controller
     {
         $this->authorize('request.cancel');
 
+        $request->validate([
+            'alasan' => 'required|string|max:500',
+        ]);
+
         try {
-            $alasan = $request->input('alasan') ?: 'Dibatalkan oleh pengguna';
-            $this->requestService->cancel($stockRequest, auth()->user(), $alasan);
+            $this->requestService->cancel($stockRequest, auth()->user(), $request->input('alasan'));
             return redirect()->route('requests.show', $stockRequest)->with('info', "Request {$stockRequest->no_request} telah dibatalkan.");
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
