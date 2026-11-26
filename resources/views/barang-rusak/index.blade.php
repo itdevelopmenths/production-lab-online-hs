@@ -65,6 +65,7 @@
                             <th class="px-4 py-2.5 text-left">Barang</th>
                             <th class="px-4 py-2.5 text-left">Lokasi Gudang</th>
                             <th class="px-4 py-2.5 text-right">Total Rusak</th>
+                            <th class="px-4 py-2.5 text-right">Defect Rate</th>
                             <th class="px-4 py-2.5 text-center">Jumlah Dokumen</th>
                             <th class="px-4 py-2.5 text-left">Terakhir</th>
                         </tr>
@@ -83,11 +84,15 @@
                             <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums font-medium text-red-600 dark:text-red-400">
                                 {{ NumberHelper::formatQty($item->total_rusak) }} {{ $item->satuan }}
                             </td>
+                            <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums font-medium text-red-600 dark:text-red-400"
+                                title="Rusak {{ NumberHelper::formatQty($item->total_rusak) }} dari {{ NumberHelper::formatQty($item->total_dikirim) }} {{ $item->satuan }} dikirim/dipesan">
+                                {{ number_format($item->defect_rate, 2, ',', '.') }}%
+                            </td>
                             <td class="px-4 py-3 text-center tabular-nums">{{ $item->jumlah_dokumen }}</td>
                             <td class="px-4 py-3 whitespace-nowrap tabular-nums">{{ \Illuminate\Support\Carbon::parse($item->terakhir)->format('d/m/Y') }}</td>
                         </tr>
                         <tr x-show="open" x-cloak>
-                            <td colspan="7" class="bg-[#fafafa] dark:bg-gray-950/60 px-4 py-3">
+                            <td colspan="8" class="bg-[#fafafa] dark:bg-gray-950/60 px-4 py-3">
                                 <table class="w-full text-xs">
                                     <thead>
                                         <tr class="text-[#667085] dark:text-gray-400">
@@ -97,6 +102,7 @@
                                             <th class="py-1.5 pr-3 text-left">Asal → Tujuan</th>
                                             <th class="py-1.5 pr-3 text-right">Dikirim / Dipesan</th>
                                             <th class="py-1.5 pr-3 text-right">Rusak</th>
+                                            <th class="py-1.5 pr-3 text-right">Defect Rate</th>
                                             <th class="py-1.5 text-left">Keterangan</th>
                                         </tr>
                                     </thead>
@@ -117,6 +123,7 @@
                                             <td class="py-2 pr-3">{{ $d->asal_nama ?? '—' }} → {{ $d->gudang_nama }}</td>
                                             <td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap">{{ NumberHelper::formatQty($d->qty_dikirim) }}</td>
                                             <td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap font-medium text-red-600 dark:text-red-400">{{ NumberHelper::formatQty($d->qty_rusak) }}</td>
+                                            <td class="py-2 pr-3 text-right tabular-nums whitespace-nowrap">{{ $d->qty_dikirim > 0 ? number_format($d->qty_rusak / $d->qty_dikirim * 100, 2, ',', '.') . '%' : '—' }}</td>
                                             <td class="py-2">{{ $d->keterangan ?: '—' }}</td>
                                         </tr>
                                         @endforeach
@@ -128,7 +135,7 @@
                     @empty
                     <tbody>
                         <tr>
-                            <td colspan="7" class="px-4 py-10 text-center text-[#667085] dark:text-gray-400">
+                            <td colspan="8" class="px-4 py-10 text-center text-[#667085] dark:text-gray-400">
                                 Tidak ada barang rusak pada periode dan lokasi ini.
                             </td>
                         </tr>

@@ -453,14 +453,21 @@ class TransferService
             'tanggal' => (string) $r->tanggal,
         ]);
 
+        $denominators = $this->barangRusakDenominators($gudangIds, $start, $end);
+
         return $transferDetails
             ->concat($this->barangRusakPurchasingRows($gudangIds, $start, $end))
             ->sortByDesc(fn ($d) => Carbon::parse($d->tanggal)->getTimestamp())
             ->groupBy(fn ($r) => $r->produk_id . '_' . $r->gudang_id)
-            ->map(function (Collection $group) {
+            ->map(function (Collection $group, string $key) use ($denominators) {
                 $first = $group->first();
+                $totalRusak = (float) $group->sum('qty_rusak');
+                // Pembagi dari semua dokumen periode (termasuk yang tanpa rusak); fallback ke dokumen rusak saja
+                $totalDikirim = max((float) ($denominators[$key] ?? 0), (float) $group->sum('qty_dikirim'));
 
                 return (object) [
+                    'total_dikirim' => $totalDikirim,
+                    'defect_rate' => $totalDikirim > 0 ? round(($totalRusak / $totalDikirim) * 100, 2) : 0.0,
                     'produk_id' => (int) $first->produk_id,
                     'sku' => $first->sku,
                     'produk_nama' => $first->produk_nama,
@@ -475,6 +482,62 @@ class TransferService
             })
             ->sortByDesc('total_rusak')
             ->values();
+    }
+
+    /**
+     * Total qty dikirim/dipesan per "produk_gudang" untuk semua dokumen selesai pada periode
+     * (termasuk yang tanpa rusak), dipakai sebagai pembagi defect rate.
+     *
+     * @param  array<int>|null  $gudangIds
+     * @return array<string, float>
+     */
+    private function barangRusakDenominators(?array $gudangIds, CarbonInterface $start, CarbonInterface $end): array
+    {
+        $range = [
+            $start->copy()->startOfDay()->toDateTimeString(),
+            $end->copy()->endOfDay()->toDateTimeString(),
+        ];
+        $totals = [];
+
+        $trfEvent = 'COALESCE(t.waktu_diterima, t.updated_at, t.created_at)';
+        $transfers = DB::table('transfer_items as ti')
+            ->join('transfers as t', 't.id', '=', 'ti.transfer_id')
+            ->where('t.status', 'selesai')
+            ->whereBetween(DB::raw($trfEvent), $range)
+            ->when($gudangIds !== null, fn ($q) => $q->whereIn('t.gudang_tujuan_id', $gudangIds))
+            ->groupBy('ti.produk_id', 't.gudang_tujuan_id')
+            ->get([
+                'ti.produk_id',
+                't.gudang_tujuan_id as gudang_id',
+                DB::raw('SUM(ti.qty_dikirim) as total'),
+            ]);
+        foreach ($transfers as $r) {
+            $key = (int) $r->produk_id . '_' . (int) $r->gudang_id;
+            $totals[$key] = ($totals[$key] ?? 0) + (float) $r->total;
+        }
+
+        $poEvent = 'COALESCE(bd.waktu_tiba, bd.created_at)';
+        $goodExpr = 'COALESCE(bdi.qty_diterima, bdi.qty_fisik, 0)';
+        $totalExpr = "CASE WHEN poi.qty >= {$goodExpr} THEN poi.qty ELSE {$goodExpr} END";
+        $purchasing = DB::table('barang_datang_items as bdi')
+            ->join('barang_datang as bd', 'bd.id', '=', 'bdi.bardat_id')
+            ->join('purchase_orders as po', 'po.id', '=', 'bd.po_id')
+            ->join('purchase_order_items as poi', 'poi.id', '=', 'bdi.po_item_id')
+            ->where('po.status', '!=', 'dibatalkan')
+            ->whereBetween(DB::raw($poEvent), $range)
+            ->when($gudangIds !== null, fn ($q) => $q->whereIn('po.gudang_id', $gudangIds))
+            ->groupBy('poi.produk_id', 'po.gudang_id')
+            ->get([
+                'poi.produk_id',
+                'po.gudang_id',
+                DB::raw("SUM({$totalExpr}) as total"),
+            ]);
+        foreach ($purchasing as $r) {
+            $key = (int) $r->produk_id . '_' . (int) $r->gudang_id;
+            $totals[$key] = ($totals[$key] ?? 0) + (float) $r->total;
+        }
+
+        return $totals;
     }
 
     /**
