@@ -10,6 +10,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\Purchasing\PurchasingStageService;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -32,10 +33,13 @@ class QaPoTimeShiftTest extends TestCase
     {
         parent::setUp();
 
+        // Env 'local' mengaktifkan QA tools; CSRF hanya di-skip otomatis saat env 'testing'.
+        $this->app['env'] = 'local';
+        $this->withoutMiddleware(PreventRequestForgery::class);
+
         $this->seed();
 
         config([
-            'qa.time_tools' => true,
             'qa.clock_path' => storage_path('framework/testing/qa-clock-'.uniqid().'.json'),
         ]);
 
@@ -164,7 +168,7 @@ class QaPoTimeShiftTest extends TestCase
     public function test_shift_route_404_when_disabled(): void
     {
         $po = $this->createSamplePo();
-        config(['qa.time_tools' => false]);
+        $this->app['env'] = 'testing';
 
         $this->actingAs($this->purchasing)
             ->postJson($this->shiftUrl($po), ['hari' => 1, 'jam' => 0])
@@ -200,7 +204,7 @@ class QaPoTimeShiftTest extends TestCase
             ->assertDontSee($this->shiftUrl($po), false);
 
         $po->update(['status' => 'draft']);
-        config(['qa.time_tools' => false]);
+        $this->app['env'] = 'testing';
 
         $this->actingAs($this->purchasing)
             ->get(route('purchasing.show', $po))

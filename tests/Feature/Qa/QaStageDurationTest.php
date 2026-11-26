@@ -11,6 +11,7 @@ use App\Models\Supplier;
 use App\Models\SupplierLtSummary;
 use App\Models\User;
 use App\Services\Purchasing\PurchasingStageService;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -39,10 +40,13 @@ class QaStageDurationTest extends TestCase
     {
         parent::setUp();
 
+        // Env 'local' mengaktifkan QA tools; CSRF hanya di-skip otomatis saat env 'testing'.
+        $this->app['env'] = 'local';
+        $this->withoutMiddleware(PreventRequestForgery::class);
+
         $this->seed();
 
         config([
-            'qa.time_tools' => true,
             'qa.clock_path' => storage_path('framework/testing/qa-clock-'.uniqid().'.json'),
         ]);
 
@@ -169,7 +173,7 @@ class QaStageDurationTest extends TestCase
 
     public function test_duration_ignored_when_disabled(): void
     {
-        config(['qa.time_tools' => false]);
+        $this->app['env'] = 'testing';
         $po = $this->createSamplePo();
 
         $this->actingAs($this->purchasing)
@@ -279,7 +283,7 @@ class QaStageDurationTest extends TestCase
             ->assertOk()
             ->assertSee('qa_durasi_hari', false);
 
-        config(['qa.time_tools' => false]);
+        $this->app['env'] = 'testing';
 
         $this->actingAs($this->purchasing)
             ->get(route('purchasing.show', $po))

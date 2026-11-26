@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // QA Clock: terapkan offset waktu di console (artisan, scheduler) dan sebelum tiap job queue.
-        // No-op bila QA_TIME_TOOLS mati (phpunit.xml memaksa false).
+        // No-op bila APP_ENV bukan local (termasuk saat test).
         if ($this->app->runningInConsole()) {
             app(QaClock::class)->apply();
         }

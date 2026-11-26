@@ -42,8 +42,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // QA tools (khusus non-production; tiap aksi tetap 404 bila QA_TIME_TOOLS nonaktif)
-    if (! app()->isProduction()) {
+    // QA tools (local + testing saja, seperti role switcher; aksi 404 bila APP_ENV bukan local)
+    if (app()->environment('local', 'testing')) {
         Route::get('qa/clock', [QaToolsController::class, 'clock'])->name('qa.clock');
         Route::post('qa/clock/advance', [QaToolsController::class, 'advanceClock'])->name('qa.clock.advance');
         Route::post('qa/clock/set', [QaToolsController::class, 'setClock'])->name('qa.clock.set');

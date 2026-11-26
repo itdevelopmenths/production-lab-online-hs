@@ -4,6 +4,7 @@ namespace Tests\Feature\Qa;
 
 use App\Models\User;
 use App\Services\Qa\QaClock;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -16,10 +17,13 @@ class QaClockControllerTest extends TestCase
     {
         parent::setUp();
 
+        // Env 'local' mengaktifkan QA tools; CSRF hanya di-skip otomatis saat env 'testing'.
+        $this->app['env'] = 'local';
+        $this->withoutMiddleware(PreventRequestForgery::class);
+
         $this->seed();
 
         config([
-            'qa.time_tools' => true,
             'qa.clock_path' => storage_path('framework/testing/qa-clock-'.uniqid().'.json'),
         ]);
 
@@ -41,7 +45,7 @@ class QaClockControllerTest extends TestCase
 
     public function test_clock_page_404_when_disabled(): void
     {
-        config(['qa.time_tools' => false]);
+        $this->app['env'] = 'testing';
 
         // Handler 404 global (bootstrap/app.php) mengalihkan request HTML dengan flash error, JSON tetap 404.
         $this->getJson(route('qa.clock'))->assertNotFound();
@@ -50,7 +54,7 @@ class QaClockControllerTest extends TestCase
 
     public function test_actions_404_when_disabled(): void
     {
-        config(['qa.time_tools' => false]);
+        $this->app['env'] = 'testing';
 
         $this->postJson(route('qa.clock.advance'), ['hari' => 1, 'jam' => 0])->assertNotFound();
         $this->postJson(route('qa.clock.set'), ['waktu' => $this->clock()->realNow()->addDay()->format('Y-m-d\TH:i')])->assertNotFound();
@@ -150,7 +154,7 @@ class QaClockControllerTest extends TestCase
 
     public function test_banner_hidden_when_disabled(): void
     {
-        config(['qa.time_tools' => false]);
+        $this->app['env'] = 'testing';
 
         $this->get(route('dashboard'))
             ->assertOk()

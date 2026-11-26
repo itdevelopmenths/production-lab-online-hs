@@ -17,7 +17,7 @@ class QaClock
 
     public function enabled(): bool
     {
-        return (bool) config('qa.time_tools') && ! app()->environment('production');
+        return app()->environment('local');
     }
 
     public function offsetMinutes(): int

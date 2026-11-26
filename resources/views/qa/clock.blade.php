@@ -8,7 +8,7 @@
     <div class="w-full space-y-4">
         <x-page-header
             title="QA Clock"
-            subtitle="Majukan jam aplikasi untuk menguji lead time, SLA, dan jatuh tempo. Hanya tersedia di environment non-production."
+            subtitle="Majukan jam aplikasi untuk menguji lead time, SLA, dan jatuh tempo. Hanya tersedia bila APP_ENV=local."
             :breadcrumbs="['QA Tools' => null, 'QA Clock' => null]"
         />
 

@@ -4,6 +4,7 @@ namespace Tests\Feature\Qa;
 
 use App\Models\User;
 use App\Services\Qa\QaClock;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
@@ -17,8 +18,11 @@ class QaClockTest extends TestCase
     {
         parent::setUp();
 
+        // Env 'local' mengaktifkan QA tools; CSRF hanya di-skip otomatis saat env 'testing'.
+        $this->app['env'] = 'local';
+        $this->withoutMiddleware(PreventRequestForgery::class);
+
         config([
-            'qa.time_tools' => true,
             'qa.clock_path' => storage_path('framework/testing/qa-clock-'.uniqid().'.json'),
         ]);
     }
@@ -36,14 +40,14 @@ class QaClockTest extends TestCase
         return app(QaClock::class);
     }
 
-    public function test_disabled_when_flag_false(): void
+    public function test_disabled_outside_local_env(): void
     {
-        config(['qa.time_tools' => false]);
+        $this->app['env'] = 'testing';
 
         $this->assertFalse($this->clock()->enabled());
     }
 
-    public function test_disabled_in_production_even_if_flag_true(): void
+    public function test_disabled_in_production(): void
     {
         $this->app['env'] = 'production';
 
@@ -118,7 +122,7 @@ class QaClockTest extends TestCase
     public function test_apply_noop_when_disabled(): void
     {
         file_put_contents(config('qa.clock_path'), '{"offset_minutes":60}');
-        config(['qa.time_tools' => false]);
+        $this->app['env'] = 'testing';
 
         $this->clock()->apply();
 

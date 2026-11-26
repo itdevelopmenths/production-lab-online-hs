@@ -13,7 +13,7 @@
 
     <form method="POST" action="{{ route('qa.purchasing.shift', $po) }}" class="mt-4">
         @csrf
-        <x-card title="QA: Mundurkan waktu PO" subtitle="Menggeser seluruh waktu stage PO ke belakang agar durasi stage bisa disimulasikan. Hanya tersedia di environment non-production." :noPadding="true">
+        <x-card title="QA: Mundurkan waktu PO" subtitle="Menggeser seluruh waktu stage PO ke belakang agar durasi stage bisa disimulasikan. Hanya tersedia bila APP_ENV=local." :noPadding="true">
             <div class="p-4 sm:p-5 space-y-4">
                 @if($qaActiveStage)
                     <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
