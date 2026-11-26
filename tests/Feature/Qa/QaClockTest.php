@@ -23,6 +23,7 @@ class QaClockTest extends TestCase
         $this->withoutMiddleware(PreventRequestForgery::class);
 
         config([
+            'qa.lead_time_test' => true,
             'qa.clock_path' => storage_path('framework/testing/qa-clock-'.uniqid().'.json'),
         ]);
     }
@@ -45,6 +46,18 @@ class QaClockTest extends TestCase
         $this->app['env'] = 'testing';
 
         $this->assertFalse($this->clock()->enabled());
+    }
+
+    public function test_disabled_when_flag_off_even_in_local(): void
+    {
+        config(['qa.lead_time_test' => false]);
+
+        $this->assertFalse($this->clock()->enabled());
+    }
+
+    public function test_enabled_only_when_local_and_flag_on(): void
+    {
+        $this->assertTrue($this->clock()->enabled());
     }
 
     public function test_disabled_in_production(): void

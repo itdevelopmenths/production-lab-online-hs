@@ -1,16 +1,16 @@
 # Panduan QA Time Tools (Simulasi Lead Time Purchasing)
 
-Alat bantu untuk menguji fitur yang bergantung pada waktu di modul Purchasing (durasi stage, lead time supplier, status "Terlambat", jatuh tempo termin) tanpa menunggu hari sungguhan. Hanya aktif bila `APP_ENV=local`.
+Alat bantu untuk menguji fitur yang bergantung pada waktu di modul Purchasing (durasi stage, lead time supplier, status "Terlambat", jatuh tempo termin) tanpa menunggu hari sungguhan. Hanya aktif bila `APP_ENV=local` **dan** `QA_LEAD_TIME_TEST=true`.
 
 Spec: `docs/superpowers/specs/2026-11-26-qa-lead-time-clock-design.md`
 Kode: `config/qa.php`, `App\Services\Qa\*`, `App\Http\Middleware\ApplyQaClock`, `App\Http\Controllers\QaToolsController`.
 
 ## Mengaktifkan
 
-1. Pastikan `.env` berisi `APP_ENV=local` (tidak perlu flag lain).
+1. Pastikan `.env` berisi `APP_ENV=local` dan `QA_LEAD_TIME_TEST=true`. Setelah ubah `.env`, jalankan `php artisan config:clear`.
 2. Login. Menu user sekarang punya link **QA Clock** (`/qa/clock`).
 
-Alat aktif hanya bila `APP_ENV=local`. Di environment lain (staging, production) route `/qa/*` tidak ada dan banner/field QA tidak muncul. Semua user yang login bisa memakainya. Untuk berganti role, pakai dropdown **Ganti Peran (Dev)** di menu user, atau login sebagai user seed: `manager@heavenscent.id`, `purchasing@heavenscent.id`, `gudang@heavenscent.id` (password default `password`, lihat `database/seeders/UserSeeder.php`).
+Alat aktif hanya bila `APP_ENV=local` dan `QA_LEAD_TIME_TEST=true`. Di environment lain (staging, production) route `/qa/*` tidak ada dan banner/field QA tidak muncul. Semua user yang login bisa memakainya. Untuk berganti role, pakai dropdown **Ganti Peran (Dev)** di menu user, atau login sebagai user seed: `manager@heavenscent.id`, `purchasing@heavenscent.id`, `gudang@heavenscent.id` (password default `password`, lihat `database/seeders/UserSeeder.php`).
 
 ## Komponen
 

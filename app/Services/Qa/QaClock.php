@@ -17,7 +17,7 @@ class QaClock
 
     public function enabled(): bool
     {
-        return app()->environment('local');
+        return app()->environment('local') && (bool) config('qa.lead_time_test', false);
     }
 
     public function offsetMinutes(): int

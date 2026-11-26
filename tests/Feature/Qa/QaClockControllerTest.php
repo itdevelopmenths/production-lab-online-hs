@@ -24,6 +24,7 @@ class QaClockControllerTest extends TestCase
         $this->seed();
 
         config([
+            'qa.lead_time_test' => true,
             'qa.clock_path' => storage_path('framework/testing/qa-clock-'.uniqid().'.json'),
         ]);
 

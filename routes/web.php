@@ -42,7 +42,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // QA tools (local + testing saja, seperti role switcher; aksi 404 bila APP_ENV bukan local)
+    // QA tools (local + testing saja; aksi 404 bila APP_ENV bukan local atau QA_LEAD_TIME_TEST bukan true)
     if (app()->environment('local', 'testing')) {
         Route::get('qa/clock', [QaToolsController::class, 'clock'])->name('qa.clock');
         Route::post('qa/clock/advance', [QaToolsController::class, 'advanceClock'])->name('qa.clock.advance');
