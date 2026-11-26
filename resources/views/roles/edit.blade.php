@@ -7,13 +7,7 @@
             :backUrl="route('roles.index')"
         />
 
-        @php($isManager = $role->name === 'manager')
-
-        @if ($isManager)
-            <x-alert type="info" title="Peran Manager:">
-                Manager memiliki akses penuh ke seluruh fitur; wewenang tidak dapat diubah. Matriks di bawah hanya untuk dilihat.
-            </x-alert>
-        @elseif ($role->is_system)
+        @if ($role->is_system)
             <x-alert type="warning" title="Peran Sistem Terproteksi:">
                 Peran ini merupakan peran bawaan sistem (Core System Role). Kode identifikasi (<code class="font-medium tabular-nums">{{ $role->name }}</code>) dikunci untuk menjamin integritas alur kerja, namun Anda dapat menyesuaikan wewenang modul di bawah secara leluasa.
             </x-alert>
@@ -49,7 +43,7 @@
 
                 {{-- Permission Matrix Component --}}
                 <div>
-                    <x-permission-matrix :catalog="$catalog" :activePermissions="$errors->any() ? old('permissions', []) : $activePermissions" :readonly="$isManager" />
+                    <x-permission-matrix :catalog="$catalog" :activePermissions="$errors->any() ? old('permissions', []) : $activePermissions" />
                 </div>
 
                 {{-- Action Buttons --}}
@@ -57,7 +51,6 @@
                     <x-button href="{{ route('roles.index') }}" variant="secondary" size="sm">
                         Batal
                     </x-button>
-                    @unless ($isManager)
                     <x-button type="submit" variant="primary" size="sm">
                         <x-slot:icon>
                             <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,7 +59,6 @@
                         </x-slot:icon>
                         Simpan Perubahan
                     </x-button>
-                    @endunless
                 </div>
             </div>
         </form>

@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Authorization\PermissionCatalogService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -13,6 +15,7 @@ class CustomRoleManagementTest extends TestCase
     use RefreshDatabase;
 
     protected User $manager;
+
     protected User $regularUser;
 
     protected function setUp(): void
@@ -238,7 +241,7 @@ class CustomRoleManagementTest extends TestCase
 
         // Simulasikan kondisi database belum di-seed ulang sehingga permission baru belum ada di tabel permissions
         $newlyAddedCatalogKeys = ['request.view', 'transfer.view', 'purchasing.audit'];
-        \Spatie\Permission\Models\Permission::whereIn('name', $newlyAddedCatalogKeys)->delete();
+        Permission::whereIn('name', $newlyAddedCatalogKeys)->delete();
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $permissionsPayload = [
@@ -275,7 +278,7 @@ class CustomRoleManagementTest extends TestCase
         $this->actingAs($this->manager);
 
         $systemRole = Role::where('name', 'gudang')->firstOrFail();
-        $allCatalogKeys = app(\App\Services\Authorization\PermissionCatalogService::class)->getAllPermissionKeys();
+        $allCatalogKeys = app(PermissionCatalogService::class)->getAllPermissionKeys();
 
         $this->put(route('roles.update', $systemRole), [
             'display_name' => $systemRole->display_name,
@@ -327,7 +330,7 @@ class CustomRoleManagementTest extends TestCase
 
     public function test_catalog_has_no_dead_report_export_and_audit_view_label_is_descriptive(): void
     {
-        $catalog = app(\App\Services\Authorization\PermissionCatalogService::class);
+        $catalog = app(PermissionCatalogService::class);
         $keys = $catalog->getAllPermissionKeys();
 
         $this->assertNotContains('report.export', $keys);
@@ -342,7 +345,7 @@ class CustomRoleManagementTest extends TestCase
         $this->actingAs($this->manager);
 
         foreach (['reports.view', 'gudang.audit'] as $legacy) {
-            \Spatie\Permission\Models\Permission::firstOrCreate(['name' => $legacy, 'guard_name' => 'web']);
+            Permission::firstOrCreate(['name' => $legacy, 'guard_name' => 'web']);
         }
         $role = Role::create(['name' => 'legacy_holder', 'display_name' => 'Legacy Holder', 'is_system' => false, 'guard_name' => 'web']);
         $role->syncPermissions(['purchasing.view', 'reports.view', 'gudang.audit']);
@@ -377,31 +380,31 @@ class CustomRoleManagementTest extends TestCase
         $this->assertFalse($role->hasPermissionTo('audit.view'));
     }
 
-    public function test_manager_role_permissions_not_changed_by_update(): void
+    public function test_manager_role_permissions_can_be_updated(): void
     {
         $this->actingAs($this->manager);
 
         $managerRole = Role::where('name', 'manager')->firstOrFail();
-        $before = $managerRole->permissions()->count();
 
         $this->put(route('roles.update', $managerRole), [
             'display_name' => 'Manager Renamed',
-            'permissions' => [],
+            'permissions' => ['purchasing.view', 'role.manage'],
         ])->assertRedirect(route('roles.index'));
 
         $managerRole = $managerRole->fresh();
-        $this->assertSame($before, $managerRole->permissions()->count());
         $this->assertSame('Manager Renamed', $managerRole->display_name);
+        $this->assertTrue($managerRole->hasPermissionTo('purchasing.view'));
+        $this->assertFalse($managerRole->hasPermissionTo('audit.view'));
     }
 
-    public function test_manager_role_edit_page_is_readonly_with_notice(): void
+    public function test_manager_role_edit_page_is_editable(): void
     {
         $this->actingAs($this->manager);
 
         $this->get(route('roles.edit', Role::where('name', 'manager')->firstOrFail()))
             ->assertOk()
-            ->assertSeeText('Manager memiliki akses penuh')
-            ->assertDontSeeText('Simpan Perubahan');
+            ->assertSeeText('Simpan Perubahan')
+            ->assertDontSeeText('Manager memiliki akses penuh');
     }
 
     public function test_other_system_role_edit_page_still_editable(): void

@@ -16,8 +16,8 @@ class RoleService
     /**
      * Membuat custom role baru dan menghubungkannya dengan wewenang yang dipilih.
      *
-     * @param array{name: string, display_name?: string, description?: string} $data
-     * @param array<int, string> $permissionNames
+     * @param  array{name: string, display_name?: string, description?: string}  $data
+     * @param  array<int, string>  $permissionNames
      */
     public function createRole(array $data, array $permissionNames = []): Role
     {
@@ -32,7 +32,7 @@ class RoleService
                 'is_system' => false,
             ]);
 
-            if (!empty($permissionNames)) {
+            if (! empty($permissionNames)) {
                 $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
                 $role->syncPermissions($permissionNames);
             }
@@ -47,9 +47,8 @@ class RoleService
     /**
      * Memperbarui informasi peran dan menyinkronkan wewenang.
      *
-     * @param Role $role
-     * @param array{name?: string, display_name?: string, description?: string} $data
-     * @param array<int, string> $permissionNames
+     * @param  array{name?: string, display_name?: string, description?: string}  $data
+     * @param  array<int, string>  $permissionNames
      */
     public function updateRole(Role $role, array $data, array $permissionNames = []): Role
     {
@@ -60,23 +59,20 @@ class RoleService
             ];
 
             // Identitas teknis (name) peran bawaan sistem tidak boleh diubah untuk mencegah broken references
-            if (!$role->is_system && !empty($data['name'])) {
+            if (! $role->is_system && ! empty($data['name'])) {
                 $updateData['name'] = Str::slug($data['name'], '_');
             }
 
             $role->update($updateData);
 
-            // Manager melewati semua Gate (Gate::before) dan di-sync penuh oleh seeder: wewenangnya tidak diubah dari UI.
-            if ($role->name !== 'manager') {
-                $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
+            $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
 
-                // Wewenang di luar katalog tidak tampil di matriks, jadi jangan ikut tercabut saat simpan.
-                $preserved = $role->permissions()->pluck('name')
-                    ->diff($this->permissionCatalogService->getAllPermissionKeys())
-                    ->all();
+            // Wewenang di luar katalog tidak tampil di matriks, jadi jangan ikut tercabut saat simpan.
+            $preserved = $role->permissions()->pluck('name')
+                ->diff($this->permissionCatalogService->getAllPermissionKeys())
+                ->all();
 
-                $role->syncPermissions(array_values(array_unique(array_merge($permissionNames, $preserved))));
-            }
+            $role->syncPermissions(array_values(array_unique(array_merge($permissionNames, $preserved))));
 
             // Invalidate Spatie cached permissions
             app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
