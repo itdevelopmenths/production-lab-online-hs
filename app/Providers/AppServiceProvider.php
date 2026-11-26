@@ -2,21 +2,36 @@
 
 namespace App\Providers;
 
+use App\Services\Qa\QaClock;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(QaClock::class);
     }
 
     public function boot(): void
     {
+        // QA Clock: terapkan offset waktu di console (artisan, scheduler) dan sebelum tiap job queue.
+        // No-op bila QA_TIME_TOOLS mati (phpunit.xml memaksa false).
+        if ($this->app->runningInConsole()) {
+            app(QaClock::class)->apply();
+        }
+        // looping: dipicu tiap siklus polling worker (termasuk saat idle), before: sebelum tiap job.
+        Queue::looping(fn () => app(QaClock::class)->apply());
+        Queue::before(fn () => app(QaClock::class)->apply());
+
         // Force HTTPS in production / behind proxy
         if (config('app.env') !== 'local' || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
+            URL::forceScheme('https');
         }
 
         // Manager bypass all gate checks (PRD: akses & approval seluruh menu)
@@ -131,16 +146,16 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // N+1 prevention in non-production
-        \Illuminate\Database\Eloquent\Model::preventLazyLoading(!app()->isProduction());
+        Model::preventLazyLoading(! app()->isProduction());
 
         // Slow query monitoring in local development (> 100ms)
         if ($this->app->environment('local')) {
-            \Illuminate\Support\Facades\DB::listen(function ($query) {
+            DB::listen(function ($query) {
                 if ($query->time > 100) {
-                    \Illuminate\Support\Facades\Log::warning('SLOW QUERY DETECTED', [
+                    Log::warning('SLOW QUERY DETECTED', [
                         'sql' => $query->sql,
                         'bindings' => $query->bindings,
-                        'time' => $query->time . 'ms',
+                        'time' => $query->time.'ms',
                     ]);
                 }
             });

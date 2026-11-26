@@ -775,6 +775,7 @@
         <!-- Progress Status Stepper (Requirement 6) -->
         <div class="mb-5">
             <x-purchasing-progress-stepper :po="$po" :stageBenchmarks="$stageBenchmarks ?? null" />
+            <x-qa-po-time-panel :po="$po" />
         </div>
 
         @if($po->catatan)
@@ -1191,6 +1192,7 @@
                             @endforeach
                         </div>
 
+                        <x-qa-stage-duration />
                         <div class="flex justify-end pt-2">
                             <x-button type="submit" variant="primary" size="md">
                                 Konfirmasi Selesai Unloading Fisik di Gudang
@@ -1269,6 +1271,7 @@
                         @endphp
                         <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_8]) }}" class="space-y-3 pt-2" x-data="{ submitting: false }" @submit="submitting = true">
                             @csrf
+                            <x-qa-stage-duration />
                             <div class="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="max-w-md w-full sm:w-auto">
                                     @if($existingResi !== '')
@@ -1341,6 +1344,7 @@
                                     <label class="po-label">Catatan (opsional)</label>
                                     <textarea name="catatan" rows="2" placeholder="Catatan perencanaan (opsional)" class="po-field"></textarea>
                                 </div>
+                                <x-qa-stage-duration />
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
                                     Lanjut ke Konfirmasi Supplier
                                 </x-button>
@@ -1355,6 +1359,7 @@
                             <div class="space-y-2.5 text-xs" x-data="{ openRejectStage2: false, rejectAlasan: '', isRejectDisabled() { return this.rejectAlasan.trim().length < 3; } }">
                                 <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_2]) }}" class="space-y-2">
                                     @csrf
+                                    <x-qa-stage-duration />
                                     <x-button type="submit" variant="primary" size="sm" class="w-full">
                                         Setujui PO
                                     </x-button>
@@ -1369,6 +1374,7 @@
                                         @csrf
                                         <label class="po-label">Alasan penolakan <span class="text-destructive">*</span></label>
                                         <textarea name="alasan" x-model="rejectAlasan" required minlength="3" rows="2" placeholder="Tulis alasan" class="po-field"></textarea>
+                                        <x-qa-stage-duration />
                                         <div class="flex justify-end gap-2">
                                             <x-button type="button" variant="outline" size="xs" @click="openRejectStage2 = false">Batal</x-button>
                                             <x-button type="submit" variant="danger" size="xs" x-bind:disabled="isRejectDisabled()">Konfirmasi Tolak</x-button>
@@ -1397,6 +1403,7 @@
                                     <input type="hidden" name="confirmation[items][{{ $it->id }}][qty_konfirmasi]" value="{{ $it->qty }}">
                                     <input type="hidden" name="confirmation[items][{{ $it->id }}][harga_konfirmasi]" value="{{ $it->harga_total }}">
                                 @endforeach
+                                <x-qa-stage-duration />
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
                                     Konfirmasi Supplier &amp; Ajukan ke Manager
                                 </x-button>
@@ -1420,6 +1427,7 @@
                                 @if($po->payments->isNotEmpty())
                                     <form method="POST" action="{{ route('purchasing.stages.dibayarkan', $po) }}">
                                         @csrf
+                                        <x-qa-stage-duration />
                                         <x-button type="submit" variant="primary" size="sm" class="w-full">
                                             Konfirmasi Dibayarkan
                                         </x-button>
@@ -1432,6 +1440,7 @@
 
                                 <form method="POST" action="{{ route('purchasing.stages.lanjut-tempo', $po) }}">
                                     @csrf
+                                    <x-qa-stage-duration />
                                     <x-button type="submit" variant="outline" size="sm" class="w-full">
                                         Lanjut tanpa DP
                                     </x-button>
@@ -1449,6 +1458,7 @@
                             <form method="POST" action="{{ route('purchasing.stages.complete', [$po, \App\Models\PoStage::STAGE_5]) }}" class="space-y-2.5 text-xs">
                                 @csrf
                                 <p class="text-[11px] text-muted-foreground">Mengunci komitmen dan membuka PO ke tim Gudang.</p>
+                                <x-qa-stage-duration />
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
                                     Terbitkan PO Resmi
                                 </x-button>
@@ -1476,6 +1486,7 @@
                                         <input type="date" name="shipping[tgl_kirim]" value="{{ $po->pengiriman?->tgl_kirim ? $po->pengiriman->tgl_kirim->format('Y-m-d') : date('Y-m-d') }}" class="po-field">
                                     </div>
                                 </div>
+                                <x-qa-stage-duration />
                                 <x-button type="submit" variant="primary" size="sm" class="w-full">
                                     Konfirmasi Barang Berangkat
                                 </x-button>
