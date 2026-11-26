@@ -775,7 +775,7 @@ class ProductionFlowTest extends TestCase
         $releaseRes->assertDontSee('Buat Request Bahan (Kekurangan Stok)');
         // Saat release tabel tetap menggunakan kolom eksisting
         $releaseRes->assertSee('Stok Fisik Ops');
-        $releaseRes->assertSee('Kolom Rencana');
+        $releaseRes->assertDontSee('Kolom Rencana');
 
         // 2. State Selesai + variasi opname (boros + sesuai BOM; jika >=3 bahan sisakan 1 belum opname)
         $this->post(route('batches.complete', $batch), [

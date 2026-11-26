@@ -202,7 +202,6 @@
                                 <th scope="col" class="py-2.5 px-3.5 font-normal">Bahan Baku</th>
                                 <th scope="col" class="py-2.5 px-3 text-right font-normal">Kebutuhan</th>
                                 <th scope="col" class="py-2.5 px-3 text-right font-normal">Stok Fisik Ops</th>
-                                <th scope="col" class="py-2.5 px-3 text-right font-normal">Kolom Rencana</th>
                                 <th scope="col" class="py-2.5 px-3 text-right whitespace-nowrap font-normal" title="Stok fisik di {{ $gudangPusat?->nama ?? 'Gudang Bahan Baku Pusat' }}">Stok GD BB Pusat</th>
                                 <th scope="col" class="py-2.5 px-3 text-center font-normal">Status</th>
                                 <th scope="col" class="py-2.5 px-3.5 text-center font-normal">Aksi</th>
@@ -277,14 +276,6 @@
                                         -
                                     @endif
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-medium {{ ($w['stok_rencana'] ?? 0) < 0 ? 'text-red-600 dark:text-red-400 font-medium' : 'text-text-active' }}">
-                                    @if($w)
-                                        {{ \App\Helpers\NumberHelper::formatQty($w['stok_rencana']) }}
-                                        <span class="text-gray-400 font-normal">{{ $satuan }}</span>
-                                    @else
-                                        -
-                                    @endif
-                                </td>
                                 <td class="py-2.5 px-3 text-right text-gray-500">
                                     @if($w)
                                         {{ \App\Helpers\NumberHelper::formatQty($w['stok_pusat']) }}
@@ -317,7 +308,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="7" class="py-6 text-center text-gray-400">
+                                <td colspan="{{ $isBatchSelesai ? 7 : 6 }}" class="py-6 text-center text-gray-400">
                                     Resep BOM untuk produk ini belum dikonfigurasi.
                                 </td>
                             </tr>
