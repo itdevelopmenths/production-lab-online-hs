@@ -8,8 +8,8 @@ use App\Models\PurchaseOrder;
 use App\Services\Authorization\LocationScopeService;
 use App\Services\Purchasing\PurchasingStageService;
 use App\Services\Purchasing\SupplierLeadTimeService;
+use App\Services\Qa\QaStageTimeResolver;
 use App\Traits\ResolvesGudangOnlyUser;
-use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,13 +20,16 @@ class PurchasingStageController extends Controller
 
     protected PurchasingStageService $stageService;
     protected SupplierLeadTimeService $leadTimeService;
+    protected QaStageTimeResolver $qaStageTimeResolver;
 
     public function __construct(
         PurchasingStageService $stageService,
-        SupplierLeadTimeService $leadTimeService
+        SupplierLeadTimeService $leadTimeService,
+        QaStageTimeResolver $qaStageTimeResolver
     ) {
         $this->stageService = $stageService;
         $this->leadTimeService = $leadTimeService;
+        $this->qaStageTimeResolver = $qaStageTimeResolver;
     }
 
     /**
@@ -34,7 +37,7 @@ class PurchasingStageController extends Controller
      */
     public function completeStage(Request $request, PurchaseOrder $purchaseOrder, string $stage): RedirectResponse|JsonResponse
     {
-        $waktuSelesai = $request->filled('waktu_selesai') ? Carbon::parse($request->input('waktu_selesai')) : now();
+        $waktuSelesai = $this->qaStageTimeResolver->resolve($request, $purchaseOrder, $stage);
         $catatan = $request->input('catatan');
 
         switch ($stage) {
@@ -123,7 +126,7 @@ class PurchasingStageController extends Controller
             'waktu_selesai' => ['nullable', 'date'],
         ]);
 
-        $waktuSelesai = ! empty($data['waktu_selesai']) ? Carbon::parse($data['waktu_selesai']) : now();
+        $waktuSelesai = $this->qaStageTimeResolver->resolve($request, $purchaseOrder, PoStage::STAGE_2);
         $this->stageService->rejectStage2($purchaseOrder, auth()->user(), $data['alasan'], $waktuSelesai);
 
         if ($request->wantsJson()) {
@@ -139,7 +142,7 @@ class PurchasingStageController extends Controller
     public function dibayarkan(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse|JsonResponse
     {
         $this->authorize('purchasing.pay');
-        $waktuSelesai = $request->filled('waktu_selesai') ? Carbon::parse($request->input('waktu_selesai')) : now();
+        $waktuSelesai = $this->qaStageTimeResolver->resolve($request, $purchaseOrder, PoStage::STAGE_4);
         $catatan = $request->input('catatan');
 
         $this->stageService->completeStage4WithPayment($purchaseOrder, auth()->user(), $waktuSelesai, $catatan);
@@ -157,7 +160,7 @@ class PurchasingStageController extends Controller
     public function lanjutTempo(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse|JsonResponse
     {
         $this->authorize('purchasing.pay');
-        $waktuSelesai = $request->filled('waktu_selesai') ? Carbon::parse($request->input('waktu_selesai')) : now();
+        $waktuSelesai = $this->qaStageTimeResolver->resolve($request, $purchaseOrder, PoStage::STAGE_4);
         $catatan = $request->input('catatan');
 
         $this->stageService->completeStage4Tempo($purchaseOrder, auth()->user(), $waktuSelesai, $catatan);
