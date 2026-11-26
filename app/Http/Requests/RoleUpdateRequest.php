@@ -24,10 +24,12 @@ class RoleUpdateRequest extends FormRequest
             'description' => 'nullable|string|max:1000',
             'permissions' => 'nullable|array',
             'permissions.*' => $catalogService->permissionItemRules(),
+            'legacy_permissions' => 'nullable|array',
+            'legacy_permissions.*' => $catalogService->permissionItemRules(),
         ];
 
         // Hanya peran non-sistem yang dapat memperbarui kode identitas name
-        if (!$role->is_system) {
+        if (! $role->is_system) {
             $rules['name'] = [
                 'required',
                 'string',

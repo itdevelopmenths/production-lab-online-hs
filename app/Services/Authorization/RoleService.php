@@ -16,8 +16,8 @@ class RoleService
     /**
      * Membuat custom role baru dan menghubungkannya dengan wewenang yang dipilih.
      *
-     * @param array{name: string, display_name?: string, description?: string} $data
-     * @param array<int, string> $permissionNames
+     * @param  array{name: string, display_name?: string, description?: string}  $data
+     * @param  array<int, string>  $permissionNames
      */
     public function createRole(array $data, array $permissionNames = []): Role
     {
@@ -32,7 +32,7 @@ class RoleService
                 'is_system' => false,
             ]);
 
-            if (!empty($permissionNames)) {
+            if (! empty($permissionNames)) {
                 $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
                 $role->syncPermissions($permissionNames);
             }
@@ -47,26 +47,37 @@ class RoleService
     /**
      * Memperbarui informasi peran dan menyinkronkan wewenang.
      *
-     * @param Role $role
-     * @param array{name?: string, display_name?: string, description?: string} $data
-     * @param array<int, string> $permissionNames
+     * @param  array{name?: string, display_name?: string, description?: string}  $data
+     * @param  array<int, string>  $permissionNames
+     * @param  array<int, string>|null  $keepLegacy  wewenang lama (di luar katalog) yang dipertahankan; null = pertahankan semua
      */
-    public function updateRole(Role $role, array $data, array $permissionNames = []): Role
+    public function updateRole(Role $role, array $data, array $permissionNames = [], ?array $keepLegacy = null): Role
     {
-        return DB::transaction(function () use ($role, $data, $permissionNames) {
+        return DB::transaction(function () use ($role, $data, $permissionNames, $keepLegacy) {
             $updateData = [
                 'display_name' => $data['display_name'] ?? $role->display_name,
                 'description' => array_key_exists('description', $data) ? $data['description'] : $role->description,
             ];
 
             // Identitas teknis (name) peran bawaan sistem tidak boleh diubah untuk mencegah broken references
-            if (!$role->is_system && !empty($data['name'])) {
+            if (! $role->is_system && ! empty($data['name'])) {
                 $updateData['name'] = Str::slug($data['name'], '_');
             }
 
             $role->update($updateData);
-            $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
-            $role->syncPermissions($permissionNames);
+
+            $this->permissionCatalogService->ensurePermissionsExist(array_merge($permissionNames, ['role.manage']));
+
+            // Wewenang di luar katalog tidak tampil di matriks, jadi jangan ikut tercabut saat simpan.
+            $preserved = $role->permissions()->pluck('name')
+                ->diff($this->permissionCatalogService->getAllPermissionKeys())
+                ->when($keepLegacy !== null, fn ($legacy) => $legacy->intersect($keepLegacy))
+                ->all();
+
+            // Manager tidak boleh kehilangan akses kelola peran, agar admin tidak mengunci dirinya sendiri.
+            $locked = $role->name === 'manager' ? ['role.manage'] : [];
+
+            $role->syncPermissions(array_values(array_unique(array_merge($permissionNames, $preserved, $locked))));
 
             // Invalidate Spatie cached permissions
             app()->make(PermissionRegistrar::class)->forgetCachedPermissions();

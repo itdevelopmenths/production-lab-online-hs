@@ -34,12 +34,8 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Manager bypass all gate checks (PRD: akses & approval seluruh menu)
+        // Wewenang semua peran (termasuk manager) dikelola dinamis lewat editor peran.
         Gate::before(function ($user, $ability) {
-            if (method_exists($user, 'hasRole') && $user->hasRole('manager')) {
-                return true;
-            }
-
             if (! is_string($ability)) {
                 return null;
             }

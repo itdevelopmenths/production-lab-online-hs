@@ -2,6 +2,7 @@
     'catalog' => [],
     'activePermissions' => [],
     'readonly' => false,
+    'locked' => [],
 ])
 
 @php
@@ -18,9 +19,10 @@
 @endphp
 
 <script>
-    function permissionMatrixState(activePermissions, allKeys) {
+    function permissionMatrixState(activePermissions, allKeys, locked) {
         return {
-            selected: activePermissions || [],
+            locked: locked || [],
+            selected: Array.from(new Set((activePermissions || []).concat(locked || []))),
             allKeys: allKeys || [],
             activeDomain: 'all',
 
@@ -28,14 +30,14 @@
                 this.selected = this.allKeys.slice();
             },
             deselectAll() {
-                this.selected = [];
+                this.selected = this.locked.slice();
             },
             toggleModule(actions) {
                 const actionKeys = Object.keys(actions);
                 const self = this;
                 const allSelected = actionKeys.every(function(k) { return self.selected.includes(k); });
                 if (allSelected) {
-                    this.selected = this.selected.filter(function(k) { return !actionKeys.includes(k); });
+                    this.selected = this.selected.filter(function(k) { return !actionKeys.includes(k) || self.locked.includes(k); });
                 } else {
                     const toAdd = actionKeys.filter(function(k) { return !self.selected.includes(k); });
                     this.selected = this.selected.concat(toAdd);
@@ -71,7 +73,7 @@
     }
 </script>
 
-<div x-data="permissionMatrixState({{ Js::from($normalizedActive) }}, {{ Js::from($allKeys) }})" class="space-y-6">
+<div x-data="permissionMatrixState({{ Js::from($normalizedActive) }}, {{ Js::from($allKeys) }}, {{ Js::from($locked) }})" class="space-y-6">
 
     {{-- Top Action & Filter Toolbar --}}
     <div class="bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -171,15 +173,19 @@
                                         default => strtoupper($actionType)
                                     };
                                 @endphp
-                                <label class="relative flex items-start gap-3 p-3 rounded-[8px] border transition-colors cursor-pointer select-none"
+                                <label class="relative flex items-start gap-3 p-3 rounded-[8px] border transition-colors {{ $readonly ? 'cursor-default' : 'cursor-pointer' }} select-none"
                                        :class="selected.includes('{{ $actionKey }}') ? 'bg-neutral-100/80 dark:bg-gray-800/80 border-neutral-900 dark:border-white' : 'bg-white dark:bg-gray-900 border-[#E8E8E8] dark:border-gray-800 hover:bg-[#fafafa] dark:hover:bg-gray-800/40'">
                                     <div class="flex items-center h-4 mt-0.5">
                                         <input type="checkbox" 
                                                name="permissions[]" 
                                                value="{{ $actionKey }}" 
                                                x-model="selected"
-                                               @if($readonly) disabled @endif
+                                               @if($readonly || in_array($actionKey, $locked, true)) disabled @endif
+                                               @if(in_array($actionKey, $locked, true)) data-locked-permission="{{ $actionKey }}" @endif
                                                class="size-4 rounded border-gray-300 dark:border-gray-700 text-neutral-900 dark:text-white focus:ring-0 cursor-pointer disabled:cursor-not-allowed">
+                                        @if(in_array($actionKey, $locked, true))
+                                            <input type="hidden" name="permissions[]" value="{{ $actionKey }}">
+                                        @endif
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-1.5 mb-1 flex-wrap">

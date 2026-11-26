@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Authorization\PermissionCatalogService;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -13,6 +16,7 @@ class CustomRoleManagementTest extends TestCase
     use RefreshDatabase;
 
     protected User $manager;
+
     protected User $regularUser;
 
     protected function setUp(): void
@@ -238,7 +242,7 @@ class CustomRoleManagementTest extends TestCase
 
         // Simulasikan kondisi database belum di-seed ulang sehingga permission baru belum ada di tabel permissions
         $newlyAddedCatalogKeys = ['request.view', 'transfer.view', 'purchasing.audit'];
-        \Spatie\Permission\Models\Permission::whereIn('name', $newlyAddedCatalogKeys)->delete();
+        Permission::whereIn('name', $newlyAddedCatalogKeys)->delete();
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $permissionsPayload = [
@@ -275,7 +279,7 @@ class CustomRoleManagementTest extends TestCase
         $this->actingAs($this->manager);
 
         $systemRole = Role::where('name', 'gudang')->firstOrFail();
-        $allCatalogKeys = app(\App\Services\Authorization\PermissionCatalogService::class)->getAllPermissionKeys();
+        $allCatalogKeys = app(PermissionCatalogService::class)->getAllPermissionKeys();
 
         $this->put(route('roles.update', $systemRole), [
             'display_name' => $systemRole->display_name,
@@ -323,5 +327,221 @@ class CustomRoleManagementTest extends TestCase
 
         $this->assertSame($selected, $assigned);
         $this->assertNotContains('rt.create', $assigned);
+    }
+
+    public function test_catalog_has_no_dead_report_export_and_audit_view_label_is_descriptive(): void
+    {
+        $catalog = app(PermissionCatalogService::class);
+        $keys = $catalog->getAllPermissionKeys();
+
+        $this->assertNotContains('report.export', $keys);
+        $this->assertContains('audit.view', $keys);
+
+        $label = $catalog->getGroupedCatalog()['Inventori & Analisis']['report']['actions']['audit.view'];
+        $this->assertStringContainsString('Seluruh Modul', $label);
+    }
+
+    public function test_update_preserves_non_catalog_permissions(): void
+    {
+        $this->actingAs($this->manager);
+
+        foreach (['reports.view', 'gudang.audit'] as $legacy) {
+            Permission::firstOrCreate(['name' => $legacy, 'guard_name' => 'web']);
+        }
+        $role = Role::create(['name' => 'legacy_holder', 'display_name' => 'Legacy Holder', 'is_system' => false, 'guard_name' => 'web']);
+        $role->syncPermissions(['purchasing.view', 'reports.view', 'gudang.audit']);
+
+        $this->put(route('roles.update', $role), [
+            'name' => 'legacy_holder',
+            'display_name' => 'Legacy Holder',
+            'permissions' => ['purchasing.view'],
+        ])->assertRedirect(route('roles.index'));
+
+        $role = $role->fresh();
+        $this->assertTrue($role->hasPermissionTo('purchasing.view'));
+        $this->assertTrue($role->hasPermissionTo('reports.view'));
+        $this->assertTrue($role->hasPermissionTo('gudang.audit'));
+    }
+
+    public function test_update_still_removes_catalog_permission_when_unchecked(): void
+    {
+        $this->actingAs($this->manager);
+
+        $role = Role::create(['name' => 'audit_holder', 'display_name' => 'Audit Holder', 'is_system' => false, 'guard_name' => 'web']);
+        $role->syncPermissions(['purchasing.view', 'audit.view']);
+
+        $this->put(route('roles.update', $role), [
+            'name' => 'audit_holder',
+            'display_name' => 'Audit Holder',
+            'permissions' => ['purchasing.view'],
+        ])->assertRedirect(route('roles.index'));
+
+        $role = $role->fresh();
+        $this->assertTrue($role->hasPermissionTo('purchasing.view'));
+        $this->assertFalse($role->hasPermissionTo('audit.view'));
+    }
+
+    public function test_manager_role_permissions_can_be_updated(): void
+    {
+        $this->actingAs($this->manager);
+
+        $managerRole = Role::where('name', 'manager')->firstOrFail();
+
+        $this->put(route('roles.update', $managerRole), [
+            'display_name' => 'Manager Renamed',
+            'permissions' => ['purchasing.view', 'role.manage'],
+        ])->assertRedirect(route('roles.index'));
+
+        $managerRole = $managerRole->fresh();
+        $this->assertSame('Manager Renamed', $managerRole->display_name);
+        $this->assertTrue($managerRole->hasPermissionTo('purchasing.view'));
+        $this->assertFalse($managerRole->hasPermissionTo('audit.view'));
+    }
+
+    public function test_manager_role_edit_page_is_editable(): void
+    {
+        $this->actingAs($this->manager);
+
+        $this->get(route('roles.edit', Role::where('name', 'manager')->firstOrFail()))
+            ->assertOk()
+            ->assertSeeText('Simpan Perubahan')
+            ->assertDontSeeText('Manager memiliki akses penuh');
+    }
+
+    public function test_other_system_role_edit_page_still_editable(): void
+    {
+        $this->actingAs($this->manager);
+
+        $this->get(route('roles.edit', Role::where('name', 'gudang')->firstOrFail()))
+            ->assertOk()
+            ->assertSeeText('Simpan Perubahan')
+            ->assertDontSeeText('Manager memiliki akses penuh');
+    }
+
+    public function test_manager_role_manage_cannot_be_revoked(): void
+    {
+        $this->actingAs($this->manager);
+
+        $managerRole = Role::where('name', 'manager')->firstOrFail();
+
+        $this->put(route('roles.update', $managerRole), [
+            'display_name' => 'Manager (Administrator)',
+            'permissions' => ['purchasing.view'],
+        ])->assertRedirect(route('roles.index'));
+
+        $managerRole = $managerRole->fresh();
+        $this->assertTrue($managerRole->hasPermissionTo('role.manage'));
+        $this->assertTrue($managerRole->hasPermissionTo('purchasing.view'));
+    }
+
+    public function test_revoking_permission_from_manager_takes_effect_for_manager_users(): void
+    {
+        $this->actingAs($this->manager);
+
+        $managerRole = Role::where('name', 'manager')->firstOrFail();
+        $keep = $managerRole->permissions()->pluck('name')->reject(fn ($n) => $n === 'audit.view')->values()->all();
+
+        $this->put(route('roles.update', $managerRole), [
+            'display_name' => 'Manager (Administrator)',
+            'permissions' => $keep,
+        ])->assertRedirect(route('roles.index'));
+
+        $manager = $this->manager->fresh();
+        $this->assertFalse($manager->can('audit.view'));
+        $this->assertTrue($manager->can('role.manage'));
+        $this->assertTrue($manager->can('purchasing.view'));
+    }
+
+    public function test_reseeding_does_not_overwrite_manager_permission_edits(): void
+    {
+        $managerRole = Role::where('name', 'manager')->firstOrFail();
+        $managerRole->revokePermissionTo('audit.view');
+
+        $this->seed(PermissionSeeder::class);
+
+        $this->assertFalse($managerRole->fresh()->hasPermissionTo('audit.view'));
+        $this->assertTrue($managerRole->fresh()->hasPermissionTo('role.manage'));
+    }
+
+    public function test_manager_edit_page_marks_role_manage_as_locked(): void
+    {
+        $this->actingAs($this->manager);
+
+        $this->get(route('roles.edit', Role::where('name', 'manager')->firstOrFail()))
+            ->assertOk()
+            ->assertSeeText('Kelola Peran selalu aktif untuk Manager')
+            ->assertSee('data-locked-permission="role.manage"', false);
+    }
+
+    protected function legacyRole(): Role
+    {
+        Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
+        $role = Role::create(['name' => 'legacy_role', 'display_name' => 'Legacy Role', 'is_system' => false, 'guard_name' => 'web']);
+        $role->syncPermissions(['purchasing.view', 'reports.view']);
+
+        return $role;
+    }
+
+    public function test_edit_page_lists_legacy_permissions_outside_catalog(): void
+    {
+        $this->actingAs($this->manager);
+
+        $this->get(route('roles.edit', $this->legacyRole()))
+            ->assertOk()
+            ->assertSeeText('Wewenang lama (di luar katalog)')
+            ->assertSee('value="reports.view"', false);
+    }
+
+    public function test_unchecking_legacy_permission_revokes_it(): void
+    {
+        $this->actingAs($this->manager);
+        $role = $this->legacyRole();
+
+        $this->put(route('roles.update', $role), [
+            'name' => 'legacy_role',
+            'display_name' => 'Legacy Role',
+            'permissions' => ['purchasing.view'],
+            'legacy_present' => '1',
+        ])->assertRedirect(route('roles.index'));
+
+        $this->assertFalse($role->fresh()->hasPermissionTo('reports.view'));
+    }
+
+    public function test_checked_legacy_permission_is_kept(): void
+    {
+        $this->actingAs($this->manager);
+        $role = $this->legacyRole();
+
+        $this->put(route('roles.update', $role), [
+            'name' => 'legacy_role',
+            'display_name' => 'Legacy Role',
+            'permissions' => ['purchasing.view'],
+            'legacy_present' => '1',
+            'legacy_permissions' => ['reports.view'],
+        ])->assertRedirect(route('roles.index'));
+
+        $this->assertTrue($role->fresh()->hasPermissionTo('reports.view'));
+    }
+
+    public function test_all_audit_permissions_are_grouped_in_one_catalog_card(): void
+    {
+        $catalog = app(PermissionCatalogService::class)->getGroupedCatalog();
+        $auditKeys = ['audit.view', 'purchasing.audit', 'batch.audit', 'rt.audit'];
+
+        $card = array_keys($catalog['Inventori & Analisis']['report']['actions']);
+        foreach ($auditKeys as $key) {
+            $this->assertContains($key, $card, "{$key} harus ada di kartu Laporan & Audit");
+        }
+
+        foreach ($catalog as $domain => $modules) {
+            foreach ($modules as $moduleKey => $module) {
+                if ($domain === 'Inventori & Analisis' && $moduleKey === 'report') {
+                    continue;
+                }
+                foreach ($auditKeys as $key) {
+                    $this->assertArrayNotHasKey($key, $module['actions'], "{$key} duplikat di {$moduleKey}");
+                }
+            }
+        }
     }
 }

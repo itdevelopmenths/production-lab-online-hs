@@ -7,6 +7,14 @@
             :backUrl="route('roles.index')"
         />
 
+        @php($lockedPermissions = $role->name === 'manager' ? ['role.manage'] : [])
+
+        @if ($role->name === 'manager')
+            <x-alert type="info" title="Peran Manager:">
+                Kelola Peran selalu aktif untuk Manager agar admin tidak mengunci dirinya sendiri. Wewenang lain bisa diatur bebas.
+            </x-alert>
+        @endif
+
         @if ($role->is_system)
             <x-alert type="warning" title="Peran Sistem Terproteksi:">
                 Peran ini merupakan peran bawaan sistem (Core System Role). Kode identifikasi (<code class="font-medium tabular-nums">{{ $role->name }}</code>) dikunci untuk menjamin integritas alur kerja, namun Anda dapat menyesuaikan wewenang modul di bawah secara leluasa.
@@ -43,8 +51,26 @@
 
                 {{-- Permission Matrix Component --}}
                 <div>
-                    <x-permission-matrix :catalog="$catalog" :activePermissions="$errors->any() ? old('permissions', []) : $activePermissions" />
+                    <x-permission-matrix :catalog="$catalog" :activePermissions="$errors->any() ? old('permissions', []) : $activePermissions" :locked="$lockedPermissions" />
                 </div>
+
+                @if (! empty($legacyPermissions))
+                    <div class="bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 sm:p-5 space-y-3">
+                        <div>
+                            <h3 class="text-sm font-semibold text-[#101828] dark:text-white">Wewenang lama (di luar katalog)</h3>
+                            <p class="text-xs text-text-muted mt-0.5">Wewenang ini masih tersimpan pada peran tetapi tidak ada di matriks. Hilangkan centang lalu simpan untuk mencabutnya.</p>
+                        </div>
+                        <input type="hidden" name="legacy_present" value="1">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            @foreach ($legacyPermissions as $legacyPermission)
+                                <label class="flex items-center gap-2 p-2 rounded-[8px] border border-[#E8E8E8] dark:border-gray-800 text-xs tabular-nums cursor-pointer">
+                                    <input type="checkbox" name="legacy_permissions[]" value="{{ $legacyPermission }}" @checked(in_array($legacyPermission, (array) old('legacy_permissions', $legacyPermissions), true)) class="size-4 rounded border-gray-300 dark:border-gray-700 text-neutral-900 dark:text-white focus:ring-0">
+                                    {{ $legacyPermission }}
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
 
                 {{-- Action Buttons --}}
                 <div class="bg-white dark:bg-gray-900 border border-[#E8E8E8] dark:border-gray-800 rounded-[12px] p-4 flex items-center justify-end gap-2 shadow-xs">

@@ -45,7 +45,7 @@ class PermissionSeeder extends Seeder
             'batch.complete', 'batch.cancel', 'batch.opname', 'batch.audit',
 
             // Laporan
-            'report.view', 'reports.view', 'report.export', 'audit.view',
+            'report.view', 'audit.view',
 
             // Admin
             'user.manage', 'role.manage',
@@ -66,7 +66,11 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Manager (Administrator)', 'description' => 'Akses penuh ke seluruh modul sistem dan wewenang approval transaksi', 'is_system' => true]
         );
         $manager->update(['display_name' => 'Manager (Administrator)', 'description' => 'Akses penuh ke seluruh modul sistem dan wewenang approval transaksi', 'is_system' => true]);
-        $manager->syncPermissions(Permission::all());
+        // Hanya saat pertama dibuat: setelah itu wewenang manager diatur admin lewat editor peran.
+        if ($manager->wasRecentlyCreated) {
+            $manager->syncPermissions(Permission::all());
+        }
+        $manager->givePermissionTo('role.manage');
 
         // Purchasing
         $purchasing = \App\Models\Role::firstOrCreate(
@@ -74,7 +78,7 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Staff Purchasing', 'description' => 'Pengadaan bahan baku, pembuatan PO, pembayaran, dan pemantauan analisa', 'is_system' => true]
         );
         $purchasing->update(['display_name' => 'Staff Purchasing', 'description' => 'Pengadaan bahan baku, pembuatan PO, pembayaran, dan pemantauan analisa', 'is_system' => true]);
-        $purchasing->syncPermissions(self::denganIzinGranular([
+        self::sinkronAwal($purchasing, self::denganIzinGranular([
             'produk.view', 'produk.create', 'produk.edit',
             'gudang.view', 'supplier.view', 'supplier.create', 'supplier.edit',
             'uom.view', 'uom.create', 'uom.edit',
@@ -82,9 +86,9 @@ class PermissionSeeder extends Seeder
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.price.view', 'purchasing.create', 'purchasing.edit',
             'purchasing.edit_invoice_eta',
-            'purchasing.submit', 'purchasing.pay', 'purchasing.cancel',
+            'purchasing.submit', 'purchasing.pay', 'purchasing.cancel', 'purchasing.audit',
             'analisa.view', 'analisa.manage', 'analisa.snapshot', 'analisa.create_po',
-            'report.view', 'report.export',
+            'report.view',
         ]));
 
         // Gudang
@@ -93,7 +97,7 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Staff Gudang Pusat', 'description' => 'Penerimaan barang datang, mutasi stok, proses pengiriman transfer, dan kartu stok', 'is_system' => true]
         );
         $gudang->update(['display_name' => 'Staff Gudang Pusat', 'description' => 'Penerimaan barang datang, mutasi stok, proses pengiriman transfer, dan kartu stok', 'is_system' => true]);
-        $gudang->syncPermissions(self::denganIzinGranular([
+        self::sinkronAwal($gudang, self::denganIzinGranular([
             'produk.view', 'gudang.view', 'supplier.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.receive',
@@ -102,7 +106,7 @@ class PermissionSeeder extends Seeder
             'transfer.bahan.create', 'transfer.bahan.ship', 'transfer.bahan.receive',
             'transfer.produk_jadi.create', 'transfer.produk_jadi.ship', 'transfer.produk_jadi.receive',
             'defect.view',
-            'rt.view', 'rt.submit', 'rt.process',
+            'rt.view', 'rt.submit', 'rt.process', 'rt.audit',
             'report.view',
         ]));
 
@@ -112,11 +116,11 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan baku, penerimaan bahan, pengiriman produk jadi, dan stock opname', 'is_system' => true]
         );
         $operasional->update(['display_name' => 'Staff Operasional Lab', 'description' => 'Perencanaan & eksekusi batch produksi, permintaan bahan baku, penerimaan bahan, pengiriman produk jadi, dan stock opname', 'is_system' => true]);
-        $operasional->syncPermissions(self::denganIzinGranular([
+        self::sinkronAwal($operasional, self::denganIzinGranular([
             'produk.view', 'gudang.view', 'uom.view', 'bom.view', 'bom.manage',
             'stok.view', 'stok.opname', 'stok.ledger.view',
             'batch.view', 'batch.create', 'batch.release',
-            'batch.complete', 'batch.cancel', 'batch.opname',
+            'batch.complete', 'batch.cancel', 'batch.opname', 'batch.audit',
             'request.view', 'request.bahan.create', 'request.submit', 'request.cancel',
             'transfer.view', 'transfer.bahan.receive',
             'transfer.produk_jadi.create', 'transfer.produk_jadi.ship',
@@ -131,7 +135,7 @@ class PermissionSeeder extends Seeder
             ['guard_name' => 'web', 'display_name' => 'Staff Gudang Fulfillment', 'description' => 'Distribusi produk jadi, mutasi antar fulfillment, dan monitoring analisa', 'is_system' => true]
         );
         $fulfillment->update(['display_name' => 'Staff Gudang Fulfillment', 'description' => 'Distribusi produk jadi, mutasi antar fulfillment, dan monitoring analisa', 'is_system' => true]);
-        $fulfillment->syncPermissions(self::denganIzinGranular([
+        self::sinkronAwal($fulfillment, self::denganIzinGranular([
             'produk.view', 'gudang.view', 'uom.view', 'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'analisa.view', 'analisa.manage', 'analisa.snapshot',
@@ -142,6 +146,19 @@ class PermissionSeeder extends Seeder
             'rt.view',
             'report.view',
         ]));
+    }
+
+    /**
+     * Isi wewenang bawaan hanya saat peran baru dibuat (atau masih kosong).
+     * Setelah itu wewenang diatur admin lewat editor peran dan tidak ditimpa seed ulang.
+     *
+     * @param  array<int, string>  $permissions
+     */
+    private static function sinkronAwal(\App\Models\Role $role, array $permissions): void
+    {
+        if ($role->wasRecentlyCreated || $role->permissions()->doesntExist()) {
+            $role->syncPermissions($permissions);
+        }
     }
 
     /**

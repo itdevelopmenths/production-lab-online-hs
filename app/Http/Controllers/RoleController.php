@@ -23,6 +23,7 @@ class RoleController extends Controller
     public function index(): View
     {
         $this->authorize('role.manage');
+
         return view('roles.index');
     }
 
@@ -38,9 +39,10 @@ class RoleController extends Controller
             ->addColumn('role_badge', function (Role $role) {
                 $displayName = e($role->display_name ?: $role->name);
                 $keyName = e($role->name);
+
                 return '<div>
-                            <div class="font-semibold text-[#101828] dark:text-white text-sm leading-tight">' . $displayName . '</div>
-                            <div class="text-xs text-text-muted font-mono tracking-tight mt-0.5">' . $keyName . '</div>
+                            <div class="font-semibold text-[#101828] dark:text-white text-sm leading-tight">'.$displayName.'</div>
+                            <div class="text-xs text-text-muted font-mono tracking-tight mt-0.5">'.$keyName.'</div>
                         </div>';
             })
             ->addColumn('system_badge', function (Role $role) {
@@ -52,19 +54,21 @@ class RoleController extends Controller
                                 Sistem
                             </span>';
                 }
+
                 return '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-semibold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200/80 dark:border-blue-500/20">
                             Kustom
                         </span>';
             })
             ->addColumn('permissions_summary', function (Role $role) {
                 $count = $role->permissions->count();
+
                 return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                            ' . $count . ' wewenang
+                            '.$count.' wewenang
                         </span>';
             })
             ->addColumn('users_count_badge', function (Role $role) {
-                return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' . ($role->users_count > 0 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20' : 'bg-gray-50 dark:bg-gray-800 text-text-muted border border-gray-200/60 dark:border-gray-700') . '">
-                            ' . $role->users_count . ' pengguna
+                return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium '.($role->users_count > 0 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20' : 'bg-gray-50 dark:bg-gray-800 text-text-muted border border-gray-200/60 dark:border-gray-700').'">
+                            '.$role->users_count.' pengguna
                         </span>';
             })
             ->addColumn('action', function (Role $role) {
@@ -72,8 +76,8 @@ class RoleController extends Controller
                     UiTableHelper::actionLink(route('roles.edit', $role), 'Atur Izin', 'sliders', 'default'),
                 ];
 
-                if (!$role->is_system) {
-                    $buttons[] = UiTableHelper::actionButton("deleteRole(" . $role->id . ", '" . addslashes(e($role->display_name ?: $role->name)) . "')", 'Hapus', 'trash', 'danger');
+                if (! $role->is_system) {
+                    $buttons[] = UiTableHelper::actionButton('deleteRole('.$role->id.", '".addslashes(e($role->display_name ?: $role->name))."')", 'Hapus', 'trash', 'danger');
                 } else {
                     $buttons[] = '<span class="inline-flex items-center text-[11px] text-text-muted font-medium px-2 py-1 italic cursor-not-allowed" title="Peran bawaan sistem diproteksi">Terkunci</span>';
                 }
@@ -112,8 +116,9 @@ class RoleController extends Controller
         $role->load('permissions:id,name');
         $activePermissions = $role->permissions->pluck('name')->toArray();
         $catalog = $this->permissionCatalogService->getGroupedCatalog();
+        $legacyPermissions = array_values(array_diff($activePermissions, $this->permissionCatalogService->getAllPermissionKeys()));
 
-        return view('roles.edit', compact('role', 'catalog', 'activePermissions'));
+        return view('roles.edit', compact('role', 'catalog', 'activePermissions', 'legacyPermissions'));
     }
 
     public function update(RoleUpdateRequest $request, Role $role): RedirectResponse
@@ -123,7 +128,9 @@ class RoleController extends Controller
         $validated = $request->validated();
         $permissions = $request->input('permissions', []);
 
-        $this->roleService->updateRole($role, $validated, $permissions);
+        $keepLegacy = $request->boolean('legacy_present') ? $request->input('legacy_permissions', []) : null;
+
+        $this->roleService->updateRole($role, $validated, $permissions, $keepLegacy);
 
         return redirect()->route('roles.index')->with('success', "Peran '{$role->display_name}' berhasil diperbarui.");
     }
@@ -134,6 +141,7 @@ class RoleController extends Controller
 
         try {
             $this->roleService->deleteRole($role);
+
             return response()->json([
                 'success' => true,
                 'message' => "Peran '{$role->display_name}' berhasil dihapus.",
