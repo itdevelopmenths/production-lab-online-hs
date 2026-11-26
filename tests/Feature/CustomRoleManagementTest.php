@@ -336,4 +336,61 @@ class CustomRoleManagementTest extends TestCase
         $label = $catalog->getGroupedCatalog()['Inventori & Analisis']['report']['actions']['audit.view'];
         $this->assertStringContainsString('Seluruh Modul', $label);
     }
+
+    public function test_update_preserves_non_catalog_permissions(): void
+    {
+        $this->actingAs($this->manager);
+
+        foreach (['reports.view', 'gudang.audit'] as $legacy) {
+            \Spatie\Permission\Models\Permission::firstOrCreate(['name' => $legacy, 'guard_name' => 'web']);
+        }
+        $role = Role::create(['name' => 'legacy_holder', 'display_name' => 'Legacy Holder', 'is_system' => false, 'guard_name' => 'web']);
+        $role->syncPermissions(['purchasing.view', 'reports.view', 'gudang.audit']);
+
+        $this->put(route('roles.update', $role), [
+            'name' => 'legacy_holder',
+            'display_name' => 'Legacy Holder',
+            'permissions' => ['purchasing.view'],
+        ])->assertRedirect(route('roles.index'));
+
+        $role = $role->fresh();
+        $this->assertTrue($role->hasPermissionTo('purchasing.view'));
+        $this->assertTrue($role->hasPermissionTo('reports.view'));
+        $this->assertTrue($role->hasPermissionTo('gudang.audit'));
+    }
+
+    public function test_update_still_removes_catalog_permission_when_unchecked(): void
+    {
+        $this->actingAs($this->manager);
+
+        $role = Role::create(['name' => 'audit_holder', 'display_name' => 'Audit Holder', 'is_system' => false, 'guard_name' => 'web']);
+        $role->syncPermissions(['purchasing.view', 'audit.view']);
+
+        $this->put(route('roles.update', $role), [
+            'name' => 'audit_holder',
+            'display_name' => 'Audit Holder',
+            'permissions' => ['purchasing.view'],
+        ])->assertRedirect(route('roles.index'));
+
+        $role = $role->fresh();
+        $this->assertTrue($role->hasPermissionTo('purchasing.view'));
+        $this->assertFalse($role->hasPermissionTo('audit.view'));
+    }
+
+    public function test_manager_role_permissions_not_changed_by_update(): void
+    {
+        $this->actingAs($this->manager);
+
+        $managerRole = Role::where('name', 'manager')->firstOrFail();
+        $before = $managerRole->permissions()->count();
+
+        $this->put(route('roles.update', $managerRole), [
+            'display_name' => 'Manager Renamed',
+            'permissions' => [],
+        ])->assertRedirect(route('roles.index'));
+
+        $managerRole = $managerRole->fresh();
+        $this->assertSame($before, $managerRole->permissions()->count());
+        $this->assertSame('Manager Renamed', $managerRole->display_name);
+    }
 }

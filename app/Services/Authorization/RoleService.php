@@ -65,8 +65,18 @@ class RoleService
             }
 
             $role->update($updateData);
-            $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
-            $role->syncPermissions($permissionNames);
+
+            // Manager melewati semua Gate (Gate::before) dan di-sync penuh oleh seeder: wewenangnya tidak diubah dari UI.
+            if ($role->name !== 'manager') {
+                $this->permissionCatalogService->ensurePermissionsExist($permissionNames);
+
+                // Wewenang di luar katalog tidak tampil di matriks, jadi jangan ikut tercabut saat simpan.
+                $preserved = $role->permissions()->pluck('name')
+                    ->diff($this->permissionCatalogService->getAllPermissionKeys())
+                    ->all();
+
+                $role->syncPermissions(array_values(array_unique(array_merge($permissionNames, $preserved))));
+            }
 
             // Invalidate Spatie cached permissions
             app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
