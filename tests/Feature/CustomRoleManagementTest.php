@@ -393,4 +393,24 @@ class CustomRoleManagementTest extends TestCase
         $this->assertSame($before, $managerRole->permissions()->count());
         $this->assertSame('Manager Renamed', $managerRole->display_name);
     }
+
+    public function test_manager_role_edit_page_is_readonly_with_notice(): void
+    {
+        $this->actingAs($this->manager);
+
+        $this->get(route('roles.edit', Role::where('name', 'manager')->firstOrFail()))
+            ->assertOk()
+            ->assertSeeText('Manager memiliki akses penuh')
+            ->assertDontSeeText('Simpan Perubahan');
+    }
+
+    public function test_other_system_role_edit_page_still_editable(): void
+    {
+        $this->actingAs($this->manager);
+
+        $this->get(route('roles.edit', Role::where('name', 'gudang')->firstOrFail()))
+            ->assertOk()
+            ->assertSeeText('Simpan Perubahan')
+            ->assertDontSeeText('Manager memiliki akses penuh');
+    }
 }
