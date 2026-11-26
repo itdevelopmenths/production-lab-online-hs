@@ -379,7 +379,7 @@ class ProductionFlowTest extends TestCase
         $stockBefore = $stokService->saldo($alokBahanId, $gudangOp->id);
 
         // Cancel Batch
-        $this->post(route('batches.cancel', $batch))->assertSessionHas('success');
+        $this->post(route('batches.cancel', $batch), ['alasan' => 'Jadwal produksi diundur'])->assertSessionHas('success');
 
         $batch->refresh();
         $this->assertEquals('dibatalkan', $batch->status);
@@ -883,10 +883,12 @@ class ProductionFlowTest extends TestCase
             'tanggal' => now()->toDateString(),
         ]);
         $batchCancel = BatchProduksi::where('id', '!=', $batchDone->id)->latest()->firstOrFail();
-        $this->post(route('batches.cancel', $batchCancel))->assertSessionHas('success');
+        $this->post(route('batches.cancel', $batchCancel), ['alasan' => 'Salah input rencana'])->assertSessionHas('success');
 
         $cancelRes = $this->get(route('batches.show', $batchCancel));
         $cancelRes->assertOk();
+        $cancelRes->assertSee('Alasan pembatalan');
+        $cancelRes->assertSee('Salah input rencana');
         $cancelRes->assertSee('Alokasi Dilepas');
         $cancelRes->assertDontSee('Stok Kurang');
         $cancelRes->assertDontSee('Perlu transfer dari GD Pusat');

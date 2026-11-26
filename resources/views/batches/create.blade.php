@@ -73,16 +73,16 @@
                     {{-- Card 1: Parameter & Lokasi Pabrik (AppForm Section + Inline White Cards) --}}
                     <x-card title="Parameter Fasilitas & Jadwal" subtitle="Pilih fasilitas gudang operasional penarik bahan dan gudang tujuan produk jadi" class="relative z-0" bodyClass="bg-gray-50 dark:bg-gray-950 p-3 sm:p-4">
                         <x-form-section card title="Fasilitas & Jadwal Produksi" :cols="3">
-                            <x-form-field label="Gudang Bahan" name="gudang_operasional_id" help="Gudang asal pengambilan stok bahan baku saat batch dirilis">
-                                <x-select name="gudang_operasional_id" variant="seamless" placeholder="— Pilih Gudang Bahan —">
+                            <x-form-field label="Gudang Bahan" name="gudang_operasional_id" :required="true" help="Gudang asal pengambilan stok bahan baku saat batch dirilis">
+                                <x-select name="gudang_operasional_id" variant="seamless" placeholder="— Pilih Gudang Bahan —" :required="true">
                                     @foreach($gudangOp as $g)
                                         <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" @selected(old('gudang_operasional_id', request()->query('gudang_operasional_id')) == $g->id)>{{ $g->nama }}</option>
                                     @endforeach
                                 </x-select>
                             </x-form-field>
 
-                            <x-form-field label="Gudang Output" name="gudang_tujuan_rencana_id" help="Gudang penyimpanan setelah produk selesai diproduksi">
-                                <x-select name="gudang_tujuan_rencana_id" variant="seamless" placeholder="— Pilih Gudang Output —">
+                            <x-form-field label="Gudang Output" name="gudang_tujuan_rencana_id" :required="true" help="Gudang penyimpanan setelah produk selesai diproduksi">
+                                <x-select name="gudang_tujuan_rencana_id" variant="seamless" placeholder="— Pilih Gudang Output —" :required="true">
                                     @foreach($gudangFf as $g)
                                         <option value="{{ $g->id }}" class="bg-white dark:bg-gray-900 text-[#101828] dark:text-white" @selected(old('gudang_tujuan_rencana_id') == $g->id)>{{ $g->nama }}</option>
                                     @endforeach

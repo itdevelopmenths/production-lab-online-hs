@@ -328,8 +328,20 @@ class BatchController extends Controller
         $rekapBahan = $batch->rekapBahan();
         $showProgresPemenuhan = $this->shouldShowProgresPemenuhan($batch, $rekapBahan, $hasDeficitFisik);
 
+        // Alasan pembatalan tersimpan di log audit (event 'cancelled'); batch lama tidak punya alasan.
+        $pembatalan = null;
+        if ($batch->status === 'dibatalkan') {
+            $cancelAudit = $batch->operationalAudits()->where('event', 'cancelled')->first();
+            $pembatalan = [
+                'alasan' => $cancelAudit?->new_values['alasan_pembatalan'] ?? null,
+                'oleh' => $cancelAudit?->user_name,
+                'waktu' => $cancelAudit?->created_at,
+            ];
+        }
+
         return view('batches.show', compact(
             'batch',
+            'pembatalan',
             'earlyWarnings',
             'hasDeficitFisik',
             'hasDeficitRencana',
@@ -502,19 +514,29 @@ class BatchController extends Controller
         return back()->with('success', 'Batch selesai, produk jadi masuk stok.');
     }
 
-    public function cancel(BatchProduksi $batch)
+    public function cancel(Request $request, BatchProduksi $batch)
     {
         $this->authorize('batch.cancel');
         abort_unless($batch->status === 'rencana', 422, 'Hanya batch Rencana yang dapat dibatalkan (alokasi dilepas tanpa mutasi stok).');
 
-        DB::transaction(function () use ($batch) {
+        $data = $request->validate([
+            'alasan' => ['required', 'string', 'max:500'],
+        ], [
+            'alasan.required' => 'Alasan pembatalan wajib diisi.',
+            'alasan.max' => 'Alasan pembatalan maksimal 500 karakter.',
+        ]);
+
+        DB::transaction(function () use ($batch, $data) {
             $batch->alokasi()->where('status', 'aktif')->update(['status' => 'dibatalkan']);
             $batch->update(['status' => 'dibatalkan']);
 
             $batch->recordAudit(
                 event: 'cancelled',
                 actionTitle: "Pembatalan Rencana Batch {$batch->no_batch} & pelepasan alokasi",
-                customChanges: ['status' => ['rencana', 'dibatalkan']]
+                customChanges: [
+                    'status' => ['rencana', 'dibatalkan'],
+                    'alasan_pembatalan' => trim($data['alasan']),
+                ]
             );
         });
 

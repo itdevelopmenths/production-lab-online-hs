@@ -758,7 +758,7 @@
                     @endcan
 
                     @can('batch.cancel')
-                    <div x-data="{ cancelOpen: false, submitting: false }"
+                    <div x-data="{ cancelOpen: {{ $errors->has('alasan') ? 'true' : 'false' }}, submitting: false }"
                          @keydown.escape.window="cancelOpen = false"
                          class="pt-3 mt-3 border-t border-gray-100 dark:border-border">
                         <button type="button" @click="cancelOpen = true" class="w-full py-1.5 text-xs font-medium text-rose-600 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300 transition cursor-pointer">
@@ -785,8 +785,23 @@
                                         </div>
                                     </div>
 
-                                    <form id="batch-cancel-form" method="POST" action="{{ route('batches.cancel', $batch) }}" @submit="submitting = true">
+                                    <form id="batch-cancel-form" method="POST" action="{{ route('batches.cancel', $batch) }}" @submit="submitting = true" class="mt-4 text-left">
                                         @csrf
+                                        <label for="batch-cancel-alasan" class="block text-xs font-medium text-text-active mb-1">
+                                            Alasan pembatalan <span class="text-rose-500">*</span>
+                                        </label>
+                                        <textarea
+                                            id="batch-cancel-alasan"
+                                            name="alasan"
+                                            rows="3"
+                                            maxlength="500"
+                                            required
+                                            placeholder="Tulis alasan batch dibatalkan"
+                                            class="w-full border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-[#101828] dark:text-white text-xs py-2 px-2.5 focus:border-[#111111] dark:focus:border-white outline-none rounded-[6px] resize-none"
+                                        >{{ old('alasan') }}</textarea>
+                                        @error('alasan')
+                                            <p class="mt-1 text-[11px] font-medium text-rose-600">{{ $message }}</p>
+                                        @enderror
                                     </form>
 
                                     <x-slot:footer>
@@ -869,8 +884,17 @@
                 @endif
 
                 @if($batch->status === 'dibatalkan')
-                    <div class="py-2.5 px-3 bg-[#FBFBFB] dark:bg-gray-800/50 border border-[#e8e8e8] dark:border-border rounded-[8px] text-center text-xs text-text-muted font-medium">
-                        Batch ini telah dibatalkan.
+                    <div class="p-3.5 bg-red-50/90 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-[10px] text-xs">
+                        <h4 class="font-semibold text-red-900 dark:text-red-200">Batch ini telah dibatalkan</h4>
+                        <dl class="mt-2.5 space-y-0.5">
+                            <dt class="text-[11px] text-red-700 dark:text-red-300">Alasan pembatalan</dt>
+                            <dd class="text-red-950 dark:text-red-100 leading-relaxed whitespace-pre-line wrap-break-word">{{ $pembatalan['alasan'] ?? 'Tidak tercatat. Batch ini dibatalkan sebelum alasan wajib diisi.' }}</dd>
+                        </dl>
+                        @if(!empty($pembatalan['oleh']) || !empty($pembatalan['waktu']))
+                        <p class="mt-2.5 pt-2 border-t border-red-200 dark:border-red-500/20 text-[11px] text-red-700 dark:text-red-300 tabular-nums">
+                            Dibatalkan{{ !empty($pembatalan['oleh']) ? ' oleh ' . $pembatalan['oleh'] : '' }}{{ !empty($pembatalan['waktu']) ? ' pada ' . $pembatalan['waktu']->format('d/m/Y H:i') : '' }}
+                        </p>
+                        @endif
                     </div>
                 @endif
             </x-card>
