@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\PoLogPerubahan;
 use App\Models\Produk;
@@ -15,6 +16,7 @@ use App\Services\RequestService;
 use App\Services\StokService;
 use App\Services\TransferService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -210,5 +212,61 @@ class AuditPermissionVisibilityTest extends TestCase
             ->assertOk()
             ->assertSeeText('Riwayat Perubahan Operasional (Direct Edit Log)')
             ->assertSeeText('INV-BARU');
+    }
+
+    protected function batch(): BatchProduksi
+    {
+        $this->actingAs($this->manager)->post(route('batches.store'), [
+            'produk_id' => Produk::produkJadi()->has('bom')->firstOrFail()->id,
+            'qty_rencana' => 10,
+            'gudang_operasional_id' => Gudang::where('kode', 'GD-OPS')->firstOrFail()->id,
+            'gudang_tujuan_rencana_id' => Gudang::where('kode', 'FF-PUSAT')->firstOrFail()->id,
+            'tanggal' => now()->toDateString(),
+        ])->assertRedirect();
+
+        return BatchProduksi::latest('id')->firstOrFail();
+    }
+
+    public function test_batch_page_audit_card_follows_batch_audit_or_global_audit_view(): void
+    {
+        $batch = $this->batch();
+        $title = 'Jejak Riwayat Audit Dokumen Batch';
+
+        $this->actingAs($this->userWithPermissions(['batch.view']))
+            ->get(route('batches.show', $batch))->assertOk()->assertDontSeeText($title);
+        $this->actingAs($this->userWithPermissions(['batch.view', 'rt.audit']))
+            ->get(route('batches.show', $batch))->assertOk()->assertDontSeeText($title);
+        $this->actingAs($this->userWithPermissions(['batch.view', 'batch.audit']))
+            ->get(route('batches.show', $batch))->assertOk()->assertSeeText($title);
+        $this->actingAs($this->userWithPermissions(['batch.view', 'audit.view']))
+            ->get(route('batches.show', $batch))->assertOk()->assertSeeText($title);
+    }
+
+    public function test_po_page_audit_card_follows_purchasing_audit_or_global_audit_view(): void
+    {
+        $po = $this->poWithEditLog();
+        $title = 'Jejak Riwayat Audit Dokumen PO';
+
+        $this->actingAs($this->userWithPermissions(['purchasing.view', 'rt.audit']))
+            ->get(route('purchasing.show', $po))->assertOk()->assertDontSeeText($title);
+        $this->actingAs($this->userWithPermissions(['purchasing.view', 'audit.view']))
+            ->get(route('purchasing.show', $po))->assertOk()->assertSeeText($title);
+    }
+
+    public function test_audit_history_component_checks_abilities_itself(): void
+    {
+        $po = $this->poWithEditLog();
+        $template = '<x-operational-audit-history :auditable="$auditable" :abilities="[\'purchasing.audit\']" />';
+
+        $this->actingAs($this->userWithPermissions(['purchasing.view']));
+        $this->assertSame('', trim(Blade::render($template, ['auditable' => $po])));
+
+        $this->actingAs($this->userWithPermissions(['purchasing.view', 'purchasing.audit']));
+        $this->assertStringContainsString('Riwayat', Blade::render($template, ['auditable' => $po]));
+
+        // Tanpa prop abilities: default hanya audit.view
+        $bare = '<x-operational-audit-history :auditable="$auditable" />';
+        $this->actingAs($this->userWithPermissions(['purchasing.view', 'purchasing.audit']));
+        $this->assertSame('', trim(Blade::render($bare, ['auditable' => $po])));
     }
 }

@@ -472,4 +472,54 @@ class CustomRoleManagementTest extends TestCase
             ->assertSeeText('Kelola Peran selalu aktif untuk Manager')
             ->assertSee('data-locked-permission="role.manage"', false);
     }
+
+    protected function legacyRole(): Role
+    {
+        Permission::firstOrCreate(['name' => 'reports.view', 'guard_name' => 'web']);
+        $role = Role::create(['name' => 'legacy_role', 'display_name' => 'Legacy Role', 'is_system' => false, 'guard_name' => 'web']);
+        $role->syncPermissions(['purchasing.view', 'reports.view']);
+
+        return $role;
+    }
+
+    public function test_edit_page_lists_legacy_permissions_outside_catalog(): void
+    {
+        $this->actingAs($this->manager);
+
+        $this->get(route('roles.edit', $this->legacyRole()))
+            ->assertOk()
+            ->assertSeeText('Wewenang lama (di luar katalog)')
+            ->assertSee('value="reports.view"', false);
+    }
+
+    public function test_unchecking_legacy_permission_revokes_it(): void
+    {
+        $this->actingAs($this->manager);
+        $role = $this->legacyRole();
+
+        $this->put(route('roles.update', $role), [
+            'name' => 'legacy_role',
+            'display_name' => 'Legacy Role',
+            'permissions' => ['purchasing.view'],
+            'legacy_present' => '1',
+        ])->assertRedirect(route('roles.index'));
+
+        $this->assertFalse($role->fresh()->hasPermissionTo('reports.view'));
+    }
+
+    public function test_checked_legacy_permission_is_kept(): void
+    {
+        $this->actingAs($this->manager);
+        $role = $this->legacyRole();
+
+        $this->put(route('roles.update', $role), [
+            'name' => 'legacy_role',
+            'display_name' => 'Legacy Role',
+            'permissions' => ['purchasing.view'],
+            'legacy_present' => '1',
+            'legacy_permissions' => ['reports.view'],
+        ])->assertRedirect(route('roles.index'));
+
+        $this->assertTrue($role->fresh()->hasPermissionTo('reports.view'));
+    }
 }

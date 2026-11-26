@@ -173,7 +173,7 @@
                                         default => strtoupper($actionType)
                                     };
                                 @endphp
-                                <label class="relative flex items-start gap-3 p-3 rounded-[8px] border transition-colors cursor-pointer select-none"
+                                <label class="relative flex items-start gap-3 p-3 rounded-[8px] border transition-colors {{ $readonly ? 'cursor-default' : 'cursor-pointer' }} select-none"
                                        :class="selected.includes('{{ $actionKey }}') ? 'bg-neutral-100/80 dark:bg-gray-800/80 border-neutral-900 dark:border-white' : 'bg-white dark:bg-gray-900 border-[#E8E8E8] dark:border-gray-800 hover:bg-[#fafafa] dark:hover:bg-gray-800/40'">
                                     <div class="flex items-center h-4 mt-0.5">
                                         <input type="checkbox" 

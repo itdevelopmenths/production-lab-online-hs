@@ -1,8 +1,10 @@
 @props([
     'auditable',
     'title' => 'Riwayat Jejak Audit & Log Status Dokumen',
+    'abilities' => ['audit.view'],
 ])
 
+@if (auth()->user()?->canany($abilities))
 @php
     $audits = $auditable->operationalAudits()->with('user')->get();
 @endphp
@@ -56,3 +58,4 @@
         </div>
     @endif
 </x-card>
+@endif

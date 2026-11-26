@@ -261,7 +261,7 @@
         {{-- Operational Audit History --}}
         @canany(['rt.audit', 'audit.view'])
         <div class="mt-6">
-            <x-operational-audit-history :auditable="$stockRequest" title="Jejak Riwayat Audit Permintaan {{ $stockRequest->no_request }}" />
+            <x-operational-audit-history :abilities="['rt.audit', 'audit.view']" :auditable="$stockRequest" title="Jejak Riwayat Audit Permintaan {{ $stockRequest->no_request }}" />
         </div>
         @endcanany
     </div>
