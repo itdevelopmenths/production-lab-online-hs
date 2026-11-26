@@ -6,7 +6,6 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
 
 class RbacAndPermissionAliasTest extends TestCase
@@ -197,5 +196,16 @@ class RbacAndPermissionAliasTest extends TestCase
         foreach (['purchasing', 'gudang', 'operasional', 'fulfillment'] as $name) {
             $this->assertFalse(Role::findByName($name)->hasPermissionTo('audit.view'), "{$name} must not get audit.view");
         }
+    }
+
+    public function test_reseeding_does_not_restore_audit_permission_removed_by_admin(): void
+    {
+        Role::findByName('purchasing')->revokePermissionTo('purchasing.audit');
+        Role::findByName('operasional')->revokePermissionTo('batch.audit');
+
+        $this->seed(PermissionSeeder::class);
+
+        $this->assertFalse(Role::findByName('purchasing')->fresh()->hasPermissionTo('purchasing.audit'));
+        $this->assertFalse(Role::findByName('operasional')->fresh()->hasPermissionTo('batch.audit'));
     }
 }

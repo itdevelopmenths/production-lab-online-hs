@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Gudang;
+use App\Models\PoLogPerubahan;
 use App\Models\Produk;
+use App\Models\PurchaseOrder;
 use App\Models\Role;
 use App\Models\StockRequest;
+use App\Models\Supplier;
 use App\Models\Transfer;
 use App\Models\User;
 use App\Services\RequestService;
@@ -21,7 +24,9 @@ class AuditPermissionVisibilityTest extends TestCase
     use RefreshDatabase;
 
     protected User $manager;
+
     protected StockRequest $stockRequest;
+
     protected Transfer $transfer;
 
     protected function setUp(): void
@@ -161,5 +166,49 @@ class AuditPermissionVisibilityTest extends TestCase
         $this->actingAs($user)->get(route('requests.index'))
             ->assertOk()
             ->assertSeeText('Lead Time Supplier');
+    }
+
+    protected function poWithEditLog(): PurchaseOrder
+    {
+        $supplier = Supplier::create(['nama' => 'PT Log Test', 'kode' => 'SUP-LOG', 'kategori' => 'lokal', 'is_active' => true]);
+        $po = PurchaseOrder::create([
+            'no_po' => 'PO-LOG-0001',
+            'supplier_id' => $supplier->id,
+            'tanggal' => now(),
+            'status' => 'draft',
+            'created_by' => $this->manager->id,
+        ]);
+        PoLogPerubahan::create([
+            'po_id' => $po->id,
+            'nama_field' => 'no_invoice',
+            'nilai_lama' => 'INV-LAMA',
+            'nilai_baru' => 'INV-BARU',
+            'diubah_oleh' => $this->manager->id,
+            'diubah_pada' => now(),
+        ]);
+
+        return $po;
+    }
+
+    public function test_po_page_hides_direct_edit_log_without_audit_permission(): void
+    {
+        $po = $this->poWithEditLog();
+        $user = $this->userWithPermissions(['purchasing.view']);
+
+        $this->actingAs($user)->get(route('purchasing.show', $po))
+            ->assertOk()
+            ->assertDontSeeText('Riwayat Perubahan Operasional (Direct Edit Log)')
+            ->assertDontSeeText('INV-BARU');
+    }
+
+    public function test_po_page_shows_direct_edit_log_with_purchasing_audit(): void
+    {
+        $po = $this->poWithEditLog();
+        $user = $this->userWithPermissions(['purchasing.view', 'purchasing.audit']);
+
+        $this->actingAs($user)->get(route('purchasing.show', $po))
+            ->assertOk()
+            ->assertSeeText('Riwayat Perubahan Operasional (Direct Edit Log)')
+            ->assertSeeText('INV-BARU');
     }
 }

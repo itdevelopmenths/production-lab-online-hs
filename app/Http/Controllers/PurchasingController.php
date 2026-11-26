@@ -27,6 +27,7 @@ use App\Traits\ResolvesGudangOnlyUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -40,8 +41,7 @@ class PurchasingController extends Controller
         private readonly StokService $stok,
         private readonly PurchasingCostCalculator $calculator,
         private readonly PurchasingPaymentService $paymentService
-    ) {
-    }
+    ) {}
 
     public function index()
     {
@@ -53,7 +53,7 @@ class PurchasingController extends Controller
         $pendingPoCount = PurchaseOrder::whereNotIn('status', ['selesai', 'dibatalkan'])
             ->where(function ($q) {
                 $q->where('status', 'diajukan')
-                  ->orWhere('stage_aktif', PoStage::STAGE_2);
+                    ->orWhere('stage_aktif', PoStage::STAGE_2);
             })
             ->count();
 
@@ -110,7 +110,7 @@ class PurchasingController extends Controller
             $query->whereNotIn('purchase_orders.status', ['selesai', 'dibatalkan'])
                 ->where(function ($q) {
                     $q->where('purchase_orders.status', 'diajukan')
-                      ->orWhere('purchase_orders.stage_aktif', PoStage::STAGE_2);
+                        ->orWhere('purchase_orders.stage_aktif', PoStage::STAGE_2);
                 });
         } elseif ($request->filled('status_po')) {
             $query->where('purchase_orders.status', $request->status_po);
@@ -133,13 +133,13 @@ class PurchasingController extends Controller
 
         return DataTables::eloquent($query)
             ->filterColumn('supplier_nama', function ($q, $keyword) {
-                $kw = '%' . strtolower(trim($keyword)) . '%';
+                $kw = '%'.strtolower(trim($keyword)).'%';
                 $q->whereHas('supplier', function ($sq) use ($kw) {
                     $sq->whereRaw('LOWER(nama) LIKE ?', [$kw]);
                 });
             })
             ->filterColumn('no_invoice', function ($q, $keyword) {
-                $kw = '%' . strtolower(trim($keyword)) . '%';
+                $kw = '%'.strtolower(trim($keyword)).'%';
                 $q->where(function ($sub) use ($kw) {
                     $sub->whereRaw('LOWER(purchase_orders.no_invoice) LIKE ?', [$kw])
                         ->orWhereRaw('LOWER(purchase_orders.no_po) LIKE ?', [$kw]);
@@ -219,7 +219,7 @@ class PurchasingController extends Controller
                 if ($canEdit) {
                     $buttons[] = UiTableHelper::actionLink(route('purchasing.edit', $po), 'Edit', 'pencil', 'default');
                     $buttons[] = UiTableHelper::actionButton(
-                        "openQuickDateModal('" . e($po->id) . "', '" . e($po->no_po) . "', '" . e($po->tanggal?->format('Y-m-d') ?? '') . "', '" . e($po->eta?->format('Y-m-d') ?? '') . "')",
+                        "openQuickDateModal('".e($po->id)."', '".e($po->no_po)."', '".e($po->tanggal?->format('Y-m-d') ?? '')."', '".e($po->eta?->format('Y-m-d') ?? '')."')",
                         'Edit Tanggal PO & ETA',
                         'calendar',
                         'warning'
@@ -255,13 +255,13 @@ class PurchasingController extends Controller
 
         return DataTables::eloquent($query)
             ->filterColumn('supplier_nama', function ($q, $keyword) {
-                $kw = '%' . strtolower(trim($keyword)) . '%';
+                $kw = '%'.strtolower(trim($keyword)).'%';
                 $q->whereHas('supplier', function ($sq) use ($kw) {
                     $sq->whereRaw('LOWER(nama) LIKE ?', [$kw]);
                 });
             })
             ->filterColumn('no_invoice', function ($q, $keyword) {
-                $kw = '%' . strtolower(trim($keyword)) . '%';
+                $kw = '%'.strtolower(trim($keyword)).'%';
                 $q->where(function ($sub) use ($kw) {
                     $sub->whereRaw('LOWER(purchase_orders.no_invoice) LIKE ?', [$kw])
                         ->orWhereRaw('LOWER(purchase_orders.no_po) LIKE ?', [$kw]);
@@ -293,7 +293,7 @@ class PurchasingController extends Controller
                     UiTableHelper::actionLink($showUrl, 'Detail', 'eye', 'default'),
                 ];
                 if (! $po->isLunas() && ! $po->isCancelled() && ! $po->hasPendingRevision() && $po->isApprovedForPayment()) {
-                    $buttons[] = UiTableHelper::actionLink($showUrl . '#form-pembayaran', 'Bayar', 'check', 'success');
+                    $buttons[] = UiTableHelper::actionLink($showUrl.'#form-pembayaran', 'Bayar', 'check', 'success');
                 }
 
                 return UiTableHelper::actionGroup($buttons);
@@ -359,18 +359,18 @@ class PurchasingController extends Controller
             ->where(function ($query) use ($supplierId) {
                 $query->whereDoesntHave('suppliers', function ($q) use ($supplierId) {
                     $q->where('supplier.id', $supplierId)
-                      ->where('produk_supplier.status', 'aktif');
+                        ->where('produk_supplier.status', 'aktif');
                 })
-                ->where(function ($q) use ($supplierId) {
-                    $q->whereNull('supplier_id')
-                      ->orWhere('supplier_id', '!=', $supplierId);
-                });
+                    ->where(function ($q) use ($supplierId) {
+                        $q->whereNull('supplier_id')
+                            ->orWhere('supplier_id', '!=', $supplierId);
+                    });
             })
             ->pluck('nama');
 
         if ($invalidProdukNames->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'items' => 'Item produk berikut tidak terdaftar aktif pada supplier yang dipilih: ' . $invalidProdukNames->implode(', ') . '.',
+                'items' => 'Item produk berikut tidak terdaftar aktif pada supplier yang dipilih: '.$invalidProdukNames->implode(', ').'.',
             ]);
         }
 
@@ -424,7 +424,7 @@ class PurchasingController extends Controller
                 $this->paymentService->createTerminsForPo($po, $data['termins']);
             }
 
-            app(\App\Services\Purchasing\PurchasingStageService::class)->initializePoStages($po, now(), auth()->user());
+            app(PurchasingStageService::class)->initializePoStages($po, now(), auth()->user());
 
             return $po;
         });
@@ -457,7 +457,7 @@ class PurchasingController extends Controller
         $produk = Produk::bahan()->active()->orderBy('nama')->get(['id', 'sku', 'nama', 'nama_produk', 'satuan', 'faktor_konversi']);
         $uomList = Uom::active()->orderBy('nama')->get(['id', 'kode', 'nama', 'kategori', 'satuan_dasar', 'faktor_konversi']);
         $productIds = $purchaseOrder->items->pluck('produk_id')->filter()->unique()->values()->all();
-        $hppMap = app(\App\Services\StokService::class)->resolveHppMap($productIds);
+        $hppMap = app(StokService::class)->resolveHppMap($productIds);
 
         return view('purchasing.edit', compact('purchaseOrder', 'suppliers', 'gudang', 'produk', 'uomList', 'hppMap'));
     }
@@ -526,18 +526,18 @@ class PurchasingController extends Controller
             ->where(function ($query) use ($supplierId) {
                 $query->whereDoesntHave('suppliers', function ($q) use ($supplierId) {
                     $q->where('supplier.id', $supplierId)
-                      ->where('produk_supplier.status', 'aktif');
+                        ->where('produk_supplier.status', 'aktif');
                 })
-                ->where(function ($q) use ($supplierId) {
-                    $q->whereNull('supplier_id')
-                      ->orWhere('supplier_id', '!=', $supplierId);
-                });
+                    ->where(function ($q) use ($supplierId) {
+                        $q->whereNull('supplier_id')
+                            ->orWhere('supplier_id', '!=', $supplierId);
+                    });
             })
             ->pluck('nama');
 
         if ($invalidProdukNames->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'items' => 'Item produk berikut tidak terdaftar aktif pada supplier yang dipilih: ' . $invalidProdukNames->implode(', ') . '.',
+                'items' => 'Item produk berikut tidak terdaftar aktif pada supplier yang dipilih: '.$invalidProdukNames->implode(', ').'.',
             ]);
         }
 
@@ -558,7 +558,7 @@ class PurchasingController extends Controller
         $totalDibayar = $purchaseOrder->totalDibayar();
         if ($totalDibayar > 0 && $totals['grand_total'] < $totalDibayar) {
             throw ValidationException::withMessages([
-                'items' => 'Grand total baru (Rp ' . number_format($totals['grand_total'], 0, ',', '.') . ') tidak boleh lebih kecil dari total yang sudah dibayar (Rp ' . number_format($totalDibayar, 0, ',', '.') . ').',
+                'items' => 'Grand total baru (Rp '.number_format($totals['grand_total'], 0, ',', '.').') tidak boleh lebih kecil dari total yang sudah dibayar (Rp '.number_format($totalDibayar, 0, ',', '.').').',
             ]);
         }
 
@@ -640,8 +640,11 @@ class PurchasingController extends Controller
             'barangDatang.poster:id,name',
             'barangDatang.items.poItem.produk:id,sku,nama,satuan',
             'creator:id,name',
-            'logPerubahan.changer:id,name',
         ]);
+
+        if (auth()->user()->canany(['purchasing.audit', 'audit.view'])) {
+            $purchaseOrder->load('logPerubahan.changer:id,name');
+        }
 
         // Auto-refresh status pembayaran jika ada perubahan status (misal lewat jatuh tempo atau legacy PO batal)
         if ($purchaseOrder->isCancelled() || ! $purchaseOrder->isLunas()) {
@@ -822,7 +825,7 @@ class PurchasingController extends Controller
                         'purchase_order',
                         $purchaseOrder->id,
                         "Barang Datang {$purchaseOrder->no_po}",
-                        \Illuminate\Support\Carbon::parse($data['tanggal_terima']),
+                        Carbon::parse($data['tanggal_terima']),
                     );
                 }
             }
@@ -839,7 +842,7 @@ class PurchasingController extends Controller
             $targetGudang = Gudang::find($targetGudangId);
             $purchaseOrder->recordAudit(
                 event: 'received',
-                actionTitle: "Penerimaan fisik barang PO {$purchaseOrder->no_po} di " . ($targetGudang?->nama ?? 'Gudang') . " (Kondisi: " . ucwords(str_replace('_', ' ', $data['kondisi'])) . ")",
+                actionTitle: "Penerimaan fisik barang PO {$purchaseOrder->no_po} di ".($targetGudang?->nama ?? 'Gudang').' (Kondisi: '.ucwords(str_replace('_', ' ', $data['kondisi'])).')',
                 customChanges: ['status' => ['dikirim_ke_gudang', 'selesai']],
                 metadata: [
                     'tanggal_terima' => $data['tanggal_terima'],
@@ -874,7 +877,7 @@ class PurchasingController extends Controller
         $customChanges = ['status_pembayaran' => [$oldStatusBayar, $freshPo?->status_pembayaran ?? $oldStatusBayar]];
 
         // Jika ada adjustment tanggal jatuh tempo pada skema tempo
-        if (!empty($data['tanggal_tempo_baru']) && $purchaseOrder->skema_bayar === 'tempo') {
+        if (! empty($data['tanggal_tempo_baru']) && $purchaseOrder->skema_bayar === 'tempo') {
             $oldTempo = $purchaseOrder->tanggal_tempo?->format('Y-m-d');
             $purchaseOrder->update(['tanggal_tempo' => $data['tanggal_tempo_baru']]);
             $customChanges['tanggal_tempo'] = [$oldTempo, $data['tanggal_tempo_baru']];
@@ -882,7 +885,7 @@ class PurchasingController extends Controller
 
         $purchaseOrder->recordAudit(
             event: 'paid',
-            actionTitle: "Pencatatan pembayaran " . ucfirst($data['skema']) . " senilai Rp " . number_format($data['nominal'], 0, ',', '.') . " untuk PO {$purchaseOrder->no_po}",
+            actionTitle: 'Pencatatan pembayaran '.ucfirst($data['skema']).' senilai Rp '.number_format($data['nominal'], 0, ',', '.')." untuk PO {$purchaseOrder->no_po}",
             customChanges: $customChanges,
             metadata: [
                 'skema' => $data['skema'],
@@ -912,7 +915,7 @@ class PurchasingController extends Controller
         $oldStatusPembayaran = $purchaseOrder->status_pembayaran;
         $oldCatatan = $purchaseOrder->catatan;
         $alasanEntry = "[Alasan Pembatalan: {$alasan}]";
-        $newCatatan = $oldCatatan ? ($oldCatatan . "\n" . $alasanEntry) : $alasanEntry;
+        $newCatatan = $oldCatatan ? ($oldCatatan."\n".$alasanEntry) : $alasanEntry;
 
         app(PurchasingStageService::class)->cancelPo(
             $purchaseOrder,
@@ -1134,10 +1137,10 @@ class PurchasingController extends Controller
         if ($avgHari !== null && $avgHari > 0 && $avgMinutes !== null && $avgMinutes > 0) {
             $isLate = $elapsedMinutes > $avgMinutes;
 
-            return ($isLate ? '⚠️ ' : '') . $elapsedDays . ' hr (Avg: ' . $avgHari . ' hr)';
+            return ($isLate ? '⚠️ ' : '').$elapsedDays.' hr (Avg: '.$avgHari.' hr)';
         }
 
-        return $elapsedDays . ' hr';
+        return $elapsedDays.' hr';
     }
 
     private function applyStatusBayarFilter($query, string $statusBayar): void
@@ -1145,7 +1148,7 @@ class PurchasingController extends Controller
         if ($statusBayar === 'batal') {
             $query->where(function ($q) {
                 $q->where('purchase_orders.status', 'dibatalkan')
-                  ->orWhere('purchase_orders.status_pembayaran', 'batal');
+                    ->orWhere('purchase_orders.status_pembayaran', 'batal');
             });
 
             return;
@@ -1156,7 +1159,7 @@ class PurchasingController extends Controller
         if ($statusBayar === 'belum_lunas') {
             $query->where(function ($q) {
                 $q->where('purchase_orders.status_pembayaran', 'belum_lunas')
-                  ->orWhereNull('purchase_orders.status_pembayaran');
+                    ->orWhereNull('purchase_orders.status_pembayaran');
             });
 
             return;
@@ -1212,7 +1215,7 @@ class PurchasingController extends Controller
         $year = now()->year;
         $prefix = "PO-{$year}-";
 
-        $last = PurchaseOrder::where('no_po', 'like', $prefix . '%')
+        $last = PurchaseOrder::where('no_po', 'like', $prefix.'%')
             ->orderByDesc('no_po')
             ->value('no_po');
 
@@ -1236,7 +1239,7 @@ class PurchasingController extends Controller
         $month = now()->format('m');
         $prefix = "INV/PO/{$year}{$month}/";
 
-        $last = PurchaseOrder::where('no_invoice', 'like', $prefix . '%')
+        $last = PurchaseOrder::where('no_invoice', 'like', $prefix.'%')
             ->orderByDesc('no_invoice')
             ->value('no_invoice');
 
