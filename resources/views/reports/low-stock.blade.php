@@ -49,16 +49,16 @@
                             {{ $o->bahan->nama ?? '-' }}
                         </td>
                         <td class="px-4 py-3 text-right tabular-nums text-[#667085] dark:text-gray-400">
-                            {{ number_format($o->pemakaian_teoritis, 2, ',', '.') }}
+                            {{ \App\Helpers\NumberHelper::formatQty($o->pemakaian_teoritis) }}
                         </td>
                         <td class="px-4 py-3 text-right tabular-nums text-[#101828] dark:text-white font-medium">
-                            {{ number_format($o->pemakaian_aktual, 2, ',', '.') }}
+                            {{ \App\Helpers\NumberHelper::formatQty($o->pemakaian_aktual) }}
                         </td>
                         <td class="px-4 py-3 text-right tabular-nums font-medium">
                             @if($var > 0)
-                                <span class="text-rose-600 dark:text-rose-400 font-medium">+{{ number_format($var, 2, ',', '.') }}</span>
+                                <span class="text-rose-600 dark:text-rose-400 font-medium">+{{ \App\Helpers\NumberHelper::formatQty($var) }}</span>
                             @elseif($var < 0)
-                                <span class="text-foreground dark:text-foreground font-medium">{{ number_format($var, 2, ',', '.') }}</span>
+                                <span class="text-foreground dark:text-foreground font-medium">{{ \App\Helpers\NumberHelper::formatQty($var) }}</span>
                             @else
                                 <span class="text-[#667085] dark:text-gray-400">0,00</span>
                             @endif

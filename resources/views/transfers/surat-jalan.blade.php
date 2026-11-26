@@ -164,11 +164,11 @@
                             {{ $item->produk?->satuan ?? 'unit' }}
                         </td>
                         <td class="py-2 px-3 text-right tabular-nums border-r border-gray-200 font-medium text-gray-950">
-                            {{ number_format($qtyDikirim, 2) }}
+                            {{ \App\Helpers\NumberHelper::formatQty($qtyDikirim) }}
                         </td>
                         <td class="py-2 px-3 text-gray-500 text-[11px]">
                             @if(($item->qty_rusak ?? 0) > 0)
-                                <span class="text-rose-700 font-medium">Rusak: {{ number_format($item->qty_rusak, 2) }} ({{ $item->keterangan_rusak }})</span>
+                                <span class="text-rose-700 font-medium">Rusak: {{ \App\Helpers\NumberHelper::formatQty($item->qty_rusak) }} ({{ $item->keterangan_rusak }})</span>
                                 @if($item->keterangan)
                                     <div class="text-gray-400 text-[10px]">{{ $item->keterangan }}</div>
                                 @endif

@@ -155,7 +155,7 @@
                             <td class="px-4 py-3 text-center text-muted-foreground">{{ $idx + 1 }}</td>
                             <td class="px-4 py-3 tabular-nums font-medium text-foreground">{{ $it->produk?->sku ?? '-' }}</td>
                             <td class="px-4 py-3 font-medium text-foreground">{{ $it->produk?->nama ?? '-' }}</td>
-                            <td class="px-4 py-3 font-medium text-foreground">{{ number_format($it->qty_diminta, 2) }}</td>
+                            <td class="px-4 py-3 font-medium text-foreground">{{ \App\Helpers\NumberHelper::formatQty($it->qty_diminta) }}</td>
                             <td class="px-4 py-3 text-muted-foreground">{{ $it->produk?->satuan ?? '-' }}</td>
                             <td class="px-4 py-3 text-muted-foreground">{{ $it->keterangan ?? '-' }}</td>
                         </tr>

@@ -198,13 +198,13 @@
                             <td class="px-4 py-3 tabular-nums font-medium text-[#101828] dark:text-white">{{ $it->produk?->sku ?? '-' }}</td>
                             <td class="px-4 py-3 font-medium text-[#101828] dark:text-white">{{ $it->produk?->nama ?? '-' }}</td>
                             <td class="px-4 py-3 text-[#667085] dark:text-gray-400">{{ $it->produk?->satuan ?? '-' }}</td>
-                            <td class="px-4 py-3 text-right font-medium tabular-nums text-[#101828] dark:text-white">{{ number_format($it->qty_dikirim, 2) }}</td>
+                            <td class="px-4 py-3 text-right font-medium tabular-nums text-[#101828] dark:text-white">{{ \App\Helpers\NumberHelper::formatQty($it->qty_dikirim) }}</td>
                             <td class="px-4 py-3 text-right font-medium tabular-nums text-foreground dark:text-foreground">
-                                {{ $transfer->status === 'selesai' ? number_format($it->qty_baik ?? 0, 2) : '-' }}
+                                {{ $transfer->status === 'selesai' ? \App\Helpers\NumberHelper::formatQty($it->qty_baik ?? 0) : '-' }}
                             </td>
                             <td class="px-4 py-3 text-right font-medium tabular-nums text-rose-600 dark:text-rose-400">
                                 @if($transfer->status === 'selesai')
-                                    {{ ($it->qty_rusak ?? 0) > 0 ? number_format($it->qty_rusak, 2) : '0' }}
+                                    {{ ($it->qty_rusak ?? 0) > 0 ? \App\Helpers\NumberHelper::formatQty($it->qty_rusak) : '0' }}
                                 @else
                                     -
                                 @endif
@@ -278,7 +278,7 @@
                                         <input type="text" :name="`items[${idx}][keterangan_rusak]`" x-model="item.keterangan_rusak" :required="item.qty_rusak > 0" placeholder="Pecah, bocor, kadaluarsa..." class="w-full h-8 border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-900 text-[#101828] dark:text-white px-2 text-xs outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
                                         <template x-for="diff in [parseFloat(item.qty_dikirim) - (parseFloat(item.qty_baik || 0) + parseFloat(item.qty_rusak || 0))]">
                                             <div x-show="Math.abs(diff) > 0.0001" class="text-[10px] text-rose-600 dark:text-rose-400 font-medium mt-1">
-                                                Selisih: <span x-text="diff.toFixed(2)"></span> (Wajib 0)
+                                                Selisih: <span x-text="Number(diff.toFixed(3))"></span> (Wajib 0)
                                             </div>
                                         </template>
                                     </td>

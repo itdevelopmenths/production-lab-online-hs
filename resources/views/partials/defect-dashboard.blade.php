@@ -141,7 +141,7 @@
                     </div>
                     <span class="text-[11px] text-text-muted mt-0.5">
                         @if(($defectAnalytics['summary']['gudang_tertinggi_qty'] ?? 0) > 0)
-                            <strong class="text-red-600 dark:text-red-400 tabular-nums">{{ number_format($defectAnalytics['summary']['gudang_tertinggi_qty'], 2) }}</strong> unit rusak
+                            <strong class="text-red-600 dark:text-red-400 tabular-nums">{{ \App\Helpers\NumberHelper::formatQty($defectAnalytics['summary']['gudang_tertinggi_qty']) }}</strong> unit rusak
                         @else
                             Nihil laporan kerusakan
                         @endif
@@ -203,10 +203,10 @@
                                 <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-800/30 {{ $mRow['qty_rusak'] > 0 ? 'bg-red-50/40 dark:bg-red-500/5' : '' }}">
                                     <td class="px-3.5 py-2.5 font-medium text-[#101828] dark:text-white">{{ $mRow['month_name'] }}</td>
                                     <td class="px-3.5 py-2.5 text-right font-medium text-text-muted tabular-nums">{{ $mRow['transfers_count'] }}</td>
-                                    <td class="px-3.5 py-2.5 text-right font-medium text-[#101828] dark:text-gray-200 tabular-nums">{{ number_format($mRow['qty_dikirim'], 2) }}</td>
-                                    <td class="px-3.5 py-2.5 text-right font-medium text-[#101828] dark:text-gray-200 tabular-nums">{{ number_format($mRow['qty_baik'], 2) }}</td>
+                                    <td class="px-3.5 py-2.5 text-right font-medium text-[#101828] dark:text-gray-200 tabular-nums">{{ \App\Helpers\NumberHelper::formatQty($mRow['qty_dikirim']) }}</td>
+                                    <td class="px-3.5 py-2.5 text-right font-medium text-[#101828] dark:text-gray-200 tabular-nums">{{ \App\Helpers\NumberHelper::formatQty($mRow['qty_baik']) }}</td>
                                     <td class="px-3.5 py-2.5 text-right font-medium text-red-600 dark:text-red-400 tabular-nums">
-                                        {{ $mRow['qty_rusak'] > 0 ? number_format($mRow['qty_rusak'], 2) : '-' }}
+                                        {{ $mRow['qty_rusak'] > 0 ? \App\Helpers\NumberHelper::formatQty($mRow['qty_rusak']) : '-' }}
                                     </td>
                                     <td class="px-3.5 py-2.5 text-right font-medium tabular-nums {{ $mRow['defect_rate_percent'] > 0 ? 'text-red-600 dark:text-red-400' : 'text-text-muted' }}">
                                         {{ number_format($mRow['defect_rate_percent'], 2) }}%
@@ -217,7 +217,7 @@
                                                 @foreach($mRow['warehouses'] as $whBreakdown)
                                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] {{ $whBreakdown['qty_rusak'] > 0 ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 font-medium border border-red-200 dark:border-red-500/20' : 'bg-gray-100 dark:bg-gray-800 text-text-muted border border-transparent' }}">
                                                         <span>{{ $whBreakdown['gudang_nama'] }}:</span>
-                                                        <span class="tabular-nums ">{{ number_format($whBreakdown['qty_rusak'], 2) }} rusak</span>
+                                                        <span class="tabular-nums ">{{ \App\Helpers\NumberHelper::formatQty($whBreakdown['qty_rusak']) }} rusak</span>
                                                     </span>
                                                 @endforeach
                                             </div>
@@ -267,7 +267,7 @@
                                                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[11px] bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400">
                                                         <span class="tabular-nums font-medium">{{ $skuItem['sku'] }}</span>
                                                         <span class="text-[#101828] dark:text-gray-200">{{ $skuItem['nama'] }}:</span>
-                                                        <span class="font-medium bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded-[4px] border border-[#e8e8e8] dark:border-border tabular-nums text-[#101828] dark:text-white">{{ number_format($skuItem['qty_rusak'], 2) }}</span>
+                                                        <span class="font-medium bg-white dark:bg-gray-900 px-1.5 py-0.5 rounded-[4px] border border-[#e8e8e8] dark:border-border tabular-nums text-[#101828] dark:text-white">{{ \App\Helpers\NumberHelper::formatQty($skuItem['qty_rusak']) }}</span>
                                                     </span>
                                                 @endforeach
                                             </div>

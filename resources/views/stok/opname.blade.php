@@ -255,7 +255,7 @@
                 if (Math.floor(num) === num) {
                     return num.toLocaleString('id-ID');
                 }
-                return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
             }
         };
     }

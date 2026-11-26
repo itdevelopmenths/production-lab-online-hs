@@ -249,8 +249,8 @@ class TransferService
                             "Stok tidak mencukupi untuk item '%s' di gudang '%s'. Saldo saat ini: %s, jumlah yang akan dikirim: %s.",
                             $item->produk?->nama ?? $item->produk_id,
                             $transfer->gudangAsal?->nama ?? $transfer->gudang_asal_id,
-                            number_format($saldo, 2, ',', '.'),
-                            number_format((float) $item->qty_dikirim, 2, ',', '.')
+                            \App\Helpers\NumberHelper::formatQty($saldo),
+                            \App\Helpers\NumberHelper::formatQty((float) $item->qty_dikirim)
                         ),
                     ]);
                 }
@@ -329,9 +329,9 @@ class TransferService
                     'items' => sprintf(
                         "Invarian QC Gagal pada item '%s': Total Qty Baik (%s) + Qty Rusak (%s) harus sama persis dengan Qty Dikirim (%s).",
                         $item->produk?->nama ?? $item->produk_id,
-                        number_format($qtyBaik, 2, ',', '.'),
-                        number_format($qtyRusak, 2, ',', '.'),
-                        number_format($qtyDikirim, 2, ',', '.')
+                        \App\Helpers\NumberHelper::formatQty($qtyBaik),
+                        \App\Helpers\NumberHelper::formatQty($qtyRusak),
+                        \App\Helpers\NumberHelper::formatQty($qtyDikirim)
                     ),
                 ]);
             }

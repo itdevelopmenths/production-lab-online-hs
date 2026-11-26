@@ -109,11 +109,11 @@ class TransferController extends Controller
             ->addColumn('asal', fn ($t) => $t->gudangAsal?->nama ?? '-')
             ->addColumn('tujuan', fn ($t) => $t->gudangTujuan?->nama ?? '-')
             ->addColumn('request_no', fn ($t) => $t->stockRequest ? '<a href="'.route('requests.show', $t->stockRequest).'" class="text-blue-600 dark:text-blue-400 hover:underline font-mono text-xs">'.e($t->stockRequest->no_request).'</a>' : '-')
-            ->addColumn('qty_dikirim', fn ($t) => number_format($t->items->sum('qty_dikirim'), 2))
+            ->addColumn('qty_dikirim', fn ($t) => \App\Helpers\NumberHelper::formatQty($t->items->sum('qty_dikirim')))
             ->addColumn('qty_rusak', function ($t) {
                 $rusak = (float) $t->items->sum('qty_rusak');
                 if ($rusak > 0) {
-                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-bold bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-400 border border-rose-300 dark:border-rose-500/30">'.number_format($rusak, 2).'</span>';
+                    return '<span class="inline-flex items-center px-2 py-0.5 rounded-[5px] text-xs font-bold bg-rose-100 dark:bg-rose-500/15 text-rose-800 dark:text-rose-400 border border-rose-300 dark:border-rose-500/30">'.\App\Helpers\NumberHelper::formatQty($rusak).'</span>';
                 }
 
                 return '<span class="text-text-muted">0</span>';

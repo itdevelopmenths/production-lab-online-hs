@@ -1166,7 +1166,7 @@
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div>
                                         <span class="font-medium text-foreground">{{ $it->produk->nama }}</span>
-                                        <span class="tabular-nums text-muted-foreground text-[11px]">({{ $it->produk->sku }}) · Order PO: {{ $it->qty }} {{ $it->produk->satuan }}</span>
+                                        <span class="tabular-nums text-muted-foreground text-[11px]">({{ $it->produk->sku }}) · Order PO: {{ \App\Helpers\NumberHelper::formatQty($it->qty) }} {{ $it->produk->satuan }}</span>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <span class="text-muted-foreground font-medium">Qty Fisik:</span>

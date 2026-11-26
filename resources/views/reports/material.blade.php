@@ -15,7 +15,7 @@
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <x-stat-box title="Total SKU Bahan Terpakai" :value="number_format($totalItems)" subtitle="Item" iconColor="gray" />
-        <x-stat-box title="Akumulasi Total Keluar" :value="number_format($totalQty, 2, ',', '.')" subtitle="Unit/Gram/Pcs" iconColor="blue" />
+        <x-stat-box title="Akumulasi Total Keluar" :value="\App\Helpers\NumberHelper::formatQty($totalQty)" subtitle="Unit/Gram/Pcs" iconColor="blue" />
         <x-stat-box title="Konsumsi Tertinggi" :value="$topItem?->produk?->nama ?? '-'" iconColor="amber" />
     </div>
 

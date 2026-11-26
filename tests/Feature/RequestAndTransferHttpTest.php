@@ -181,7 +181,7 @@ class RequestAndTransferHttpTest extends TestCase
         $indexResponse->assertOk();
         $indexResponse->assertSee('Dashboard Barang Rusak');
         $indexResponse->assertSee('Total Barang Rusak');
-        $indexResponse->assertSee('10.00'); // 10.00 rusak displayed
+        $indexResponse->assertSee('10'); // 10 rusak displayed
 
         $indexHtml = $indexResponse->getContent();
         $this->assertSame(1, substr_count($indexHtml, route('transfers.create')));

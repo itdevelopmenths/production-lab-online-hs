@@ -1285,7 +1285,7 @@
                     if (Math.abs(num - Math.round(num)) < 0.00001) {
                         return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                     }
-                    return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    return num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
                 },
 
                 calculateRowHppPerSatuanBeli(row) {
