@@ -324,4 +324,16 @@ class CustomRoleManagementTest extends TestCase
         $this->assertSame($selected, $assigned);
         $this->assertNotContains('rt.create', $assigned);
     }
+
+    public function test_catalog_has_no_dead_report_export_and_audit_view_label_is_descriptive(): void
+    {
+        $catalog = app(\App\Services\Authorization\PermissionCatalogService::class);
+        $keys = $catalog->getAllPermissionKeys();
+
+        $this->assertNotContains('report.export', $keys);
+        $this->assertContains('audit.view', $keys);
+
+        $label = $catalog->getGroupedCatalog()['Inventori & Analisis']['report']['actions']['audit.view'];
+        $this->assertStringContainsString('Seluruh Modul', $label);
+    }
 }

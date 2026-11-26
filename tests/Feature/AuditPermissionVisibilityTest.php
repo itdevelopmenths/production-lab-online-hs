@@ -144,4 +144,22 @@ class AuditPermissionVisibilityTest extends TestCase
             ->assertOk()
             ->assertSeeText('Jejak Riwayat Audit Transfer');
     }
+
+    public function test_laporan_menu_hidden_for_legacy_reports_view_only(): void
+    {
+        $user = $this->userWithPermissions(['request.view', 'reports.view']);
+
+        $this->actingAs($user)->get(route('requests.index'))
+            ->assertOk()
+            ->assertDontSeeText('Lead Time Supplier');
+    }
+
+    public function test_laporan_menu_shown_for_report_view(): void
+    {
+        $user = $this->userWithPermissions(['request.view', 'report.view']);
+
+        $this->actingAs($user)->get(route('requests.index'))
+            ->assertOk()
+            ->assertSeeText('Lead Time Supplier');
+    }
 }

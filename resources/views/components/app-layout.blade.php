@@ -421,7 +421,7 @@
                         </x-nav-group>
                         @endcanany
 
-                        @canany(['reports.view', 'report.view'])
+                        @can('report.view')
                         <x-nav-group
                             title="Laporan"
                             :active="request()->routeIs('reports.*')"
@@ -440,7 +440,7 @@
                                 </x-nav-item>
                             </div>
                         </x-nav-group>
-                        @endcanany
+                        @endcan
 
                         @if(auth()->user()->can('user.manage') || auth()->user()->can('role.manage'))
                         <x-nav-group

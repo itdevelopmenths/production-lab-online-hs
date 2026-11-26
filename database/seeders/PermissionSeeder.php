@@ -45,7 +45,7 @@ class PermissionSeeder extends Seeder
             'batch.complete', 'batch.cancel', 'batch.opname', 'batch.audit',
 
             // Laporan
-            'report.view', 'reports.view', 'report.export', 'audit.view',
+            'report.view', 'audit.view',
 
             // Admin
             'user.manage', 'role.manage',
@@ -84,7 +84,7 @@ class PermissionSeeder extends Seeder
             'purchasing.edit_invoice_eta',
             'purchasing.submit', 'purchasing.pay', 'purchasing.cancel',
             'analisa.view', 'analisa.manage', 'analisa.snapshot', 'analisa.create_po',
-            'report.view', 'report.export',
+            'report.view',
         ]));
 
         // Gudang

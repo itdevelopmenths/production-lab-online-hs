@@ -223,8 +223,7 @@ class PermissionCatalogService
                     'icon' => 'document-chart-bar',
                     'actions' => [
                         'report.view' => 'Lihat Ringkasan & Laporan',
-                        'report.export' => 'Ekspor Laporan ke Excel/CSV',
-                        'audit.view' => 'Akses Seluruh Log Audit Sistem (Global)',
+                        'audit.view' => 'Lihat Riwayat Audit Seluruh Modul (PO, Produksi, Request, Transfer)',
                     ],
                 ],
             ],
