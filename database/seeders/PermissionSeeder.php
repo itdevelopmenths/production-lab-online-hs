@@ -25,6 +25,7 @@ class PermissionSeeder extends Seeder
 
             // Purchasing
             'purchasing.view', 'purchasing.price.view', 'purchasing.create', 'purchasing.edit',
+            'purchasing.edit_invoice_eta',
             'purchasing.submit', 'purchasing.approve', 'purchasing.receive',
             'purchasing.pay', 'purchasing.cancel', 'purchasing.audit',
 
@@ -80,6 +81,7 @@ class PermissionSeeder extends Seeder
             'bom.view',
             'stok.view', 'stok.mutasi', 'stok.ledger.view',
             'purchasing.view', 'purchasing.price.view', 'purchasing.create', 'purchasing.edit',
+            'purchasing.edit_invoice_eta',
             'purchasing.submit', 'purchasing.pay', 'purchasing.cancel',
             'analisa.view', 'analisa.manage', 'analisa.snapshot', 'analisa.create_po',
             'report.view', 'report.export',

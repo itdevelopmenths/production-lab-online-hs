@@ -124,6 +124,7 @@ class PermissionCatalogService
                         'purchasing.price.view' => 'Lihat Harga Beli & Status Pembayaran AP',
                         'purchasing.create' => 'Buat Draft Pengajuan PO',
                         'purchasing.edit' => 'Ubah Draft Dokumen PO',
+                        'purchasing.edit_invoice_eta' => 'Ubah No. Invoice & ETA PO (Setelah Draft)',
                         'purchasing.submit' => 'Ajukan PO ke Manajer',
                         'purchasing.approve' => 'Setujui (Approval) Pesanan PO',
                         'purchasing.receive' => 'Terima Barang Datang (Gudang)',

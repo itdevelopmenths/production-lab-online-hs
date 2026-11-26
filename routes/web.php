@@ -161,6 +161,8 @@ Route::middleware('auth')->group(function () {
             ->middleware('can:purchasing.edit')->name('update');
         Route::put('{purchaseOrder}/quick-dates', [PurchasingController::class, 'quickDates'])
             ->middleware('can:purchasing.edit')->name('quick-dates');
+        Route::put('{purchaseOrder}/invoice-eta', [PurchasingController::class, 'updateInvoiceEta'])
+            ->middleware('can:purchasing.edit_invoice_eta')->name('invoice-eta');
         Route::post('{purchaseOrder}/submit', [PurchasingController::class, 'submit'])
             ->middleware('can:purchasing.submit')->name('submit');
         Route::post('{purchaseOrder}/approve', [PurchasingController::class, 'approve'])

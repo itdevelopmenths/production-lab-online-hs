@@ -333,6 +333,15 @@ class PurchaseOrder extends Model
         return in_array($this->status, ['selesai', 'dibatalkan'], true);
     }
 
+    /**
+     * No. Invoice & ETA boleh diubah lewat modal sejak PO keluar dari draft sampai final.
+     * PO yang masih draft memakai halaman Edit PO penuh.
+     */
+    public function canEditInvoiceEta(): bool
+    {
+        return $this->status !== 'draft' && ! $this->isFinal();
+    }
+
     public function refreshStatusPembayaran(): void
     {
         if ($this->isCancelled()) {

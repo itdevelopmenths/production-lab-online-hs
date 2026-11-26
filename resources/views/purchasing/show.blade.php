@@ -50,7 +50,7 @@
         $fmtQtyDisplay = static fn (float $v): string => rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ',');
     @endphp
 
-    <div x-data="{ openDirectEditModal: false, openRevisiModal: false, openInvalidateModal: false }">
+    <div x-data="{ openDirectEditModal: false, openRevisiModal: false, openInvalidateModal: false, openInvoiceEtaModal: {{ $errors->hasAny(['no_invoice', 'eta']) ? 'true' : 'false' }} }">
         <!-- Page Header & Action Tools -->
         <x-page-header
             :title="$po->no_po . ($po->no_invoice ? ' · ' . $po->no_invoice : '')"
@@ -87,6 +87,17 @@
                         </x-button>
                     @endif
 
+                @endcan
+
+                @can('purchasing.edit_invoice_eta')
+                    @if($po->canEditInvoiceEta())
+                        <x-button type="button" variant="outline" size="xs" @click="openInvoiceEtaModal = true">
+                            <x-slot:icon>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </x-slot:icon>
+                            Ubah Invoice &amp; ETA
+                        </x-button>
+                    @endif
                 @endcan
             </x-slot:actions>
         </x-page-header>
@@ -2333,6 +2344,31 @@
         </div>
         @endcan
         @endif
+
+        {{-- MODAL UBAH NO. INVOICE & ETA (sejak keluar dari draft sampai PO final) --}}
+        @can('purchasing.edit_invoice_eta')
+        @if($po->canEditInvoiceEta())
+        <x-modal name="openInvoiceEtaModal" title="Ubah No. Invoice &amp; ETA" :subtitle="e($po->no_po) . ' · Perubahan tercatat di riwayat audit PO.'" maxWidth="md">
+            <form id="form-invoice-eta" method="POST" action="{{ route('purchasing.invoice-eta', $po) }}" class="flex flex-col gap-3.5">
+                @csrf
+                @method('PUT')
+
+                <x-form-field label="No. Invoice Vendor" name="no_invoice" help="Nomor invoice referensi dari vendor. Kosongkan bila belum ada.">
+                    <x-input type="text" name="no_invoice" variant="seamless" maxlength="50" value="{{ old('no_invoice', $po->no_invoice) }}" placeholder="Contoh: INV/PO/202609/0001" />
+                </x-form-field>
+
+                <x-form-field label="Estimasi (ETA)" name="eta" help="Perkiraan pesanan tiba di gudang.">
+                    <x-input type="date" name="eta" variant="seamless" value="{{ old('eta', $po->eta?->format('Y-m-d')) }}" />
+                </x-form-field>
+            </form>
+
+            <x-slot:footer>
+                <x-button type="button" variant="secondary" size="xs" @click="openInvoiceEtaModal = false">Batal</x-button>
+                <x-button type="submit" form="form-invoice-eta" variant="primary" size="xs">Simpan Perubahan</x-button>
+            </x-slot:footer>
+        </x-modal>
+        @endif
+        @endcan
     </div>{{-- Close outer x-data --}}
 
     @push('scripts')
