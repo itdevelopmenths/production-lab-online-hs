@@ -11,6 +11,7 @@ use App\Http\Controllers\AnalisaController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\KlasifikasiAbcController;
 use App\Http\Controllers\ProdukController;
+use App\Http\Controllers\QaToolsController;
 use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\VarianController;
 use App\Http\Controllers\ReportController;
@@ -40,6 +41,14 @@ Route::middleware('auth')->group(function () {
     Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    // QA tools (khusus non-production; tiap aksi tetap 404 bila QA_TIME_TOOLS nonaktif)
+    if (! app()->isProduction()) {
+        Route::get('qa/clock', [QaToolsController::class, 'clock'])->name('qa.clock');
+        Route::post('qa/clock/advance', [QaToolsController::class, 'advanceClock'])->name('qa.clock.advance');
+        Route::post('qa/clock/set', [QaToolsController::class, 'setClock'])->name('qa.clock.set');
+        Route::post('qa/clock/reset', [QaToolsController::class, 'resetClock'])->name('qa.clock.reset');
+    }
 
     // API / Search Endpoints
     Route::get('produk/select-data', [ProdukController::class, 'selectData'])->name('produk.select-data');

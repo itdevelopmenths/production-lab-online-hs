@@ -546,6 +546,13 @@
                         </div>
                         @endif
 
+                        @if(app(\App\Services\Qa\QaClock::class)->enabled())
+                        <a href="{{ route('qa.clock') }}" class="hover:bg-gray-100 dark:hover:bg-gray-800 text-text-active flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors">
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>QA Clock</span>
+                        </a>
+                        @endif
+
                         <form method="POST" action="{{ route('logout') }}" class="mt-1">
                             @csrf
                             <button type="submit" class="hover:bg-red-50 dark:hover:bg-red-500/10 text-red-600 dark:text-red-400 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium cursor-pointer transition-colors">
@@ -635,6 +642,8 @@
             {{-- Main Page Content --}}
             <main class="flex-1 min-w-0 px-4 py-4 sm:px-5 lg:px-8 lg:py-5">
                 <div class="w-full max-w-none">
+                    <x-qa-clock-banner />
+
                     {{-- Flash Alert Messages --}}
                     @if(session('success'))
                         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(function() { show = false; }, 4000)" x-transition class="mb-4">
