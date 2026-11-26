@@ -247,8 +247,8 @@
             <form method="POST" action="{{ route('requests.cancel', $stockRequest) }}">
                 @csrf
                 <div class="bg-[#F5F5F5] dark:bg-gray-950 p-4 sm:p-5 space-y-3">
-                    <x-form-field label="Alasan (Opsional)" name="alasan" align="top">
-                        <textarea name="alasan" x-model="alasanCancel" rows="3" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0" placeholder="Alasan pembatalan..."></textarea>
+                    <x-form-field label="Alasan Pembatalan" name="alasan" :required="true" align="top">
+                        <textarea name="alasan" x-model="alasanCancel" required maxlength="500" rows="3" class="w-full bg-transparent border-0 p-0 text-[13px] font-medium text-text-active placeholder:text-text-placeholder focus:outline-none focus:ring-0" placeholder="Jelaskan alasan pembatalan..."></textarea>
                     </x-form-field>
                 </div>
                 <div class="bg-white dark:bg-gray-900 border-t border-[#E8E8E8] dark:border-border px-4 py-3 flex justify-end gap-2">
