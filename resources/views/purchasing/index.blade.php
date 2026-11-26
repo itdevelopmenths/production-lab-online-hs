@@ -155,7 +155,7 @@
                                 <th class="px-4 py-3 text-left">ETA</th>
                                 <th class="px-4 py-3 text-left">Tgl Tiba</th>
                                 <th class="px-4 py-3 text-left">Status PO</th>
-                                <th class="px-4 py-3 text-right">Total Tagihan</th>
+                                <th class="px-4 py-3 text-left">Total Tagihan</th>
                                 <th class="px-4 py-3 text-left">SLA / Durasi</th>
                                 <th class="px-4 py-3 text-center">Aksi</th>
                             </tr>
@@ -570,7 +570,7 @@
                 {
                     data: 'total_nilai',
                     orderable: false,
-                    className: 'text-right tabular-nums text-foreground',
+                    className: 'text-left tabular-nums text-foreground',
                     render: function(data) {
                         return (!data || data === '—') ? '—' : `Rp ${data}`;
                     }
