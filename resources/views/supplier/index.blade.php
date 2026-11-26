@@ -66,15 +66,32 @@
                     method: 'DELETE',
                     headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
                 })
-                .then(res => res.json())
-                .then(d => {
+                .then(res => res.json().catch(() => ({})).then(d => ({ ok: res.ok, d })))
+                .then(({ ok, d }) => {
+                    if (ok) {
+                        Swal.fire({
+                            title: 'Terhapus',
+                            text: d.message,
+                            icon: 'success',
+                            confirmButtonColor: '#18181b'
+                        });
+                        $('#tbl').DataTable().ajax.reload();
+                    } else {
+                        Swal.fire({
+                            title: 'Gagal Menghapus',
+                            text: d.message || 'Supplier tidak dapat dihapus.',
+                            icon: 'error',
+                            confirmButtonColor: '#18181b'
+                        });
+                    }
+                })
+                .catch(() => {
                     Swal.fire({
-                        title: 'Terhapus',
-                        text: d.message,
-                        icon: 'success',
+                        title: 'Gagal Menghapus',
+                        text: 'Terjadi kesalahan jaringan. Coba lagi.',
+                        icon: 'error',
                         confirmButtonColor: '#18181b'
                     });
-                    $('#tbl').DataTable().ajax.reload();
                 });
             }
         });

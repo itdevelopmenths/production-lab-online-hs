@@ -122,9 +122,48 @@ class GudangController extends Controller
     public function destroy(Gudang $gudang): JsonResponse
     {
         $this->authorize('gudang.delete');
+
+        if ($reason = $this->deletionBlocker($gudang)) {
+            return response()->json([
+                'message' => "Gudang '{$gudang->nama}' tidak dapat dihapus karena {$reason}. Nonaktifkan gudang jika sudah tidak dipakai.",
+            ], 422);
+        }
+
         $gudang->delete();
 
         return response()->json(['message' => 'Gudang berhasil dihapus.']);
+    }
+
+    /**
+     * Seluruh FK ke gudang bersifat cascade/null-on-delete, jadi penghapusan
+     * akan diam-diam menghapus stok, kartu stok, dan request/transfer terkait.
+     * Blokir bila gudang sudah punya jejak transaksi.
+     */
+    private function deletionBlocker(Gudang $gudang): ?string
+    {
+        if ($gudang->children()->exists()) {
+            return 'masih menjadi induk gudang lain';
+        }
+
+        $checks = [
+            ['stok', 'gudang_id', 'masih memiliki data stok'],
+            ['kartu_stok', 'gudang_id', 'memiliki riwayat kartu stok'],
+            ['requests', 'gudang_asal_id', 'terikat pada request'],
+            ['requests', 'gudang_tujuan_id', 'terikat pada request'],
+            ['transfers', 'gudang_asal_id', 'terikat pada transfer'],
+            ['transfers', 'gudang_tujuan_id', 'terikat pada transfer'],
+            ['batch_produksi', 'gudang_operasional_id', 'terikat pada batch produksi'],
+            ['batch_produksi', 'gudang_tujuan_rencana_id', 'terikat pada batch produksi'],
+            ['purchase_orders', 'gudang_id', 'terikat pada Purchase Order'],
+        ];
+
+        foreach ($checks as [$table, $column, $reason]) {
+            if (DB::table($table)->where($column, $gudang->id)->exists()) {
+                return $reason;
+            }
+        }
+
+        return null;
     }
 
     private function validated(Request $request, ?int $id = null): array
