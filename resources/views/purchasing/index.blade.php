@@ -123,15 +123,6 @@
                         </select>
                     </div>
                     <div>
-                        <label for="filter-stage-po" class="block text-[11px] font-medium text-text-muted mb-1">Stage Aktif</label>
-                        <select id="filter-stage-po" class="h-8 border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-40 max-w-full outline-none cursor-pointer rounded-[6px]">
-                            <option value="">— Semua Stage —</option>
-                            @foreach (\App\Models\PoStage::STAGES as $urutan => $stageKey)
-                                <option value="{{ $stageKey }}">{{ $urutan }}. {{ \App\Models\PoStage::STAGE_LABELS[$stageKey] }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
                         <label for="filter-kategori-supplier" class="block text-[11px] font-medium text-text-muted mb-1">Kategori Supplier</label>
                         <select id="filter-kategori-supplier" class="h-8 border border-[#e8e8e8] dark:border-border bg-white dark:bg-gray-900 text-xs py-1 px-2.5 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white w-full sm:w-auto min-w-36 max-w-full outline-none cursor-pointer rounded-[6px]">
                             <option value="">— Semua Kategori —</option>
@@ -164,7 +155,7 @@
                                 <th class="px-4 py-3 text-left">ETA</th>
                                 <th class="px-4 py-3 text-left">Tgl Tiba</th>
                                 <th class="px-4 py-3 text-left">Status PO</th>
-                                <th class="px-4 py-3 text-left">Stage Aktif</th>
+                                <th class="px-4 py-3 text-right">Total Tagihan</th>
                                 <th class="px-4 py-3 text-left">SLA / Durasi</th>
                                 <th class="px-4 py-3 text-center">Aksi</th>
                             </tr>
@@ -552,7 +543,6 @@
                 url: '{{ route("purchasing.data") }}',
                 data: function(d) {
                     d.status_po = $('#filter-status-po').val();
-                    d.stage_aktif = $('#filter-stage-po').val();
                     d.kategori_supplier = $('#filter-kategori-supplier').val();
                 }
             },
@@ -578,12 +568,11 @@
                     }
                 },
                 {
-                    data: 'stage_label',
+                    data: 'total_nilai',
                     orderable: false,
-                    render: function(data, type, row) {
-                        let state = row.stage_badge_state || 'berjalan';
-                        const tones = { selesai: 'ok', berjalan: 'info', terlambat: 'bad', dikembalikan: 'warn', dibatalkan: 'bad' };
-                        return tblStatus(data, tones[state] || '');
+                    className: 'text-right tabular-nums text-foreground',
+                    render: function(data) {
+                        return (!data || data === '—') ? '—' : `Rp ${data}`;
                     }
                 },
                 {
@@ -602,13 +591,12 @@
             ]
         });
 
-        $('#filter-status-po, #filter-stage-po, #filter-kategori-supplier').on('change', function() {
+        $('#filter-status-po, #filter-kategori-supplier').on('change', function() {
             if (dtTable) dtTable.ajax.reload();
         });
 
         $('#btn-reset-po').on('click', function() {
             $('#filter-status-po').val('');
-            $('#filter-stage-po').val('');
             $('#filter-kategori-supplier').val('');
             if (dtTable) {
                 dtTable.search('').ajax.reload();
