@@ -60,7 +60,7 @@ class QaToolsController extends Controller
         $now = $this->clock->realNow();
 
         $data = $request->validate([
-            'waktu' => ['required', 'date', function (string $attribute, mixed $value, \Closure $fail) use ($timezone, $now) {
+            'waktu' => ['required', 'date', 'before:+5 years', function (string $attribute, mixed $value, \Closure $fail) use ($timezone, $now) {
                 if (Carbon::parse($value, $timezone)->lt($now->copy()->startOfMinute())) {
                     $fail('Waktu QA tidak boleh lebih awal dari jam asli.');
                 }

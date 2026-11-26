@@ -63,7 +63,7 @@ class QaClockControllerTest extends TestCase
         $this->get(route('qa.clock'))
             ->assertOk()
             ->assertSee('QA Clock')
-            ->assertSee('Worker queue (`queue:work`) harus di-restart setelah offset diubah.', false);
+            ->assertSee('Worker queue (<code>queue:work</code>) mengikuti QA Clock pada setiap polling.', false);
     }
 
     public function test_advance_adds_offset(): void
@@ -95,6 +95,15 @@ class QaClockControllerTest extends TestCase
     {
         $this->post(route('qa.clock.set'), [
             'waktu' => $this->clock()->realNow()->subHour()->format('Y-m-d\TH:i'),
+        ])->assertSessionHasErrors('waktu');
+
+        $this->assertSame(0, $this->clock()->offsetMinutes());
+    }
+
+    public function test_set_rejects_time_beyond_five_years(): void
+    {
+        $this->post(route('qa.clock.set'), [
+            'waktu' => $this->clock()->realNow()->addYears(6)->format('Y-m-d\TH:i'),
         ])->assertSessionHasErrors('waktu');
 
         $this->assertSame(0, $this->clock()->offsetMinutes());

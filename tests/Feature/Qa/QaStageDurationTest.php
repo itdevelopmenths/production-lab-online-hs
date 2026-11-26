@@ -179,6 +179,22 @@ class QaStageDurationTest extends TestCase
         $this->assertGreaterThanOrEqual(14399, $this->stageRow($po, PoStage::STAGE_1)->durasi_menit);
     }
 
+    public function test_enabled_with_empty_duration_fields_uses_old_behavior(): void
+    {
+        $po = $this->createSamplePo();
+        $mulai = $this->stageRow($po, PoStage::STAGE_1)->waktu_mulai;
+
+        $this->actingAs($this->purchasing)
+            ->post($this->completeUrl($po, PoStage::STAGE_1), [
+                'qa_durasi_hari' => '',
+                'qa_durasi_jam' => '',
+                'waktu_selesai' => $mulai->copy()->addHours(2)->format('Y-m-d H:i:s'),
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(120, $this->stageRow($po, PoStage::STAGE_1)->durasi_menit);
+    }
+
     public function test_reject_and_payment_routes_use_duration(): void
     {
         $po = $this->createSamplePo('tempo');

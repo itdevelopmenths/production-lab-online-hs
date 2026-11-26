@@ -77,9 +77,10 @@
 
         <x-callout variant="warning" title="Perlu diketahui">
             <ul class="list-disc list-inside space-y-1">
-                <li>Memajukan jam melewati <code>SESSION_LIFETIME</code> membuat sesi lama kedaluwarsa, sehingga semua user perlu login ulang sekali.</li>
+                <li>Sesi yang ditulis saat jam dimajukan membawa <code>last_activity</code> di masa depan. Ini tidak berbahaya dan tidak membuat user ter-logout.</li>
                 <li>Kolom dengan default DB <code>useCurrent()</code> (misalnya <code>supplier_lt_history.dicatat_pada</code>, <code>supplier_lt_summary.diperbarui_pada</code>) memakai jam DB asli bila kode tidak mengisinya.</li>
-                <li>Worker queue (`queue:work`) harus di-restart setelah offset diubah.</li>
+                <li>Worker queue (<code>queue:work</code>) mengikuti QA Clock pada setiap polling. <code>schedule:work</code> yang dimulai saat offset &gt; 0 bisa membeku; jalankan <code>php artisan schedule:run</code> atau command-nya langsung.</li>
+                <li>Fungsi native <code>date()</code>/<code>strtotime()</code> tidak mengikuti QA Clock (default tanggal form PO, nomor REQ/TRF); isi tanggal manual saat jam dimajukan.</li>
             </ul>
         </x-callout>
     </div>

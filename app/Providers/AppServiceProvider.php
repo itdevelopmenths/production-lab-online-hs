@@ -21,10 +21,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // QA Clock: terapkan offset waktu di console (artisan, scheduler) dan sebelum tiap job queue.
-        // Dilewati saat unit test agar test-now milik test tidak tertimpa. No-op bila QA_TIME_TOOLS mati.
-        if ($this->app->runningInConsole() && ! $this->app->runningUnitTests()) {
+        // No-op bila QA_TIME_TOOLS mati (phpunit.xml memaksa false).
+        if ($this->app->runningInConsole()) {
             app(QaClock::class)->apply();
         }
+        // looping: dipicu tiap siklus polling worker (termasuk saat idle), before: sebelum tiap job.
+        Queue::looping(fn () => app(QaClock::class)->apply());
         Queue::before(fn () => app(QaClock::class)->apply());
 
         // Force HTTPS in production / behind proxy
