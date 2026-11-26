@@ -685,6 +685,38 @@ class PurchasingController extends Controller
         ]);
     }
 
+    /**
+     * Ubah No. Invoice & ETA lewat modal di detail PO, sejak keluar dari draft sampai final.
+     * Perubahan tercatat otomatis di audit PO (AuditableOperation).
+     */
+    public function updateInvoiceEta(Request $request, PurchaseOrder $purchaseOrder): RedirectResponse
+    {
+        $this->authorize('purchasing.edit_invoice_eta');
+
+        if (! $purchaseOrder->canEditInvoiceEta()) {
+            throw ValidationException::withMessages([
+                'status' => $purchaseOrder->isFinal()
+                    ? 'PO sudah final sehingga No. Invoice dan ETA tidak dapat diubah.'
+                    : 'PO masih draft. Ubah No. Invoice dan ETA lewat Edit PO.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'no_invoice' => ['nullable', 'string', 'max:50'],
+            'eta' => ['nullable', 'date'],
+        ], [
+            'no_invoice.string' => 'No. Invoice harus berupa teks.',
+            'no_invoice.max' => 'No. Invoice maksimal 50 karakter.',
+            'eta.date' => 'ETA harus berupa tanggal yang valid.',
+        ]);
+
+        $purchaseOrder->update($data);
+
+        return redirect()
+            ->route('purchasing.show', $purchaseOrder)
+            ->with('success', 'No. Invoice & ETA PO berhasil diperbarui.');
+    }
+
     public function submit(PurchaseOrder $purchaseOrder)
     {
         $this->authorize('purchasing.submit');
