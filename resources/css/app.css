@@ -950,6 +950,12 @@ textarea.po-field { height: auto; padding: 0.5rem 0.625rem; line-height: 1.4; re
 .tbl-modern table:not(.dataTable) tbody tr:hover > td { background: var(--tbl-hover); }
 .tbl-modern table:not(.dataTable) tfoot td, .tbl-modern table:not(.dataTable) tfoot th { background: var(--tbl-head); border-top: 1px solid var(--tbl-line); }
 
+/* ===== Satu geser horizontal saja untuk DataTables (semua halaman index) =====
+   `dom` global (app-layout) sudah membungkus <table> dengan `overflow-x-auto`. Pembungkus halaman di
+   luar widget (header + tabel + footer) tidak boleh ikut menggulir: itu memunculkan scrollbar kedua
+   di bawah footer pagination. Tabel statis (tanpa DataTables) tetap memakai pembungkus aslinya. ===== */
+.overflow-x-auto:has(.dataTables_wrapper) { overflow-x: visible; }
+
 /* ===== Tabel tanpa geser horizontal (opt-in: class `tbl-fit` pada pembungkus halaman) =====
    Lebar tabel selalu mengikuti kontainer; isi sel membungkus di spasi (kata tidak dipotong),
    hanya nomor dokumen di kolom pertama yang boleh dipecah agar tidak melebarkan tabel. */
