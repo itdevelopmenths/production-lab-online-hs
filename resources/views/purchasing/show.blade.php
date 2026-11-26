@@ -775,6 +775,7 @@
         <!-- Progress Status Stepper (Requirement 6) -->
         <div class="mb-5">
             <x-purchasing-progress-stepper :po="$po" :stageBenchmarks="$stageBenchmarks ?? null" />
+            <x-qa-po-time-panel :po="$po" />
         </div>
 
         @if($po->catatan)

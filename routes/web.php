@@ -48,6 +48,7 @@ Route::middleware('auth')->group(function () {
         Route::post('qa/clock/advance', [QaToolsController::class, 'advanceClock'])->name('qa.clock.advance');
         Route::post('qa/clock/set', [QaToolsController::class, 'setClock'])->name('qa.clock.set');
         Route::post('qa/clock/reset', [QaToolsController::class, 'resetClock'])->name('qa.clock.reset');
+        Route::post('qa/purchasing/{purchaseOrder}/shift', [QaToolsController::class, 'shiftPo'])->name('qa.purchasing.shift');
     }
 
     // API / Search Endpoints
