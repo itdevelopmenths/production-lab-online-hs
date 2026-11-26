@@ -196,8 +196,9 @@
                                                         <div class="max-h-52 overflow-y-auto custom-scrollbar divide-y divide-[#e8e8e8]/70 dark:divide-gray-800">
                                                             <template x-for="item in items" :key="item.id">
                                                                 <div
-                                                                    @click="hasBom(item.id) ? select(item) : (clear(), rejectNoBom(row, item))"
-                                                                    :class="!hasBom(item.id) ? 'bg-red-50/40 dark:bg-red-500/5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 cursor-not-allowed' : (selectedId == item.id ? 'bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white font-medium cursor-pointer' : 'text-text-active hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer')"
+                                                                    @click="isUsedElsewhere(item.id, row) ? null : (hasBom(item.id) ? select(item) : (clear(), rejectNoBom(row, item)))"
+                                                                    :aria-disabled="isUsedElsewhere(item.id, row) ? 'true' : 'false'"
+                                                                    :class="isUsedElsewhere(item.id, row) ? 'bg-gray-50 dark:bg-gray-800/40 text-text-muted opacity-60 cursor-not-allowed' : (!hasBom(item.id) ? 'bg-red-50/40 dark:bg-red-500/5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 cursor-not-allowed' : (selectedId == item.id ? 'bg-gray-100 dark:bg-gray-800 text-[#101828] dark:text-white font-medium cursor-pointer' : 'text-text-active hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer'))"
                                                                     class="px-3.5 py-2.5 transition flex items-center justify-between gap-2 select-none"
                                                                 >
                                                                     <div class="flex items-center gap-2 truncate pointer-events-none">
@@ -205,7 +206,10 @@
                                                                         <span class="truncate font-medium" :class="hasBom(item.id) ? 'text-text-active' : 'text-text-muted'" x-text="item.nama"></span>
                                                                     </div>
                                                                     <div class="flex items-center gap-1.5 shrink-0 pointer-events-none">
-                                                                        <template x-if="!hasBom(item.id)">
+                                                                        <template x-if="isUsedElsewhere(item.id, row)">
+                                                                            <span class="text-[9px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-500/20">Sudah Dipilih</span>
+                                                                        </template>
+                                                                        <template x-if="!isUsedElsewhere(item.id, row) && !hasBom(item.id)">
                                                                             <span class="text-[9px] font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-500/20">Belum Ada BOM</span>
                                                                         </template>
                                                                         <span class="text-[10px] tabular-nums text-text-muted bg-[#F5F5F5] dark:bg-gray-800 px-1.5 py-0.5 rounded-[5px] border border-[#e8e8e8] dark:border-gray-700" x-text="item.satuan"></span>
@@ -342,6 +346,10 @@
                 const boms = this.bomMap[String(produkId)] ?? this.bomMap[Number(produkId)];
                 return Array.isArray(boms) && boms.length > 0;
             },
+            isUsedElsewhere(produkId, currentRow) {
+                if (!produkId) return false;
+                return this.rows.some(r => r !== currentRow && r.produk_id && String(r.produk_id) === String(produkId));
+            },
             hasRowProdukError(row) {
                 if (row.error) return true;
                 if (row.produk_id && !this.hasBom(row.produk_id)) return true;
@@ -408,6 +416,9 @@
                         firstInvalidRow = firstInvalidRow || row;
                     } else if (!this.hasBom(row.produk_id)) {
                         row.error = `Produk "${row.selectedItem?.nama || 'yang dipilih'}" ditolak karena belum memiliki formula BOM.`;
+                        firstInvalidRow = firstInvalidRow || row;
+                    } else if (this.isUsedElsewhere(row.produk_id, row)) {
+                        row.error = `Produk "${row.selectedItem?.nama || 'yang dipilih'}" dipilih lebih dari sekali. Satu produk hanya boleh muncul di satu baris.`;
                         firstInvalidRow = firstInvalidRow || row;
                     }
                 }

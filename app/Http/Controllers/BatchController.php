@@ -111,12 +111,14 @@ class BatchController extends Controller
             'produk_id' => ['nullable', 'exists:produk,id'],
             'qty_rencana' => ['nullable', 'numeric', 'gt:0'],
             'outputs' => ['nullable', 'array', 'min:1'],
-            'outputs.*.produk_id' => ['required_with:outputs', 'exists:produk,id'],
+            'outputs.*.produk_id' => ['required_with:outputs', 'distinct', 'exists:produk,id'],
             'outputs.*.qty_rencana' => ['required_with:outputs', 'numeric', 'gt:0'],
             'outputs.*.catatan' => ['nullable', 'string', 'max:255'],
             'gudang_operasional_id' => ['nullable', 'exists:gudang,id'],
             'gudang_tujuan_rencana_id' => ['nullable', 'exists:gudang,id'],
             'tanggal' => ['required', 'date'],
+        ], [
+            'outputs.*.produk_id.distinct' => 'Produk jadi luaran tidak boleh dipilih lebih dari sekali.',
         ]);
 
         // Process outputs: either array or single fallback
