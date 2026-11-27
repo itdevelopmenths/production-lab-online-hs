@@ -50,7 +50,7 @@
         $fmtQtyDisplay = static fn (float $v): string => rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ',');
     @endphp
 
-    <div x-data="{ openDirectEditModal: false, openRevisiModal: false, openInvalidateModal: false, openInvoiceEtaModal: {{ $errors->hasAny(['no_invoice', 'eta']) ? 'true' : 'false' }} }">
+    <div x-data="{ openDirectEditModal: false, openRevisiModal: false, openInvalidateModal: false, openInvoiceEtaModal: {{ $errors->hasAny(['no_invoice', 'eta', 'ongkos_kirim']) ? 'true' : 'false' }} }">
         <!-- Page Header & Action Tools -->
         <x-page-header
             :title="$po->no_po . ($po->no_invoice ? ' · ' . $po->no_invoice : '')"
@@ -2361,6 +2361,10 @@
 
                 <x-form-field label="Estimasi (ETA)" name="eta" :help="'Perkiraan pesanan tiba di gudang. Paling awal ' . $po->tanggal->format('d/m/Y') . ' (tanggal PO).'">
                     <x-input type="date" name="eta" variant="seamless" min="{{ $po->tanggal->format('Y-m-d') }}" value="{{ old('eta', $po->eta?->format('Y-m-d')) }}" />
+                </x-form-field>
+
+                <x-form-field label="Ongkos Kirim (Rp)" name="ongkos_kirim" help="Total ongkir PO. Grand Total dan HPP per unit dihitung ulang, ongkir dialokasikan proporsional ke tiap item.">
+                    <x-input type="number" name="ongkos_kirim" variant="seamless" min="0" step="any" inputmode="decimal" value="{{ old('ongkos_kirim', (float) ($po->ongkos_kirim ?: $po->items->sum('ongkir'))) }}" placeholder="0" />
                 </x-form-field>
             </form>
 
