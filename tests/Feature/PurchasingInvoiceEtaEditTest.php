@@ -326,4 +326,36 @@ class PurchasingInvoiceEtaEditTest extends TestCase
             ->assertSee('min="'.$po->tanggal->format('Y-m-d').'"', false)
             ->assertSee('(tanggal PO)', false);
     }
+
+    public function test_ongkir_update_recalculates_grand_total_and_item_hpp(): void
+    {
+        $po = $this->createPo();
+
+        $this->actingAs($this->purchasing)
+            ->put(route('purchasing.invoice-eta', $po), $this->payload(['ongkos_kirim' => 50000]))
+            ->assertSessionHasNoErrors();
+
+        $po->refresh()->load('items');
+        $this->assertEquals(50000, (float) $po->ongkos_kirim);
+        $this->assertEquals(1050000, (float) $po->grand_total);
+        $this->assertEquals(50000, (float) $po->items->first()->ongkir);
+        $this->assertEquals(10500, (float) $po->items->first()->hpp_per_satuan);
+    }
+
+    public function test_ongkir_update_rejected_when_grand_total_below_paid(): void
+    {
+        $po = $this->createPo();
+        $po->update(['ongkos_kirim' => 100000, 'grand_total' => 1100000]);
+        $po->payments()->create([
+            'tanggal_bayar' => now()->toDateString(),
+            'nominal' => 1100000,
+            'skema' => 'tempo',
+        ]);
+
+        $this->actingAs($this->purchasing)
+            ->put(route('purchasing.invoice-eta', $po), $this->payload(['ongkos_kirim' => 0]))
+            ->assertSessionHasErrors('ongkos_kirim');
+
+        $this->assertEquals(1100000, (float) $po->fresh()->grand_total);
+    }
 }

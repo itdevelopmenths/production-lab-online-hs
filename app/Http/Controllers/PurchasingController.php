@@ -707,14 +707,95 @@ class PurchasingController extends Controller
         $data = $request->validate([
             'no_invoice' => ['nullable', 'string', 'max:50'],
             'eta' => ['nullable', 'date', 'after_or_equal:'.$purchaseOrder->tanggal->toDateString()],
+            'ongkos_kirim' => ['nullable', 'numeric', 'min:0'],
         ], [
             'no_invoice.string' => 'No. Invoice harus berupa teks.',
             'no_invoice.max' => 'No. Invoice maksimal 50 karakter.',
             'eta.date' => 'ETA harus berupa tanggal yang valid.',
             'eta.after_or_equal' => 'ETA tidak boleh sebelum tanggal PO ('.$purchaseOrder->tanggal->format('d/m/Y').').',
+            'ongkos_kirim.numeric' => 'Ongkos kirim harus berupa angka.',
+            'ongkos_kirim.min' => 'Ongkos kirim tidak boleh negatif.',
         ]);
 
-        $purchaseOrder->update($data);
+        $purchaseOrder->load('items');
+        $currentOngkir = (float) ($purchaseOrder->ongkos_kirim ?: $purchaseOrder->items->sum('ongkir'));
+        $newOngkir = round((float) ($data['ongkos_kirim'] ?? $currentOngkir), 2);
+        $ongkirChanged = array_key_exists('ongkos_kirim', $data)
+            && $data['ongkos_kirim'] !== null
+            && abs($newOngkir - $currentOngkir) >= 0.01;
+
+        unset($data['ongkos_kirim']);
+
+        if (! $ongkirChanged) {
+            $purchaseOrder->update($data);
+
+            return redirect()
+                ->route('purchasing.show', $purchaseOrder)
+                ->with('success', 'No. Invoice & ETA PO berhasil diperbarui.');
+        }
+
+        // Ongkir berubah: alokasi ulang ke item (prorata harga_total), hitung ulang HPP & grand total.
+        $newGrandTotal = round(
+            (float) $purchaseOrder->subtotal_produk
+            - (float) $purchaseOrder->diskon_total
+            + (float) $purchaseOrder->ppn_nominal
+            + $newOngkir
+            + (float) $purchaseOrder->adjustment,
+            2
+        );
+
+        if ($newGrandTotal < 0) {
+            throw ValidationException::withMessages([
+                'ongkos_kirim' => 'Total bersih Purchase Order tidak boleh bernilai negatif.',
+            ]);
+        }
+
+        $totalDibayar = $purchaseOrder->totalDibayar();
+        if ($totalDibayar > 0 && $newGrandTotal < $totalDibayar) {
+            throw ValidationException::withMessages([
+                'ongkos_kirim' => 'Grand total baru (Rp '.number_format($newGrandTotal, 0, ',', '.').') tidak boleh lebih kecil dari total yang sudah dibayar (Rp '.number_format($totalDibayar, 0, ',', '.').').',
+            ]);
+        }
+
+        if ($purchaseOrder->skema_bayar === 'termin') {
+            $terminsToCheck = $purchaseOrder->termins()->get(['nominal_tagihan'])->toArray();
+            if (! empty($terminsToCheck)) {
+                $this->paymentService->assertTerminsMatchGrandTotal($terminsToCheck, $newGrandTotal);
+            }
+        }
+
+        $orderedItems = $purchaseOrder->items->sortBy('id')->values();
+        $calcItems = $orderedItems->map(fn ($item) => [
+            'produk_id' => $item->produk_id,
+            'qty' => (float) $item->qty,
+            'qty_satuan_beli' => $item->qty_satuan_beli,
+            'satuan_beli' => $item->satuan_beli,
+            'faktor_konversi' => (float) $item->faktor_konversi,
+            'harga_total' => (float) $item->harga_total,
+            'diskon' => (float) $item->diskon,
+            'ppn' => (float) $item->ppn,
+            'ongkir' => 0,
+            'adjustment' => (float) $item->adjustment,
+        ])->all();
+
+        $totals = $this->calculator->calculatePoTotals($calcItems, 0, 0, $newOngkir, 0);
+
+        DB::transaction(function () use ($purchaseOrder, $data, $orderedItems, $totals, $newOngkir, $newGrandTotal) {
+            foreach ($orderedItems as $index => $item) {
+                $item->update([
+                    'ongkir' => $totals['items'][$index]['ongkir'],
+                    'hpp_per_satuan' => $totals['items'][$index]['hpp_per_satuan'],
+                ]);
+            }
+
+            $purchaseOrder->update($data + [
+                'ongkos_kirim' => $newOngkir,
+                'grand_total' => $newGrandTotal,
+            ]);
+
+            $purchaseOrder->refreshStatusPembayaran();
+            $purchaseOrder->save();
+        });
 
         return redirect()
             ->route('purchasing.show', $purchaseOrder)
