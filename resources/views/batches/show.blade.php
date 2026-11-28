@@ -433,6 +433,73 @@
             </x-card>
             @endif
 
+            {{-- Riwayat Penyesuaian Bahan (penguapan, tumpah, dll.) --}}
+            @if(!empty($riwayatPenyesuaian))
+            @php
+                $alasanLabels = ['penguapan' => 'Penguapan', 'tumpah' => 'Tumpah', 'susut' => 'Susut / selisih takar', 'rusak' => 'Bahan rusak', 'lainnya' => 'Lainnya'];
+            @endphp
+            <x-card class="tbl-modern" variant="elevated" title="Riwayat Penyesuaian Bahan" subtitle="Tambahan bahan di luar resep BOM selama produksi (penguapan, tumpah, dll.) beserta Request Bahan yang dibuat." :noPadding="true">
+                <x-slot:tools>
+                    <span class="text-xs text-muted-foreground tabular-nums font-medium">{{ count($riwayatPenyesuaian) }} penyesuaian</span>
+                </x-slot:tools>
+                <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Riwayat Penyesuaian Bahan">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-y border-[#e8e8e8] dark:border-border text-text-muted">
+                            <tr>
+                                <th scope="col" class="py-2.5 px-3.5 font-normal whitespace-nowrap">Waktu</th>
+                                <th scope="col" class="py-2.5 px-3 font-normal">Alasan & Catatan</th>
+                                <th scope="col" class="py-2.5 px-3 font-normal">Bahan Tambahan</th>
+                                <th scope="col" class="py-2.5 px-3 font-normal">Request</th>
+                                <th scope="col" class="py-2.5 px-3.5 font-normal">Evidence</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60 bg-white dark:bg-gray-900">
+                            @foreach($riwayatPenyesuaian as $adj)
+                            <tr class="align-top hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition">
+                                <td class="py-2.5 px-3.5 whitespace-nowrap tabular-nums">
+                                    <div class="font-medium text-[#101828] dark:text-white">{{ $adj['waktu']?->format('d/m/Y H:i') }}</div>
+                                    <div class="text-[11px] text-text-muted">{{ $adj['oleh'] }}</div>
+                                </td>
+                                <td class="py-2.5 px-3 max-w-64">
+                                    <x-badge variant="warning" size="xs">{{ $alasanLabels[$adj['alasan']] ?? ucfirst((string) $adj['alasan']) }}</x-badge>
+                                    @if(filled($adj['catatan']))
+                                        <p class="mt-1 text-text-muted leading-relaxed wrap-break-word">{{ $adj['catatan'] }}</p>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 px-3">
+                                    @forelse($adj['items'] as $it)
+                                        <div class="tabular-nums whitespace-nowrap">
+                                            <span class="font-medium text-[#101828] dark:text-white">{{ $it->produk?->nama ?? '-' }}</span>
+                                            <span class="text-text-muted">+{{ \App\Helpers\NumberHelper::formatQty($it->qty_diminta) }} {{ $it->produk?->satuan }}</span>
+                                        </div>
+                                    @empty
+                                        <span class="text-text-muted">-</span>
+                                    @endforelse
+                                </td>
+                                <td class="py-2.5 px-3 whitespace-nowrap">
+                                    @if($adj['request'])
+                                        <a href="{{ route('requests.show', $adj['request']) }}" class="tabular-nums font-medium text-text-active hover:underline">{{ $adj['request']->no_request }}</a>
+                                        <div class="mt-0.5"><x-badge variant="info" size="xs">{{ ucfirst($adj['request']->status) }}</x-badge></div>
+                                    @else
+                                        <span class="text-text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 px-3.5">
+                                    @php $evidences = $adj['items']->filter(fn ($it) => filled($it->evidence_path)); @endphp
+                                    @forelse($evidences as $it)
+                                        <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($it->evidence_path) }}" target="_blank" rel="noopener" class="block whitespace-nowrap text-text-active font-medium hover:underline">{{ $it->produk?->nama }} &rarr;</a>
+                                    @empty
+                                        <span class="text-text-muted">-</span>
+                                    @endforelse
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
+            @endif
+
             <!-- Form Selesaikan Batch (Khusus status release) -->
             @can('batch.complete')
             @if($batch->status === 'release')

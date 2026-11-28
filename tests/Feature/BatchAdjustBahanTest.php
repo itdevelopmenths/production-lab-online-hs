@@ -151,4 +151,32 @@ class BatchAdjustBahanTest extends TestCase
             ->assertSee('Penyesuaian Bahan')
             ->assertSee(route('batches.adjust-bahan', $this->batch), false);
     }
+
+    public function test_detail_page_lists_adjustment_history(): void
+    {
+        $this->actingAs($this->operasional)->post(route('batches.adjust-bahan', $this->batch), [
+            'alasan' => 'penguapan',
+            'catatan' => 'Suhu ruang tinggi',
+            'items' => [['bahan_id' => $this->alkohol->id, 'qty' => '12']],
+        ]);
+
+        $request = StockRequest::firstOrFail();
+
+        $this->actingAs($this->operasional)
+            ->get(route('batches.show', $this->batch))
+            ->assertOk()
+            ->assertSee('Riwayat Penyesuaian Bahan')
+            ->assertSee('Penguapan')
+            ->assertSee('Suhu ruang tinggi')
+            ->assertSee($request->no_request)
+            ->assertSee('Alkohol 96%');
+    }
+
+    public function test_detail_page_hides_history_without_adjustment(): void
+    {
+        $this->actingAs($this->operasional)
+            ->get(route('batches.show', $this->batch))
+            ->assertOk()
+            ->assertDontSee('Riwayat Penyesuaian Bahan');
+    }
 }

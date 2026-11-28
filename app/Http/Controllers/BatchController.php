@@ -6,6 +6,7 @@ use App\Models\BatchProduksi;
 use App\Models\Gudang;
 use App\Models\KartuStok;
 use App\Models\Produk;
+use App\Models\StockRequest;
 use App\Models\Stok;
 use App\Models\Transfer;
 use App\Services\Authorization\InventoryTransferAuthorizationService;
@@ -342,9 +343,29 @@ class BatchController extends Controller
             ];
         }
 
+        // Riwayat penyesuaian bahan (penguapan dll.) tersimpan di audit 'adjust_bahan' + Request Bahan terkait.
+        $adjustAudits = $batch->operationalAudits()->where('event', 'adjust_bahan')->get();
+        $adjustRequestIds = $adjustAudits->map(fn ($a) => $a->metadata['request_id'] ?? null)->filter()->unique()->values();
+        $adjustRequests = $adjustRequestIds->isEmpty()
+            ? collect()
+            : StockRequest::with('items.produk:id,sku,nama,satuan')->whereIn('id', $adjustRequestIds)->get()->keyBy('id');
+        $riwayatPenyesuaian = $adjustAudits->map(function ($audit) use ($adjustRequests) {
+            $req = $adjustRequests->get($audit->metadata['request_id'] ?? null);
+
+            return [
+                'waktu' => $audit->created_at,
+                'oleh' => $audit->user_name,
+                'alasan' => $audit->metadata['alasan'] ?? null,
+                'catatan' => $audit->metadata['catatan'] ?? null,
+                'request' => $req,
+                'items' => $req?->items ?? collect(),
+            ];
+        })->all();
+
         return view('batches.show', compact(
             'batch',
             'pembatalan',
+            'riwayatPenyesuaian',
             'earlyWarnings',
             'hasDeficitFisik',
             'hasDeficitRencana',
@@ -698,6 +719,7 @@ class BatchController extends Controller
                     'request_id' => $stockRequest->id,
                     'no_request' => $stockRequest->no_request,
                     'alasan' => $data['alasan'],
+                    'catatan' => trim($data['catatan']),
                     'total_bahan' => count($items),
                 ]
             );
