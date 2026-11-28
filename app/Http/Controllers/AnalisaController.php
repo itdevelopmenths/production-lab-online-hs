@@ -11,6 +11,7 @@ use App\Models\AnalisaSetting;
 use App\Models\Gudang;
 use App\Models\KlasifikasiAbc;
 use App\Models\LeadTimeImpor;
+use App\Models\LeadTimeImporStage;
 use App\Models\LeadTimeLokal;
 use App\Models\LeadTimeLokalStage;
 use App\Models\Produk;
@@ -30,6 +31,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -278,16 +280,7 @@ class AnalisaController extends Controller
 
         DB::transaction(function () use ($data) {
             foreach ($data['stages'] as $stg) {
-                $payload = [
-                    'perencanaan' => AnalisaService::roundLeadTimeDays((float) ($stg['perencanaan'] ?? 0)),
-                    'approval' => AnalisaService::roundLeadTimeDays((float) ($stg['approval'] ?? 0)),
-                    'supplier_confirm' => AnalisaService::roundLeadTimeDays((float) ($stg['supplier_confirm'] ?? 0)),
-                    'payment' => AnalisaService::roundLeadTimeDays((float) ($stg['payment'] ?? 0)),
-                    'po' => AnalisaService::roundLeadTimeDays((float) ($stg['po'] ?? 0)),
-                    'pengiriman' => AnalisaService::roundLeadTimeDays((float) ($stg['pengiriman'] ?? 0)),
-                    'unloading' => AnalisaService::roundLeadTimeDays((float) ($stg['unloading'] ?? 0)),
-                    'input' => AnalisaService::roundLeadTimeDays((float) ($stg['input'] ?? 0)),
-                ];
+                $payload = $this->stagePayload($stg);
                 if (! empty($stg['id'])) {
                     LeadTimeLokalStage::where('id', $stg['id'])->update($payload);
                 } elseif (! empty($data['produk_id']) && ! empty($stg['skenario'])) {
@@ -320,6 +313,87 @@ class AnalisaController extends Controller
         }
 
         return back()->with('success', 'Tahap lead time berhasil diperbarui & analisa dihitung ulang.');
+    }
+
+    /**
+     * Payload 8 tahap lead time (dibulatkan 1 desimal) dari satu baris input skenario.
+     *
+     * @param  array<string, mixed>  $stg
+     * @return array<string, float>
+     */
+    private function stagePayload(array $stg): array
+    {
+        $payload = [];
+        foreach (LeadTimeLokalStage::STAGE_COLUMNS as $col) {
+            $payload[$col] = AnalisaService::roundLeadTimeDays((float) ($stg[$col] ?? 0));
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Simpan 8 tahap lead time bahan impor (skenario average & max) lalu hitung ulang analisa impor SKU tsb.
+     * Total tahap menjadi lead_time_impor.lead_time_average/max (max dijepit ke minimal average).
+     */
+    public function updateLeadTimeStagesImpor(Request $request): JsonResponse
+    {
+        $this->authorize('analisa.manage');
+
+        $rules = [
+            'produk_id' => ['required', 'exists:produk,id'],
+            'stages' => ['required', 'array', 'min:1'],
+            'stages.*.skenario' => ['required', 'in:average,max'],
+        ];
+        foreach (LeadTimeLokalStage::STAGE_COLUMNS as $col) {
+            $rules["stages.*.{$col}"] = ['nullable', 'numeric', 'min:0'];
+        }
+        $data = $request->validate($rules);
+
+        $produk = Produk::findOrFail((int) $data['produk_id']);
+        if (! $produk->is_active || $produk->tipe === 'produk_jadi' || ! AnalisaService::isImporProfile($produk->profil_analisa)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'SKU ini bukan bagian dari Analisa Impor.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($data, $produk) {
+            foreach ($data['stages'] as $stg) {
+                LeadTimeImporStage::updateOrCreate(
+                    ['produk_id' => $produk->id, 'skenario' => $stg['skenario']],
+                    $this->stagePayload($stg)
+                );
+            }
+
+            $rows = LeadTimeImporStage::where('produk_id', $produk->id)->get()->keyBy('skenario');
+            $avg = $rows->has('average') ? (float) $rows['average']->totalHari() : null;
+            $max = $rows->has('max') ? (float) $rows['max']->totalHari() : null;
+
+            $lt = LeadTimeImpor::firstOrNew(['produk_id' => $produk->id]);
+            if ($avg !== null) {
+                $lt->lead_time_average = $avg;
+            }
+            if ($max !== null) {
+                $lt->lead_time_max = $max;
+            }
+            $lt->lead_time_average = (float) ($lt->lead_time_average ?? 0);
+            $lt->lead_time_max = max((float) ($lt->lead_time_max ?? 0), (float) $lt->lead_time_average);
+            $lt->save();
+
+            $meta = AnalisaImporMeta::where('produk_id', $produk->id)->first();
+            if ($meta) {
+                $meta->lead_time_average = $lt->lead_time_average;
+                $meta->lead_time_max = $lt->lead_time_max;
+                $meta->save();
+            }
+
+            $this->analisa->generateImpor($produk->id, auth()->id());
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tahap lead time impor berhasil diperbarui & analisa dihitung ulang.',
+        ]);
     }
 
     /**
@@ -787,11 +861,14 @@ class AnalisaController extends Controller
             $inboundPoMap
         );
 
+        $formattedStages = $this->imporStageRows($imporList, $ltMap);
+
         return response()->json([
             'data' => $rows,
             'tables' => [
                 'rekomendasi' => $rows,
                 'analisa' => $supplierAduRows,
+                'stages' => $formattedStages,
             ],
             'meta' => [
                 'periode' => $this->imporPeriodeMeta(),
@@ -799,6 +876,60 @@ class AnalisaController extends Controller
                 'last_generated_by' => $lastGenerated?->generator?->name ?? 'Sistem',
             ],
         ]);
+    }
+
+    /**
+     * Baris tabel Rincian 8 Tahap Lead Time Impor: 1 baris per SKU impor (bentuk sama dengan lokal).
+     * Tahap otomatis dari histori PO supplier aktif bila ada, selain itu tahap manual (lead_time_impor_stage).
+     *
+     * @param  Collection<int, AnalisaImpor>  $imporList
+     * @param  Collection<int, LeadTimeImpor>  $ltMap
+     * @return array<int, array<string, mixed>>
+     */
+    private function imporStageRows($imporList, $ltMap): array
+    {
+        $produkIds = $imporList->pluck('produk_id')->all();
+        if (empty($produkIds)) {
+            return [];
+        }
+
+        $stageMap = LeadTimeImporStage::whereIn('produk_id', $produkIds)->get()->groupBy('produk_id');
+        $empirical = SupplierProdukLtStageSummary::where('jumlah_transaksi', '>=', 1)
+            ->whereIn('produk_id', $produkIds)
+            ->get()
+            ->groupBy(fn ($row) => $row->supplier_id.':'.$row->produk_id);
+
+        $rows = [];
+        foreach ($imporList as $ai) {
+            $pid = (int) $ai->produk_id;
+            $lt = $ltMap->get($pid);
+            $supplierId = $ai->supplier_terpilih_id ?? $ai->produk?->supplier_id;
+            $resolved = $this->analisa->resolveLokalStageBreakdown(
+                $stageMap->get($pid) ?? collect(),
+                $supplierId ? ($empirical->get($supplierId.':'.$pid) ?? collect()) : collect()
+            );
+
+            $rows[] = [
+                'produk_id' => $pid,
+                'sku' => $ai->produk?->sku,
+                'nama' => $ai->produk?->nama,
+                'satuan' => $ai->produk?->satuan,
+                'supplier_id' => $supplierId,
+                'supplier_nama' => $ai->supplierTerpilih?->nama ?? $ai->produk?->supplier?->nama ?? '-',
+                'sumber_lt' => $resolved['sumber_lt'],
+                'jumlah_transaksi' => $resolved['jumlah_transaksi'],
+                'tambahan_buffer_hari' => AnalisaService::roundLeadTimeDays((float) ($ai->tambahan_buffer_hari ?? 0)),
+                'safety_stock' => AnalisaService::roundLeadTimeDays((float) ($ai->buffer_days ?? 0)),
+                'total_average_lead_time' => AnalisaService::roundLeadTimeDays((float) ($lt?->lead_time_average ?? $ai->lead_time ?? 0)),
+                'total_max_lead_time' => AnalisaService::roundLeadTimeDays((float) ($lt?->lead_time_max ?? 0)),
+                'average' => $resolved['average'],
+                'max' => $resolved['max'],
+                'manual_average' => $resolved['manual_average'],
+                'manual_max' => $resolved['manual_max'],
+            ];
+        }
+
+        return $rows;
     }
 
     /**
