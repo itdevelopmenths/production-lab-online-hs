@@ -752,8 +752,8 @@ class AnalisaService
 
         if ($isImpor) {
             $meta = AnalisaImporMeta::where('produk_id', $produk->id)->first();
-            // ADU murni per produk dari permintaan produksi 4 bulan, tidak bergantung pada supplier
-            $adu = $this->pusatAdu($produk->id);
+            // ADU Base murni per produk dalam periode global impor, tidak bergantung pada supplier
+            $adu = (float) $this->pusatDemandImpor($produk->id)['adu'];
             $reviewPeriod = (int) ($currentImpor?->review_period ?? $meta?->review_period ?? 30);
             $tambahanAbc = (float) ($currentImpor?->tambahan_buffer_hari ?? 0);
         } else {
@@ -781,8 +781,10 @@ class AnalisaService
                     : $resolvedLt['lead_time_max'];
 
                 $simBufferDays = self::roundLeadTimeDays(max(0.0, $maxLt - $avgLt) + $tambahanAbc);
-                $simBatasMin = round($adu * $avgLt);
-                $simTargetStock = (int) floor($adu * ($avgLt + $simBufferDays + $reviewPeriod) + 0.0001);
+                // Sama dengan Analisa Impor: ADU ETA bergantung LT supplier.
+                $aduEta = self::hitungAduEta($adu, $avgLt, $reviewPeriod);
+                $simBatasMin = round($aduEta * $avgLt);
+                $simTargetStock = (int) floor($aduEta * ($avgLt + $simBufferDays + $reviewPeriod) + 0.0001);
             } else {
                 $resolvedLt = $this->resolveSupplierProdukLeadTimeLokal($produk->id, $sid);
                 $avgLt = $summary && $trxCount >= 1

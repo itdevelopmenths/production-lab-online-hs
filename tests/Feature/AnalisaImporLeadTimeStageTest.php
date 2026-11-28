@@ -104,7 +104,10 @@ class AnalisaImporLeadTimeStageTest extends TestCase
 
         $this->assertNotNull($row);
         $this->assertSame('manual', $row['sumber_lt']);
-        $this->assertEquals(0.0, $row['average']['total']);
+        // Belum ada rincian: total mengikuti LT yang dipakai analisa (bukan 0).
+        $this->assertTrue($row['tanpa_rincian']);
+        $this->assertEquals($row['total_average_lead_time'], $row['average']['total']);
+        $this->assertGreaterThan(0, $row['average']['total']);
     }
 
     public function test_sku_non_impor_ditolak(): void

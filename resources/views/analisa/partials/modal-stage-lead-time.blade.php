@@ -25,6 +25,9 @@
 
     <form @submit.prevent="saveStages()" class="bg-[#F5F5F5] dark:bg-gray-950">
         <div class="p-5 sm:p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <p x-show="stageForm.tanpa_rincian" class="p-3 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 bg-white dark:bg-gray-900 text-xs text-[#667085] dark:text-gray-400">
+                Lead time saat ini (<span class="font-medium tabular-nums text-[#101828] dark:text-white" x-text="formatLt(stageSum('average')) + ' hari'"></span>) belum dirinci per tahap, jadi sementara diisi di <span class="font-medium text-[#101828] dark:text-white">Pengiriman &amp; Logistik</span>. Pecah ke tahap yang sesuai lalu simpan.
+            </p>
             <template x-if="stageForm.sumber_lt === 'otomatis'">
                 <div role="alert" class="p-4 rounded-[10px] border border-amber-300 border-l-4 border-l-amber-500 dark:border-amber-500/40 dark:border-l-amber-500 bg-amber-50 dark:bg-amber-500/10 text-xs text-amber-900 dark:text-amber-100 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="flex items-start gap-2.5">

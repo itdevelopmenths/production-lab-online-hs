@@ -865,6 +865,7 @@
             sku: item.sku,
             supplier_nama: item.supplier_nama,
             sumber_lt: stg?.sumber_lt || item.sumber_lt || 'manual',
+            tanpa_rincian: !!(stg && stg.tanpa_rincian),
             jumlah_transaksi: stg?.jumlah_transaksi ?? item.jumlah_transaksi ?? 0,
             tambahan_buffer_hari: item.tambahan_buffer_hari ?? (stg ? stg.tambahan_buffer_hari : 0),
             auto_average: isAuto && stg && stg.average ? stg.average : null,

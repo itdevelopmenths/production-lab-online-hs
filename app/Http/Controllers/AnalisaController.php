@@ -316,6 +316,18 @@ class AnalisaController extends Controller
     }
 
     /**
+     * @param  array<string, float|int|null>  $scenario
+     * @return array<string, float|int|null>
+     */
+    private function seedStageTotal(array $scenario, float $totalHari): array
+    {
+        $scenario['pengiriman'] = $totalHari;
+        $scenario['total'] = $totalHari;
+
+        return $scenario;
+    }
+
+    /**
      * Payload 8 tahap lead time (dibulatkan 1 desimal) dari satu baris input skenario.
      *
      * @param  array<string, mixed>  $stg
@@ -355,6 +367,15 @@ class AnalisaController extends Controller
                 'success' => false,
                 'message' => 'SKU ini bukan bagian dari Analisa Impor.',
             ], 422);
+        }
+
+        foreach ($data['stages'] as $stg) {
+            if ($stg['skenario'] === 'average' && array_sum($this->stagePayload($stg)) <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Total lead time skenario average harus lebih dari 0 hari.',
+                ], 422);
+            }
         }
 
         DB::transaction(function () use ($data, $produk) {
@@ -909,6 +930,21 @@ class AnalisaController extends Controller
                 $supplierId ? ($empirical->get($supplierId.':'.$pid) ?? collect()) : collect()
             );
 
+            $ltAvg = AnalisaService::roundLeadTimeDays((float) ($lt?->lead_time_average ?? $ai->lead_time ?? 0));
+            $ltMax = AnalisaService::roundLeadTimeDays((float) ($lt?->lead_time_max ?? 0));
+
+            // SKU belum punya rincian tahap: total LT yang berlaku dimasukkan ke Pengiriman agar tabel & form edit
+            // menampilkan angka yang sama dengan analisa (menyimpan tanpa ubah tidak menurunkan LT jadi 0).
+            $tanpaRincian = ! $stageMap->has($pid);
+            if ($tanpaRincian) {
+                $resolved['manual_average'] = $this->seedStageTotal($resolved['manual_average'], $ltAvg);
+                $resolved['manual_max'] = $this->seedStageTotal($resolved['manual_max'], max($ltMax, $ltAvg));
+                if ($resolved['sumber_lt'] === 'manual') {
+                    $resolved['average'] = $resolved['manual_average'];
+                    $resolved['max'] = $resolved['manual_max'];
+                }
+            }
+
             $rows[] = [
                 'produk_id' => $pid,
                 'sku' => $ai->produk?->sku,
@@ -916,6 +952,7 @@ class AnalisaController extends Controller
                 'satuan' => $ai->produk?->satuan,
                 'supplier_id' => $supplierId,
                 'supplier_nama' => $ai->supplierTerpilih?->nama ?? $ai->produk?->supplier?->nama ?? '-',
+                'tanpa_rincian' => $tanpaRincian,
                 'sumber_lt' => $resolved['sumber_lt'],
                 'jumlah_transaksi' => $resolved['jumlah_transaksi'],
                 'tambahan_buffer_hari' => AnalisaService::roundLeadTimeDays((float) ($ai->tambahan_buffer_hari ?? 0)),
