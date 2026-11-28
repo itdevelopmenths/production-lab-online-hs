@@ -147,6 +147,9 @@
                             <th class="px-4 py-3 text-left w-32">Kuantitas</th>
                             <th class="px-4 py-3 text-left w-24">Satuan</th>
                             <th class="px-4 py-3 text-left">Keterangan</th>
+                            @if($stockRequest->items->contains(fn ($i) => filled($i->evidence_path)))
+                            <th class="px-4 py-3 text-left w-28">Evidence</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border">
@@ -158,6 +161,15 @@
                             <td class="px-4 py-3 font-medium text-foreground">{{ \App\Helpers\NumberHelper::formatQty($it->qty_diminta) }}</td>
                             <td class="px-4 py-3 text-muted-foreground">{{ $it->produk?->satuan ?? '-' }}</td>
                             <td class="px-4 py-3 text-muted-foreground">{{ $it->keterangan ?? '-' }}</td>
+                            @if($stockRequest->items->contains(fn ($i) => filled($i->evidence_path)))
+                            <td class="px-4 py-3">
+                                @if($it->evidence_path)
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($it->evidence_path) }}" target="_blank" rel="noopener" class="text-primary font-medium hover:underline">Lihat file</a>
+                                @else
+                                    <span class="text-muted-foreground">-</span>
+                                @endif
+                            </td>
+                            @endif
                         </tr>
                         @endforeach
                     </tbody>

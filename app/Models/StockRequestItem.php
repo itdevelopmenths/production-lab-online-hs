@@ -16,6 +16,7 @@ class StockRequestItem extends Model
         'request_id',
         'produk_id',
         'qty_diminta',
+        'evidence_path',
     ];
 
     protected $casts = [

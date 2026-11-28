@@ -9,12 +9,15 @@ use App\Models\Produk;
 use App\Models\Stok;
 use App\Models\Transfer;
 use App\Services\Authorization\InventoryTransferAuthorizationService;
+use App\Services\RequestService;
 use App\Services\StokService;
 use App\Services\TransferService;
 use App\Support\UiTableHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -575,6 +578,139 @@ class BatchController extends Controller
         });
 
         return back()->with('success', 'Stock opname batch dicatat.');
+    }
+
+    /**
+     * Penyesuaian bahan saat batch Release: bahan tambahan (penguapan, tumpah, dll.)
+     * otomatis dibuatkan Request Bahan ke Gudang Bahan Baku Pusat dan langsung diajukan.
+     */
+    public function adjustBahan(
+        Request $request,
+        BatchProduksi $batch,
+        RequestService $requestService,
+        InventoryTransferAuthorizationService $authz
+    ) {
+        $this->authorize('request.bahan.create');
+        abort_unless($batch->status === 'release', 422, 'Penyesuaian bahan hanya untuk batch berstatus Release.');
+        abort_unless($batch->gudang_operasional_id, 422, 'Gudang operasional batch belum ditentukan.');
+
+        $alasanOptions = ['penguapan', 'tumpah', 'susut', 'rusak', 'lainnya'];
+
+        $data = $request->validate([
+            'alasan' => ['required', Rule::in($alasanOptions)],
+            'catatan' => ['required', 'string', 'max:300'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.bahan_id' => ['required', 'integer'],
+            'items.*.qty' => ['nullable', 'numeric', 'min:0'],
+            'items.*.evidence' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], [
+            'alasan.required' => 'Alasan penyesuaian wajib dipilih.',
+            'alasan.in' => 'Alasan penyesuaian tidak valid.',
+            'catatan.required' => 'Catatan penyesuaian wajib diisi.',
+            'catatan.max' => 'Catatan maksimal 300 karakter.',
+            'items.*.qty.min' => 'Qty tambahan tidak boleh negatif.',
+            'items.*.evidence.mimes' => 'Evidence harus berupa foto (JPG, PNG, WEBP) atau PDF.',
+            'items.*.evidence.max' => 'Ukuran evidence maksimal 5 MB.',
+        ]);
+
+        $batch->loadMissing('alokasi.bahan');
+        $allowedBahanIds = $batch->alokasi->pluck('bahan_id')->map(fn ($id) => (int) $id)->all();
+
+        $items = collect($data['items'])
+            ->filter(fn ($row) => (float) ($row['qty'] ?? 0) > 0)
+            ->map(function ($row) use ($allowedBahanIds) {
+                $bahanId = (int) $row['bahan_id'];
+                if (! in_array($bahanId, $allowedBahanIds, true)) {
+                    throw ValidationException::withMessages([
+                        'items' => 'Bahan yang dipilih bukan bagian dari resep batch ini.',
+                    ]);
+                }
+
+                return [
+                    'produk_id' => $bahanId,
+                    'qty_diminta' => (float) $row['qty'],
+                    'evidence' => $row['evidence'] ?? null,
+                ];
+            })
+            ->groupBy('produk_id')
+            ->map(fn ($rows, $bahanId) => [
+                'produk_id' => (int) $bahanId,
+                'qty_diminta' => $rows->sum('qty_diminta'),
+                'evidence' => $rows->pluck('evidence')->filter()->first(),
+            ])
+            ->values()
+            ->all();
+
+        if (empty($items)) {
+            throw ValidationException::withMessages([
+                'items' => 'Isi minimal satu bahan dengan qty tambahan lebih dari 0.',
+            ]);
+        }
+
+        $user = auth()->user();
+        $authz->authorizeOrAbort(
+            $authz->canCreateRequestForType($user, 'request_bahan'),
+            'Anda tidak memiliki izin untuk membuat Request Bahan Baku.'
+        );
+        $categories = $authz->resolveProductCategories(collect($items)->pluck('produk_id')->all());
+        $authz->authorizeOrAbort(
+            $authz->canCreateRequestWithCategories($user, $categories),
+            'Anda tidak memiliki izin Request untuk kategori bahan yang dipilih.'
+        );
+
+        $gudangPusat = Gudang::bahanBakuPusat()->first()
+            ?? Gudang::where('tipe', 'bahan_baku')->first()
+            ?? Gudang::where('kode', 'GD-PUSAT')->first();
+        abort_unless($gudangPusat, 422, 'Gudang Bahan Baku Pusat belum tersedia.');
+
+        $alasanLabel = ucfirst($data['alasan']);
+        $catatan = "Penyesuaian bahan batch {$batch->no_batch} ({$alasanLabel})"
+            . (filled($data['catatan'] ?? null) ? ': ' . trim($data['catatan']) : '');
+
+        $storedPaths = [];
+        foreach ($items as &$item) {
+            $file = $item['evidence'] ?? null;
+            unset($item['evidence']);
+            $item['evidence_path'] = $file ? $file->store("request-evidence/{$batch->id}", 'public') : null;
+            if ($item['evidence_path']) {
+                $storedPaths[] = $item['evidence_path'];
+            }
+        }
+        unset($item);
+
+        try {
+            $stockRequest = DB::transaction(function () use ($batch, $gudangPusat, $items, $catatan, $data, $requestService, $user) {
+            $stockRequest = $requestService->create([
+                'jenis' => 'request_bahan',
+                'referensi_batch_id' => $batch->id,
+                'gudang_asal_id' => $batch->gudang_operasional_id,
+                'gudang_tujuan_id' => $gudangPusat->id,
+                'catatan' => $catatan,
+                'items' => $items,
+            ], $user);
+
+            $requestService->submit($stockRequest, $user);
+
+            $batch->recordAudit(
+                event: 'adjust_bahan',
+                actionTitle: "Penyesuaian bahan Batch {$batch->no_batch} ({$data['alasan']}) membuat Request {$stockRequest->no_request}",
+                metadata: [
+                    'request_id' => $stockRequest->id,
+                    'no_request' => $stockRequest->no_request,
+                    'alasan' => $data['alasan'],
+                    'total_bahan' => count($items),
+                ]
+            );
+
+            return $stockRequest;
+            });
+        } catch (\Throwable $e) {
+            Storage::disk('public')->delete($storedPaths);
+            throw $e;
+        }
+
+        return redirect()->route('requests.show', $stockRequest)
+            ->with('success', "Request {$stockRequest->no_request} dibuat dari penyesuaian bahan batch {$batch->no_batch} dan sudah diajukan ke Manajer.");
     }
 
     /** Ajukan Kirim Produk Jadi ke Fulfillment (buat dokumen Transfer modern). */

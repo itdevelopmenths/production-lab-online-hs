@@ -114,6 +114,7 @@ class RequestService
                 $request->items()->create([
                     'produk_id' => $item['produk_id'],
                     'qty_diminta' => $qty,
+                    'evidence_path' => $item['evidence_path'] ?? null,
                 ]);
             }
 
@@ -213,6 +214,7 @@ class RequestService
             ]);
 
             if (! empty($data['items']) && is_array($data['items'])) {
+                $existingEvidence = $request->items()->whereNotNull('evidence_path')->pluck('evidence_path', 'produk_id');
                 $request->items()->delete();
                 foreach ($data['items'] as $item) {
                     $qty = (float) ($item['qty_diminta'] ?? 0);
@@ -225,6 +227,7 @@ class RequestService
                     $request->items()->create([
                         'produk_id' => $item['produk_id'],
                         'qty_diminta' => $qty,
+                        'evidence_path' => $item['evidence_path'] ?? $existingEvidence->get($item['produk_id']),
                     ]);
                 }
             }

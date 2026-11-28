@@ -285,6 +285,8 @@ Route::middleware('auth')->group(function () {
             ->middleware('can:batch.cancel')->name('cancel');
         Route::post('{batch}/opname', [BatchController::class, 'opname'])
             ->middleware('can:batch.opname')->name('opname');
+        Route::post('{batch}/adjust-bahan', [BatchController::class, 'adjustBahan'])
+            ->middleware('can:request.bahan.create')->name('adjust-bahan');
         Route::post('{batch}/kirim', [BatchController::class, 'kirim'])
             ->middleware('can:transfer.produk_jadi.create')->name('kirim');
     });

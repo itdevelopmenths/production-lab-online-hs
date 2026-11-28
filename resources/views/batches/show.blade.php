@@ -829,6 +829,116 @@
                     </div>
                     @endcan
                     @endif
+
+                    @can('request.bahan.create')
+                    @php
+                        $adjustOldQty = collect(old('items', []))->mapWithKeys(fn ($row) => [(int) ($row['bahan_id'] ?? 0) => $row['qty'] ?? ''])->all();
+                        $adjustHasErrors = $errors->has('items') || $errors->has('alasan') || $errors->has('catatan') || $errors->has('items.*');
+                    @endphp
+                    <div x-data="{
+                            adjustOpen: {{ $adjustHasErrors ? 'true' : 'false' }},
+                            submitting: false,
+                            qty: @js((object) collect($batch->alokasi)->mapWithKeys(fn ($a) => [$a->bahan_id => $adjustOldQty[$a->bahan_id] ?? ''])->all()),
+                            get filled() { return Object.values(this.qty).filter(v => parseFloat(v) > 0).length; }
+                         }"
+                         @keydown.escape.window="adjustOpen = false"
+                         class="mt-2.5">
+                        <x-button type="button" variant="secondary" size="sm" class="w-full" @click="adjustOpen = true">
+                            <x-slot:icon>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                            </x-slot:icon>
+                            Penyesuaian Bahan
+                        </x-button>
+                        <p class="text-[10px] text-text-muted text-center mt-1">Bahan terpakai lebih dari resep? Catat di sini, Request Bahan dibuat otomatis.</p>
+
+                        <template x-teleport="body">
+                            <div x-effect="if (adjustOpen) $nextTick(() => document.getElementById('adjust-alasan')?.focus())">
+                                <x-modal name="adjustOpen" maxWidth="2xl" :title="'Penyesuaian Bahan Batch ' . e($batch->no_batch)" :subtitle="'Isi qty bahan tambahan, catatan, dan lampirkan evidence bila ada. Request Bahan ke ' . e($gudangPusat?->nama ?? 'Gudang Bahan Baku Pusat') . ' dibuat dan langsung diajukan ke Manajer.'" bodyClass="bg-white dark:bg-gray-900 p-3.5 sm:p-5 flex flex-col gap-4 overflow-y-auto custom-scrollbar flex-1 text-sm text-text-base">
+                                    <form id="batch-adjust-form" method="POST" action="{{ route('batches.adjust-bahan', $batch) }}" enctype="multipart/form-data" @submit="submitting = true" class="space-y-4">
+                                        @csrf
+
+                                        @if($errors->has('items') || $errors->has('items.*'))
+                                        <div role="alert" class="p-3 rounded-[8px] bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs">
+                                            {{ $errors->first('items') ?: collect($errors->get('items.*'))->flatten()->first() }}
+                                        </div>
+                                        @endif
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div>
+                                                <label for="adjust-alasan" class="block text-xs font-medium text-text-active mb-1">Alasan <span class="text-rose-500">*</span></label>
+                                                <select id="adjust-alasan" name="alasan" required class="w-full h-9 border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 px-2.5 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
+                                                    @foreach(['penguapan' => 'Penguapan', 'tumpah' => 'Tumpah', 'susut' => 'Susut / selisih takar', 'rusak' => 'Bahan rusak / tidak layak', 'lainnya' => 'Lainnya'] as $val => $label)
+                                                        <option value="{{ $val }}" @selected(old('alasan', 'penguapan') === $val)>{{ $label }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('alasan')<p class="mt-1 text-[11px] font-medium text-rose-600">{{ $message }}</p>@enderror
+                                            </div>
+                                            <div>
+                                                <label for="adjust-catatan" class="block text-xs font-medium text-text-active mb-1">Catatan <span class="text-rose-500">*</span></label>
+                                                <input id="adjust-catatan" type="text" name="catatan" maxlength="300" required value="{{ old('catatan') }}" placeholder="Mis. suhu ruang tinggi, botol bocor" class="w-full h-9 border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 px-2.5 text-xs text-text-active focus:outline-none focus:border-[#111111] dark:focus:border-white rounded-[6px]">
+                                                @error('catatan')<p class="mt-1 text-[11px] font-medium text-rose-600">{{ $message }}</p>@enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="overflow-x-auto border border-[#E8E8E8] dark:border-border rounded-[8px]">
+                                            <table class="w-full text-left text-xs">
+                                                <thead class="bg-[#f8fafb] dark:bg-gray-800/95 border-b border-[#e8e8e8] dark:border-border text-text-muted">
+                                                    <tr>
+                                                        <th scope="col" class="py-2 px-3 font-normal">Bahan Baku</th>
+                                                        <th scope="col" class="py-2 px-3 text-right font-normal whitespace-nowrap">Di-Issue</th>
+                                                        <th scope="col" class="py-2 px-3 text-right font-normal w-40">Tambahan Dibutuhkan</th>
+                                                        <th scope="col" class="py-2 px-3 font-normal w-48">Evidence <span class="text-text-muted">(foto / PDF)</span></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-[#e8e8e8] dark:divide-gray-800/60">
+                                                    @foreach($batch->alokasi as $i => $a)
+                                                    <tr>
+                                                        <td class="py-2 px-3">
+                                                            <input type="hidden" name="items[{{ $i }}][bahan_id]" value="{{ $a->bahan_id }}">
+                                                            <div class="font-medium text-text-active">{{ $a->bahan->nama }}</div>
+                                                            <div class="tabular-nums text-[11px] text-text-muted">{{ $a->bahan->sku }}</div>
+                                                        </td>
+                                                        <td class="py-2 px-3 text-right tabular-nums text-text-muted whitespace-nowrap">
+                                                            {{ \App\Helpers\NumberHelper::formatQty($a->qty_dialokasikan) }} {{ $a->bahan->satuan }}
+                                                        </td>
+                                                        <td class="py-2 px-3">
+                                                            <div class="flex items-center gap-1.5">
+                                                                <input type="number" step="0.001" min="0" inputmode="decimal"
+                                                                       name="items[{{ $i }}][qty]"
+                                                                       x-model="qty[{{ $a->bahan_id }}]"
+                                                                       placeholder="0"
+                                                                       aria-label="Tambahan {{ $a->bahan->nama }}"
+                                                                       class="w-full h-8 text-right border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-text-active text-xs px-2 focus:outline-none focus:border-[#111111] dark:focus:border-white tabular-nums rounded-[6px]">
+                                                                <span class="text-text-muted w-8 shrink-0">{{ $a->bahan->satuan }}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td class="py-2 px-3">
+                                                            <input type="file" name="items[{{ $i }}][evidence]"
+                                                                   accept="image/jpeg,image/png,image/webp,application/pdf"
+                                                                   aria-label="Evidence {{ $a->bahan->nama }}"
+                                                                   class="block w-full text-[11px] text-text-muted file:mr-2 file:py-1 file:px-2 file:border file:border-[#E8E8E8] dark:file:border-border file:rounded-[6px] file:bg-white dark:file:bg-gray-900 file:text-xs file:font-medium file:text-text-active hover:file:bg-gray-50 dark:hover:file:bg-gray-800 file:cursor-pointer">
+                                                        </td>
+                                                    </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </form>
+
+                                    <x-slot:footer>
+                                        <span class="mr-auto text-[11px] text-text-muted tabular-nums" x-text="filled > 0 ? filled + ' bahan akan diminta' : 'Belum ada qty diisi'"></span>
+                                        <button type="button" @click="adjustOpen = false" class="px-3.5 py-2 text-sm font-medium border border-[#E8E8E8] dark:border-border bg-white dark:bg-gray-900 text-text-active hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer rounded-[6px] focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20 dark:focus-visible:ring-white/30">
+                                            Batal
+                                        </button>
+                                        <button type="submit" form="batch-adjust-form" :disabled="submitting || filled === 0" class="px-3.5 py-2 text-sm font-medium bg-[#111111] hover:bg-black text-white dark:bg-white dark:text-gray-900 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed rounded-[6px] focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/30 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
+                                            <span x-text="submitting ? 'Membuat request…' : 'Buat Request Bahan'">Buat Request Bahan</span>
+                                        </button>
+                                    </x-slot:footer>
+                                </x-modal>
+                            </div>
+                        </template>
+                    </div>
+                    @endcan
                 @endif
 
                 @if($batch->status === 'selesai')
