@@ -1,33 +1,6 @@
 {{-- Section: Bahan Baku Impor (analisa_impor & lead_time_impor) --}}
 <template x-if="tab === 'impor'">
     <div class="space-y-4">
-        {{-- Periode OUT global: satu untuk seluruh SKU impor; yang dipakai rumus adalah jumlah harinya --}}
-        <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 p-3.5 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
-            <div class="text-xs min-w-0">
-                <div class="font-medium text-[#101828] dark:text-white">Periode OUT (semua SKU impor)</div>
-                <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-0.5 tabular-nums">
-                    Berlaku: <span x-text="imporPeriode.mulai + ' ~ ' + imporPeriode.akhir"></span>
-                    (<span class="font-medium text-[#101828] dark:text-white" x-text="imporPeriode.jumlah_hari + ' hari'"></span>)
-                    <span x-text="imporPeriode.custom ? '· diatur manual' : '· otomatis 4 bulan terakhir'"></span>
-                </p>
-            </div>
-            @can('analisa.manage')
-            <form @submit.prevent="simpanImporPeriode(false)" class="flex flex-wrap items-end gap-2">
-                <label class="flex flex-col gap-1 text-[11px] text-[#667085] dark:text-gray-400">
-                    Mulai
-                    <input type="date" x-model="imporPeriodeForm.mulai" required class="h-9 px-2.5 dark:[color-scheme:dark] text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums text-[#101828] dark:text-white outline-none rounded-[6px]">
-                </label>
-                <label class="flex flex-col gap-1 text-[11px] text-[#667085] dark:text-gray-400">
-                    Akhir
-                    <input type="date" x-model="imporPeriodeForm.akhir" required class="h-9 px-2.5 dark:[color-scheme:dark] text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums text-[#101828] dark:text-white outline-none rounded-[6px]">
-                </label>
-                <span class="h-9 inline-flex items-center text-xs tabular-nums text-[#667085] dark:text-gray-400" x-text="imporPeriodeHari() + ' hari'"></span>
-                <button type="submit" :disabled="savingImporPeriode" class="h-9 px-3.5 disabled:opacity-50 text-xs font-medium transition cursor-pointer btn-glossy rounded-[6px]">Terapkan</button>
-                <button type="button" x-show="imporPeriode.custom" @click="simpanImporPeriode(true)" :disabled="savingImporPeriode" class="h-9 px-3.5 disabled:opacity-50 text-xs font-medium transition cursor-pointer btn-soft rounded-[6px]">Reset ke 4 bulan terakhir</button>
-            </form>
-            @endcan
-        </div>
-
         {{-- Sub-navigasi 3 Tabel Impor --}}
         <div class="flex items-center justify-between gap-3 border-b border-[#E8E8E8] dark:border-gray-800 pb-3">
             <div class="inline-flex flex-wrap gap-1 bg-[#f3f4f6] dark:bg-gray-900 p-1 rounded-[8px] border border-[#E8E8E8] dark:border-gray-800 text-xs">
