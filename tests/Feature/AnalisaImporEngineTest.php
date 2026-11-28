@@ -293,26 +293,26 @@ class AnalisaImporEngineTest extends TestCase
         // Buffer Days = (92 - 60) + 4 = 36 hari
         $this->assertEqualsWithDelta(36.00, (float) $ai->buffer_days, 0.01);
 
-        // ADU ETA = ADU Base = 447.9593 pcs/hari (tidak bergantung pada LT supplier)
-        $this->assertEqualsWithDelta((float) $ai->adu_base, (float) $ai->adu_eta, 0.0001);
+        // ADU ETA = ADU Base × (1 + LT / RP) = 448 × (1 + 60/30) = 1.344 pcs/hari
+        $this->assertEqualsWithDelta(1344.0, (float) $ai->adu_eta, 0.5);
 
-        // Safety Stock = round(448 * 36) = 16.128 pcs
-        $this->assertEqualsWithDelta(16128, (float) $ai->safety_stock, 1.0);
+        // Safety Stock = round(1.344 * 36) = 48.384 pcs
+        $this->assertEqualsWithDelta(48384, (float) $ai->safety_stock, 20.0);
 
-        // Minimum Stock = round(448 * 60) = 26.880 pcs
-        $this->assertEqualsWithDelta(26880, (float) $ai->minimum_stock, 1.0);
+        // Minimum Stock = round(1.344 * 60) = 80.640 pcs
+        $this->assertEqualsWithDelta(80640, (float) $ai->minimum_stock, 40.0);
 
-        // Target Stock = floor(448 * (60 + 36 + 30)) = 56.448 pcs
-        $this->assertEqualsWithDelta(56448, (float) $ai->target_stock, 1.0);
+        // Target Stock = floor(1.344 * (60 + 36 + 30)) = 169.344 pcs
+        $this->assertEqualsWithDelta(169344, (float) $ai->target_stock, 70.0);
 
-        // Proyeksi = 1.200 + 0 - 26.880 = -25.680 pcs
-        $this->assertEqualsWithDelta(-25680, (float) $ai->proyeksi, 1.0);
+        // Proyeksi = 1.200 + 0 - 80.640 = -79.440 pcs
+        $this->assertEqualsWithDelta(-79440, (float) $ai->proyeksi, 40.0);
 
-        // Kebutuhan Qty Order = 82.128 pcs
-        $this->assertEqualsWithDelta(82128, (float) $ai->qty_order, 1.0);
+        // Kebutuhan Qty Order = 169.344 + 79.440 = 248.784 pcs
+        $this->assertEqualsWithDelta(248784, (float) $ai->qty_order, 120.0);
 
-        // Rekomendasi Order Bulat MOQ 10.000 = ceil(82.128 / 10.000) * 10.000 = 90.000 pcs!
-        $this->assertEquals(90000, (int) $ai->po);
+        // Rekomendasi Order Bulat MOQ 10.000 = ceil(248.784 / 10.000) * 10.000 = 250.000 pcs
+        $this->assertEquals(250000, (int) $ai->po);
         $this->assertEquals('po', $ai->status);
     }
 

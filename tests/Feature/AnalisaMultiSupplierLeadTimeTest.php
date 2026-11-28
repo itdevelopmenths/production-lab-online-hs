@@ -542,7 +542,8 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
 
         $beforeSwitch = AnalisaImpor::where('produk_id', $this->produkImpor->id)->firstOrFail();
         $this->assertEqualsWithDelta(100.0, (float) $beforeSwitch->adu_base, 0.001);
-        $this->assertEqualsWithDelta(100.0, (float) $beforeSwitch->adu_eta, 0.001);
+        // ADU ETA supplier aktif A: 100 × (1 + 30/30) = 200
+        $this->assertEqualsWithDelta(200.0, (float) $beforeSwitch->adu_eta, 0.001);
 
         $res = $this->actingAs($this->purchasing)->getJson(route('analisa.impor.data'));
         $res->assertOk();
@@ -557,17 +558,19 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
         $rowA = $aduRows->firstWhere('supplier_id', $this->supplierA->id);
         $rowB = $aduRows->firstWhere('supplier_id', $this->supplierB->id);
 
-        // ADU identik di kedua supplier (100/hari) meski LT berbeda (30 vs 60)
-        $this->assertEqualsWithDelta(100.0, (float) $rowA['adu'], 0.01);
-        $this->assertEqualsWithDelta(100.0, (float) $rowB['adu'], 0.01);
-        $this->assertEquals(3000, $rowA['minimum_stock']);  // 100 * 30
-        $this->assertEquals(1000, $rowA['safety_stock']);   // 100 * (40 - 30)
-        $this->assertEquals(7000, $rowA['target_stock']);   // 100 * (30 + 10 + 30)
-        $this->assertEquals(6000, $rowB['minimum_stock']);  // 100 * 60
-        $this->assertEquals(1500, $rowB['safety_stock']);   // 100 * (75 - 60)
-        $this->assertEquals(10500, $rowB['target_stock']);  // 100 * (60 + 15 + 30)
+        // ADU Base identik di kedua supplier (100/hari) meski LT berbeda (30 vs 60); ADU ETA = base × (1 + LT/RP)
+        $this->assertEqualsWithDelta(100.0, (float) $rowA['adu_base'], 0.01);
+        $this->assertEqualsWithDelta(100.0, (float) $rowB['adu_base'], 0.01);
+        $this->assertEqualsWithDelta(200.0, (float) $rowA['adu_eta'], 0.01);   // 100 * (1 + 30/30)
+        $this->assertEqualsWithDelta(300.0, (float) $rowB['adu_eta'], 0.01);   // 100 * (1 + 60/30)
+        $this->assertEquals(6000, $rowA['minimum_stock']);  // 200 * 30
+        $this->assertEquals(2000, $rowA['safety_stock']);   // 200 * (40 - 30)
+        $this->assertEquals(14000, $rowA['target_stock']);  // 200 * (30 + 10 + 30)
+        $this->assertEquals(18000, $rowB['minimum_stock']); // 300 * 60
+        $this->assertEquals(4500, $rowB['safety_stock']);   // 300 * (75 - 60)
+        $this->assertEquals(31500, $rowB['target_stock']);  // 300 * (60 + 15 + 30)
 
-        // Ganti supplier aktif ke Supplier B -> ADU tetap 100.0, hanya LT & target berubah
+        // Ganti supplier aktif ke Supplier B -> ADU Base tetap 100.0, ADU ETA/LT/target berubah
         $this->actingAs($this->manager)->postJson(route('analisa.select-supplier'), [
             'produk_id' => $this->produkImpor->id,
             'supplier_id' => $this->supplierB->id,
@@ -575,8 +578,8 @@ class AnalisaMultiSupplierLeadTimeTest extends TestCase
 
         $afterSwitch = AnalisaImpor::where('produk_id', $this->produkImpor->id)->firstOrFail();
         $this->assertEqualsWithDelta(100.0, (float) $afterSwitch->adu_base, 0.001);
-        $this->assertEqualsWithDelta(100.0, (float) $afterSwitch->adu_eta, 0.001);
+        $this->assertEqualsWithDelta(300.0, (float) $afterSwitch->adu_eta, 0.001);
         $this->assertEquals(60.0, (float) $afterSwitch->lead_time);
-        $this->assertEquals(6000, (int) $afterSwitch->minimum_stock);
+        $this->assertEquals(18000, (int) $afterSwitch->minimum_stock);
     }
 }

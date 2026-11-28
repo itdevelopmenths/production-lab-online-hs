@@ -662,8 +662,8 @@ class AnalisaService
                 }
 
                 $bufferDays = self::roundLeadTimeDays(max(0.0, $maxLt - $avgLt) + $tambahanHari);
-                // ADU ETA bergantung lead time supplier (pivot komposisi baru selama menunggu barang tiba).
-                $aduEtaSupplier = self::hitungAduEta($aduRaw, (float) ($ai->adu_pivot ?? 0), $avgLt);
+                // ADU ETA bergantung lead time supplier: ADU Base × (1 + Avg LT ÷ Review Period).
+                $aduEtaSupplier = self::hitungAduEta($aduRaw, $avgLt, $reviewPeriod);
                 $safetyStock = round($aduEtaSupplier * $bufferDays);
                 $minimumStock = round($aduEtaSupplier * $avgLt);
                 $targetStock = (int) floor($aduEtaSupplier * ($avgLt + $bufferDays + $reviewPeriod) + 0.0001);
@@ -691,7 +691,6 @@ class AnalisaService
                     'out' => (float) round($out),
                     'adu' => (float) round($aduRaw, 2),
                     'adu_base' => round($aduRaw, 4),
-                    'adu_pivot' => round((float) ($ai->adu_pivot ?? 0), 4),
                     'adu_eta' => round($aduEtaSupplier, 4),
                     'review_period' => $reviewPeriod,
                     'klasifikasi_abc' => $ai->klasifikasi_abc,
@@ -1174,8 +1173,7 @@ class AnalisaService
                 $aduBase = round($jumlahHari > 0 ? ($out / $jumlahHari) : 0);
                 $distribusi = (float) $v->persentase_distribusi;
 
-                // ADU murni per produk/varian (tidak bergantung pada supplier / lead time)
-                $aduEta = $aduBase;
+                $aduEta = self::hitungAduEta($aduBase, $ltAvg, $reviewPeriod);
 
                 $safetyStock = round($aduEta * $bufferDays);
                 $minimumStock = round($aduEta * $ltAvg);
@@ -1211,7 +1209,7 @@ class AnalisaService
         } else {
             $out = round($outTotal);
             $aduBase = round($jumlahHari > 0 ? ($out / $jumlahHari) : 0);
-            $aduEta = $aduBase;
+            $aduEta = self::hitungAduEta($aduBase, $ltAvg, $reviewPeriod);
             $safetyStock = round($aduEta * $bufferDays);
             $minimumStock = round($aduEta * $ltAvg);
             $targetStock = round($aduEta * ($ltAvg + $bufferDays + $reviewPeriod));
@@ -1269,51 +1267,13 @@ class AnalisaService
      * @return array{generated_count: int, timestamp: string, items: array}
      */
     /**
-     * Total out 4 bulan per grup pivot impor: Σ pemakaian seluruh SKU yang memakai grup_pivot yang sama.
-     *
-     * @return array<string, float>
+     * ADU ETA = ADU Base × (1 + Avg LT ÷ Review Period). Review Period ≤ 0 diperlakukan 30 (default impor).
      */
-    public function imporGrupPivotOutTotals(): array
+    public static function hitungAduEta(float $aduBase, float $ltAvg, int $reviewPeriod): float
     {
-        $grupMap = AnalisaImpor::whereNotNull('grup_pivot')->where('grup_pivot', '!=', '')
-            ->pluck('grup_pivot', 'produk_id');
-        if ($grupMap->isEmpty()) {
-            return [];
-        }
+        $rp = $reviewPeriod > 0 ? $reviewPeriod : 30;
 
-        $demand = $this->demand()->aduBahanPusat($grupMap->keys()->map(fn ($id) => (int) $id)->all());
-        $totals = [];
-        foreach ($grupMap as $pid => $grup) {
-            $key = self::normalizeGrupPivot($grup);
-            $totals[$key] = ($totals[$key] ?? 0.0) + (float) ($demand[(int) $pid]['total'] ?? 0.0);
-        }
-
-        return $totals;
-    }
-
-    public static function normalizeGrupPivot(?string $grup): string
-    {
-        return strtolower(trim((string) $grup));
-    }
-
-    /**
-     * ADU Pivot (komposisi baru) = % pivot × total out grup ÷ jumlah hari. 0 bila SKU tidak ikut grup pivot.
-     *
-     * @param  array<string, float>  $grupOutTotals
-     */
-    public static function hitungAduPivot(?string $grup, ?float $persen, array $grupOutTotals, int $jumlahHari): float
-    {
-        if ($persen === null || $persen <= 0 || $jumlahHari <= 0 || trim((string) $grup) === '') {
-            return 0.0;
-        }
-
-        return $persen * (float) ($grupOutTotals[self::normalizeGrupPivot($grup)] ?? 0.0) / $jumlahHari;
-    }
-
-    /** ADU ETA = ADU Base + ADU Pivot × Lead Time / 30 (Excel Analisa Import, sheet P50). */
-    public static function hitungAduEta(float $aduBase, float $aduPivot, float $ltAvg): float
-    {
-        return $aduBase + ($aduPivot * $ltAvg / 30);
+        return $aduBase * (1 + ($ltAvg / $rp));
     }
 
     /**
@@ -1336,8 +1296,6 @@ class AnalisaService
 
         $generated = [];
         $now = now();
-        // Total out 4 bulan per grup pivot (mis. seluruh warna botol P50) untuk ADU Pivot komposisi baru.
-        $grupOutTotals = $this->imporGrupPivotOutTotals();
 
         foreach ($products as $p) {
             $meta = AnalisaImporMeta::where('produk_id', $p->id)->first();
@@ -1396,14 +1354,10 @@ class AnalisaService
             $periodeAkhir = $win['end']->toDateString();
             $jumlahHari = $win['days'];
 
-            // ADU Base = out produk ini / jumlah hari (komposisi saat ini, Excel "Pivot 3").
+            // ADU Base = out produk ini / jumlah hari periode.
             $aduBase = $jumlahHari > 0 ? ($out / $jumlahHari) : 0;
-            // ADU Pivot = % komposisi baru × total out grup / jumlah hari (Excel "Pivot 4").
-            $grupPivot = $existingAnalisa?->grup_pivot;
-            $persenPivot = $existingAnalisa?->persentase_pivot !== null ? (float) $existingAnalisa->persentase_pivot : null;
-            $aduPivot = self::hitungAduPivot($grupPivot, $persenPivot, $grupOutTotals, $jumlahHari);
-            // ADU ETA = ADU Base + ADU Pivot × Lead Time / 30 (laju kebutuhan saat barang tiba).
-            $aduEta = self::hitungAduEta($aduBase, $aduPivot, $ltAvg);
+            // ADU ETA = ADU Base × (1 + Avg LT ÷ Review Period) (laju kebutuhan saat barang tiba).
+            $aduEta = self::hitungAduEta($aduBase, $ltAvg, $reviewPeriod);
 
             $totalSafetyStock = round($aduEta * $bufferDays);
             $totalMinStock = round($aduEta * $ltAvg);
@@ -1438,7 +1392,7 @@ class AnalisaService
                     'jumlah_hari_periode' => $jumlahHari,
                     'adu_base' => $aduBase,
                     'adu_eta' => $aduEta,
-                    'adu_pivot' => $aduPivot,
+                    'adu_pivot' => 0,
                     'lead_time' => $ltAvg,
                     'review_period' => $reviewPeriod,
                     'klasifikasi_abc' => $klasifikasiAbc,
