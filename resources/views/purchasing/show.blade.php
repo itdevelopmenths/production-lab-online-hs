@@ -63,6 +63,7 @@
             backSize="xs"
         >
             <x-slot:actions>
+                <x-audit-toggle :abilities="['purchasing.audit', 'audit.view']" />
                 <x-badge :variant="$poBadgeVariant" :dot="true" size="sm">
                     {{ ucwords(str_replace('_',' ',$po->status)) }}
                 </x-badge>
@@ -2168,7 +2169,7 @@
         {{-- Tabel Riwayat Log Perubahan Operasional (PO_LOG_PERUBAHAN) --}}
         @canany(['purchasing.audit', 'audit.view'])
         @if($po->relationLoaded('logPerubahan') && $po->logPerubahan->isNotEmpty())
-        <div class="mt-6">
+        <div class="mt-6" x-data x-show="$store.auditLog.visible">
             <x-card class="tbl-modern" variant="elevated" title="Riwayat Perubahan Operasional (Direct Edit Log)" subtitle="Jejak audit perubahan field operasional tanpa persetujuan manager" :noPadding="true">
                 <div tabindex="0" role="region" aria-label="Riwayat Perubahan Operasional Direct Edit" class="overflow-x-auto">
                     <table class="w-full text-xs text-left">

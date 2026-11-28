@@ -12,6 +12,7 @@
         backSize="xs"
     >
         <x-slot:actions>
+            <x-audit-toggle :abilities="['batch.audit', 'audit.view']" />
             @php
                 $statusVariant = match($batch->status) {
                     'rencana' => 'warning',

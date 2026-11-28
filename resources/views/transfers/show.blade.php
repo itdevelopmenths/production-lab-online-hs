@@ -43,7 +43,11 @@
             :subtitle="$transfer->no_transfer . ' · ' . $transfer->created_at->format('d/m/Y H:i')"
             :breadcrumbs="['Transfer' => route('transfers.index'), $transfer->no_transfer => null]"
             :backUrl="route('transfers.index')"
-        />
+        >
+            <x-slot:actions>
+                <x-audit-toggle :abilities="['rt.audit', 'audit.view']" />
+            </x-slot:actions>
+        </x-page-header>
 
         @php
             $statusLabel = match($transfer->status) {

@@ -255,4 +255,22 @@ window.productSearchSelect = function(config) {
 
 Alpine.data('productSearchSelect', window.productSearchSelect);
 
+// Visibilitas riwayat audit: dibagi tombol header dan semua blok audit di halaman. Default tampil, pilihan diingat per browser.
+Alpine.store('auditLog', {
+    visible: (() => {
+        try {
+            return localStorage.getItem('hs.auditLog.visible') !== '0';
+        } catch (e) {
+            return true;
+        }
+    })(),
+
+    toggle() {
+        this.visible = !this.visible;
+        try {
+            localStorage.setItem('hs.auditLog.visible', this.visible ? '1' : '0');
+        } catch (e) {}
+    },
+});
+
 Alpine.start();

@@ -13,7 +13,11 @@
             :subtitle="$stockRequest->no_request . ' · ' . $stockRequest->created_at->format('d/m/Y H:i')"
             :breadcrumbs="['Permintaan' => route('requests.index'), $stockRequest->no_request => null]"
             :backUrl="route('requests.index')"
-        />
+        >
+            <x-slot:actions>
+                <x-audit-toggle :abilities="['rt.audit', 'audit.view']" />
+            </x-slot:actions>
+        </x-page-header>
 
         @php
             $reqSteps = [

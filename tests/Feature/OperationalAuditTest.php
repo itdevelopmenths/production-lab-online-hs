@@ -331,4 +331,21 @@ class OperationalAuditTest extends TestCase
         $responseRt = $this->getJson(route('operational-audit.data', ['module' => 'request_transfer']));
         $responseRt->assertStatus(403);
     }
+
+    public function test_audit_toggle_button_only_rendered_for_users_with_audit_permission(): void
+    {
+        $tpl = '<x-audit-toggle :abilities="[\'batch.audit\', \'audit.view\']" />';
+
+        $this->actingAs($this->adminUser);
+        $this->assertStringContainsString('auditLog.toggle()', \Illuminate\Support\Facades\Blade::render($tpl));
+
+        $plain = User::factory()->create();
+        $plain->givePermissionTo('batch.view');
+        $this->actingAs($plain);
+        $this->assertStringNotContainsString('auditLog', \Illuminate\Support\Facades\Blade::render($tpl));
+
+        $plain->givePermissionTo('batch.audit');
+        $this->actingAs($plain->fresh());
+        $this->assertStringContainsString('auditLog.toggle()', \Illuminate\Support\Facades\Blade::render($tpl));
+    }
 }
