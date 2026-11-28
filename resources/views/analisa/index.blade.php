@@ -188,6 +188,10 @@
         tab: @js($tab),
         lokalSubTab: 'rekomendasi',
         imporSubTab: 'rekomendasi',
+        // Periode OUT global impor (satu untuk semua SKU); nilai awal dari server pada load().
+        imporPeriode: { mulai: '', akhir: '', jumlah_hari: 0, custom: false },
+        imporPeriodeForm: { mulai: '', akhir: '' },
+        savingImporPeriode: false,
         rows: [],
         tables: {
           rekomendasi: [],
@@ -211,6 +215,7 @@
         showStageModal: false,
         savingStage: false,
         stageForm: {
+          tipe: 'lokal',
           produk_id: null,
           nama: '',
           sku: '',
@@ -313,9 +318,6 @@
           supplier_nama: '',
           lead_time_average: 0,
           lead_time_max: 0,
-          periode_mulai: '',
-          periode_akhir: '',
-          jumlah_hari_periode: 122,
           out: 0,
           review_period: 30,
           klasifikasi_abc: 'b',
@@ -328,11 +330,7 @@
           current_stok_aktual: null,
           current_inbound: null,
           empirical_avg_lt: null,
-          empirical_max_lt: null,
-          grup_pivot: '',
-          persentase_pivot: null,
-          grup_pivot_awal: '',
-          grup_out_total: 0
+          empirical_max_lt: null
         },
         loading: true,
         generating: false,
@@ -688,8 +686,11 @@
           }
           return longest;
         },
+        isStagesView(){
+          return (this.tab === 'lokal' && this.lokalSubTab === 'stages') || (this.tab === 'impor' && this.imporSubTab === 'stages');
+        },
         currentDataLength(){
-          if (this.tab === 'lokal' && this.lokalSubTab === 'stages') {
+          if (this.isStagesView()) {
             return this.filteredStages().length;
           }
           if ((this.tab === 'lokal' && this.lokalSubTab === 'analisa') || (this.tab === 'impor' && this.imporSubTab === 'analisa')) {
@@ -698,7 +699,7 @@
           return this.filteredRows().length;
         },
         currentRawLength(){
-          if (this.tab === 'lokal' && this.lokalSubTab === 'stages') {
+          if (this.isStagesView()) {
             return (this.tables && this.tables.stages) ? this.tables.stages.length : 0;
           }
           if ((this.tab === 'lokal' && this.lokalSubTab === 'analisa') || (this.tab === 'impor' && this.imporSubTab === 'analisa')) {
@@ -846,7 +847,7 @@
           this.activeSnapshot = item;
           this.showSnapshotModal = true;
         },
-        openStageModal(item){
+        openStageModal(item, tipe = 'lokal'){
           let stg = null;
           if (item.average || item.max || item.manual_average || item.manual_max) {
             stg = item;
@@ -858,6 +859,7 @@
           const max = isAuto && stg && stg.manual_max ? stg.manual_max : ((stg && stg.max) ? stg.max : {});
 
           this.stageForm = {
+            tipe: tipe,
             produk_id: item.produk_id,
             nama: item.nama,
             sku: item.sku,
@@ -954,7 +956,10 @@
                 }
               ]
             };
-            const res = await fetch('{{ route('analisa.stages-lokal.update') }}', {
+            const stageUrl = this.stageForm.tipe === 'impor'
+              ? '{{ route('analisa.stages-impor.update') }}'
+              : '{{ route('analisa.stages-lokal.update') }}';
+            const res = await fetch(stageUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1235,14 +1240,6 @@
         },
 
         openManualImporModal(item){
-          const defaultEnd = item.periode_akhir || new Date().toISOString().split('T')[0];
-          let defaultStart = item.periode_mulai;
-          if (!defaultStart) {
-            const d = new Date();
-            d.setMonth(d.getMonth() - 4);
-            defaultStart = d.toISOString().split('T')[0];
-          }
-
           this.manualImporForm = {
             produk_id: item.produk_id,
             nama: item.nama,
@@ -1251,9 +1248,6 @@
             supplier_nama: item.supplier_nama,
             lead_time_average: item.lead_time_average || 0,
             lead_time_max: item.lead_time_max || 0,
-            periode_mulai: defaultStart,
-            periode_akhir: defaultEnd,
-            jumlah_hari_periode: item.jumlah_hari_periode || 122,
             out: item.parent_out !== undefined ? item.parent_out : (item.out || 0),
             review_period: item.review_period || 30,
             klasifikasi_abc: item.klasifikasi_abc_id ? (item.klasifikasi_abc || null) : null,
@@ -1269,10 +1263,6 @@
             current_inbound: item.current_inbound !== undefined ? Number(item.current_inbound) : (item.parent_inbound !== undefined ? item.parent_inbound : (item.inbound_before_eta || 0)),
             empirical_avg_lt: item.empirical_avg_lt !== undefined && item.empirical_avg_lt !== null ? Number(item.empirical_avg_lt) : null,
             empirical_max_lt: item.empirical_max_lt !== undefined && item.empirical_max_lt !== null ? Number(item.empirical_max_lt) : null,
-            grup_pivot: item.grup_pivot || '',
-            grup_pivot_awal: item.grup_pivot || '',
-            persentase_pivot: item.persentase_pivot !== undefined && item.persentase_pivot !== null ? Number(item.persentase_pivot) : null,
-            grup_out_total: Number(item.grup_out_total) || 0,
           };
 
           if (!this.manualImporForm.klasifikasi_abc_id && item.klasifikasi_abc_id === null) {
@@ -1399,6 +1389,44 @@
             this.savingAddSku = false;
           }
         },
+        imporPeriodeHari(){
+          const { mulai, akhir } = this.imporPeriodeForm;
+          if (!mulai || !akhir) return 0;
+          const diff = Math.round((new Date(akhir) - new Date(mulai)) / 86400000) + 1;
+          return diff > 0 ? diff : 0;
+        },
+        async simpanImporPeriode(reset = false){
+          if (!reset && this.imporPeriodeHari() <= 0) {
+            Swal.fire({ icon: 'error', title: 'Periode tidak valid', text: 'Periode akhir tidak boleh sebelum periode mulai.', confirmButtonColor: '#111111' });
+            return;
+          }
+          this.savingImporPeriode = true;
+          try {
+            const res = await fetch('{{ route('analisa.impor-periode.update') }}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+              },
+              body: JSON.stringify({
+                periode_mulai: reset ? null : this.imporPeriodeForm.mulai,
+                periode_akhir: reset ? null : this.imporPeriodeForm.akhir
+              })
+            });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              await this.load();
+            } else {
+              const msg = j.message || (j.errors ? Object.values(j.errors)[0][0] : 'Gagal menyimpan periode.');
+              Swal.fire({ icon: 'error', title: 'Gagal', text: msg, confirmButtonColor: '#111111' });
+            }
+          } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Kesalahan Sistem', text: 'Tidak dapat terhubung ke server.', confirmButtonColor: '#111111' });
+          } finally {
+            this.savingImporPeriode = false;
+          }
+        },
         async quickChangeImporAbc(row, newAbcId){
           try {
             const res = await fetch('{{ route('analisa.update-manual-impor') }}', {
@@ -1425,15 +1453,7 @@
           }
         },
         simulasiImporJumlahHari(){
-          const s = this.manualImporForm.periode_mulai;
-          const e = this.manualImporForm.periode_akhir;
-          if (s && e) {
-            const d1 = new Date(s);
-            const d2 = new Date(e);
-            const diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-            if (diff > 0) return diff;
-          }
-          return Number(this.manualImporForm.jumlah_hari_periode) || 122;
+          return Number(this.imporPeriode.jumlah_hari) || 122;
         },
         simulasiImporTambahanBuffer(){
           if (this.manualImporForm.klasifikasi_abc_id) {
@@ -1452,23 +1472,14 @@
 
           return this.formatNumber(base);
         },
-        simulasiImporAduPivotRaw(){
-          // ADU Pivot = % komposisi baru × total out grup ÷ jumlah hari (Excel P50 "Pivot 4").
-          // Total out grup hanya diketahui untuk grup yang sudah tersimpan; grup baru dihitung saat simpan.
-          const f = this.manualImporForm;
-          const pct = Number(f.persentase_pivot) || 0;
-          const days = this.simulasiImporJumlahHari();
-          const sameGrup = String(f.grup_pivot || '').trim().toLowerCase() === String(f.grup_pivot_awal || '').trim().toLowerCase();
-          if (!pct || !String(f.grup_pivot || '').trim() || days <= 0 || !sameGrup) return 0;
-          return (pct / 100) * (Number(f.grup_out_total) || 0) / days;
-        },
         simulasiImporAduEtaRaw(){
           const out = Number(this.manualImporForm.out) || 0;
           const days = this.simulasiImporJumlahHari();
           const base = days > 0 ? (out / days) : 0;
-          // ADU ETA = ADU Base + ADU Pivot × Lead Time / 30
+          // ADU ETA = ADU Base × (1 + Avg LT ÷ Review Period); Review Period ≤ 0 dianggap 30.
           const avgLt = Number(this.manualImporForm.lead_time_average) || 0;
-          return base + this.simulasiImporAduPivotRaw() * avgLt / 30;
+          const rp = Number(this.manualImporForm.review_period) > 0 ? Number(this.manualImporForm.review_period) : 30;
+          return base * (1 + avgLt / rp);
         },
         simulasiImporAduEta(){
           return this.formatNumber(this.simulasiImporAduEtaRaw());
@@ -1524,10 +1535,6 @@
           try {
             const payload = {
               produk_id: this.manualImporForm.produk_id,
-              lead_time_average: Number(this.manualImporForm.lead_time_average) || 0,
-              lead_time_max: Number(this.manualImporForm.lead_time_max) || 0,
-              periode_mulai: this.manualImporForm.periode_mulai,
-              periode_akhir: this.manualImporForm.periode_akhir,
               out: Number(this.manualImporForm.out) || 0,
               review_period: Number(this.manualImporForm.review_period) || 30,
               klasifikasi_abc: this.manualImporForm.klasifikasi_abc_id ? (this.manualImporForm.klasifikasi_abc || null) : null,
@@ -1538,8 +1545,6 @@
               inbound_before_eta: (Number(this.manualImporForm.inbound_before_eta) || 0) !== (Number(this.manualImporForm.inbound_awal) || 0)
                 ? (Number(this.manualImporForm.inbound_before_eta) || 0) : null,
               harga_per_satuan: Number(this.manualImporForm.harga_per_satuan) || 0,
-              grup_pivot: String(this.manualImporForm.grup_pivot || '').trim() || null,
-              persentase_pivot: (this.manualImporForm.persentase_pivot === '' || this.manualImporForm.persentase_pivot === null) ? null : Number(this.manualImporForm.persentase_pivot),
             };
             const res = await fetch('{{ route('analisa.update-manual-impor') }}', {
               method: 'POST',
@@ -1837,6 +1842,10 @@
             this.tables = j.tables || { rekomendasi: [], analisa: [], lead_time: [], stages: [] };
             if (j.meta) {
               this.meta = j.meta;
+              if (this.tab === 'impor' && j.meta.periode) {
+                this.imporPeriode = j.meta.periode;
+                this.imporPeriodeForm = { mulai: j.meta.periode.mulai, akhir: j.meta.periode.akhir };
+              }
             }
             // Auto-check items with status 'order' / 'po'
             if (this.tab === 'lokal') {

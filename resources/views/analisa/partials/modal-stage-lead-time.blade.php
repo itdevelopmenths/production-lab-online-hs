@@ -170,7 +170,10 @@
 
             {{-- Section Tambahan Buffer Hari (LEAD_TIME_LOKAL 2.2) --}}
             <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 space-y-4">
-                <div class="flex items-center justify-between gap-4">
+                <p x-show="stageForm.tipe === 'impor'" class="text-xs text-[#667085] dark:text-gray-400">
+                    Buffer Days impor mengikuti Klasifikasi ABC (<span class="font-medium tabular-nums text-[#101828] dark:text-white" x-text="'+' + formatLt(stageForm.tambahan_buffer_hari) + ' hari'"></span>); ubah kelas ABC di tab Analisa.
+                </p>
+                <div x-show="stageForm.tipe !== 'impor'" class="flex items-center justify-between gap-4">
                     <div>
                         <label class="text-xs font-medium text-[#101828] dark:text-white">
                             Tambahan Buffer Lead Time (Hari)

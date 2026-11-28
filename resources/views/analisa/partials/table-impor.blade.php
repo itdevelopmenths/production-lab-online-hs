@@ -1,7 +1,34 @@
 {{-- Section: Bahan Baku Impor (analisa_impor & lead_time_impor) --}}
 <template x-if="tab === 'impor'">
     <div class="space-y-4">
-        {{-- Sub-navigasi 2 Tabel Impor --}}
+        {{-- Periode OUT global: satu untuk seluruh SKU impor; yang dipakai rumus adalah jumlah harinya --}}
+        <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 p-3.5 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
+            <div class="text-xs min-w-0">
+                <div class="font-medium text-[#101828] dark:text-white">Periode OUT (semua SKU impor)</div>
+                <p class="text-[11px] text-[#667085] dark:text-gray-400 mt-0.5 tabular-nums">
+                    Berlaku: <span x-text="imporPeriode.mulai + ' ~ ' + imporPeriode.akhir"></span>
+                    (<span class="font-medium text-[#101828] dark:text-white" x-text="imporPeriode.jumlah_hari + ' hari'"></span>)
+                    <span x-text="imporPeriode.custom ? '· diatur manual' : '· otomatis 4 bulan terakhir'"></span>
+                </p>
+            </div>
+            @can('analisa.manage')
+            <form @submit.prevent="simpanImporPeriode(false)" class="flex flex-wrap items-end gap-2">
+                <label class="flex flex-col gap-1 text-[11px] text-[#667085] dark:text-gray-400">
+                    Mulai
+                    <input type="date" x-model="imporPeriodeForm.mulai" required class="h-9 px-2.5 dark:[color-scheme:dark] text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums text-[#101828] dark:text-white outline-none rounded-[6px]">
+                </label>
+                <label class="flex flex-col gap-1 text-[11px] text-[#667085] dark:text-gray-400">
+                    Akhir
+                    <input type="date" x-model="imporPeriodeForm.akhir" required class="h-9 px-2.5 dark:[color-scheme:dark] text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums text-[#101828] dark:text-white outline-none rounded-[6px]">
+                </label>
+                <span class="h-9 inline-flex items-center text-xs tabular-nums text-[#667085] dark:text-gray-400" x-text="imporPeriodeHari() + ' hari'"></span>
+                <button type="submit" :disabled="savingImporPeriode" class="h-9 px-3.5 disabled:opacity-50 text-xs font-medium transition cursor-pointer btn-glossy rounded-[6px]">Terapkan</button>
+                <button type="button" x-show="imporPeriode.custom" @click="simpanImporPeriode(true)" :disabled="savingImporPeriode" class="h-9 px-3.5 disabled:opacity-50 text-xs font-medium transition cursor-pointer btn-soft rounded-[6px]">Reset ke 4 bulan terakhir</button>
+            </form>
+            @endcan
+        </div>
+
+        {{-- Sub-navigasi 3 Tabel Impor --}}
         <div class="flex items-center justify-between gap-3 border-b border-[#E8E8E8] dark:border-gray-800 pb-3">
             <div class="inline-flex flex-wrap gap-1 bg-[#f3f4f6] dark:bg-gray-900 p-1 rounded-[8px] border border-[#E8E8E8] dark:border-gray-800 text-xs">
                 <button type="button" @click="imporSubTab = 'rekomendasi'; page = 1" :class="imporSubTab === 'rekomendasi' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white font-medium shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white font-medium'" class="px-3.5 py-1.5 transition-all cursor-pointer rounded-[6px]">
@@ -10,6 +37,9 @@
                 <button type="button" @click="imporSubTab = 'analisa'; page = 1" :class="imporSubTab === 'analisa' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white font-medium shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white font-medium'" class="px-3.5 py-1.5 transition-all cursor-pointer rounded-[6px]">
                     2. Working Data Analisa (ADU)
                 </button>
+                <button type="button" @click="imporSubTab = 'stages'; page = 1" :class="imporSubTab === 'stages' ? 'bg-white dark:bg-gray-800 text-[#101828] dark:text-white font-medium shadow-[0_1px_2px_rgba(0,0,0,0.06)]' : 'text-[#667085] dark:text-gray-400 hover:text-[#101828] dark:hover:text-white font-medium'" class="px-3.5 py-1.5 transition-all cursor-pointer rounded-[6px]">
+                    3. Lead Time
+                </button>
             </div>
         </div>
 
@@ -17,7 +47,7 @@
         <div x-show="imporSubTab === 'rekomendasi'">
         <x-card class="tbl-modern" 
             title="Tabel Analisa & Rekomendasi Pemesanan Bahan Impor (analisa_impor & lead_time_impor)"
-            subtitle="Lead Time (Avg/Max), Buffer Hari ABC (+4d/+2d/+0d), Safety Stock, Target Stock, Inbound ETA, Proyeksi, dan Rekomendasi Order MOQ"
+            subtitle="Min Stock, Target Stock, Stok Fisik, Inbound, Proyeksi, Status, dan Rekomendasi Order MOQ"
             :noPadding="true"
         >
             <x-slot:icon>
@@ -40,15 +70,14 @@
                             <th class="py-3 px-2 text-center w-10">
                                 <input type="checkbox" @change="toggleSelectAllFiltered($event)" :checked="isAllFilteredSelected()" :indeterminate="isSomeFilteredSelected()" title="Pilih semua hasil (semua halaman)" class="rounded border-[#E8E8E8] dark:border-gray-700 text-[#111111] dark:text-white focus:ring-0 cursor-pointer">
                             </th>
-                            <th class="py-3 px-2">Bahan Baku Impor</th>
+                            <th class="py-3 px-2">Bahan Baku</th>
                             <th class="py-3 px-2">Supplier</th>
-                            <th class="py-3 px-2 text-center">ABC</th>
-                            <th class="py-3 px-2 text-center">Lead Time <span class="block font-normal">Avg / Max + Buffer</span></th>
-                            <th class="py-3 px-2 text-right">Safety Stock</th>
+                            <th class="py-3 px-2 text-center">Kelas ABC</th>
+                            <th class="py-3 px-2">Kode SKU</th>
                             <th class="py-3 px-2 text-right">Min Stock</th>
                             <th class="py-3 px-2 text-right">Target</th>
                             <th class="py-3 px-2 text-right">Stok Fisik</th>
-                            <th class="py-3 px-2 text-right">Inbound ETA</th>
+                            <th class="py-3 px-2 text-right">Inbound</th>
                             <th class="py-3 px-2 text-right">Proyeksi</th>
                             <th class="py-3 px-2 text-center">Status</th>
                             <th class="py-3 px-2 text-right bg-gray-100/70 dark:bg-gray-800 text-[#101828] dark:text-white font-medium">Rekomendasi Order</th>
@@ -64,14 +93,7 @@
                                 </td>
                                 <td class="py-3 px-2">
                                     <div class="font-medium text-[#101828] dark:text-white" x-text="r.nama"></div>
-                                    <div class="flex items-center gap-1.5 tabular-nums text-[11px] text-[#667085] dark:text-gray-400 mt-0.5">
-                                        <span x-text="r.sku"></span>
-                                        <span>·</span>
-                                        <span x-text="'Satuan: ' + r.satuan"></span>
-                                    </div>
-                                    <template x-if="r.periode_mulai && r.periode_akhir">
-                                        <div class="text-[10px] text-[#667085] dark:text-gray-400 tabular-nums mt-0.5" x-text="'Periode: ' + r.periode_mulai + ' ~ ' + r.periode_akhir + ' (' + r.jumlah_hari_periode + ' hr)'"></div>
-                                    </template>
+                                    <div class="tabular-nums text-[11px] text-[#667085] dark:text-gray-400 mt-0.5" x-text="'Satuan: ' + r.satuan"></div>
                                     <template x-if="r.varian && r.varian.length > 0">
                                         <div>
                                             <button type="button" @click="openVarianModal(r)" class="mt-1 inline-flex items-center gap-1 text-[11px] text-[#111111] dark:text-gray-200 hover:underline tabular-nums cursor-pointer" title="Lihat Distribusi Varian">
@@ -124,11 +146,7 @@
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase" :class="r.klasifikasi_abc_id ? abcBadgeClass(r.klasifikasi_abc) : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'" :title="r.klasifikasi_abc_nama || r.klasifikasi_abc" x-text="r.klasifikasi_abc_id ? r.klasifikasi_abc : 'Default (C)'"></span>
                                     @endcan
                                 </td>
-                                <td class="py-3 px-2 text-center tabular-nums text-xs text-[#667085] dark:text-gray-400">
-                                    <span class="whitespace-nowrap" x-text="formatLt(r.lead_time_average) + ' / ' + formatLt(r.lead_time_max) + ' hr'"></span>
-                                    <span class="block text-[10px] whitespace-nowrap" x-text="'+' + formatLt(r.buffer_days) + ' hr buffer'"></span>
-                                </td>
-                                <td class="py-3 px-2 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.safety_stock)"></td>
+                                <td class="py-3 px-2 tabular-nums whitespace-nowrap text-[#101828] dark:text-white" x-text="r.sku || '-'"></td>
                                 <td class="py-3 px-2 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.minimum_stock)"></td>
                                 <td class="py-3 px-2 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.target_stock)"></td>
                                 <td class="py-3 px-2 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.stok_saat_ini)"></td>
@@ -153,7 +171,7 @@
                         </template>
                         <template x-if="paginatedRows().length === 0">
                             <tr>
-                                <td colspan="15" class="py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
+                                <td colspan="13" class="py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
                                     Tidak ada item bahan impor yang cocok dengan pencarian atau filter.
                                 </td>
                             </tr>
@@ -201,7 +219,7 @@
         <div x-show="imporSubTab === 'analisa'">
             <x-card class="tbl-modern"
                 title="Tabel Working Data Analisa Impor — ADU Seluruh Supplier–Produk"
-                subtitle="ADU dihitung murni per produk (OUT / Jumlah Hari, tidak bergantung supplier); Lead Time, Buffer Days, Safety Stock, Min Stock, & Target Stock mengikuti masing-masing supplier"
+                subtitle="ADU Base = Total OUT ÷ jumlah hari periode · ADU ETA = ADU Base × (1 + Avg LT ÷ Review Periode) · Safety Stock = (Max LT − Avg LT) + Buffer Days"
                 :noPadding="true"
             >
                 <x-slot:icon>
@@ -222,15 +240,14 @@
                             <tr>
                                 <th class="py-3 px-2.5">Bahan Baku Impor</th>
                                 <th class="py-3 px-2.5">Supplier</th>
-                                <th class="py-3 px-2 text-center">ABC</th>
-                                <th class="py-3 px-2.5 text-center">Lead Time (Avg/Max)</th>
+                                <th class="py-3 px-2 text-center">Kelas ABC</th>
+                                <th class="py-3 px-2.5 text-right">Avg LT</th>
                                 <th class="py-3 px-2.5 text-right">Buffer Days</th>
                                 <th class="py-3 px-2.5 text-right">Total OUT</th>
-                                <th class="py-3 px-2.5 text-right bg-gray-100/70 dark:bg-gray-800 text-[#101828] dark:text-white">ADU</th>
-                                <th class="py-3 px-2.5 text-right">Review Period</th>
-                                <th class="py-3 px-2.5 text-right">Safety Stock</th>
-                                <th class="py-3 px-2.5 text-right bg-gray-100/70 dark:bg-gray-800 text-[#101828] dark:text-white font-medium">Min Stock</th>
-                                <th class="py-3 px-2.5 text-right font-medium text-[#101828] dark:text-white">Target Stock</th>
+                                <th class="py-3 px-2.5 text-right">ADU Base</th>
+                                <th class="py-3 px-2.5 text-right bg-gray-100/70 dark:bg-gray-800 text-[#101828] dark:text-white">ADU ETA</th>
+                                <th class="py-3 px-2.5 text-right">Review Periode</th>
+                                <th class="py-3 px-2.5 text-right">Safety Stock <span class="block font-normal">(Hari)</span></th>
                                 <th class="py-3 px-2 text-center w-36">Aksi</th>
                             </tr>
                         </thead>
@@ -240,9 +257,6 @@
                                     <td class="py-3 px-2.5">
                                         <div class="font-medium text-[#101828] dark:text-white" x-text="r.nama"></div>
                                         <div class="tabular-nums text-[11px] text-[#667085] dark:text-gray-400" x-text="r.sku + ' · Satuan: ' + r.satuan"></div>
-                                        <template x-if="r.periode_mulai && r.periode_akhir">
-                                            <div class="text-[10px] text-[#667085] dark:text-gray-400 tabular-nums mt-0.5" x-text="'Periode: ' + r.periode_mulai + ' ~ ' + r.periode_akhir + ' (' + r.jumlah_hari_periode + ' hr)'"></div>
-                                        </template>
                                     </td>
                                     <td class="py-3 px-2.5">
                                         <div class="flex items-center gap-1.5 flex-wrap">
@@ -271,16 +285,30 @@
                                         </div>
                                     </td>
                                     <td class="py-3 px-2 text-center tabular-nums">
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase" :class="r.klasifikasi_abc_id ? abcBadgeClass(r.klasifikasi_abc) : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'" :title="r.klasifikasi_abc_nama || 'Default (C)'" x-text="r.klasifikasi_abc_id ? r.klasifikasi_abc : 'C'"></span>
+                                        @can('analisa.manage')
+                                        <select
+                                            :value="r.klasifikasi_abc_id ? String(r.klasifikasi_abc_id) : ''"
+                                            @change="quickChangeImporAbc(r, $event.target.value)"
+                                            :class="r.klasifikasi_abc_id ? abcBadgeClass(r.klasifikasi_abc) : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'"
+                                            class="appearance-none text-center w-9 px-1 py-0.5 text-[10px] font-medium uppercase cursor-pointer focus:outline-none rounded-full"
+                                            :title="r.klasifikasi_abc_nama || 'Default (Belum Diset)'"
+                                        >
+                                            <option value="">C*</option>
+                                            <template x-for="abc in klasifikasiAbcList" :key="abc.id">
+                                                <option :value="abc.id" :selected="r.klasifikasi_abc_id == abc.id" x-text="abc.kode.toUpperCase()"></option>
+                                            </template>
+                                        </select>
+                                        @else
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase" :class="r.klasifikasi_abc_id ? abcBadgeClass(r.klasifikasi_abc) : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'" :title="r.klasifikasi_abc_nama || r.klasifikasi_abc" x-text="r.klasifikasi_abc_id ? r.klasifikasi_abc : 'Default (C)'"></span>
+                                        @endcan
                                     </td>
-                                    <td class="py-3 px-2.5 text-center tabular-nums text-xs text-[#667085] dark:text-gray-400" x-text="formatLt(r.lead_time_average) + ' / ' + formatLt(r.lead_time_max) + ' hr'"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-xs text-[#667085] dark:text-gray-400" x-text="formatLt(r.buffer_days) + ' hr'"></td>
+                                    <td class="py-3 px-2.5 text-right tabular-nums text-xs text-[#667085] dark:text-gray-400" x-text="formatLt(r.lead_time_average) + ' hr'"></td>
+                                    <td class="py-3 px-2.5 text-right tabular-nums text-xs text-[#667085] dark:text-gray-400" x-text="formatLt(r.tambahan_buffer_hari) + ' hr'"></td>
                                     <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.out)"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white bg-[#fafafa] dark:bg-gray-800/40" x-text="formatNumber(r.adu)"></td>
+                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.adu_base)"></td>
+                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white bg-[#fafafa] dark:bg-gray-800/40" x-text="formatNumber(r.adu_eta)"></td>
                                     <td class="py-3 px-2.5 text-right tabular-nums text-xs text-[#667085] dark:text-gray-400" x-text="r.review_period + ' Hari'"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.safety_stock)"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white bg-[#fafafa] dark:bg-gray-800/40" x-text="formatNumber(r.minimum_stock) + ' ' + r.satuan"></td>
-                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatNumber(r.target_stock) + ' ' + r.satuan"></td>
+                                    <td class="py-3 px-2.5 text-right tabular-nums text-[#101828] dark:text-white" x-text="formatLt(r.buffer_days) + ' hr'"></td>
                                     <td class="py-3 px-2 text-center">
                                         @can('analisa.manage')
                                         <div class="flex items-center justify-center gap-1 flex-wrap">
@@ -289,8 +317,11 @@
                                                     Aktifkan
                                                 </button>
                                             </template>
-                                            <button type="button" @click="openManualImporModal(r)" class="px-2.5 py-1 text-[10px] font-medium transition cursor-pointer btn-soft rounded-[6px]" title="Edit OUT, Periode, & Parameter Produk">
+                                            <button type="button" @click="openManualImporModal(r)" class="px-2.5 py-1 text-[10px] font-medium transition cursor-pointer btn-soft rounded-[6px]" title="Edit Review Period, Buffer ABC, Harga & Koreksi Stok">
                                                 Edit Input
+                                            </button>
+                                            <button type="button" @click="openStageModal(r, 'impor')" class="px-2.5 py-1 text-[10px] font-medium transition cursor-pointer btn-soft rounded-[6px]" title="Edit 8 Tahap Lead Time">
+                                                LT
                                             </button>
                                         </div>
                                         @else
@@ -301,7 +332,7 @@
                             </template>
                             <template x-if="paginatedAnalisaRows().length === 0">
                                 <tr>
-                                    <td colspan="12" class="py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
+                                    <td colspan="11" class="py-8 text-center text-[#667085] dark:text-gray-400 text-xs">
                                         Tidak ada data working analisa impor yang cocok.
                                     </td>
                                 </tr>
@@ -338,5 +369,7 @@
                 </x-slot:footer>
             </x-card>
         </div>
+
+        @include('analisa.partials.table-stages', ['tipe' => 'impor'])
     </div>
 </template>

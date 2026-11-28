@@ -30,49 +30,16 @@
                 <h4 class="text-xs font-semibold text-[#101828] dark:text-white uppercase tracking-wider pb-1.5 border-b border-[#E8E8E8] dark:border-gray-800 flex items-center gap-1.5">
                     <span>1. Lead Time Impor</span>
                 </h4>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
-                            Lead Time Average (Hari)
-                        </label>
-                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Rata-rata waktu kedatangan pesanan impor.</p>
-                        <div class="relative flex items-center">
-                            <input type="number" step="0.1" min="0" x-model.number="manualImporForm.lead_time_average" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none rounded-[6px]">
-                            <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">Hari</span>
+                <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="space-y-0.5 tabular-nums">
+                        <div class="text-[#101828] dark:text-white">
+                            Avg <span class="font-medium" x-text="formatLt(manualImporForm.lead_time_average) + ' Hari'"></span>
+                            <span class="text-[#667085] dark:text-gray-400">·</span>
+                            Max <span class="font-medium" x-text="formatLt(manualImporForm.lead_time_max) + ' Hari'"></span>
                         </div>
-                        <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-[#667085] dark:text-gray-400" x-show="manualImporForm.empirical_avg_lt !== null && manualImporForm.empirical_avg_lt !== undefined && Number(manualImporForm.empirical_avg_lt) > 0">
-                            <span class="inline-flex items-center gap-1 tabular-nums text-[11px] min-w-0">
-                                <span>Empiris PO:</span>
-                                <span class="font-medium text-[#101828] dark:text-white" x-text="formatLt(manualImporForm.empirical_avg_lt) + ' Hari'"></span>
-                            </span>
-                            <button type="button"
-                                    @click="manualImporForm.lead_time_average = manualImporForm.empirical_avg_lt"
-                                    class="shrink-0 text-[#111111] dark:text-white underline font-medium text-[11px] transition-colors focus:outline-none cursor-pointer">
-                                Gunakan Nilai Sistem
-                            </button>
-                        </div>
+                        <p class="text-[11px] text-[#667085] dark:text-gray-400">Lead time diatur per tahap di tab Lead Time (atau otomatis dari histori PO).</p>
                     </div>
-                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
-                            Lead Time Max (Hari)
-                        </label>
-                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Durasi terlama (Buffer Days = Max - Average).</p>
-                        <div class="relative flex items-center">
-                            <input type="number" step="0.1" min="0" x-model.number="manualImporForm.lead_time_max" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none rounded-[6px]">
-                            <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">Hari</span>
-                        </div>
-                        <div class="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-[#667085] dark:text-gray-400" x-show="manualImporForm.empirical_max_lt !== null && manualImporForm.empirical_max_lt !== undefined && Number(manualImporForm.empirical_max_lt) > 0">
-                            <span class="inline-flex items-center gap-1 tabular-nums text-[11px] min-w-0">
-                                <span>Empiris PO:</span>
-                                <span class="font-medium text-[#101828] dark:text-white" x-text="formatLt(manualImporForm.empirical_max_lt) + ' Hari'"></span>
-                            </span>
-                            <button type="button"
-                                    @click="manualImporForm.lead_time_max = manualImporForm.empirical_max_lt"
-                                    class="shrink-0 text-[#111111] dark:text-white underline font-medium text-[11px] transition-colors focus:outline-none cursor-pointer">
-                                Gunakan Nilai Sistem
-                            </button>
-                        </div>
-                    </div>
+                    <button type="button" @click="showManualImporModal = false; imporSubTab = 'stages'; page = 1" class="px-3 py-1.5 text-xs font-medium transition cursor-pointer btn-soft rounded-[6px]">Ubah di tab Lead Time</button>
                 </div>
             </div>
 
@@ -82,33 +49,13 @@
                     <span>2. Parameter Analisa Pemakaian</span>
                 </h4>
 
-                {{-- Rentang Tanggal Kalender Riil --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
-                            Periode Mulai OUT <span class="text-rose-500">*</span>
-                        </label>
-                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Tanggal awal rekaman data pengeluaran (OUT).</p>
-                        <input type="date" x-model="manualImporForm.periode_mulai" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none rounded-[6px]" required>
-                    </div>
-                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                        <label class="font-medium text-[#101828] dark:text-white block mb-1">
-                            Periode Akhir OUT <span class="text-rose-500">*</span>
-                        </label>
-                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">
-                            Tanggal akhir rekaman (Total: <span class="font-medium text-[#101828] dark:text-white tabular-nums" x-text="simulasiImporJumlahHari() + ' Hari'"></span>).
-                        </p>
-                        <input type="date" x-model="manualImporForm.periode_akhir" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white outline-none rounded-[6px]" required>
-                    </div>
-                </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
                     <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                         <label class="font-medium text-[#101828] dark:text-white block mb-1">
                             Total OUT (Pengeluaran)
                         </label>
                         <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">
-                            ADU = OUT / <span class="font-medium tabular-nums text-[#101828] dark:text-white" x-text="simulasiImporJumlahHari()"></span> Hari (per produk)
+                            ADU = OUT / <span class="font-medium tabular-nums text-[#101828] dark:text-white" x-text="simulasiImporJumlahHari()"></span> Hari (periode global)
                         </p>
                         <div class="relative flex items-center">
                             <input type="number" step="0.01" min="0" x-model.number="manualImporForm.out" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-12 outline-none rounded-[6px]">
@@ -138,37 +85,6 @@
                                 <option :value="abc.id" :selected="manualImporForm.klasifikasi_abc_id == abc.id" x-text="abc.nama + ' (+' + abc.tambahan_buffer_hari + ' Hari)'"></option>
                             </template>
                         </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Group 2b: Pivot Komposisi Baru (Excel P50 "Pivot 4") -->
-            <div class="space-y-3">
-                <h4 class="text-xs font-semibold text-[#101828] dark:text-white uppercase tracking-wider pb-1.5 border-b border-[#E8E8E8] dark:border-gray-800 flex items-center gap-1.5">
-                    <span>Pivot Komposisi Baru (opsional)</span>
-                </h4>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
-                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
-                        <label class="font-medium text-[#101828] dark:text-white block mb-1">Grup Pivot</label>
-                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">SKU dengan nama grup sama berbagi total out (mis. <span class="font-medium">P50 HS</span> untuk semua warna botol).</p>
-                        <input type="text" maxlength="50" x-model="manualImporForm.grup_pivot" placeholder="mis. P50 HS" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white text-[#101828] dark:text-white outline-none rounded-[6px]">
-                    </div>
-                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
-                        <label class="font-medium text-[#101828] dark:text-white block mb-1">% Komposisi Baru</label>
-                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">Porsi SKU ini pada komposisi baru grup. Kosongkan bila tidak ada.</p>
-                        <div class="relative flex items-center">
-                            <input type="number" step="0.01" min="0" max="100" x-model.number="manualImporForm.persentase_pivot" class="w-full px-3 py-2 text-xs border border-[#E8E8E8] dark:border-gray-700 bg-white dark:bg-gray-950 focus:border-[#111111] dark:focus:border-white tabular-nums font-medium text-[#101828] dark:text-white pr-8 outline-none rounded-[6px]">
-                            <span class="absolute right-3 text-[11px] text-[#667085] dark:text-gray-400 font-medium pointer-events-none">%</span>
-                        </div>
-                    </div>
-                    <div class="p-4 bg-white dark:bg-gray-900 rounded-[10px] border border-[#E8E8E8] dark:border-gray-800">
-                        <div class="font-medium text-[#101828] dark:text-white mb-1">ADU ETA</div>
-                        <p class="text-[11px] text-[#667085] dark:text-gray-400 mb-2.5">ADU Base + ADU Pivot × Lead Time ÷ 30</p>
-                        <div class="tabular-nums text-[#101828] dark:text-white">
-                            <div>ADU Pivot: <span class="font-medium" x-text="formatNumber(simulasiImporAduPivotRaw())"></span></div>
-                            <div>ADU ETA: <span class="font-medium" x-text="formatNumber(simulasiImporAduEtaRaw())"></span></div>
-                        </div>
-                        <p class="text-[10px] text-[#667085] dark:text-gray-400 mt-1" x-show="String(manualImporForm.grup_pivot || '').trim().toLowerCase() !== String(manualImporForm.grup_pivot_awal || '').trim().toLowerCase()">Grup baru: ADU Pivot dihitung saat disimpan.</p>
                     </div>
                 </div>
             </div>

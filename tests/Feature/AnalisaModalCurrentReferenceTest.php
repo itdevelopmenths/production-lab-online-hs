@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\AnalisaLokal;
 use App\Models\AnalisaImpor;
 use App\Models\Gudang;
 use App\Models\Produk;
@@ -114,7 +113,9 @@ class AnalisaModalCurrentReferenceTest extends TestCase
         $response->assertSee('manualImporForm.current_hpp', false);
         $response->assertSee('manualImporForm.current_stok_aktual', false);
         $response->assertSee('manualImporForm.current_inbound', false);
-        $response->assertSee('manualImporForm.empirical_avg_lt', false);
+        // Lead time impor diatur per tahap di tab Lead Time; modal hanya menautkan ke sana.
+        $response->assertSee('Ubah di tab Lead Time', false);
+        $response->assertDontSee('manualImporForm.lead_time_average = manualImporForm.empirical_avg_lt', false);
     }
 
     public function test_modal_add_sku_and_stage_lead_time_render_reference_indicators(): void
