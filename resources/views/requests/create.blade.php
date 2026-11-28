@@ -9,20 +9,21 @@
         $initialItems = collect($rawItems)->values()->map(function($it, $idx) use ($productsById, $isFromBatchPrefill) {
             $prodId = $it['produk_id'] ?? '';
             $prod = !empty($prodId) ? $productsById->get($prodId) : null;
+            $preSelected = is_array($it['selectedItem'] ?? null) ? $it['selectedItem'] : null;
             return [
                 '_uid' => $idx + 1,
                 'produk_id' => $prodId,
                 'qty_diminta' => $it['qty_diminta'] ?? 1,
                 'keterangan' => $it['keterangan'] ?? '',
-                'satuan' => $prod?->satuan ?? '-',
+                'satuan' => $preSelected['satuan'] ?? $prod?->satuan ?? '-',
                 'fromBatch' => $isFromBatchPrefill,
-                'selectedItem' => $prod ? [
+                'selectedItem' => $preSelected ?? ($prod ? [
                     'id' => $prod->id,
                     'sku' => $prod->sku,
                     'nama' => $prod->nama,
                     'satuan' => $prod->satuan,
                     'tipe' => $prod->tipe,
-                ] : null,
+                ] : null),
             ];
         })->values()->toArray();
     @endphp

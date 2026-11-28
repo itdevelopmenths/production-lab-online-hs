@@ -168,7 +168,35 @@ class RequestController extends Controller
         $defaultBatchTujuanId = $gudangPusat?->id ? (string) $gudangPusat->id : '';
 
         $productsById = $produk->keyBy('id');
-        $batchBahanById = $activeBatches->flatMap->alokasi->pluck('bahan')->filter()->keyBy('id');
+
+        $batch = null;
+        $defaultGudangPemohonId = null;
+        $defaultGudangTujuanId = null;
+        $rawPrefilledItems = [];
+
+        if ($request->filled('batch_id')) {
+            $batch = $activeBatches->firstWhere('id', (int) $request->batch_id)
+                ?? BatchProduksi::with(['alokasi.bahan', 'gudangOperasional', 'outputs.produk'])->find($request->batch_id);
+            if ($batch) {
+                $defaultGudangPemohonId = $batch->gudang_operasional_id;
+                $defaultGudangTujuanId = $gudangPusat?->id;
+                $rawPrefilledItems = $this->buildBatchPrefillItems($batch);
+            }
+        }
+
+        $rawBatchItems = [];
+        foreach ($activeBatches as $ab) {
+            $rawBatchItems[(string) $ab->id] = $this->buildBatchPrefillItems($ab);
+        }
+
+        // Bahan batch bisa non-aktif / di luar tipe yang diizinkan sehingga tidak ada di $produk.
+        // Ambil langsung dari DB agar baris prefill tetap terisi (bukan dropdown kosong).
+        $prefillIds = collect($rawBatchItems)->flatten(1)->pluck('produk_id')
+            ->merge(collect($rawPrefilledItems)->pluck('produk_id'))
+            ->filter()->unique()->values();
+        $fallbackById = $prefillIds->isEmpty()
+            ? collect()
+            : Produk::whereIn('id', $prefillIds)->get(['id', 'sku', 'nama', 'satuan', 'tipe'])->keyBy('id');
 
         $batchPrefills = [];
         foreach ($activeBatches as $ab) {
@@ -177,28 +205,11 @@ class RequestController extends Controller
                 'no_batch' => $ab->no_batch,
                 'gudang_pemohon_id' => $ab->gudang_operasional_id ? (string) $ab->gudang_operasional_id : '',
                 'gudang_tujuan_id' => $defaultBatchTujuanId,
-                'items' => $this->hydratePrefillItems(
-                    $this->buildBatchPrefillItems($ab),
-                    $productsById,
-                    $batchBahanById
-                ),
+                'items' => $this->hydratePrefillItems($rawBatchItems[(string) $ab->id], $productsById, $fallbackById),
             ];
         }
 
-        $batch = null;
-        $defaultGudangPemohonId = null;
-        $defaultGudangTujuanId = null;
-        $prefilledItems = [];
-
-        if ($request->filled('batch_id')) {
-            $batch = $activeBatches->firstWhere('id', (int) $request->batch_id)
-                ?? BatchProduksi::with(['alokasi.bahan', 'gudangOperasional', 'outputs.produk'])->find($request->batch_id);
-            if ($batch) {
-                $defaultGudangPemohonId = $batch->gudang_operasional_id;
-                $defaultGudangTujuanId = $gudangPusat?->id;
-                $prefilledItems = $this->buildBatchPrefillItems($batch);
-            }
-        }
+        $prefilledItems = $this->hydratePrefillItems($rawPrefilledItems, $productsById, $fallbackById);
 
         return view('requests.create', compact(
             'gudang',
