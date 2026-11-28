@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\AnalisaFulfillmentInput;
 use App\Models\AnalisaImpor;
 use App\Models\AnalisaImporMeta;
-use App\Models\AnalisaImporVarian;
 use App\Models\AnalisaLokal;
 use App\Models\AnalisaLokalInput;
+use App\Models\AnalisaSetting;
 use App\Models\Gudang;
 use App\Models\KlasifikasiAbc;
 use App\Models\LeadTimeImpor;
@@ -26,8 +26,11 @@ use App\Services\Purchasing\PurchasingCostCalculator;
 use App\Services\Purchasing\PurchasingPaymentService;
 use App\Services\Purchasing\PurchasingStageService;
 use App\Services\StokService;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -41,8 +44,7 @@ class AnalisaController extends Controller
         private readonly PurchasingPaymentService $paymentService,
         private readonly PurchasingStageService $stageService,
         private readonly StokService $stok
-    ) {
-    }
+    ) {}
 
     /** Sub menu Analisa Stok (sidebar) -> tab halaman analisa. */
     public const TABS = [
@@ -84,28 +86,28 @@ class AnalisaController extends Controller
                 $q->select('id', 'sku', 'nama', 'satuan', 'faktor_konversi', 'satuan_order_moq', 'harga_hpp', 'supplier_id')
                     ->with('supplier:id,nama,kategori');
             },
-            'generator:id,name'
+            'generator:id,name',
         ])->whereIn('produk_id', $lokalIds)->get();
         $analisa = empty($lokalIds) ? collect() : AnalisaLokal::with([
             'produk' => function ($q) {
                 $q->select('id', 'sku', 'nama', 'satuan', 'supplier_id')->with('supplier:id,nama,kategori');
             },
             'supplierTerpilih:id,nama,kategori',
-            'generator:id,name'
+            'generator:id,name',
         ])->whereIn('produk_id', $lokalIds)->get()->keyBy('produk_id');
         $leadTime = empty($lokalIds) ? collect() : LeadTimeLokal::with([
             'produk' => function ($q) {
                 $q->select('id', 'sku', 'nama', 'satuan', 'supplier_id')->with('supplier:id,nama,kategori');
-            }
+            },
         ])->whereIn('produk_id', $lokalIds)->get()->keyBy('produk_id');
         $stages = empty($lokalIds) ? collect() : LeadTimeLokalStage::with([
             'produk' => function ($q) {
                 $q->select('id', 'sku', 'nama', 'satuan', 'supplier_id')->with('supplier:id,nama,kategori');
-            }
+            },
         ])->whereIn('produk_id', $lokalIds)->get()->groupBy('produk_id');
         $empiricalStageSummaries = SupplierProdukLtStageSummary::where('jumlah_transaksi', '>=', 1)
             ->get()
-            ->groupBy(fn ($row) => $row->supplier_id . ':' . $row->produk_id);
+            ->groupBy(fn ($row) => $row->supplier_id.':'.$row->produk_id);
         $lastGenerated = AnalisaLokal::latest('generated_at')->with('generator:id,name')->first();
 
         $actualStockMap = empty($lokalIds) ? collect() : Stok::whereIn('produk_id', $lokalIds)
@@ -181,7 +183,7 @@ class AnalisaController extends Controller
 
             $manualRows = $stages->get($prodId) ?? collect();
             $empiricalRows = $activeSupplierId
-                ? ($empiricalStageSummaries->get($activeSupplierId . ':' . $prodId) ?? collect())
+                ? ($empiricalStageSummaries->get($activeSupplierId.':'.$prodId) ?? collect())
                 : collect();
 
             $resolvedStages = $this->analisa->resolveLokalStageBreakdown($manualRows, $empiricalRows);
@@ -502,9 +504,7 @@ class AnalisaController extends Controller
             'produk_id' => ['required', 'exists:produk,id'],
             'lead_time_average' => ['nullable', 'numeric', 'min:0'],
             'lead_time_max' => ['nullable', 'numeric', 'min:0'],
-            // Out/ADU impor otomatis dari permintaan bahan baku Gudang Produksi (4 bulan); tidak diinput manual.
-            'periode_mulai' => ['nullable', 'date'],
-            'periode_akhir' => ['nullable', 'date'],
+            // Out/ADU impor otomatis dari permintaan bahan baku Gudang Produksi; periode diatur global (updateImporPeriode).
             'review_period' => ['nullable', 'integer', 'min:1'],
             'klasifikasi_abc' => ['nullable', 'string'],
             'klasifikasi_abc_id' => ['nullable', 'exists:klasifikasi_abc,id'],
@@ -553,15 +553,6 @@ class AnalisaController extends Controller
 
             // Update Analisa Impor
             $ai = AnalisaImpor::firstOrNew(['produk_id' => $prodId]);
-            if (array_key_exists('periode_mulai', $data) && $data['periode_mulai'] !== null) {
-                $ai->periode_mulai = $data['periode_mulai'];
-            }
-            if (array_key_exists('periode_akhir', $data) && $data['periode_akhir'] !== null) {
-                $ai->periode_akhir = $data['periode_akhir'];
-            }
-            if (! empty($data['periode_mulai']) && ! empty($data['periode_akhir'])) {
-                $ai->jumlah_hari_periode = \Carbon\Carbon::parse($data['periode_mulai'])->diffInDays(\Carbon\Carbon::parse($data['periode_akhir'])) + 1;
-            }
             if (array_key_exists('review_period', $data) && $data['review_period'] !== null) {
                 $ai->review_period = (int) $data['review_period'];
             }
@@ -616,9 +607,6 @@ class AnalisaController extends Controller
             // Jika produk memiliki varian di AnalisaImporMeta, sinkronkan juga ke meta
             $meta = AnalisaImporMeta::where('produk_id', $prodId)->first();
             if ($meta) {
-                if (isset($data['periode_mulai'])) $meta->periode_mulai = $data['periode_mulai'];
-                if (isset($data['periode_akhir'])) $meta->periode_akhir = $data['periode_akhir'];
-                if ($ai->jumlah_hari_periode) $meta->jumlah_hari_periode = $ai->jumlah_hari_periode;
                 if ($abcExplicitlyChanged) {
                     $meta->klasifikasi_abc_id = $ai->klasifikasi_abc_id;
                     $meta->klasifikasi_abc = $ai->klasifikasi_abc;
@@ -626,10 +614,18 @@ class AnalisaController extends Controller
                     $meta->klasifikasi_abc_id = $ai->klasifikasi_abc_id;
                     $meta->klasifikasi_abc = $ai->klasifikasi_abc;
                 }
-                if (isset($data['harga_per_satuan'])) $meta->harga_per_satuan = round((float) $data['harga_per_satuan'], 2);
-                if (isset($data['review_period'])) $meta->review_period = $data['review_period'];
-                if (isset($data['lead_time_average'])) $meta->lead_time_average = $data['lead_time_average'];
-                if (isset($data['lead_time_max'])) $meta->lead_time_max = $data['lead_time_max'];
+                if (isset($data['harga_per_satuan'])) {
+                    $meta->harga_per_satuan = round((float) $data['harga_per_satuan'], 2);
+                }
+                if (isset($data['review_period'])) {
+                    $meta->review_period = $data['review_period'];
+                }
+                if (isset($data['lead_time_average'])) {
+                    $meta->lead_time_average = $data['lead_time_average'];
+                }
+                if (isset($data['lead_time_max'])) {
+                    $meta->lead_time_max = $data['lead_time_max'];
+                }
                 $meta->save();
             }
 
@@ -641,6 +637,51 @@ class AnalisaController extends Controller
             'success' => true,
             'message' => 'Data input manual bahan impor berhasil disimpan & analisa dihitung ulang.',
         ]);
+    }
+
+    /**
+     * Atur periode OUT global untuk seluruh SKU impor (kosongkan keduanya = jendela 4 bulan terakhir).
+     */
+    public function updateImporPeriode(Request $request): JsonResponse
+    {
+        $this->authorize('analisa.manage');
+
+        $data = $request->validate([
+            'periode_mulai' => ['nullable', 'date', 'required_with:periode_akhir'],
+            'periode_akhir' => ['nullable', 'date', 'required_with:periode_mulai', 'after_or_equal:periode_mulai'],
+        ], [
+            'periode_mulai.required_with' => 'Periode mulai wajib diisi bersama periode akhir.',
+            'periode_akhir.required_with' => 'Periode akhir wajib diisi bersama periode mulai.',
+            'periode_akhir.after_or_equal' => 'Periode akhir tidak boleh sebelum periode mulai.',
+        ]);
+
+        $mulai = ! empty($data['periode_mulai']) ? Carbon::parse($data['periode_mulai'])->toDateString() : null;
+        $akhir = ! empty($data['periode_akhir']) ? Carbon::parse($data['periode_akhir'])->toDateString() : null;
+
+        DB::transaction(function () use ($mulai, $akhir) {
+            AnalisaSetting::setValue(AnalisaService::SETTING_IMPOR_PERIODE_MULAI, $mulai);
+            AnalisaSetting::setValue(AnalisaService::SETTING_IMPOR_PERIODE_AKHIR, $akhir);
+            $this->analisa->generateImpor(null, auth()->id());
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => $mulai ? 'Periode OUT impor diperbarui & analisa dihitung ulang.' : 'Periode OUT impor dikembalikan ke 4 bulan terakhir.',
+            'periode' => $this->imporPeriodeMeta(),
+        ]);
+    }
+
+    /** @return array{mulai: string, akhir: string, jumlah_hari: int, custom: bool} */
+    private function imporPeriodeMeta(): array
+    {
+        $w = $this->analisa->imporWindow();
+
+        return [
+            'mulai' => $w['start']->toDateString(),
+            'akhir' => $w['end']->toDateString(),
+            'jumlah_hari' => $w['days'],
+            'custom' => $w['custom'],
+        ];
     }
 
     public function imporData(): JsonResponse
@@ -660,7 +701,7 @@ class AnalisaController extends Controller
             },
             'supplierTerpilih:id,nama,kategori',
             'klasifikasiAbc',
-            'generator:id,name'
+            'generator:id,name',
         ])->whereIn('produk_id', $imporIds)->get();
         $ltMap = LeadTimeImpor::all()->keyBy('produk_id');
         $lastGenerated = $imporList->sortByDesc('generated_at')->first();
@@ -753,6 +794,7 @@ class AnalisaController extends Controller
                 'analisa' => $supplierAduRows,
             ],
             'meta' => [
+                'periode' => $this->imporPeriodeMeta(),
                 'last_generated_at' => $lastGenerated?->generated_at?->format('d/m/Y H:i'),
                 'last_generated_by' => $lastGenerated?->generator?->name ?? 'Sistem',
             ],
@@ -955,7 +997,7 @@ class AnalisaController extends Controller
         $bulan = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $bulanQuery)
             ? $bulanQuery
             : ($bulanList[0]['key'] ?? now()->format('Y-m'));
-        $awal = \Carbon\Carbon::createFromFormat('Y-m-d', $bulan.'-01')->startOfMonth();
+        $awal = Carbon::createFromFormat('Y-m-d', $bulan.'-01')->startOfMonth();
         $bulanBerikut = $awal->copy()->addMonthNoOverflow()->startOfMonth();
 
         // Batas setengah-terbuka: kolom date bisa tersimpan 'Y-m-d H:i:s' di SQLite.
@@ -1039,14 +1081,14 @@ class AnalisaController extends Controller
             }
         }
 
-        \Illuminate\Support\Facades\Cache::lock("analisa:hitung-ulang:{$tipe}", 120)->get(function () use ($tipe) {
+        Cache::lock("analisa:hitung-ulang:{$tipe}", 120)->get(function () use ($tipe) {
             $tipe === 'impor'
                 ? $this->analisa->generateImpor(null, auth()->id())
                 : $this->analisa->generateLokal(null, auth()->id());
         });
     }
 
-    private function labelBulan(\Carbon\CarbonInterface $tanggal): string
+    private function labelBulan(CarbonInterface $tanggal): string
     {
         $nama = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -1161,7 +1203,7 @@ class AnalisaController extends Controller
                     $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
                         ->with('supplier:id,nama');
                 }])->whereIn('produk_id', empty($lokalEligibleIds) ? [-1] : $lokalEligibleIds)
-                  ->whereIn('produk_id', $ids)->get();
+                    ->whereIn('produk_id', $ids)->get();
             }
 
             // Susun item awal untuk form Alpine.js
@@ -1207,7 +1249,7 @@ class AnalisaController extends Controller
                 $q->select('id', 'sku', 'nama', 'satuan', 'satuan_order_moq', 'faktor_konversi', 'harga_hpp', 'supplier_id')
                     ->with('supplier:id,nama');
             }, 'supplierTerpilih:id,nama'])
-            ->whereIn('produk_id', empty($imporEligibleIds) ? [-1] : $imporEligibleIds);
+                ->whereIn('produk_id', empty($imporEligibleIds) ? [-1] : $imporEligibleIds);
 
             if (! empty($ids)) {
                 $imporQuery->where(function ($q) use ($ids) {
@@ -1231,7 +1273,9 @@ class AnalisaController extends Controller
                 $hargaSatuan = (float) $ai->harga_per_satuan;
 
                 $qty = (float) ($ai->po ?: $ai->qty_order);
-                if ($qty <= 0) continue;
+                if ($qty <= 0) {
+                    continue;
+                }
                 $hargaTotal = (float) $ai->total_nominal_order;
                 if ($hargaTotal <= 0 && $qty > 0 && $hargaSatuan > 0) {
                     $hargaTotal = round($qty * $hargaSatuan);
@@ -1315,18 +1359,18 @@ class AnalisaController extends Controller
             ->where(function ($query) use ($supplierId) {
                 $query->whereDoesntHave('suppliers', function ($q) use ($supplierId) {
                     $q->where('supplier.id', $supplierId)
-                      ->where('produk_supplier.status', 'aktif');
+                        ->where('produk_supplier.status', 'aktif');
                 })
-                ->where(function ($q) use ($supplierId) {
-                    $q->whereNull('supplier_id')
-                      ->orWhere('supplier_id', '!=', $supplierId);
-                });
+                    ->where(function ($q) use ($supplierId) {
+                        $q->whereNull('supplier_id')
+                            ->orWhere('supplier_id', '!=', $supplierId);
+                    });
             })
             ->pluck('nama');
 
         if ($invalidProdukNames->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'items' => 'Item produk berikut tidak terdaftar aktif pada supplier yang dipilih: ' . $invalidProdukNames->implode(', ') . '.',
+                'items' => 'Item produk berikut tidak terdaftar aktif pada supplier yang dipilih: '.$invalidProdukNames->implode(', ').'.',
             ]);
         }
 
@@ -1387,7 +1431,7 @@ class AnalisaController extends Controller
         $year = now()->year;
         $prefix = "PO-{$year}-";
 
-        $last = PurchaseOrder::where('no_po', 'like', $prefix . '%')
+        $last = PurchaseOrder::where('no_po', 'like', $prefix.'%')
             ->orderByDesc('no_po')
             ->value('no_po');
 
@@ -1411,7 +1455,7 @@ class AnalisaController extends Controller
         $month = now()->format('m');
         $prefix = "INV/PO/{$year}{$month}/";
 
-        $last = PurchaseOrder::where('no_invoice', 'like', $prefix . '%')
+        $last = PurchaseOrder::where('no_invoice', 'like', $prefix.'%')
             ->orderByDesc('no_invoice')
             ->value('no_invoice');
 

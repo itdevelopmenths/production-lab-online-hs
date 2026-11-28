@@ -30,7 +30,7 @@ class AnalisaImporAduEtaTest extends TestCase
     private function botol(string $sku): Produk
     {
         return Produk::create([
-            'sku' => $sku, 'nama' => 'Botol P50 ' . $sku, 'tipe' => 'kemas', 'satuan' => 'pcs',
+            'sku' => $sku, 'nama' => 'Botol P50 '.$sku, 'tipe' => 'kemas', 'satuan' => 'pcs',
             'satuan_order_moq' => 108, 'profil_analisa' => 'impor',
         ]);
     }

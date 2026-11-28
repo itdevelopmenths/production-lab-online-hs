@@ -31,6 +31,19 @@ class DemandAduService
     {
         $end = Carbon::instance(($end ?? now()))->endOfDay();
         $start = $end->copy()->subMonths(self::WINDOW_MONTHS)->startOfDay();
+
+        return $this->windowBetween($start, $end);
+    }
+
+    /**
+     * Jendela dengan batas tanggal eksplisit (inklusif). Jumlah hari = selisih tanggal + 1.
+     *
+     * @return array{start: Carbon, end: Carbon, days: int}
+     */
+    public function windowBetween(CarbonInterface $start, CarbonInterface $end): array
+    {
+        $start = Carbon::instance($start)->startOfDay();
+        $end = Carbon::instance($end)->endOfDay();
         $days = Carbon::parse($start->toDateString())->diffInDays(Carbon::parse($end->toDateString())) + 1;
 
         return ['start' => $start, 'end' => $end, 'days' => max(1, (int) $days)];
@@ -45,11 +58,12 @@ class DemandAduService
      *  - adu_lokal : (total ÷ 4 bulan) ÷ 30 (dipakai Analisa Lokal, sesuai Excel "Terjual rata-rata ÷ 30").
      *
      * @param  array<int, int>|null  $produkIds  null = semua produk
+     * @param  array{start: Carbon, end: Carbon, days: int}|null  $window  jendela eksplisit (mis. periode impor); null = jendela 4 bulan
      * @return array<int, array{total: float, adu: float, adu_lokal: float, sumber: string}>
      */
-    public function aduBahanPusat(?array $produkIds = null, ?CarbonInterface $end = null): array
+    public function aduBahanPusat(?array $produkIds = null, ?CarbonInterface $end = null, ?array $window = null): array
     {
-        $w = $this->window($end);
+        $w = $window ?? $this->window($end);
         $out = [];
         $hariLokal = self::WINDOW_MONTHS * self::HARI_PER_BULAN_LOKAL;
 

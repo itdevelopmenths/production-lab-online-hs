@@ -7,6 +7,8 @@ use App\Models\AnalisaImpor;
 use App\Models\AnalisaImporMeta;
 use App\Models\AnalisaLokal;
 use App\Models\AnalisaLokalInput;
+use App\Models\AnalisaSetting;
+use App\Models\Gudang;
 use App\Models\KlasifikasiAbc;
 use App\Models\LeadTimeImpor;
 use App\Models\LeadTimeLokal;
@@ -21,6 +23,7 @@ use App\Models\Stok;
 use App\Models\Supplier;
 use App\Models\SupplierProdukLtStageSummary;
 use App\Models\SupplierProdukLtSummary;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -90,8 +93,8 @@ class AnalisaService
 
         if (! $supplierId) {
             $existingAnalisa = AnalisaLokal::where('produk_id', $produkId)->first();
-            $supplierId = $existingAnalisa?->supplier_terpilih_id 
-                ?? $produk->supplier_id 
+            $supplierId = $existingAnalisa?->supplier_terpilih_id
+                ?? $produk->supplier_id
                 ?? $produk->activeSuppliers->first()?->id;
         }
 
@@ -247,6 +250,7 @@ class AnalisaService
                 if ($imporIds->has($p->id)) {
                     $this->generateImpor($p->id, $userId);
                 }
+
                 continue;
             }
 
@@ -274,8 +278,8 @@ class AnalisaService
 
         if (! $supplierId) {
             $existingAnalisa = AnalisaImpor::where('produk_id', $produkId)->first();
-            $supplierId = $existingAnalisa?->supplier_terpilih_id 
-                ?? $produk->supplier_id 
+            $supplierId = $existingAnalisa?->supplier_terpilih_id
+                ?? $produk->supplier_id
                 ?? $produk->activeSuppliers->first()?->id;
         }
 
@@ -341,7 +345,7 @@ class AnalisaService
             $pid = (int) $pr->produk_id;
             $sid = (int) $pr->supplier_id;
             $st = (string) ($pr->status ?: 'aktif');
-            $pivotStatusMap[$pid . ':' . $sid] = $st;
+            $pivotStatusMap[$pid.':'.$sid] = $st;
             if ($st !== 'nonaktif') {
                 $activePivotByProduk[$pid][$sid] = $st;
             }
@@ -349,7 +353,7 @@ class AnalisaService
 
         // 2. Ringkasan empiris LT per supplier-produk (semua supplier yang punya transaksi)
         $ltSummaries = SupplierProdukLtSummary::whereIn('produk_id', $ids)->get();
-        $ltSummaryMap = $ltSummaries->keyBy(fn ($row) => ((int) $row->supplier_id) . ':' . ((int) $row->produk_id));
+        $ltSummaryMap = $ltSummaries->keyBy(fn ($row) => ((int) $row->supplier_id).':'.((int) $row->produk_id));
 
         $historySuppliersByProduk = [];
         foreach ($ltSummaries as $row) {
@@ -382,7 +386,7 @@ class AnalisaService
             $collected = [];
 
             if ($selectedSid) {
-                $collected[$selectedSid] = $pivotStatusMap[$pid . ':' . $selectedSid] ?? 'aktif';
+                $collected[$selectedSid] = $pivotStatusMap[$pid.':'.$selectedSid] ?? 'aktif';
             }
 
             foreach (($activePivotByProduk[$pid] ?? []) as $sid => $st) {
@@ -392,7 +396,7 @@ class AnalisaService
             }
 
             if ($primarySid && ! isset($collected[$primarySid])) {
-                $primaryPivotStatus = $pivotStatusMap[$pid . ':' . $primarySid] ?? null;
+                $primaryPivotStatus = $pivotStatusMap[$pid.':'.$primarySid] ?? null;
                 if ($primaryPivotStatus !== 'nonaktif') {
                     $collected[$primarySid] = $primaryPivotStatus ?? 'aktif';
                 }
@@ -400,7 +404,7 @@ class AnalisaService
 
             foreach (($historySuppliersByProduk[$pid] ?? []) as $sid => $_) {
                 if (! isset($collected[$sid])) {
-                    $collected[$sid] = $pivotStatusMap[$pid . ':' . $sid] ?? 'riwayat_po';
+                    $collected[$sid] = $pivotStatusMap[$pid.':'.$sid] ?? 'riwayat_po';
                 }
             }
 
@@ -529,7 +533,7 @@ class AnalisaService
             $supplierEntries = $byProduk[$pid] ?? [];
             foreach ($supplierEntries as $entry) {
                 $sid = $entry['supplier_id'];
-                $summary = $sid ? $ltSummaries->get($sid . ':' . $pid) : null;
+                $summary = $sid ? $ltSummaries->get($sid.':'.$pid) : null;
                 $trxCount = $summary ? (int) ($summary->jumlah_transaksi ?? 0) : 0;
 
                 if ($summary && $trxCount >= 1) {
@@ -547,7 +551,7 @@ class AnalisaService
                 $targetStock = round($aduRaw * ($avgLt + $safetyStock + $reviewPeriod));
 
                 $rows[] = [
-                    'row_key' => $pid . '_' . ($sid ?? 'none'),
+                    'row_key' => $pid.'_'.($sid ?? 'none'),
                     'id' => $rek->id,
                     'produk_id' => $pid,
                     'sku' => $rek->produk?->sku,
@@ -648,7 +652,7 @@ class AnalisaService
             $supplierEntries = $byProduk[$pid] ?? [];
             foreach ($supplierEntries as $entry) {
                 $sid = $entry['supplier_id'];
-                $summary = $sid ? $ltSummaries->get($sid . ':' . $pid) : null;
+                $summary = $sid ? $ltSummaries->get($sid.':'.$pid) : null;
                 $trxCount = $summary ? (int) ($summary->jumlah_transaksi ?? 0) : 0;
 
                 if ($summary && $trxCount >= 1) {
@@ -669,7 +673,7 @@ class AnalisaService
                 $targetStock = (int) floor($aduEtaSupplier * ($avgLt + $bufferDays + $reviewPeriod) + 0.0001);
 
                 $rows[] = [
-                    'row_key' => $pid . '_' . ($sid ?? 'none'),
+                    'row_key' => $pid.'_'.($sid ?? 'none'),
                     'id' => (string) $ai->id,
                     'analisa_impor_id' => $ai->id,
                     'produk_id' => $pid,
@@ -764,7 +768,7 @@ class AnalisaService
         $result = [];
         foreach ($entries as $entry) {
             $sid = (int) $entry['supplier_id'];
-            $summary = $ltSummaries->get($sid . ':' . $produk->id);
+            $summary = $ltSummaries->get($sid.':'.$produk->id);
             $trxCount = $summary ? (int) ($summary->jumlah_transaksi ?? 0) : 0;
 
             if ($isImpor) {
@@ -876,7 +880,7 @@ class AnalisaService
      * 4. rekomendasi_order_lokal (working data: stok saat ini, akan datang, selisih, rumus moq, rekomendasi order dalam satuan beli, nominal)
      *
      * @param  int|null  $produkId  Jika null, generate untuk seluruh produk bahan lokal aktif
-     * @param  int|null  $userId    User ID pembuat generate
+     * @param  int|null  $userId  User ID pembuat generate
      * @return array{generated_count: int, timestamp: string, items: array}
      */
     /**
@@ -887,7 +891,7 @@ class AnalisaService
     public function stokGudangBahanBaku(int $produkId): float
     {
         return (float) Stok::where('produk_id', $produkId)
-            ->whereIn('gudang_id', \App\Models\Gudang::where('tipe', 'bahan_baku')->select('id'))
+            ->whereIn('gudang_id', Gudang::where('tipe', 'bahan_baku')->select('id'))
             ->sum('qty_saat_ini');
     }
 
@@ -898,7 +902,7 @@ class AnalisaService
      */
     public function akanDatangGudangBahanBaku(int $produkId): float
     {
-        $gudangBahanBaku = \App\Models\Gudang::where('tipe', 'bahan_baku')->select('id');
+        $gudangBahanBaku = Gudang::where('tipe', 'bahan_baku')->select('id');
 
         $po = (float) PurchaseOrderItem::where('produk_id', $produkId)
             ->whereHas('purchaseOrder', fn ($q) => $q->disetujuiBelumDiterima()
@@ -910,7 +914,7 @@ class AnalisaService
             ->join('transfers as t', 't.id', '=', 'ti.transfer_id')
             ->where('t.status', 'dikirim')
             ->where('ti.produk_id', $produkId)
-            ->whereIn('t.gudang_tujuan_id', \App\Models\Gudang::where('tipe', 'bahan_baku')->select('id'))
+            ->whereIn('t.gudang_tujuan_id', Gudang::where('tipe', 'bahan_baku')->select('id'))
             ->sum('ti.qty_dikirim');
 
         return $po + $transfer;
@@ -1157,14 +1161,14 @@ class AnalisaService
         $bufferDays = max(0, $ltMax - $ltAvg) + $meta->tambahanHariAbc();
 
         // Demand otomatis dari permintaan bahan baku Gudang Produksi (jendela 4 bulan)
-        $jumlahHari = $this->demand()->window()['days'];
-        $outTotal = (float) $this->pusatDemand((int) $meta->produk_id)['total'];
+        $jumlahHari = $this->imporWindow()['days'];
+        $outTotal = (float) $this->pusatDemandImpor((int) $meta->produk_id)['total'];
 
         $varianHasil = [];
         $totalQtyOrder = 0.0;
         $totalSelisih = 0.0;
 
-        $hasVarianTable = \Illuminate\Support\Facades\Schema::hasTable('analisa_impor_varian');
+        $hasVarianTable = Schema::hasTable('analisa_impor_varian');
         $varians = $hasVarianTable ? $meta->varian : collect();
 
         if ($varians->isNotEmpty()) {
@@ -1263,7 +1267,7 @@ class AnalisaService
      * 2. analisa_impor (working data: out, adu_base, adu_eta, buffer_days, safety_stock, minimum_stock, target_stock, proyeksi, qty_order, po, status, nominal, varian_detail)
      *
      * @param  int|null  $produkId  Jika null, generate untuk seluruh produk bahan impor
-     * @param  int|null  $userId    User ID pembuat generate
+     * @param  int|null  $userId  User ID pembuat generate
      * @return array{generated_count: int, timestamp: string, items: array}
      */
     /**
@@ -1343,13 +1347,13 @@ class AnalisaService
             ])->save();
 
             // 2. Data Out, Periode, & Harga
-            $demandImpor = $this->pusatDemand((int) $p->id);
+            $demandImpor = $this->pusatDemandImpor((int) $p->id);
             $out = (float) $demandImpor['total'];
             $harga = (float) ($existingAnalisa?->harga_per_satuan ?? $meta?->harga_per_satuan ?? $p->harga_hpp ?? 0);
             $moq = (float) ($p->satuan_order_moq ?: 1);
 
             // Jendela 4 bulan terakhir (otomatis); ADU = total permintaan / jumlah hari jendela
-            $win = $this->demand()->window();
+            $win = $this->imporWindow();
             $periodeMulai = $win['start']->toDateString();
             $periodeAkhir = $win['end']->toDateString();
             $jumlahHari = $win['days'];
@@ -1642,7 +1646,7 @@ class AnalisaService
     /**
      * Profil Produk Jadi (Fulfillment) — per gudang lalu agregasi level ALL.
      *
-     * @param  \Illuminate\Support\Collection<int,AnalisaFulfillmentInput>  $rows  baris per gudang untuk satu produk jadi
+     * @param  Collection<int,AnalisaFulfillmentInput>  $rows  baris per gudang untuk satu produk jadi
      * @return array<string,mixed>
      */
     public function fulfillment($rows, float $moq = 1, ?array $live = null, ?array $ltDistribusi = null): array
@@ -1723,7 +1727,7 @@ class AnalisaService
      * Hanya transfer berstatus dikirim/selesai yang dihitung. Satuan hari, 1 desimal half-up.
      *
      * @param  array<int, int>  $produkIds
-     * @return array<string, array{avg: float, max: float, count: int}>  key "produk_id_gudang_id"
+     * @return array<string, array{avg: float, max: float, count: int}> key "produk_id_gudang_id"
      */
     public function distribusiLeadTimeStats(array $produkIds): array
     {
@@ -1741,9 +1745,9 @@ class AnalisaService
             ->whereIn('ti.produk_id', $produkIds)
             ->get(['ti.produk_id', 't.gudang_tujuan_id', 'r.created_at', 't.waktu_dikirim']) as $row) {
             $menit = max(0, (int) round(
-                (\Carbon\Carbon::parse($row->waktu_dikirim)->timestamp - \Carbon\Carbon::parse($row->created_at)->timestamp) / 60
+                (Carbon::parse($row->waktu_dikirim)->timestamp - Carbon::parse($row->created_at)->timestamp) / 60
             ));
-            $perKey[(int) $row->produk_id . '_' . (int) $row->gudang_tujuan_id][] = $menit;
+            $perKey[(int) $row->produk_id.'_'.(int) $row->gudang_tujuan_id][] = $menit;
         }
 
         $out = [];
@@ -1834,7 +1838,7 @@ class AnalisaService
         }
 
         $add = function (array &$map, $produkId, $gudangId, $qty): void {
-            $key = (int) $produkId . '_' . (int) $gudangId;
+            $key = (int) $produkId.'_'.(int) $gudangId;
             $map[$key] = ($map[$key] ?? 0.0) + (float) $qty;
         };
 
@@ -1896,8 +1900,8 @@ class AnalisaService
         }
 
         $gudangIds = array_map(fn ($g) => (int) $g['gudang_id'], $gudangRows);
-        $validGudang = \App\Models\Gudang::whereIn('id', $gudangIds)
-            ->whereIn('tipe', \App\Models\Gudang::TIPE_FULFILLMENT)
+        $validGudang = Gudang::whereIn('id', $gudangIds)
+            ->whereIn('tipe', Gudang::TIPE_FULFILLMENT)
             ->pluck('id')->map(fn ($id) => (int) $id)->all();
         if (count(array_diff($gudangIds, $validGudang)) > 0) {
             throw ValidationException::withMessages(['gudang' => 'Gudang yang dipilih harus bertipe Fulfillment.']);
@@ -1934,6 +1938,43 @@ class AnalisaService
     public function pusatDemand(int $produkId): array
     {
         return $this->demand()->aduBahanPusat([$produkId])[$produkId] ?? ['total' => 0.0, 'adu' => 0.0];
+    }
+
+    /** Permintaan bahan impor dalam periode global impor (lihat imporWindow). */
+    public function pusatDemandImpor(int $produkId): array
+    {
+        $w = $this->imporWindow();
+
+        return $this->demand()->aduBahanPusat([$produkId], null, $w)[$produkId] ?? ['total' => 0.0, 'adu' => 0.0];
+    }
+
+    public const SETTING_IMPOR_PERIODE_MULAI = 'impor_periode_mulai';
+
+    public const SETTING_IMPOR_PERIODE_AKHIR = 'impor_periode_akhir';
+
+    /**
+     * Periode OUT global impor: dari pengaturan bila keduanya valid, selain itu jendela 4 bulan terakhir.
+     *
+     * @return array{start: Carbon, end: Carbon, days: int, custom: bool}
+     */
+    public function imporWindow(): array
+    {
+        $mulai = AnalisaSetting::getValue(self::SETTING_IMPOR_PERIODE_MULAI);
+        $akhir = AnalisaSetting::getValue(self::SETTING_IMPOR_PERIODE_AKHIR);
+
+        if ($mulai && $akhir) {
+            try {
+                $start = Carbon::parse($mulai);
+                $end = Carbon::parse($akhir);
+                if ($end->gte($start)) {
+                    return $this->demand()->windowBetween($start, $end) + ['custom' => true];
+                }
+            } catch (\Throwable) {
+                // nilai rusak -> jatuh ke default
+            }
+        }
+
+        return $this->demand()->window() + ['custom' => false];
     }
 
     private function pusatAdu(int $produkId): float
@@ -2025,7 +2066,7 @@ class AnalisaService
             'by_product' => $byProduct,
             'by_product_gudang' => $byProductGudang,
             // Batas minimum bahan (lokal/impor) hanya berlaku untuk Gudang Pusat (bahan baku).
-            'pusat_gudang_ids' => \App\Models\Gudang::query()->where('tipe', 'bahan_baku')->pluck('id')->map(fn ($id) => (int) $id)->all(),
+            'pusat_gudang_ids' => Gudang::query()->where('tipe', 'bahan_baku')->pluck('id')->map(fn ($id) => (int) $id)->all(),
         ];
     }
 
@@ -2079,7 +2120,7 @@ class AnalisaService
 
         $perProduk = [];
         foreach ($rows as $r) {
-            $menit = max(0, (int) round((\Carbon\Carbon::parse($r->waktu_selesai)->timestamp - \Carbon\Carbon::parse($r->created_at)->timestamp) / 60));
+            $menit = max(0, (int) round((Carbon::parse($r->waktu_selesai)->timestamp - Carbon::parse($r->created_at)->timestamp) / 60));
             $perProduk[(int) $r->produk_id][] = $menit;
         }
 
@@ -2100,7 +2141,7 @@ class AnalisaService
      * fallback gudang operasional aktif pertama.
      *
      * @param  array<int, int>  $produkIds
-     * @return array<int, int>  produk_id => gudang_id
+     * @return array<int, int> produk_id => gudang_id
      */
     private function gudangProduksiMap(array $produkIds): array
     {
@@ -2121,7 +2162,7 @@ class AnalisaService
             }
         }
 
-        $default = \App\Models\Gudang::active()->where('tipe', 'operasional')->orderBy('id')->value('id');
+        $default = Gudang::active()->where('tipe', 'operasional')->orderBy('id')->value('id');
         foreach ($produkIds as $pid) {
             if (! isset($map[$pid]) && $default) {
                 $map[$pid] = (int) $default;
@@ -2168,7 +2209,7 @@ class AnalisaService
         $gudangIds = array_values(array_unique(array_map(fn ($d) => (int) $d['gudang_id'], $demand)));
 
         $produkMap = Produk::whereIn('id', $produkIds)->get()->keyBy('id');
-        $gudangMap = \App\Models\Gudang::whereIn('id', $gudangIds)->get()->keyBy('id');
+        $gudangMap = Gudang::whereIn('id', $gudangIds)->get()->keyBy('id');
         $ltStats = $this->batchLeadTimeStats($produkIds);
 
         $stokMap = [];
